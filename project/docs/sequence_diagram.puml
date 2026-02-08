@@ -1,0 +1,74 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign left
+skinparam ParticipantPadding 20
+skinparam BoxPadding 10
+
+title Vue Runtime Détaillée - Gestion Exécution & Anomalies
+
+actor ":Tester" as user
+participant "Interface Exécution" as ui <<IHM>>
+participant "Execution Manager" as manager <<Gestionnaire>>
+participant "Test" as test <<Entité>>
+participant "Anomalie" as bug <<Entité>>
+
+' Styling pour ressembler à l'exemple
+skinparam participant {
+    BackgroundColor<<IHM>> #E6E6FA
+    BorderColor<<IHM>> #708090
+    BackgroundColor<<Gestionnaire>> #E6E6FA
+    BorderColor<<Gestionnaire>> #708090
+    BackgroundColor<<Entité>> #FFFFFF
+    BorderColor<<Entité>> #708090
+}
+
+== Déclenchement de l'Exécution ==
+
+user -> ui : saisirResultat(FAILED)
+activate ui
+
+ui -> manager : updateTestStatus(testId, FAILED)
+activate manager
+
+manager -> test : setStatus(FAILED)
+activate test
+test --> manager : confirmation
+deactivate test
+
+manager --> ui : retour succès
+deactivate manager
+
+ui --> user : affichage mise à jour
+deactivate ui
+
+== Signalement d'Anomalie ==
+
+user -> ui : signalerAnomalie(titre, desc)
+activate ui
+
+ui -> manager : createBugReport(data)
+activate manager
+
+manager -> bug : create(titre, desc, severity)
+activate bug
+bug --> manager : bugInstance
+deactivate bug
+
+manager -> test : linkBug(bugInstance)
+activate test
+test --> manager : confirmation
+deactivate test
+
+manager --> ui : retour ticket créé
+deactivate manager
+
+ui --> user : notification succès "Anomalie créée"
+deactivate ui
+
+note right of user
+  Système de gestion de tests pour
+  la traçabilité complète des exécutions
+  et des anomalies détectées.
+end note
+
+@enduml

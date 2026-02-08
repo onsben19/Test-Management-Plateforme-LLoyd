@@ -1,0 +1,89 @@
+@startuml
+autonumber
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+
+title Diagramme de Séquence Global : React SPA <=> Django API
+
+actor "Utilisateur" as User
+participant "Front-End React\n(Navigateur / SPA)" as React <<Client>>
+participant "Back-End Django\n(Serveur API)" as Django <<Server>>
+participant "PostgreSQL\n(Base de Données)" as DB <<Database>>
+
+group #LightBlue Authentification (JWT)
+    User -> React: Saisir Login/Password
+    React -> Django: POST /api/login/ {username, password}
+    activate Django
+    Django -> DB: Vérifier utilisateur
+    activate DB
+    DB --> Django: OK
+    deactivate DB
+    Django --> React: 200 OK + {access, refresh}
+    deactivate Django
+    React -> React: Stocker JWT (ex: localStorage)
+    React --> User: Redirection vers Dashboard
+end
+
+group #LightCyan Gestion de Projet (Manager)
+    User -> React: Clic "Créer Projet"
+    React -> React: Afficher Formulaire Modal
+    User -> React: Submit "Assurance Auto 2026"
+    
+    React -> Django: POST /api/projects/ (Authorization: Bearer Token)
+    activate Django
+    note right of React: Payload JSON:\n{ "name": "Assurance Auto 2026", ... }
+    
+    Django -> DB: INSERT INTO core_project...
+    activate DB
+    DB --> Django: ID: 45
+    deactivate DB
+    
+    Django --> React: 201 Created + JSON Project
+    deactivate Django
+    React -> React: Mettre à jour la liste (State)
+    React --> User: Notification "Projet créé !"
+end
+
+group #LightGreen Import & Campagnes (Manager)
+    User -> React: Upload fichier Excel (Référentiel)
+    React -> Django: POST /api/campaigns/ (multipart/form-data)
+    activate Django
+    Django -> Django: Lire Excel & Créer Objets
+    Django -> DB: Transaction Atomique (Campaign + TestCases)
+    activate DB
+    DB --> Django: Commit OK
+    deactivate DB
+    Django --> React: 201 Created
+    deactivate Django
+    React --> User: "Import terminé avec succès"
+end
+
+group #LightPink Exécution & Anomalies (Tester)
+    User -> React: Ouvre "Mes Tâches"
+    React -> Django: GET /api/campaigns/tasks/?tester=me
+    activate Django
+    Django -> DB: SELECT * FROM tasks WHERE user_id=...
+    activate DB
+    DB --> Django: Rows
+    deactivate DB
+    Django --> React: 200 OK + JSON [Tasks List]
+    deactivate Django
+    React -> React: Rental du Tableau (Component)
+    
+    User -> React: Change statut -> "FAILED"
+    React -> Django: PATCH /api/testcases/99/ {status: "FAILED"}
+    activate Django
+    Django -> DB: UPDATE ...
+    deactivate Django
+    
+    User -> React: Signale une Anomalie (+ Photo)
+    React -> Django: POST /api/anomalies/ (FormData: image + json)
+    activate Django
+    Django -> DB: INSERT Anomalie
+    deactivate Django
+    Django --> React: 201 Created
+    deactivate Django
+    React --> User: Toast "Bug signalé !"
+end
+
+@enduml

@@ -1,0 +1,32 @@
+# General
+.DS_Store
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+dist/
+build/
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+db.sqlite3
+media/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+project/dist/
+project/build/
+project/.env
+.idea/
+.vscode/
+
+# Project specific
+InsureTM/pytest_cache/

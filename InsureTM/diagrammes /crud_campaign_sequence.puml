@@ -1,0 +1,71 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+title CRUD Gestion des Campagnes
+
+actor ":Manager" as User
+participant "Interface Campagnes" as UI <<IHM>>
+participant "Campaign Manager" as Manager <<Gestionnaire>>
+participant "Campaign" as Entity <<Entité>>
+
+== CREATE : Créer une Campagne avec Excel ==
+User -> UI : uploadCampaign("Tests Auto", excelFile)
+activate UI
+    UI -> Manager : createCampaign(title, file)
+    activate Manager
+        Manager -> Entity : create(title)
+        activate Entity
+        Entity --> Manager : instance
+        deactivate Entity
+        Manager -> Manager : processExcel(file)
+        Manager --> UI : confirmation
+    deactivate Manager
+    UI --> User : Notification "Import Terminé"
+deactivate UI
+
+== READ : Détail d'une Campagne ==
+User -> UI : selectCampaign(id)
+activate UI
+    UI -> Manager : getCampaignDetails(id)
+    activate Manager
+        Manager -> Entity : find(id)
+        activate Entity
+        Entity --> Manager : instance
+        deactivate Entity
+        Manager --> UI : data
+    deactivate Manager
+    UI --> User : Affiche Dashboard Campagne
+deactivate UI
+
+== UPDATE : Assigner des Testeurs ==
+User -> UI : assignTesters(id, [UserA, UserB])
+activate UI
+    UI -> Manager : updateAssignments(id, users)
+    activate Manager
+        Manager -> Entity : find(id)
+        activate Entity
+        Entity --> Manager : instance
+        deactivate Entity
+        Manager -> Entity : addTesters(users)
+        activate Entity
+        Entity --> Manager : confirmation
+        deactivate Entity
+        Manager --> UI : confirmation
+    deactivate Manager
+    UI --> User : "Testeurs assignés"
+deactivate UI
+
+== DELETE : Supprimer une Campagne ==
+User -> UI : deleteCampaign(id)
+activate UI
+    UI -> Manager : delete(id)
+    activate Manager
+        Manager -> Entity : destroy(id)
+        activate Entity
+        Entity --> Manager : confirmation
+        deactivate Entity
+        Manager --> UI : confirmation
+    deactivate Manager
+    UI --> User : Campagne supprimée
+deactivate UI
+@enduml

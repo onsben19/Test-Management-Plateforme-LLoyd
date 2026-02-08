@@ -1,0 +1,91 @@
+@startuml
+autonumber
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+
+actor "Utilisateur (Manager/Tester)" as User
+participant "Interface Web (React)" as UI <<IHM>>
+participant "API / Views (Django)" as API <<Service>>
+participant "Base de Données" as DB <<Entity>>
+
+group #LightBlue Authentification
+    User -> UI: Saisir identifiants (username, password)
+    UI -> API: POST /api/login/
+    activate API
+    API -> DB: Vérifier credentials
+    activate DB
+    DB --> API: User validé
+    deactivate DB
+    API --> UI: Token JWT (Access + Refresh)
+    deactivate API
+    UI -> UI: Stocker Token (localStorage)
+end
+
+group #LightCyan Gestion des Projets (Manager)
+    User -> UI: Créer "Projet Assurance Auto 2026"
+    UI -> API: POST /api/projects/
+    activate API
+    API -> DB: create(Project)
+    activate DB
+    DB --> API: Project ID
+    deactivate DB
+    API --> UI: 201 Created
+    deactivate API
+end
+
+group #LightGreen Gestion des Campagnes (Manager)
+    User -> UI: Créer "Campagne Q1" + Upload Excel
+    UI -> API: POST /api/campaigns/ (multipart/form-data)
+    activate API
+    API -> API: Parser fichier Excel
+    API -> DB: create(Campaign)
+    activate DB
+    DB --> API: Campaign ID
+    deactivate DB
+    loop Pour chaque ligne Excel
+        API -> DB: create(TestCase)
+        activate DB
+        DB --> API: TestCase Created
+        deactivate DB
+    end
+    API --> UI: 201 Created (Campagne créée)
+    deactivate API
+    UI --> User: Notification "Campagne prête"
+end
+
+group #LightYellow Exécution des Tests (Tester)
+    User -> UI: Consulter "Mes Tâches"
+    UI -> API: GET /api/campaigns/tasks/
+    activate API
+    API -> DB: Select * from TaskAssignment where user=me
+    activate DB
+    DB --> API: Liste des tâches
+    deactivate DB
+    API --> UI: Affichage des Tests
+    deactivate API
+    
+    User -> UI: Marquer Test #123 comme "FAILED"
+    UI -> API: PATCH /api/testcases/123/
+    activate API
+    API -> DB: update(status='FAILED')
+    activate DB
+    DB --> API: Confirm Update
+    deactivate DB
+    API --> UI: 200 OK (Statut mis à jour)
+    deactivate API
+end
+
+group #LightPink Signalement d'Anomalie (Tester)
+    User -> UI: Signaler Anomalie (Titre, Desc, Image)
+    UI -> API: POST /api/anomalies/
+    activate API
+    API -> DB: create(Anomalie linked to Test #123)
+    activate DB
+    DB --> API: Anomalie Created
+    deactivate DB
+    API --> UI: 201 Created
+    deactivate API
+    UI --> User: "Ticket Anomalie créé avec succès"
+end
+
+@enduml

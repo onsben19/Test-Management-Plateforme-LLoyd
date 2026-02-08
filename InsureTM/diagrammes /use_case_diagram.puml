@@ -1,0 +1,70 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Administrateur" as Admin
+actor "Manager" as Manager
+actor "Testeur" as Tester
+
+' Héritage : Un Admin est aussi un Manager (il peut tout faire)
+Admin --|> Manager
+
+rectangle "Système de Gestion de Tests (InsureTM)" {
+
+    ' Cas central d'authentification (Style demandé)
+    usecase "S'authentifier" as UC_Login
+    
+    ' Cas d'utilisation Admin
+    usecase "Gérer les utilisateurs" as UC_ManageUsers
+    
+    ' Cas d'utilisation Manager
+    usecase "Gérer les Projets (Releases)" as UC_ManageProjects
+    usecase "Créer une Campagne" as UC_CreateCampaign
+    usecase "Importer Référentiel (Excel)" as UC_ImportExcel
+    usecase "Assigner les Testeurs" as UC_AssignTesters
+    usecase "Suivre l'avancement" as UC_TrackProgress
+    
+    ' Cas d'utilisation Testeur
+    usecase "Consulter les Tâches" as UC_ViewTasks
+    usecase "Exécuter Test & Changer Statut" as UC_ExecuteTest
+    usecase "Signaler une Anomalie" as UC_ReportBug
+    usecase "Ajouter une Preuve (Image)" as UC_AddProof
+
+    ' Notifications (Système)
+    usecase "Recevoir notifications" as UC_Notify
+}
+
+actor "Serveur SMTP" as SMTP <<System>>
+
+' Relations Acteurs -> Cas d'utilisation
+Admin --> UC_ManageUsers
+Manager --> UC_ManageProjects
+Manager --> UC_CreateCampaign
+Manager --> UC_TrackProgress
+
+Tester --> UC_ViewTasks
+Tester --> UC_ExecuteTest
+Tester --> UC_ReportBug
+
+' Relations d'inclusion vers l'authentification (Style "Etoile")
+UC_ManageUsers ..> UC_Login : <<include>>
+UC_ManageProjects ..> UC_Login : <<include>>
+UC_CreateCampaign ..> UC_Login : <<include>>
+UC_TrackProgress ..> UC_Login : <<include>>
+UC_ViewTasks ..> UC_Login : <<include>>
+UC_ExecuteTest ..> UC_Login : <<include>>
+UC_ReportBug ..> UC_Login : <<include>>
+
+' Dépendances fonctionnelles (Includes)
+UC_CreateCampaign ..> UC_ImportExcel : <<include>>
+UC_CreateCampaign ..> UC_AssignTesters : <<include>>
+UC_ReportBug ..> UC_AddProof : <<include>>
+
+' Interactions Système Externe
+UC_CreateCampaign ..> UC_Notify : <<trigger>>
+UC_Notify -- SMTP
+
+' Le testeur reçoit la notification
+UC_Notify --> Tester
+
+@enduml

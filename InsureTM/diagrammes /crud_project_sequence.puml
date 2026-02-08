@@ -1,0 +1,74 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+title CRUD Gestion des Projets (Release)
+
+actor ":Manager" as User
+participant "Interface Projets" as UI <<IHM>>
+participant "Project Manager" as Manager <<Gestionnaire>>
+participant "Project" as Entity <<Entité>>
+
+== CREATE : Créer un Nouveau Projet ==
+User -> UI : clickCreate("Release Q1")
+activate UI
+    UI -> Manager : createProject(data)
+    activate Manager
+        Manager -> Entity : create(data)
+        activate Entity
+        Entity --> Manager : instance
+        deactivate Entity
+        Manager --> UI : user.confirmation
+    deactivate Manager
+    UI --> User : Notification "Projet créé"
+deactivate UI
+
+== READ : Consulter la Liste ==
+User -> UI : viewAllProjects()
+activate UI
+    UI -> Manager : getProjects()
+    activate Manager
+        Manager -> Entity : findAll()
+        activate Entity
+        Entity --> Manager : list<Project>
+        deactivate Entity
+        Manager --> UI : listData
+    deactivate Manager
+    UI --> User : Affiche Liste
+deactivate UI
+
+== UPDATE : Modifier un Projet ==
+User -> UI : editProject(id, "Release Q1 v2")
+activate UI
+    UI -> Manager : updateProject(id, data)
+    activate Manager
+        Manager -> Entity : find(id)
+        activate Entity
+        Entity --> Manager : instance
+        deactivate Entity
+        Manager -> Entity : setTitle("Release Q1 v2")
+        activate Entity
+        Entity --> Manager : updated
+        deactivate Entity
+        Manager --> UI : confirmation
+    deactivate Manager
+    UI --> User : Affichage mis à jour
+deactivate UI
+
+== DELETE : Supprimer (Archiver) ==
+User -> UI : deleteProject(id)
+activate UI
+    UI -> Manager : deleteProject(id)
+    activate Manager
+        Manager -> Entity : find(id)
+        activate Entity
+        Entity --> Manager : instance
+        deactivate Entity
+        Manager -> Entity : setStatus("ARCHIVED")
+        activate Entity
+        Entity --> Manager : archived
+        deactivate Entity
+        Manager --> UI : confirmation
+    deactivate Manager
+    UI --> User : Projet retiré de la liste
+deactivate UI
+@enduml

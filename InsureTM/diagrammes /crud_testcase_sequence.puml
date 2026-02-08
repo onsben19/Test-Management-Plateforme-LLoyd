@@ -1,0 +1,56 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+title CRUD Gestion des Cas de Test (TestCase)
+
+actor ":Testeur" as User
+participant "Interface Run" as UI <<IHM>>
+participant "Test Manager" as Manager <<Gestionnaire>>
+participant "TestCase" as Entity <<Entité>>
+
+== READ : Consulter ses Tests ==
+User -> UI : openMyTasks()
+activate UI
+    UI -> Manager : getAssignedTests(userId)
+    activate Manager
+        Manager -> Entity : findByUser(userId)
+        activate Entity
+        Entity --> Manager : list<TestCase>
+        deactivate Entity
+        Manager --> UI : listData
+    deactivate Manager
+    UI --> User : Affiche Tableau des Tests
+deactivate UI
+
+== UPDATE : Exécuter (Changer Statut) ==
+User -> UI : setStatus(id, "PASSED")
+activate UI
+    UI -> Manager : updateStatus(id, "PASSED")
+    activate Manager
+        Manager -> Entity : find(id)
+        activate Entity
+        Entity --> Manager : instance
+        deactivate Entity
+        Manager -> Entity : setStatus("PASSED")
+        activate Entity
+        Entity --> Manager : updated
+        deactivate Entity
+        Manager --> UI : confirmation
+    deactivate Manager
+    UI --> User : Ligne passe au vert
+deactivate UI
+
+== UPDATE : Ajouter un Commentaire ==
+User -> UI : addComment(id, "RAS")
+activate UI
+    UI -> Manager : postComment(id, "RAS")
+    activate Manager
+        Manager -> Entity : addComment("RAS")
+        activate Entity
+        Entity --> Manager : ok
+        deactivate Entity
+        Manager --> UI : ok
+    deactivate Manager
+    UI --> User : Commentaire ajouté
+deactivate UI
+@enduml

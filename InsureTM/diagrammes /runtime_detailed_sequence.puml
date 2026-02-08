@@ -1,0 +1,118 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+
+actor ":Utilisateur" as User
+participant "Interface InsureTM" as UI <<IHM>>
+participant "InsureTM Manager" as Manager <<Gestionnaire>>
+participant "Projet / Campagne" as Project <<Entité>>
+participant "Anomalie" as Bug <<Entité>>
+
+' ============================================================
+' ==            Gestion des Projets (Manager)              ==
+' ============================================================
+
+== Création d'un Projet (Release) ==
+User -> UI : créerProjet("Release Auto 2026")
+activate UI
+    UI -> Manager : createProject(name, desc)
+    activate Manager
+        
+        Manager -> Project : create(name)
+        activate Project
+        Project --> Manager : projectInstance
+        deactivate Project
+        
+        Manager --> UI : retour succès
+    deactivate Manager
+    
+    UI --> User : Notification "Projet créé"
+deactivate UI
+
+' ============================================================
+' ==            Gestion des Campagnes (Manager)            ==
+' ============================================================
+
+== Déclenchement création Campagne ==
+User -> UI : créerCampagne("Campagne Q1", Excel)
+activate UI
+    UI -> Manager : createCampaign(data, file)
+    activate Manager
+        
+        Manager -> Project : create(title, file)
+        activate Project
+        Project --> Manager : instance
+        deactivate Project
+        
+        Manager -> Manager : parserExcel(file)
+        
+        Manager -> Project : addTestCases(list)
+        activate Project
+        Project --> Manager : confirmation
+        deactivate Project
+        
+        Manager --> UI : retour succès
+    deactivate Manager
+    
+    UI --> User : Notification "Campagne créée"
+deactivate UI
+
+' ============================================================
+' ==             Exécution & Anomalies (Testeur)           ==
+' ============================================================
+
+== Signalement d'une Anomalie ==
+User -> UI : signalerAnomalie(titre, desc, image)
+activate UI
+    UI -> Manager : reportBug(test_id, data, image)
+    activate Manager
+        
+        Manager -> Bug : create(titre, desc, image)
+        activate Bug
+        Bug --> Manager : bugInstance
+        deactivate Bug
+        
+        Manager -> Bug : linkToTest(test_id)
+        activate Bug
+        Bug --> Manager : confirmation
+        deactivate Bug
+        
+        Manager --> UI : retour ticket créé
+    deactivate Manager
+    
+    UI --> User : Toast "Anomalie enregistrée"
+deactivate UI
+
+' ============================================================
+' ==            Collaboration (Chat / Commentaires)        ==
+' ============================================================
+
+== Discussion sur un Cas de Test ==
+User -> UI : ajouterCommentaire("Le résultat attendu est flou")
+activate UI
+    UI -> Manager : postComment(test_id, message)
+    activate Manager
+        
+        create "Commentaire" as Comments <<Entité>>
+        Manager -> Comments : create(message, author)
+        activate Comments
+        Comments --> Manager : commentInstance
+        deactivate Comments
+        
+        Manager -> Project : linkComment(test_id, commentInstance)
+        activate Project
+        Project --> Manager : confirmation
+        deactivate Project
+        
+        Manager --> UI : retour succès
+    deactivate Manager
+    
+    UI --> User : Affichage du commentaire
+deactivate UI
+
+note over User, Bug
+Systeme de gestion de tests InsureTM pour
+l'orchestration des campagnes et le suivi qualité.
+end note
+
+@enduml

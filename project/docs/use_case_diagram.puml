@@ -1,0 +1,80 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+' Acteurs Humains (Gauche)
+actor "Tester" as tester
+actor "Manager" as manager
+actor "Admin" as admin
+
+' Systèmes Externes (Droite)
+actor "Module IA" as ai_system <<System>>
+actor "Serveur SMTP" as smtp <<System>>
+
+rectangle "Système de Gestion de Tests" {
+
+    usecase "S'authentifier" as UC_Login
+
+    ' Cas d'utilisation Tester
+    usecase "Saisir les résultats" as UC_Run
+    usecase "Consulter les campagnes" as UC_View
+    usecase "Signaler une anomalie" as UC_Bug
+    usecase "Ajouter des captures" as UC_Evidence
+    usecase "Collaborer / Discuter" as UC_Chat
+
+    ' Cas d'utilisation Manager
+    usecase "Créer une campagne" as UC_Create
+    usecase "Gérer les référentiels" as UC_Ref
+    usecase "Suivre la performance" as UC_Perf
+    usecase "Consulter Insights IA" as UC_Insights
+
+    ' Cas d'utilisation Admin
+    usecase "Gérer les utilisateurs" as UC_Users
+
+    ' Relations <<include>> S'authentifier
+    UC_Run ..> UC_Login : <<include>>
+    UC_View ..> UC_Login : <<include>>
+    UC_Bug ..> UC_Login : <<include>>
+    UC_Evidence ..> UC_Login : <<include>>
+    UC_Chat ..> UC_Login : <<include>>
+    UC_Create ..> UC_Login : <<include>>
+    UC_Ref ..> UC_Login : <<include>>
+    UC_Perf ..> UC_Login : <<include>>
+    UC_Insights ..> UC_Login : <<include>>
+    UC_Users ..> UC_Login : <<include>>
+
+    ' Relations Tester
+    tester -- UC_View
+    tester -- UC_Run
+    tester -- UC_Bug
+    tester -- UC_Evidence
+    tester -- UC_Chat
+
+    ' Relations Manager
+    manager -- UC_Create
+    manager -- UC_Ref
+    manager -- UC_Perf
+    manager -- UC_Insights
+
+    ' Relations Admin
+    admin -- UC_Users
+
+    ' Cas d'utilisation GéGnéral
+    usecase "Recevoir notifications (Email/UI)" as UC_Notify
+
+    ' Interactions Systèmes Externes
+    UC_Insights -- ai_system
+    UC_Notify -- smtp
+    
+    ' Notifications
+    tester -- UC_Notify
+    UC_Create ..> UC_Notify : <<trigger>>
+}
+
+' Héritage
+manager --|> tester
+admin --|> manager
+
+@enduml
+

@@ -1,0 +1,66 @@
+@startuml
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+title CRUD Gestion des Anomalies
+
+actor ":Testeur" as User
+participant "Interface BugTracker" as UI <<IHM>>
+participant "Anomalie Manager" as Manager <<Gestionnaire>>
+participant "Anomalie" as Entity <<Entité>>
+
+== CREATE : Signaler un Bug ==
+User -> UI : reportBug(form, image)
+activate UI
+    UI -> Manager : createAnomalie(data)
+    activate Manager
+        Manager -> Entity : create(data)
+        activate Entity
+        Entity --> Manager : instance
+        deactivate Entity
+        Manager --> UI : confirmation
+    deactivate Manager
+    UI --> User : "Bug #45 créé"
+deactivate UI
+
+== READ : Consulter les Bugs ==
+User -> UI : viewBugsList()
+activate UI
+    UI -> Manager : getAllBugs()
+    activate Manager
+        Manager -> Entity : findAll()
+        activate Entity
+        Entity --> Manager : list<Anomalie>
+        deactivate Entity
+        Manager --> UI : listData
+    deactivate Manager
+    UI --> User : Liste affichée
+deactivate UI
+
+== UPDATE : Modifier Sévérité ==
+User -> UI : updateSeverity(id, "CRITIQUE")
+activate UI
+    UI -> Manager : update(id, severity="CRITIQUE")
+    activate Manager
+        Manager -> Entity : setCriticite("CRITIQUE")
+        activate Entity
+        Entity --> Manager : user.confirmation
+        deactivate Entity
+        Manager --> UI : ok
+    deactivate Manager
+    UI --> User : Mise à jour confirmée
+deactivate UI
+
+== DELETE : Supprimer un Bug ==
+User -> UI : deleteBug(id)
+activate UI
+    UI -> Manager : delete(id)
+    activate Manager
+        Manager -> Entity : delete(id)
+        activate Entity
+        Entity --> Manager : ok
+        deactivate Entity
+        Manager --> UI : ok
+    deactivate Manager
+    UI --> User : Bug supprimé
+deactivate UI
+@enduml
