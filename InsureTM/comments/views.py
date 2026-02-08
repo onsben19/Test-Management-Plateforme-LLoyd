@@ -12,9 +12,13 @@ class CommentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Comment.objects.all()
         search = self.request.query_params.get('search', None)
+        test_case_id = self.request.query_params.get('test_case', None)
 
         if search:
             queryset = queryset.filter(Q(message__icontains=search) | Q(author__username__icontains=search))
+            
+        if test_case_id:
+            queryset = queryset.filter(test_case_id=test_case_id)
             
         return queryset
 
