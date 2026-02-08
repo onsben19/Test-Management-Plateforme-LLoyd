@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Send, CheckCircle, XCircle, Sparkles } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { X, Send, CheckCircle, XCircle, Sparkles, Paperclip, FileText, Download } from 'lucide-react';
 import { type TestItem } from './ExecutionTestList';
 import { commentService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -16,14 +16,13 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
     const [chatMessage, setChatMessage] = useState('');
     const [comments, setComments] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Fetch comments when test changes
     React.useEffect(() => {
         if (test?.id) {
             fetchComments();
-            // Optional: poll every few seconds
-            // const interval = setInterval(fetchComments, 5000);
-            // return () => clearInterval(interval);
         }
     }, [test?.id]);
 
@@ -40,14 +39,22 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
         }
     };
 
+    const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files && event.target.files[0]) {
+            setSelectedFile(event.target.files[0]);
+        }
+    };
+
     const handleSendMessage = async () => {
-        if (!chatMessage.trim() || !test?.id) return;
+        if ((!chatMessage.trim() && !selectedFile) || !test?.id) return;
 
         try {
-            const newComment = {
-                test_case: test.id,
-                message: chatMessage
-            };
+            const formData = new FormData();
+            formData.append('test_case', test.id.toString());
+            formData.append('message', chatMessage);
+            if (selectedFile) {
+                formData.append('attachment', selectedFile);
+            }
 
             // Optimistic update
             const tempId = Date.now();
@@ -55,21 +62,23 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                 id: tempId,
                 message: chatMessage,
                 created_at: new Date().toISOString(),
-                author_name: user?.username || 'Moi', // Fallback
+                author_name: user?.username || 'Moi',
+                attachment: selectedFile ? URL.createObjectURL(selectedFile) : null,
                 isOptimistic: true
             };
 
             setComments(prev => [...prev, optimisticComment]);
             setChatMessage('');
+            setSelectedFile(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
 
-            await commentService.createComment(newComment);
+            await commentService.createComment(formData);
 
             // Refresh to get real ID and server data
             fetchComments();
         } catch (error) {
             console.error("Failed to post comment", error);
             alert("Erreur lors de l'envoi du commentaire");
-            // Remove optimistic comment if needed or show error state
         }
     };
 
@@ -143,10 +152,26 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                                             ? 'bg-blue-600 text-white rounded-tr-none'
                                             : 'bg-slate-800 text-slate-300 rounded-tl-none'
                                             }`}>
-                                            {!isMe && <p className="text-xs text-slate-500 mb-1">{comment.author_name || 'Utilisateur'}</p>}
-                                            <p className="text-sm">
+                                            {!isMe && <p className="text-xs text-slate-500 mb-1 font-semibold">{comment.author_name || 'Utilisateur'}</p>}
+                                            <p className="text-sm whitespace-pre-wrap">
                                                 {comment.message}
                                             </p>
+
+                                            {comment.attachment && (
+                                                <div className="mt-2 p-2 bg-black/20 rounded flex items-center gap-2">
+                                                    <FileText className="w-4 h-4 text-white/70" />
+                                                    <a
+                                                        href={comment.attachment}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-xs text-white/90 hover:underline truncate max-w-[150px]"
+                                                    >
+                                                        {comment.attachment.split('/').pop()}
+                                                    </a>
+                                                    <Download className="w-3 h-3 text-white/50 ml-auto" />
+                                                </div>
+                                            )}
+
                                             <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-blue-200' : 'text-slate-500'}`}>
                                                 {new Date(comment.created_at).toLocaleString()}
                                             </p>
@@ -158,29 +183,62 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                     )}
 
                     <div className="mt-auto pt-4 border-t border-slate-700">
-                        <div className="relative">
+                        {/* Selected File Preview */}
+                        {selectedFile && (
+                            <div className="mb-2 p-2 bg-slate-800 rounded-lg flex items-center justify-between border border-slate-600">
+                                <div className="flex items-center gap-2 overflow-hidden">
+                                    <FileText className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                                    <span className="text-xs text-slate-300 truncate">{selectedFile.name}</span>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedFile(null)}
+                                    className="p-1 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </div>
+                        )}
+
+                        <div className="relative flex items-center gap-2">
                             <input
-                                type="text"
-                                value={chatMessage}
-                                onChange={(e) => setChatMessage(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-3 pr-20 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-slate-500"
-                                placeholder="Écrire un message..."
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileSelect}
+                                className="hidden"
+                                id="file-upload"
                             />
-                            <div className="absolute right-2 top-1.5 flex items-center gap-1">
-                                <button
-                                    onClick={handleAIReformulate}
-                                    className="p-1 text-purple-400 hover:text-purple-300 transition-colors"
-                                    title="Reformuler avec l'IA"
-                                >
-                                    <Sparkles className="w-4 h-4" />
-                                </button>
-                                <button
-                                    onClick={handleSendMessage}
-                                    className="p-1 text-green-400 hover:text-green-300 transition-colors"
-                                >
-                                    <Send className="w-4 h-4" />
-                                </button>
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                                title="Joindre un fichier"
+                            >
+                                <Paperclip className="w-5 h-5" />
+                            </button>
+
+                            <div className="relative flex-1">
+                                <input
+                                    type="text"
+                                    value={chatMessage}
+                                    onChange={(e) => setChatMessage(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-3 pr-20 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-slate-500"
+                                    placeholder="Écrire un message..."
+                                />
+                                <div className="absolute right-2 top-1.5 flex items-center gap-1">
+                                    <button
+                                        onClick={handleAIReformulate}
+                                        className="p-1 text-purple-400 hover:text-purple-300 transition-colors"
+                                        title="Reformuler avec l'IA"
+                                    >
+                                        <Sparkles className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={handleSendMessage}
+                                        className="p-1 text-green-400 hover:text-green-300 transition-colors"
+                                    >
+                                        <Send className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
