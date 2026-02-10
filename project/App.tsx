@@ -27,6 +27,7 @@ import AdminCampaigns from './src/pages/admin/AdminCampaigns';
 import AdminExecutions from './src/pages/admin/AdminExecutions';
 import AdminAnomalies from './src/pages/admin/AdminAnomalies';
 import AdminComments from './src/pages/admin/AdminComments';
+import EmailDashboard from './src/pages/EmailDashboard';
 
 import { AuthProvider } from './src/context/AuthContext';
 import RoleGuard from './src/components/RoleGuard';
@@ -99,6 +100,12 @@ const App: React.FC = () => {
                 <Route path="/settings" element={
                   <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
                     <Settings />
+                  </RoleGuard>
+                } />
+
+                <Route path="/messages" element={
+                  <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
+                    <EmailDashboard />
                   </RoleGuard>
                 } />
 

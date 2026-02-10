@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'testCases',
     'Project',
     'notifications',
+    'emails',
 
 ]
 REST_FRAMEWORK = {
@@ -107,11 +108,13 @@ USE_TZ = True
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# SMTP Configuration (Disabled for Dev due to Auth issues)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp-mail.outlook.com'
-EMAIL_PORT = 587
+EMAIL_HOST='smtp.gmail.com'
+EMAIL_PORT=587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = env('EMAIL_USER')
 EMAIL_HOST_PASSWORD = env('EMAIL_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 CORS_ALLOW_ALL_ORIGINS = True
+

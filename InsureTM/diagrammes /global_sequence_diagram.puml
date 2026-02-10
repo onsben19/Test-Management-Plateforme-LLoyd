@@ -88,4 +88,22 @@ group #LightPink Signalement d'Anomalie (Tester)
     UI --> User: "Ticket Anomalie créé avec succès"
 end
 
+group #LightGray Messagerie Interne
+    User -> UI: Clic sur "Messagerie" -> "Nouveau Message"
+    UI -> API: POST /api/emails/ (multipart/form-data)
+    activate API
+    API -> DB: create(Email)
+    activate DB
+    DB --> API: Email Created
+    deactivate DB
+    API -> API: send_mail() via SMTP
+    API -> DB: create(Notification)
+    activate DB
+    DB --> API: Notification Created
+    deactivate DB
+    API --> UI: 201 Created
+    deactivate API
+    UI --> User: "Email envoyé avec succès"
+end
+
 @enduml

@@ -6,7 +6,7 @@ import ExecutionTestList, { type TestItem } from '../components/ExecutionTestLis
 import TeamPerformance from '../components/TeamPerformance';
 import ReviewPanel from '../components/ReviewPanel';
 import EditExecutionModal from '../components/EditExecutionModal';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { executionService, projectService, campaignService } from '../services/api';
 import { List, BarChart2 } from 'lucide-react';
 
@@ -67,27 +67,49 @@ const ExecutionTracking = () => {
         } catch (e) { console.error("Failed to fetch filters", e); }
     };
 
+    const location = useLocation();
+
+    // ... (existing state)
+
+    React.useEffect(() => {
+        fetchExecutions();
+        fetchFilters();
+    }, []);
+
+    // Effect to handle deep linking after tests are loaded
+    React.useEffect(() => {
+        if (tests.length > 0) {
+            const params = new URLSearchParams(location.search);
+            const testId = params.get('testId');
+            if (testId) {
+                const foundTest = tests.find(t => t.id === testId);
+                if (foundTest) {
+                    setSelectedTest(foundTest);
+                    // Optional: clear param to avoid reopening on refresh? 
+                    // navigate(location.pathname, { replace: true });
+                }
+            }
+        }
+    }, [tests, location.search]);
+
     const fetchExecutions = async () => {
         try {
             setLoading(true);
             const response = await executionService.getExecutions();
             // Map backend to TestItem
             const mappedTests: TestItem[] = response.data.map((t: any, index: number) => {
-                // DEBUG: Check specific test for proof_file
-                if (t.proof_file) console.log(`DEBUG: Test ${t.id} has proof_file:`, t.proof_file);
-
                 return {
                     id: (t.id || index).toString(),
                     name: t.test_case_ref || `Test ${t.id}`,
-                    module: t.campaign_title || `Campagne #${t.campaign}`, // Use title from serializer
-                    assigned_to: t.assigned_tester_name || 'Non assigné', // Use name from serializer
-                    realized_by: t.tester_name || 'Non assigné', // Use name from serializer
+                    module: t.campaign_title || `Campagne #${t.campaign}`,
+                    assigned_to: t.assigned_tester_name || 'Non assigné',
+                    realized_by: t.tester_name || 'Non assigné',
                     status: t.status.toLowerCase(),
                     duration: 'N/A',
                     lastRun: new Date(t.execution_date || Date.now()).toLocaleString('fr-FR'),
-                    rawDate: t.execution_date, // Store raw ISO date for sorting
-                    captures: t.proof_file ? [t.proof_file] : [], // Use proof_file if available
-                    release: t.project_name || 'Release A', // Use project name from serializer
+                    rawDate: t.execution_date,
+                    captures: t.proof_file ? [t.proof_file] : [],
+                    release: t.project_name || 'Release A',
                     ...t.data_json
                 }
             });

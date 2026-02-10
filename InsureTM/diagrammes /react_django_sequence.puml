@@ -86,4 +86,27 @@ group #LightPink Exécution & Anomalies (Tester)
     React --> User: Toast "Bug signalé !"
 end
 
+group #LightGray Messagerie & Notifications
+    User -> React: "Nouveau Message" (avec Fichier)
+    React -> Django: POST /api/emails/ (Multipart/FormData)
+    activate Django
+    Django -> Django: Process File & Recipients
+    Django -> DB: INSERT Emails & Notifications
+    activate DB
+    DB --> Django: Commit
+    deactivate DB
+    Django -> Django: SMTP send_mail()
+    Django --> React: 201 Created
+    deactivate Django
+    
+    React --> User: "Message envoyé !"
+    
+    note right of React: Polling ou WebSocket
+    React -> Django: GET /api/notifications/
+    activate Django
+    Django --> React: JSON [ {type: "email", ...} ]
+    deactivate Django
+    React -> React: Badge "1" sur la cloche
+end
+
 @enduml

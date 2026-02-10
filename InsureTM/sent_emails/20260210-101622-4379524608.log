@@ -1,0 +1,12 @@
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+Subject: Test SMTP Subject
+From: benmessaoudons@outlook.com
+To: ben.ons@esprit.tn
+Date: Tue, 10 Feb 2026 09:16:22 +0000
+Message-ID: <177071498204.35714.12615772302196762220@1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa>
+
+This is a test email from the Django shell.
+
+-------------------------------------------------------------------------------

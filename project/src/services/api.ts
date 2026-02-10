@@ -112,8 +112,28 @@ export const anomalyService = {
 
 export const commentService = {
     getComments: (params?: any) => api.get('/comments/', { params }),
-    createComment: (data: any) => api.post('/comments/', data),
+    createComment: (data: any) => {
+        if (data instanceof FormData) {
+            return api.post('/comments/', data, {
+                headers: { 'Content-Type': undefined }
+            });
+        }
+        return api.post('/comments/', data);
+    },
     deleteComment: (id: string) => api.delete(`/comments/${id}/`),
+};
+
+export const emailService = {
+    getEmails: (params?: any) => api.get('/emails/', { params }),
+    sendEmail: (data: any) => {
+        if (data instanceof FormData) {
+            return api.post('/emails/', data, {
+                headers: { 'Content-Type': undefined }
+            });
+        }
+        return api.post('/emails/', data);
+    },
+    markAsRead: (id: number) => api.post(`/emails/${id}/mark_read/`),
 };
 
 export const userService = {

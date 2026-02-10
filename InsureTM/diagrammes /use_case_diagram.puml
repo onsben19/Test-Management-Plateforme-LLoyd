@@ -32,6 +32,10 @@ rectangle "Système de Gestion de Tests (InsureTM)" {
 
     ' Notifications (Système)
     usecase "Recevoir notifications" as UC_Notify
+
+    ' Cas d'utilisation Messagerie Interne
+    usecase "Envoyer Email (Interne)" as UC_SendEmail
+    usecase "Consulter Emails" as UC_ReadEmail
 }
 
 actor "Serveur SMTP" as SMTP <<System>>
@@ -41,10 +45,14 @@ Admin --> UC_ManageUsers
 Manager --> UC_ManageProjects
 Manager --> UC_CreateCampaign
 Manager --> UC_TrackProgress
+Manager --> UC_SendEmail
+Manager --> UC_ReadEmail
 
 Tester --> UC_ViewTasks
 Tester --> UC_ExecuteTest
 Tester --> UC_ReportBug
+Tester --> UC_SendEmail
+Tester --> UC_ReadEmail
 
 ' Relations d'inclusion vers l'authentification (Style "Etoile")
 UC_ManageUsers ..> UC_Login : <<include>>
@@ -54,6 +62,8 @@ UC_TrackProgress ..> UC_Login : <<include>>
 UC_ViewTasks ..> UC_Login : <<include>>
 UC_ExecuteTest ..> UC_Login : <<include>>
 UC_ReportBug ..> UC_Login : <<include>>
+UC_SendEmail ..> UC_Login : <<include>>
+UC_ReadEmail ..> UC_Login : <<include>>
 
 ' Dépendances fonctionnelles (Includes)
 UC_CreateCampaign ..> UC_ImportExcel : <<include>>
@@ -63,6 +73,7 @@ UC_ReportBug ..> UC_AddProof : <<include>>
 ' Interactions Système Externe
 UC_CreateCampaign ..> UC_Notify : <<trigger>>
 UC_Notify -- SMTP
+UC_SendEmail -- SMTP
 
 ' Le testeur reçoit la notification
 UC_Notify --> Tester

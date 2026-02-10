@@ -38,8 +38,8 @@ const Header = () => {
 
   useEffect(() => {
     fetchNotifications();
-    // Poll every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
+    // Poll every 5 seconds
+    const interval = setInterval(fetchNotifications, 5000);
     return () => clearInterval(interval);
   }, [user]);
 
@@ -57,7 +57,7 @@ const Header = () => {
       } else if (notif.type === 'anomaly_reported') {
         navigate(`/admin/anomalies?highlight=${notif.related_object_id}`);
       } else if (notif.type === 'comment_posted') {
-        navigate(`/admin/comments?highlight=${notif.related_object_id}`);
+        navigate(`/execution?testId=${notif.related_object_id}`);
       }
     } catch (error) {
       console.error("Failed to process notification click", error);

@@ -1,0 +1,86 @@
+@startuml
+autonumber
+skinparam style strictuml
+skinparam sequenceMessageAlign center
+
+actor "Utilisateur (Expéditeur)" as Sender
+participant "ComposeEmailModal (React)" as UI <<IHM>>
+participant "EmailViewSet (Django)" as API <<Controller>>
+participant "EmailSerializer" as Serializer <<Serializer>>
+participant "Base de Données" as DB <<Entity>>
+participant "Serveur SMTP (Gmail/Outlook)" as SMTP <<External>>
+actor "Utilisateur (Destinataire)" as Receiver
+
+title Séquence détaillée : Envoi d'un Email Interne avec Pièce Jointe
+
+Sender -> UI: Clic sur "Nouveau Message"
+activate UI
+UI -> API: GET /api/users/
+activate API
+API -> DB: Select * from User
+activate DB
+DB --> API: Liste des utilisateurs
+deactivate DB
+API --> UI: Liste des utilisateurs
+deactivate API
+
+Sender -> UI: Sélectionner Destinataires (Multiple)
+Sender -> UI: Saisir Objet, Corps
+Sender -> UI: Ajouter Pièce Jointe (File)
+Sender -> UI: Clic "Envoyer"
+
+UI -> UI: Construire FormData (recipients[], subject, body, attachment)
+UI -> API: POST /api/emails/
+activate API
+
+API -> API: Intercepter liste 'recipients'
+
+loop Pour chaque destinataire
+    API -> API: data.copy() + set recipient_id
+    API -> API: reset attachment pointer (seek(0))
+    
+    API -> Serializer: validate(data)
+    activate Serializer
+    Serializer --> API: data validée
+    deactivate Serializer
+    
+    API -> API: perform_create()
+    
+    API -> DB: Save Email (Sender, Recipient, Body, File)
+    activate DB
+    DB --> API: Email Instance
+    deactivate DB
+    
+    group Traitement SMTP
+        API -> API: detect_mime_type(file)
+        API -> SMTP: send_email(to=recipient.email, attachment)
+        activate SMTP
+        SMTP --> API: 250 OK (Sent)
+        deactivate SMTP
+    end
+    
+    group Notification
+        API -> DB: Create Notification(type='email_received', user=recipient)
+        activate DB
+        DB --> API: Notification Created
+        deactivate DB
+    end
+end
+
+API --> UI: 201 Created (List of Emails)
+deactivate API
+
+UI --> Sender: Toast "Emails envoyés avec succès"
+deactivate UI
+
+Receiver -> UI: (Async) Vérifie Notifications
+UI -> API: GET /api/notifications/
+activate API
+API -> DB: Select * from Notification where user=me
+activate DB
+DB --> API: Liste Notifications
+deactivate DB
+API --> UI: Affiche "Nouveau Message"
+deactivate API
+
+@enduml

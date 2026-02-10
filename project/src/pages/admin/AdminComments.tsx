@@ -65,7 +65,7 @@ const AdminComments = () => {
         },
         {
             header: 'Auteur',
-            accessor: (item: any) => item.author_username || item.author || 'Inconnu'
+            accessor: (item: any) => item.author_name || item.author_username || item.author || 'Inconnu'
         },
         {
             header: 'Date',
