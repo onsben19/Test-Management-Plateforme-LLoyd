@@ -30,3 +30,5 @@ project/.env
 
 # Project specific
 InsureTM/pytest_cache/
+.report.md
+project/diagrammes
