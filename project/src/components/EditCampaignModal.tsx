@@ -6,6 +6,8 @@ export interface CampaignItem {
     title: string;
     description?: string;
     status?: string; // Optional if not present in backend model yet, but usually statuses exist
+    start_date?: string;
+    estimated_end_date?: string;
 }
 
 interface EditCampaignModalProps {
@@ -17,6 +19,8 @@ interface EditCampaignModalProps {
 const EditCampaignModal: React.FC<EditCampaignModalProps> = ({ campaign, onClose, onSave }) => {
     const [title, setTitle] = useState(campaign.title);
     const [description, setDescription] = useState(campaign.description || '');
+    const [startDate, setStartDate] = useState(campaign.start_date || '');
+    const [endDate, setEndDate] = useState(campaign.estimated_end_date || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -26,6 +30,8 @@ const EditCampaignModal: React.FC<EditCampaignModalProps> = ({ campaign, onClose
             const formData = new FormData();
             formData.append('title', title);
             formData.append('description', description);
+            if (startDate) formData.append('start_date', startDate);
+            if (endDate) formData.append('estimated_end_date', endDate);
 
             await onSave(campaign.id, formData);
             onClose();
@@ -79,6 +85,32 @@ const EditCampaignModal: React.FC<EditCampaignModalProps> = ({ campaign, onClose
                             className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors min-h-[100px]"
                             placeholder="Description optionnelle..."
                         />
+                    </div>
+
+                    {/* Dates */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                Date de Début
+                            </label>
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                Fin Estimée
+                            </label>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                            />
+                        </div>
                     </div>
                 </form>
 

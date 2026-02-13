@@ -16,6 +16,7 @@ path('api/logout/', TokenBlacklistView.as_view(), name='token_blacklist'),
     path('api/comments/', include('comments.urls')),
     path('api/notifications/', include('notifications.urls')),
     path('api/emails/', include('emails.urls')),
+    path('api/analytics/', include('analytics.urls')),
    ]
 
 from django.conf import settings

@@ -24,7 +24,9 @@ const Sidebar = () => {
     { name: 'Gestion des utilisateurs', href: '/users', icon: Users, roles: ['ADMIN'] },
     { name: 'Anomalies', href: isAdmin ? '/admin/anomalies' : '/anomalies', icon: AlertTriangle, roles: ['ADMIN', 'MANAGER', 'TESTER'] },
     { name: 'Commentaires', href: '/admin/comments', icon: MessageSquare, roles: ['ADMIN'] },
-    { name: 'Performance Équipe', href: '/performance', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] }
+    { name: 'Performance Équipe', href: '/performance', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
+    { name: 'Analytics IA', href: '/analytics', icon: Brain, roles: ['ADMIN', 'MANAGER'] },
+
   ];
 
   const filteredNavigation = navigation.filter(item =>

@@ -16,6 +16,8 @@ interface Campaign {
   description?: string;
   nb_test_cases?: number;
   project_name?: string;
+  start_date?: string;
+  estimated_end_date?: string;
 }
 
 const CampaignTable = () => {
@@ -47,7 +49,9 @@ const CampaignTable = () => {
         created_at: c.created_at,
         description: c.description,
         nb_test_cases: c.nb_test_cases,
-        project_name: c.project_name
+        project_name: c.project_name,
+        start_date: c.start_date,
+        estimated_end_date: c.estimated_end_date
       }));
       setCampaigns(data);
     } catch (error) {
@@ -123,7 +127,12 @@ const CampaignTable = () => {
                   </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400 transition-colors">
-                  {new Date(campaign.created_at).toLocaleDateString('fr-FR')}
+                  <div>{new Date(campaign.created_at).toLocaleDateString()}</div>
+                  {campaign.start_date && campaign.estimated_end_date && (
+                    <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      {new Date(campaign.start_date).toLocaleDateString()} - {new Date(campaign.estimated_end_date).toLocaleDateString()}
+                    </div>
+                  )}
                 </td>
                 {isAdminOrManager && (
                   <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -133,7 +142,9 @@ const CampaignTable = () => {
                           id: campaign.id,
                           title: campaign.title,
                           description: campaign.description,
-                          status: campaign.status
+                          status: campaign.status,
+                          start_date: campaign.start_date,
+                          estimated_end_date: campaign.estimated_end_date
                         })}
                         className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                         title="Modifier"

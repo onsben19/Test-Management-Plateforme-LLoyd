@@ -1,0 +1,171 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam style strictuml
+hide empty members
+
+' Theme and Styling
+skinparam class {
+    BackgroundColor White
+    ArrowColor #2C3E50
+    BorderColor #2C3E50
+}
+skinparam package {
+    BackgroundColor #ECF0F1
+    BorderColor #BDC3C7
+}
+
+title Diagramme de Classes Complet et Lié - InsureTM
+
+' --- Enumerations ---
+
+enum Role {
+    ADMIN
+    MANAGER
+    TESTER
+}
+
+enum TestCaseStatus {
+    PENDING
+    PASSED
+    FAILED
+}
+
+enum BugSeverity {
+    FAIBLE
+    MOYENNE
+    CRITIQUE
+}
+
+' --- Classes ---
+
+package "Gestion des Utilisateurs" {
+    class User {
+        - id : Integer
+        - username : String
+        - email : String
+        - role : Role {default=TESTER}
+        - is_active : Boolean
+        + __str__() : String
+        + generate_random_password() : String
+        + save() : void
+    }
+}
+
+package "Cœur de Métier (Core & Campaigns)" {
+    class Project {
+        - id : Integer
+        - name : String
+        - description : Text
+        - created_at : DateTime
+        + __str__() : String
+    }
+
+    class Campaign {
+        - id : Integer
+        - title : String
+        - description : Text
+        - start_date : Date
+        - estimated_end_date : Date
+        - excel_file : File
+        - is_processed : Boolean
+        - nb_test_cases : Integer
+        - created_at : DateTime
+        + __str__() : String
+    }
+
+    class TaskAssignment {
+        - id : Integer
+        - test_case_ref : String
+        - assigned_at : DateTime
+        - is_completed : Boolean
+    }
+}
+
+package "Exécution des Tests (TestCases)" {
+    class TestCase {
+        - id : Integer
+        - test_case_ref : String
+        - data_json : JSON
+        - status : TestCaseStatus {default=PENDING}
+        - execution_date : DateTime
+        - proof_file : File
+        + __str__() : String
+    }
+}
+
+package "Gestion des Anomalies" {
+    class Anomalie {
+        - id : Integer
+        - titre : String
+        - description : Text
+        - criticite : BugSeverity {default=FAIBLE}
+        - preuve_image : File
+        - cree_le : DateTime
+        + __str__() : String
+    }
+}
+
+package "Collaboration" {
+    class Comment {
+        - id : Integer
+        - content : Text
+        - attachment : File
+        - created_at : DateTime
+    }
+
+    class Email {
+        - id : Integer
+        - subject : String
+        - body : Text
+        - attachment : File
+        - is_read : Boolean
+        - created_at : DateTime
+    }
+
+    class Notification {
+        - id : Integer
+        - title : String
+        - message : Text
+        - type : String
+        - is_read : Boolean
+        - related_object_id : Integer
+        - created_at : DateTime
+    }
+}
+
+' --- Relations ---
+
+' Enum Links (Dependencies)
+User ..> Role : uses
+TestCase ..> TestCaseStatus : uses
+Anomalie ..> BugSeverity : uses
+
+' User Roles
+User "1" -- "0..*" Project : imported_by >
+User "1" -- "0..*" Campaign : imported_by >
+User "0..*" -- "0..*" Campaign : assigned_testers (M2M)
+
+' Task Assignment (Association Class logic)
+Campaign "1" -- "0..*" TaskAssignment : contains >
+User "1" -- "0..*" TaskAssignment : assigned to >
+
+' Project Hierarchy
+Project "1" *-- "0..*" Campaign : belongs to <
+
+' Test Cases
+Campaign "1" *-- "0..*" TestCase : contains >
+User "0..1" -- "0..*" TestCase : executed by >
+TestCase "1" -- "0..*" Anomalie : causes >
+User "1" -- "0..*" Anomalie : cree_par >
+
+' Communication
+User "1" -- "0..*" Email : sender >
+User "1" -- "0..*" Email : recipient >
+User "1" -- "0..*" Notification : recipient >
+User "1" -- "0..*" Comment : author >
+
+' Polymorphic / Generic Relations
+Comment ..> TestCase : attached to
+Comment ..> Anomalie : attached to
+
+@enduml

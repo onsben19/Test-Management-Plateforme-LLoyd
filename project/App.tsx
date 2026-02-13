@@ -16,6 +16,7 @@ import ReleaseManager from './src/pages/ReleaseManager';
 import TesterDashboard from './src/pages/TesterDashboard';
 import TeamPerformancePage from './src/pages/TeamPerformancePage';
 import NotFound from './src/pages/NotFound';
+import Analytics from './src/pages/Analytics';
 
 
 import UserManagement from './src/pages/UserManagement';
@@ -28,6 +29,7 @@ import AdminExecutions from './src/pages/admin/AdminExecutions';
 import AdminAnomalies from './src/pages/admin/AdminAnomalies';
 import AdminComments from './src/pages/admin/AdminComments';
 import EmailDashboard from './src/pages/EmailDashboard';
+
 
 import { AuthProvider } from './src/context/AuthContext';
 import RoleGuard from './src/components/RoleGuard';
@@ -79,6 +81,12 @@ const App: React.FC = () => {
                   </RoleGuard>
                 } />
 
+                <Route path="/analytics" element={
+                  <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
+                    <Analytics />
+                  </RoleGuard>
+                } />
+
                 <Route path="/execution" element={
                   <RoleGuard allowedRoles={['ADMIN', 'TESTER', 'MANAGER']}>
                     <ExecutionTracking />
@@ -108,6 +116,8 @@ const App: React.FC = () => {
                     <EmailDashboard />
                   </RoleGuard>
                 } />
+
+
 
                 {/* Admin Routes */}
                 <Route path="/admin/releases" element={

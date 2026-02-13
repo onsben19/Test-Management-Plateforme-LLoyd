@@ -10,6 +10,8 @@ class Campaign(models.Model):
     )
     
     title = models.CharField(max_length=200)
+    start_date = models.DateField(null=True, blank=True)
+    estimated_end_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     excel_file = models.FileField(upload_to='campaigns/referentiels/%Y/%m/%d/')
     is_processed = models.BooleanField(default=False)

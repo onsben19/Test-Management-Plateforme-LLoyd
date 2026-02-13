@@ -19,6 +19,8 @@ interface ImportedFile {
     assigned_testers_names?: string[];
     assigned_testers?: number[]; // IDs for editing
     project_id?: string; // To track release ownership
+    start_date?: string;
+    estimated_end_date?: string;
 }
 
 interface User {
@@ -57,7 +59,9 @@ const DataDrivenManager = () => {
         description: '',
         nb_test_cases: 0,
         file: null as File | null,
-        assigned_testers: [] as number[]
+        assigned_testers: [] as number[],
+        start_date: '',
+        estimated_end_date: ''
     });
 
     // Fetch Campaigns & Testers
@@ -86,7 +90,9 @@ const DataDrivenManager = () => {
                 excel_file: camp.excel_file,
                 assigned_testers_names: camp.assigned_testers_names || [],
                 assigned_testers: camp.assigned_testers || [],
-                project_id: camp.project
+                project_id: camp.project,
+                start_date: camp.start_date,
+                estimated_end_date: camp.estimated_end_date
             }));
             setImportedFiles(mappedCampaigns);
         } catch (error) {
@@ -123,7 +129,9 @@ const DataDrivenManager = () => {
             description: '',
             nb_test_cases: 0,
             file: null,
-            assigned_testers: []
+            assigned_testers: [],
+            start_date: '',
+            estimated_end_date: ''
         });
         setIsModalOpen(true);
     };
@@ -136,7 +144,9 @@ const DataDrivenManager = () => {
             description: campaign.description,
             nb_test_cases: campaign.rowCount,
             file: null, // Don't require file upload on edit
-            assigned_testers: campaign.assigned_testers || []
+            assigned_testers: campaign.assigned_testers || [],
+            start_date: campaign.start_date || '',
+            estimated_end_date: campaign.estimated_end_date || ''
         });
         setIsModalOpen(true);
     };
@@ -163,6 +173,8 @@ const DataDrivenManager = () => {
         formData.append('description', campaignForm.description);
         formData.append('project', activeReleaseId);
         formData.append('nb_test_cases', campaignForm.nb_test_cases.toString());
+        if (campaignForm.start_date) formData.append('start_date', campaignForm.start_date);
+        if (campaignForm.estimated_end_date) formData.append('estimated_end_date', campaignForm.estimated_end_date);
 
         if (campaignForm.file) {
             formData.append('excel_file', campaignForm.file);
@@ -308,6 +320,11 @@ const DataDrivenManager = () => {
                                                         <Calendar className="w-3 h-3" />
                                                         {file.date}
                                                     </span>
+                                                    {file.start_date && file.estimated_end_date && (
+                                                        <span className="flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full text-[10px]">
+                                                            {new Date(file.start_date).toLocaleDateString()} - {new Date(file.estimated_end_date).toLocaleDateString()}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -399,6 +416,28 @@ const DataDrivenManager = () => {
                                             onChange={(e) => setCampaignForm({ ...campaignForm, nb_test_cases: parseInt(e.target.value) || 0 })}
                                             className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                             min="0"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Date Fields */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 transition-colors">Date de Début</label>
+                                        <input
+                                            type="date"
+                                            value={campaignForm.start_date}
+                                            onChange={(e) => setCampaignForm({ ...campaignForm, start_date: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 transition-colors">Date de Fin Estimée</label>
+                                        <input
+                                            type="date"
+                                            value={campaignForm.estimated_end_date}
+                                            onChange={(e) => setCampaignForm({ ...campaignForm, estimated_end_date: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                         />
                                     </div>
                                 </div>
