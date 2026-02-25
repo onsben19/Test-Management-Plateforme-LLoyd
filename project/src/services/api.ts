@@ -140,6 +140,11 @@ export const userService = {
     getUsers: (params?: any) => api.get('/users/', { params }),
 };
 
+export const aiService = {
+    reformulate: (message: string) => api.post('/analytics/reformulate/', { message }),
+    getTimelineGuard: (campaignId: string) => api.get(`/analytics/timeline-guard/${campaignId}/`),
+};
+
 
 
 export default api;

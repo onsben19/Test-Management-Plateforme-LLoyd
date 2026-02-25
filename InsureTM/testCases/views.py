@@ -1,12 +1,21 @@
-from rest_framework import viewsets
+from rest_framework import viewsets, permissions
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.db.models import Q
 from .models import TestCase
 from .serializers import TestCaseSerializer
 
+class IsTesterOrAdmin(permissions.BasePermission):
+    def has_permission(self, request, view):
+        # Consultation autorisée pour tout utilisateur authentifié
+        if view.action in ['list', 'retrieve']:
+            return True
+        # Création/Modification/Suppression réservée aux Testeurs et Admins
+        return request.user.is_authenticated and request.user.role in ['TESTER', 'ADMIN']
+
 class TestCaseViewSet(viewsets.ModelViewSet):
     queryset = TestCase.objects.all()
     serializer_class = TestCaseSerializer
+    permission_classes = [permissions.IsAuthenticated, IsTesterOrAdmin]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     def create(self, request, *args, **kwargs):

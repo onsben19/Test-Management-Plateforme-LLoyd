@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from .groq_service import GroqService
 from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
+from campaigns.models import Campaign
 
 class ConversationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -53,7 +54,7 @@ class AskAgentView(APIView):
         try:
             # 3. Get AI Response
             groq_service = GroqService()
-            result = groq_service.process_query(question)
+            result = groq_service.process_query(question, request.user)
             
             # 4. Save Agent Message
             Message.objects.create(
@@ -83,7 +84,43 @@ class AskAgentView(APIView):
             Message.objects.create(
                 conversation=conversation,
                 sender='agent',
-                text="Désolé, une erreur est survenue.",
+                text="Une erreur inattendue est survenue lors de l'analyse des données.",
                 type='error'
             )
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+from .ml_service import MLTimelineGuard
+
+class CampaignTimelineGuardView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, campaign_id):
+        campaign = get_object_or_404(Campaign, id=campaign_id)
+        
+        # Securisation : Un TESTER ne peut voir que les campagnes auxquelles il est assigné
+        if request.user.role == 'TESTER':
+            if not campaign.assigned_testers.filter(id=request.user.id).exists():
+                return Response({'error': 'Accès non autorisé à cette campagne.'}, status=status.HTTP_403_FORBIDDEN)
+
+        guard = MLTimelineGuard()
+        result = guard.get_campaign_status(campaign_id)
+        
+        if "error" in result:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+            
+        return Response(result)
+
+class ReformulateMessageView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        message = request.data.get('message')
+        if not message:
+            return Response({'error': 'Message is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            groq_service = GroqService()
+            reformulated_text = groq_service.reformulate_message(message)
+            return Response({'reformulated_message': reformulated_text})
+        except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

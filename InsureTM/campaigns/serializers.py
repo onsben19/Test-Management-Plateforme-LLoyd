@@ -12,6 +12,7 @@ class CampaignSerializer(serializers.ModelSerializer):
     project_name = serializers.ReadOnlyField(source='project.name')
     manager_name = serializers.SerializerMethodField()
     assigned_testers_names = serializers.SerializerMethodField()
+    excel_file = serializers.FileField(required=False, allow_null=True)
 
     def get_manager_name(self, obj):
         if obj.imported_by:
@@ -23,4 +24,10 @@ class CampaignSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Campaign
-        fields = ['id', 'project', 'project_name', 'title', 'created_at', 'excel_file', 'is_processed', 'assigned_testers', 'assigned_testers_names', 'tasks', 'description', 'nb_test_cases', 'imported_by', 'manager_name']
+        fields = [
+            'id', 'project', 'project_name', 'title', 'created_at', 
+            'start_date', 'estimated_end_date', 'excel_file', 
+            'is_processed', 'scheduled_at', 'assigned_testers', 'assigned_testers_names', 
+            'tasks', 'description', 'nb_test_cases', 'imported_by', 'manager_name'
+        ]
+        read_only_fields = ['imported_by']

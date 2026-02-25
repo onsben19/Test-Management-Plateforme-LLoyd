@@ -15,6 +15,9 @@ const ExecutionTracking = () => {
     console.log('Current User:', user);
     console.log('Role:', user?.role);
     const isTester = user?.role?.toLowerCase() === 'tester';
+    const isAdmin = user?.role?.toLowerCase() === 'admin';
+    const canManage = isAdmin || isTester;
+    const canDelete = isAdmin;
     console.log('Is Tester:', isTester);
 
 
@@ -227,6 +230,8 @@ const ExecutionTracking = () => {
                                 onEditTest={setEditingTest}
                                 onDeleteTest={handleDeleteTest}
                                 isTester={isTester}
+                                canManage={canManage}
+                                canDelete={canDelete}
                                 groupBy={groupBy}
                             />
                         </div>
@@ -240,6 +245,7 @@ const ExecutionTracking = () => {
                                 onClose={() => setSelectedTest(null)}
                                 onUpdate={(updates) => handleTestUpdate(selectedTest.id, updates)}
                                 embed={true}
+                                readOnly={!canManage}
                             />
                         </div>
                     )}

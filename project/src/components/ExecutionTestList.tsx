@@ -24,10 +24,23 @@ interface ExecutionTestListProps {
     onEditTest?: (test: TestItem) => void;
     onDeleteTest?: (test: TestItem) => void;
     isTester?: boolean;
+    canManage?: boolean;
+    canDelete?: boolean;
     groupBy?: 'release' | 'campaign' | 'none';
 }
 
-const ExecutionTestList: React.FC<ExecutionTestListProps> = ({ tests = [], onSelectTest, selectedTestId, onViewCaptures, onEditTest, onDeleteTest, isTester = false, groupBy = 'none' }) => {
+const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
+    tests = [],
+    onSelectTest,
+    selectedTestId,
+    onViewCaptures,
+    onEditTest,
+    onDeleteTest,
+    isTester = false,
+    canManage = true,
+    canDelete = true,
+    groupBy = 'none'
+}) => {
     // Fallback if no tests provided
     const displayTests = tests.length > 0 ? tests : [];
 
@@ -93,16 +106,18 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({ tests = [], onSel
             >
                 <td className="p-4">
                     <div className="flex items-center gap-3">
-                        <button
-                            className="p-1.5 rounded-full bg-blue-100 dark:bg-blue-600/10 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white transition-all group-hover:scale-110"
-                            title="Démarrer l'exécution"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onSelectTest(test);
-                            }}
-                        >
-                            <PlayCircle className="w-4 h-4" />
-                        </button>
+                        {canManage && (
+                            <button
+                                className="p-1.5 rounded-full bg-blue-100 dark:bg-blue-600/10 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white transition-all group-hover:scale-110"
+                                title="Démarrer l'exécution"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSelectTest(test);
+                                }}
+                            >
+                                <PlayCircle className="w-4 h-4" />
+                            </button>
+                        )}
                         <div>
                             <span className={`font-medium block ${selectedTestId === test.id ? 'text-blue-600 dark:text-blue-400' : 'text-slate-900 dark:text-slate-200'} transition-colors`}>
                                 {test.name || (test as any).Titre || (test as any).NOM || (test as any).Nom || (test as any)['Nom du test'] || 'Test sans nom'}
@@ -169,33 +184,38 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({ tests = [], onSel
                 </td>
                 <td className="p-4 text-slate-600 dark:text-slate-400 text-sm transition-colors">{(test as any).lastRun || 'Jamais'}</td>
 
-                {/* Actions Column */}
-                <td className="p-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onEditTest?.(test);
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors"
-                            title="Modifier"
-                        >
-                            <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (window.confirm('Voulez-vous vraiment supprimer cette exécution ?')) {
-                                    onDeleteTest?.(test);
-                                }
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
-                            title="Supprimer"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
-                    </div>
-                </td>
+                {(canManage || canDelete) && (
+                    <td className="p-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                            {canManage && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEditTest?.(test);
+                                    }}
+                                    className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors"
+                                    title="Modifier"
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                </button>
+                            )}
+                            {canDelete && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (window.confirm('Voulez-vous vraiment supprimer cette exécution ?')) {
+                                            onDeleteTest?.(test);
+                                        }
+                                    }}
+                                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                    title="Supprimer"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+                    </td>
+                )}
             </tr>
         );
     };
@@ -225,7 +245,9 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({ tests = [], onSel
                             <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider transition-colors">Captures</th>
                             <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider transition-colors">Statut</th>
                             <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider transition-colors">Dernière Exécution</th>
-                            <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider transition-colors text-right">Actions</th>
+                            <th className="p-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider transition-colors text-right">
+                                {(canManage || canDelete) ? 'Actions' : ''}
+                            </th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200/50 dark:divide-slate-700/50 transition-colors">

@@ -3,9 +3,26 @@ import { toast } from 'react-toastify';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { useLocation } from 'react-router-dom';
-import { Upload, FileSpreadsheet, Calendar, Eye, Trash2, Edit, Search, Filter, Layers, Users, X, CheckCircle } from 'lucide-react';
+import {
+    Upload, FileSpreadsheet, Calendar, Eye, Trash2, Edit, Search, Filter,
+    Layers, Users, X, CheckCircle, ShieldAlert, ShieldCheck, ShieldQuestion,
+    Zap, Info, TrendingUp, Clock, AlertTriangle, ArrowRight
+} from 'lucide-react';
 
-import { campaignService, userService } from '../services/api';
+import { campaignService, userService, aiService } from '../services/api';
+
+interface TimelineGuardData {
+    status: 'OPTIMAL' | 'WARNING' | 'CRITICAL' | 'INITIAL' | 'WAITING';
+    velocity: number;
+    projected_end_date: string | null;
+    delay_days: number;
+    message: string;
+    progress: {
+        finished: number;
+        total: number;
+        percentage: number;
+    };
+}
 
 interface ImportedFile {
     id: string;
@@ -21,6 +38,7 @@ interface ImportedFile {
     project_id?: string; // To track release ownership
     start_date?: string;
     estimated_end_date?: string;
+    scheduled_at?: string;
 }
 
 interface User {
@@ -36,6 +54,7 @@ const DataDrivenManager = () => {
     const activeReleaseId = location.state?.releaseId;
 
     const [importedFiles, setImportedFiles] = useState<ImportedFile[]>([]);
+    const [timelineGuards, setTimelineGuards] = useState<Record<string, TimelineGuardData>>({});
     const [loading, setLoading] = useState(true);
 
     // Filter States
@@ -52,6 +71,7 @@ const DataDrivenManager = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCampaign, setEditingCampaign] = useState<ImportedFile | null>(null);
     const [testers, setTesters] = useState<User[]>([]);
+    const [showScheduleSelector, setShowScheduleSelector] = useState(false);
 
     // Form State
     const [campaignForm, setCampaignForm] = useState({
@@ -61,7 +81,8 @@ const DataDrivenManager = () => {
         file: null as File | null,
         assigned_testers: [] as number[],
         start_date: '',
-        estimated_end_date: ''
+        estimated_end_date: '',
+        scheduled_at: ''
     });
 
     // Fetch Campaigns & Testers
@@ -92,14 +113,32 @@ const DataDrivenManager = () => {
                 assigned_testers: camp.assigned_testers || [],
                 project_id: camp.project,
                 start_date: camp.start_date,
-                estimated_end_date: camp.estimated_end_date
+                estimated_end_date: camp.estimated_end_date,
+                scheduled_at: camp.scheduled_at
             }));
             setImportedFiles(mappedCampaigns);
+
+            // Fetch Timeline Guards for each campaign
+            mappedCampaigns.forEach((camp: any) => {
+                fetchTimelineGuard(camp.id);
+            });
         } catch (error) {
             console.error("Failed to fetch campaigns", error);
             toast.error("Erreur de chargement des campagnes");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchTimelineGuard = async (campaignId: string) => {
+        try {
+            const response = await aiService.getTimelineGuard(campaignId);
+            setTimelineGuards(prev => ({
+                ...prev,
+                [campaignId]: response.data
+            }));
+        } catch (error) {
+            console.error(`Failed to fetch timeline guard for ${campaignId}`, error);
         }
     };
 
@@ -131,8 +170,10 @@ const DataDrivenManager = () => {
             file: null,
             assigned_testers: [],
             start_date: '',
-            estimated_end_date: ''
+            estimated_end_date: '',
+            scheduled_at: ''
         });
+        setShowScheduleSelector(false);
         setIsModalOpen(true);
     };
 
@@ -146,8 +187,10 @@ const DataDrivenManager = () => {
             file: null, // Don't require file upload on edit
             assigned_testers: campaign.assigned_testers || [],
             start_date: campaign.start_date || '',
-            estimated_end_date: campaign.estimated_end_date || ''
+            estimated_end_date: campaign.estimated_end_date || '',
+            scheduled_at: campaign.scheduled_at || ''
         });
+        setShowScheduleSelector(!!campaign.scheduled_at);
         setIsModalOpen(true);
     };
 
@@ -175,6 +218,7 @@ const DataDrivenManager = () => {
         formData.append('nb_test_cases', campaignForm.nb_test_cases.toString());
         if (campaignForm.start_date) formData.append('start_date', campaignForm.start_date);
         if (campaignForm.estimated_end_date) formData.append('estimated_end_date', campaignForm.estimated_end_date);
+        if (campaignForm.scheduled_at) formData.append('scheduled_at', campaignForm.scheduled_at);
 
         if (campaignForm.file) {
             formData.append('excel_file', campaignForm.file);
@@ -224,6 +268,129 @@ const DataDrivenManager = () => {
         } else {
             toast.warning("Fichier introuvable");
         }
+    };
+
+    const renderTimelineGuard = (campaignId: string) => {
+        const guard = timelineGuards[campaignId];
+        if (!guard) return null;
+
+        const getStatusStyles = () => {
+            switch (guard.status) {
+                case 'OPTIMAL': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+                case 'WARNING': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+                case 'CRITICAL': return 'bg-rose-500/10 text-rose-600 border-rose-500/20';
+                case 'WAITING': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+                default: return 'bg-slate-500/10 text-slate-600 border-slate-500/20';
+            }
+        };
+
+        const getStatusIcon = () => {
+            switch (guard.status) {
+                case 'OPTIMAL': return <ShieldCheck className="w-4 h-4" />;
+                case 'WARNING': return <AlertTriangle className="w-4 h-4" />;
+                case 'CRITICAL': return <ShieldAlert className="w-4 h-4" />;
+                case 'WAITING': return <Clock className="w-4 h-4" />;
+                default: return <ShieldQuestion className="w-4 h-4" />;
+            }
+        };
+
+        const getStatusLabel = () => {
+            switch (guard.status) {
+                case 'OPTIMAL': return 'Santé Optimale';
+                case 'WARNING': return 'Risque de Dérive';
+                case 'CRITICAL': return 'Retard Critique';
+                case 'WAITING': return 'Calcul en cours';
+                default: return 'Analyse...';
+            }
+        };
+
+        return (
+            <div className="mt-6 p-4 rounded-xl border bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm border-slate-200 dark:border-slate-700/50 shadow-sm transition-all hover:shadow-md">
+                {/* Header with Status Badge */}
+                <div className="flex items-center justify-between mb-4">
+                    <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full border text-[11px] font-bold uppercase tracking-wide ${getStatusStyles()}`}>
+                        {getStatusIcon()}
+                        {getStatusLabel()}
+                    </div>
+                    {guard.delay_days > 0 && (
+                        <div className="flex items-center gap-1 text-rose-500 font-bold text-xs animate-pulse">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            +{guard.delay_days}j de retard
+                        </div>
+                    )}
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="bg-slate-100/50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-semibold mb-1 uppercase tracking-tight">
+                            <TrendingUp className="w-3 h-3 text-blue-500" />
+                            Cadence de Test (IA)
+                        </div>
+                        <div className="text-sm font-bold text-slate-800 dark:text-slate-100 italic">
+                            {guard.velocity} <span className="text-[10px] font-medium opacity-70">tests/jour</span>
+                        </div>
+                    </div>
+                    <div className="bg-slate-100/50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-semibold mb-1 uppercase tracking-tight">
+                            <Calendar className="w-3 h-3 text-indigo-500" />
+                            Fin Estimée
+                        </div>
+                        <div className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                            {guard.projected_end_date ? new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : '--'}
+                        </div>
+                    </div>
+                </div>
+
+                {/* AI Insight Box */}
+                {guard.message && (
+                    <div className="relative group mb-4">
+                        <div className={`absolute -inset-0.5 rounded-lg blur opacity-50 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 ${guard.progress.percentage === 100 ? 'bg-gradient-to-r from-emerald-400 to-green-500' : 'bg-gradient-to-r from-blue-500/20 to-purple-500/20'
+                            }`}></div>
+                        <div className={`relative flex gap-3 p-3 rounded-lg border ${guard.progress.percentage === 100
+                            ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100/50 dark:border-emerald-800/30'
+                            : 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-100/50 dark:border-blue-800/30'
+                            }`}>
+                            <div className="mt-0.5">
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${guard.progress.percentage === 100 ? 'bg-emerald-500/20' : 'bg-blue-500/20'
+                                    }`}>
+                                    {guard.progress.percentage === 100 ? <ShieldCheck className="w-3 h-3 text-emerald-500" /> : <Zap className="w-3 h-3 text-blue-500" />}
+                                </div>
+                            </div>
+                            <div className="flex-1">
+                                <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${guard.progress.percentage === 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'
+                                    }`}>
+                                    {guard.progress.percentage === 100 ? 'Succès de Campagne' : 'Analyse prédictive'}
+                                </div>
+                                <p className={`text-[11px] leading-relaxed font-medium italic ${guard.progress.percentage === 100 ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-300'
+                                    }`}>
+                                    "{guard.message}"
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Progress Visualizer */}
+                <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800/50">
+                    <div className="flex justify-between items-end mb-1">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Objectif : {guard.progress.total} Cas</span>
+                        <span className="text-[10px] font-black text-slate-900 dark:text-white">{guard.progress.percentage}%</span>
+                    </div>
+                    <div className="relative w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
+                        <div
+                            className={`h-full transition-all duration-1000 ease-out flex items-center justify-end pr-1 shadow-[0_0_10px_rgba(0,0,0,0.1)] ${guard.status === 'CRITICAL' ? 'bg-gradient-to-r from-rose-500 to-rose-400' :
+                                guard.status === 'WARNING' ? 'bg-gradient-to-r from-amber-500 to-amber-400' :
+                                    'bg-gradient-to-r from-emerald-500 to-emerald-400'
+                                }`}
+                            style={{ width: `${guard.progress.percentage}%` }}
+                        >
+                            <div className="w-1 h-full bg-white/20 animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -325,6 +492,12 @@ const DataDrivenManager = () => {
                                                             {new Date(file.start_date).toLocaleDateString()} - {new Date(file.estimated_end_date).toLocaleDateString()}
                                                         </span>
                                                     )}
+                                                    {file.scheduled_at && new Date(file.scheduled_at) > new Date() && (
+                                                        <span className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full text-[10px] animate-pulse">
+                                                            <Clock className="w-3 h-3" />
+                                                            Début prévu : {new Date(file.scheduled_at).toLocaleString()}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -334,6 +507,8 @@ const DataDrivenManager = () => {
                                                 {file.description}
                                             </p>
                                         )}
+
+                                        {renderTimelineGuard(file.id)}
 
                                         <div className="border-t border-slate-100 dark:border-slate-700/50 pt-4 mt-auto">
                                             <div className="flex items-center justify-between mb-4">
@@ -384,8 +559,8 @@ const DataDrivenManager = () => {
                 {/* Create/Edit Campaign Modal */}
                 {isModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-900/80 backdrop-blur-sm p-4 animate-in fade-in transition-colors">
-                        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 transition-colors">
-                            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 transition-colors flex flex-col max-h-[90vh]">
+                            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 shrink-0">
                                 <h2 className="text-xl font-bold text-slate-900 dark:text-white transition-colors">
                                     {editingCampaign ? 'Modifier la Campagne' : 'Ajouter une Campagne'}
                                 </h2>
@@ -394,121 +569,204 @@ const DataDrivenManager = () => {
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                                {/* Title & Cases Row */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="md:col-span-2">
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 transition-colors">Titre du Cahier de Test</label>
-                                        <input
-                                            type="text"
-                                            value={campaignForm.title}
-                                            onChange={(e) => setCampaignForm({ ...campaignForm, title: e.target.value })}
-                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                                            placeholder="Ex: Campagne Release 1.2"
-                                            required
-                                        />
+                            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+                                <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
+                                    {/* Title & Cases Row */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 transition-colors">Titre du Cahier de Test</label>
+                                            <input
+                                                type="text"
+                                                value={campaignForm.title}
+                                                onChange={(e) => setCampaignForm({ ...campaignForm, title: e.target.value })}
+                                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                                placeholder="Ex: Campagne Release 1.2"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 transition-colors">Nb. Cas de Test</label>
+                                            <input
+                                                type="number"
+                                                value={campaignForm.nb_test_cases}
+                                                onChange={(e) => setCampaignForm({ ...campaignForm, nb_test_cases: parseInt(e.target.value) || 0 })}
+                                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                                min="0"
+                                            />
+                                        </div>
                                     </div>
+
+
+                                    {/* Description */}
                                     <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 transition-colors">Nb. Cas de Test</label>
-                                        <input
-                                            type="number"
-                                            value={campaignForm.nb_test_cases}
-                                            onChange={(e) => setCampaignForm({ ...campaignForm, nb_test_cases: parseInt(e.target.value) || 0 })}
-                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                                            min="0"
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 transition-colors">Description</label>
+                                        <textarea
+                                            value={campaignForm.description}
+                                            onChange={(e) => setCampaignForm({ ...campaignForm, description: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px] resize-none transition-all"
+                                            placeholder="Description optionnelle..."
                                         />
                                     </div>
-                                </div>
 
-                                {/* Date Fields */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 transition-colors">Date de Début</label>
-                                        <input
-                                            type="date"
-                                            value={campaignForm.start_date}
-                                            onChange={(e) => setCampaignForm({ ...campaignForm, start_date: e.target.value })}
-                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 transition-colors">Date de Fin Estimée</label>
-                                        <input
-                                            type="date"
-                                            value={campaignForm.estimated_end_date}
-                                            onChange={(e) => setCampaignForm({ ...campaignForm, estimated_end_date: e.target.value })}
-                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Description */}
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 transition-colors">Description</label>
-                                    <textarea
-                                        value={campaignForm.description}
-                                        onChange={(e) => setCampaignForm({ ...campaignForm, description: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px] resize-none transition-all"
-                                        placeholder="Description optionnelle..."
-                                    />
-                                </div>
-
-                                {/* File Upload (Optional on Edit) */}
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 transition-colors">
-                                        Fichier Excel (.xlsx) {editingCampaign && <span className="text-xs text-slate-500 font-normal">(Laisser vide pour conserver l'actuel)</span>}
-                                    </label>
-                                    <div className={`border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 hover:border-blue-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all cursor-pointer relative ${campaignForm.file ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10' : 'border-slate-300 dark:border-slate-700'}`}>
-                                        <input
-                                            type="file"
-                                            onChange={handleFileChange}
-                                            accept=".xlsx, .xls"
-                                            className="absolute inset-0 opacity-0 cursor-pointer"
-                                            required={!editingCampaign}
-                                        />
-                                        <Upload className={`w-8 h-8 mb-3 ${campaignForm.file ? 'text-blue-500' : 'text-slate-400'}`} />
-                                        {campaignForm.file ? (
-                                            <span className="text-blue-600 dark:text-blue-400 font-medium">{campaignForm.file.name}</span>
-                                        ) : (
-                                            <span>{editingCampaign ? "Cliquez pour remplacer le fichier" : "Cliquez pour importer un fichier"}</span>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Tester Selection */}
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 transition-colors">Assigner des Testeurs</label>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 bg-slate-50 dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700 max-h-48 overflow-y-auto transition-all custom-scrollbar">
-                                        {testers.map(tester => (
-                                            <label key={tester.id} className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${campaignForm.assigned_testers.includes(tester.id) ? 'bg-blue-100 dark:bg-blue-900/30' : 'hover:bg-slate-200 dark:hover:bg-slate-800'}`}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={campaignForm.assigned_testers.includes(tester.id)}
-                                                    onChange={(e) => {
-                                                        const id = tester.id;
-                                                        if (e.target.checked) {
-                                                            setCampaignForm({ ...campaignForm, assigned_testers: [...campaignForm.assigned_testers, id] });
-                                                        } else {
-                                                            setCampaignForm({ ...campaignForm, assigned_testers: campaignForm.assigned_testers.filter(tid => tid !== id) });
-                                                        }
-                                                    }}
-                                                    className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 bg-white dark:bg-slate-800"
-                                                />
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-medium text-slate-600 dark:text-slate-300">
-                                                        {tester.username.charAt(0).toUpperCase()}
-                                                    </div>
-                                                    <span className="text-sm text-slate-700 dark:text-slate-300 truncate">{tester.username}</span>
+                                    {/* Lancement & Publication (Consolidated UI) */}
+                                    <div className={`p-5 rounded-xl border transition-all duration-300 ${showScheduleSelector
+                                        ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-900/40 shadow-sm'
+                                        : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800'
+                                        }`}>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold">
+                                                <div className={`p-1.5 rounded-lg ${showScheduleSelector ? 'bg-amber-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>
+                                                    <Clock className="w-4 h-4" />
                                                 </div>
-                                            </label>
-                                        ))}
-                                        {testers.length === 0 && (
-                                            <p className="text-xs text-slate-500 col-span-3 text-center py-4">Aucun testeur trouvé.</p>
+                                                <span>Calendrier & Lancement</span>
+                                            </div>
+                                            {!showScheduleSelector ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowScheduleSelector(true)}
+                                                    className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 group"
+                                                >
+                                                    Programmer un lancement différé
+                                                    <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setShowScheduleSelector(false);
+                                                        setCampaignForm({ ...campaignForm, scheduled_at: '', start_date: '' });
+                                                    }}
+                                                    className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline"
+                                                >
+                                                    Annuler le différé
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {!showScheduleSelector ? (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center animate-in fade-in slide-in-from-left-2 transition-all">
+                                                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                                                    Lancement immédiat
+                                                </div>
+                                                <div className="relative group">
+                                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                                                        <Calendar className="w-4 h-4" />
+                                                    </div>
+                                                    <input
+                                                        type="date"
+                                                        value={campaignForm.estimated_end_date}
+                                                        onChange={(e) => setCampaignForm({ ...campaignForm, estimated_end_date: e.target.value })}
+                                                        className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700/50 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all group-hover:border-blue-400 dark:group-hover:border-blue-700"
+                                                        placeholder="Fin estimée"
+                                                    />
+                                                    <label className="absolute -top-2 left-3 bg-white dark:bg-slate-900 px-1 text-[10px] text-slate-500 font-bold uppercase transition-colors">Fin estimée</label>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {/* Start Date */}
+                                                    <div className="relative group">
+                                                        <div className="absolute left-3 top-10 -translate-y-1/2 text-amber-500">
+                                                            <Calendar className="w-4 h-4" />
+                                                        </div>
+                                                        <label className="block text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase mb-1 ml-1">Début estimé</label>
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={campaignForm.scheduled_at}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                setCampaignForm({
+                                                                    ...campaignForm,
+                                                                    scheduled_at: val,
+                                                                    start_date: val ? val.split('T')[0] : ''
+                                                                });
+                                                            }}
+                                                            className="w-full bg-white dark:bg-slate-800 border-2 border-amber-200 dark:border-amber-900/30 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none transition-all shadow-sm group-hover:border-amber-400 dark:group-hover:border-amber-700"
+                                                            required={showScheduleSelector}
+                                                        />
+                                                    </div>
+
+                                                    {/* End Date */}
+                                                    <div className="relative group">
+                                                        <div className="absolute left-3 top-10 -translate-y-1/2 text-blue-500">
+                                                            <CheckCircle className="w-4 h-4" />
+                                                        </div>
+                                                        <label className="block text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase mb-1 ml-1">Fin estimée</label>
+                                                        <input
+                                                            type="date"
+                                                            value={campaignForm.estimated_end_date}
+                                                            onChange={(e) => setCampaignForm({ ...campaignForm, estimated_end_date: e.target.value })}
+                                                            className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700/50 rounded-lg pl-10 pr-4 py-2.5 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all group-hover:border-blue-400 dark:group-hover:border-blue-700"
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <p className="text-[10px] text-amber-700 dark:text-amber-400/80 leading-relaxed italic border-t border-amber-100 dark:border-amber-900/20 pt-2">
+                                                    La campagne débutera à la date définie et les testeurs devront terminer avant la date de fin.
+                                                </p>
+                                            </div>
                                         )}
+                                    </div>
+
+                                    {/* File Upload (Optional on Edit) */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 transition-colors">
+                                            Fichier Excel (.xlsx) {editingCampaign && <span className="text-xs text-slate-500 font-normal">(Laisser vide pour conserver l'actuel)</span>}
+                                        </label>
+                                        <div className={`border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 hover:border-blue-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all cursor-pointer relative ${campaignForm.file ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10' : 'border-slate-300 dark:border-slate-700'}`}>
+                                            <input
+                                                type="file"
+                                                onChange={handleFileChange}
+                                                accept=".xlsx, .xls"
+                                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                                required={!editingCampaign}
+                                            />
+                                            <Upload className={`w-8 h-8 mb-3 ${campaignForm.file ? 'text-blue-500' : 'text-slate-400'}`} />
+                                            {campaignForm.file ? (
+                                                <span className="text-blue-600 dark:text-blue-400 font-medium">{campaignForm.file.name}</span>
+                                            ) : (
+                                                <span>{editingCampaign ? "Cliquez pour remplacer le fichier" : "Cliquez pour importer un fichier"}</span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Tester Selection */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 transition-colors">Assigner des Testeurs</label>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 bg-slate-50 dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700 max-h-48 overflow-y-auto transition-all custom-scrollbar">
+                                            {testers.map(tester => (
+                                                <label key={tester.id} className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${campaignForm.assigned_testers.includes(tester.id) ? 'bg-blue-100 dark:bg-blue-900/30' : 'hover:bg-slate-200 dark:hover:bg-slate-800'}`}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={campaignForm.assigned_testers.includes(tester.id)}
+                                                        onChange={(e) => {
+                                                            const id = tester.id;
+                                                            if (e.target.checked) {
+                                                                setCampaignForm({ ...campaignForm, assigned_testers: [...campaignForm.assigned_testers, id] });
+                                                            } else {
+                                                                setCampaignForm({ ...campaignForm, assigned_testers: campaignForm.assigned_testers.filter(tid => tid !== id) });
+                                                            }
+                                                        }}
+                                                        className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 bg-white dark:bg-slate-800"
+                                                    />
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-medium text-slate-600 dark:text-slate-300">
+                                                            {tester.username.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <span className="text-sm text-slate-700 dark:text-slate-300 truncate">{tester.username}</span>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                            {testers.length === 0 && (
+                                                <p className="text-xs text-slate-500 col-span-3 text-center py-4">Aucun testeur trouvé.</p>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="flex justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
+                                <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3 shrink-0">
                                     <button
                                         type="button"
                                         onClick={() => setIsModalOpen(false)}
@@ -528,7 +786,6 @@ const DataDrivenManager = () => {
                         </div>
                     </div>
                 )}
-
 
                 {/* Delete Modal */}
                 {deleteModal.isOpen && (
