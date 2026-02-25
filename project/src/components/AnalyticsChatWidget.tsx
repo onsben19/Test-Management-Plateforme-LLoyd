@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
     MessageSquare, Send, X, Bot, User, BarChart2, Minimize2,
-    PanelLeft, PanelLeftClose, Sparkles, Database, Info, RefreshCw, Maximize2, Download, FileText
+    PanelLeft, PanelLeftClose, Sparkles, Database, Info, RefreshCw, Maximize2, Download, FileText, Paperclip
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';

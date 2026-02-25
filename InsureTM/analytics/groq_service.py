@@ -126,15 +126,19 @@ class GroqService:
                 "type": "error"
             }
 
-    def reformulate_message(self, text):
+    def reformulate_message(self, text, is_subject=False):
         """
         Reformulates the input text to be specific, professional, and courteous using Llama 3 via Groq.
+        If is_subject is True, ensures the result is concise and suitable for an email subject.
         """
-        system_prompt = """
+        if is_subject:
+            context_instruction = "Your task is to rewrite the user's message as a professional email SUBJECT. It must be short, impactful, and summarized in one brief line (max 10 words)."
+        else:
+            context_instruction = "Your task is to rewrite the user's message as a professional email BODY. It must be professional, courteous, clear, and concise."
+
+        system_prompt = f"""
         You are a professional communication assistant for a QA Software Platform (InsureTM).
-        Your task is to rewrite the user's message to be:
-        1. Professional and courteous.
-        2. Clear and concise.
+        {context_instruction}
         3. Specific (avoid vague terms).
         4. In French (assuming the platform is in French).
         
@@ -163,7 +167,11 @@ class GroqService:
                 model="llama-3.3-70b-versatile",
                 temperature=0.3, # Slightly creative but focused
             )
-            return completion.choices[0].message.content.strip()
+            reformulated_text = completion.choices[0].message.content.strip()
+            # If it's a subject, make sure it doesn't have a trailing period or quotes
+            if is_subject:
+                reformulated_text = reformulated_text.strip('."\'')
+            return reformulated_text
         except Exception as e:
             print(f"Groq API Error: {e}")
             return text # Fallback to original text if API fails

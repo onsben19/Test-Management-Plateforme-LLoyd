@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Paperclip, Send, Loader } from 'lucide-react';
+import { X, Paperclip, Send, Loader, Wand2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { userService, emailService } from '../services/api';
+import { userService, emailService, aiService } from '../services/api';
 import { toast } from 'react-toastify';
 
 interface ComposeEmailModalProps {
@@ -21,6 +21,8 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
     const [attachment, setAttachment] = useState<File | null>(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [reformulating, setReformulating] = useState(false);
+    const [subjectReformulating, setSubjectReformulating] = useState(false);
 
     useEffect(() => {
         fetchUsers();
@@ -51,6 +53,52 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
     const filteredUsers = users.filter(u =>
         u.username.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const handleReformulate = async () => {
+        if (!body.trim()) {
+            toast.warning("Écrivez d'abord un message à reformuler");
+            return;
+        }
+        try {
+            setReformulating(true);
+            const response = await aiService.reformulate(body, false);
+            const reformulated = response.data?.reformulated_message || response.data?.message;
+            if (reformulated) {
+                setBody(reformulated);
+                toast.success("Message reformulé par l'IA !");
+            } else {
+                toast.error("Aucune reformulation reçue");
+            }
+        } catch (error) {
+            console.error('Reformulation error', error);
+            toast.error("Erreur lors de la reformulation");
+        } finally {
+            setReformulating(false);
+        }
+    };
+
+    const handleSubjectReformulate = async () => {
+        if (!subject.trim()) {
+            toast.warning("Écrivez d'abord un objet à reformuler");
+            return;
+        }
+        try {
+            setSubjectReformulating(true);
+            const response = await aiService.reformulate(subject, true);
+            const reformulated = response.data?.reformulated_message || response.data?.message;
+            if (reformulated) {
+                setSubject(reformulated);
+                toast.success("Objet reformulé par l'IA !");
+            } else {
+                toast.error("Aucune reformulation reçue");
+            }
+        } catch (error) {
+            console.error('Subject reformulation error', error);
+            toast.error("Erreur lors de la reformulation de l'objet");
+        } finally {
+            setSubjectReformulating(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -175,7 +223,21 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1">Objets</label>
+                        <div className="flex justify-between items-center mb-1">
+                            <label className="block text-sm font-medium text-slate-300">Objets</label>
+                            <button
+                                type="button"
+                                onClick={handleSubjectReformulate}
+                                disabled={subjectReformulating || !subject.trim()}
+                                className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-violet-600/20 border border-violet-500/30 text-violet-300 hover:bg-violet-600/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                {subjectReformulating ? (
+                                    <><Loader className="w-3 h-3 animate-spin" /> Reformulation...</>
+                                ) : (
+                                    <><Wand2 className="w-3 h-3" /> Reformuler l'objet</>
+                                )}
+                            </button>
+                        </div>
                         <input
                             type="text"
                             value={subject}
@@ -187,7 +249,21 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1">Message</label>
+                        <div className="flex justify-between items-center mb-1">
+                            <label className="block text-sm font-medium text-slate-300">Message</label>
+                            <button
+                                type="button"
+                                onClick={handleReformulate}
+                                disabled={reformulating || !body.trim()}
+                                className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-violet-600/20 border border-violet-500/30 text-violet-300 hover:bg-violet-600/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                {reformulating ? (
+                                    <><Loader className="w-3 h-3 animate-spin" /> Reformulation...</>
+                                ) : (
+                                    <><Wand2 className="w-3 h-3" /> Reformuler avec l'IA</>
+                                )}
+                            </button>
+                        </div>
                         <textarea
                             value={body}
                             onChange={(e) => setBody(e.target.value)}

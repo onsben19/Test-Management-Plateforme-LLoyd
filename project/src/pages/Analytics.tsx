@@ -6,6 +6,7 @@ import ChatHistorySidebar from '../components/ChatHistorySidebar';
 import GrafanaDashboard from '../components/GrafanaDashboard';
 import { toast } from 'react-toastify';
 import { Bot, BarChart2 } from 'lucide-react';
+import api from '../services/api';
 
 interface Conversation {
     id: string;
@@ -27,16 +28,10 @@ const Analytics = () => {
     const fetchConversations = async () => {
         try {
             setIsLoading(true);
-            const token = localStorage.getItem('access_token');
-            const response = await fetch('http://localhost:8000/api/analytics/conversations/', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setConversations(data);
-            }
-        } catch (error) {
-            console.error("Error fetching conversations:", error);
+            const response = await api.get('/analytics/conversations/');
+            setConversations(Array.isArray(response.data) ? response.data : []);
+        } catch {
+            // Silently fail — widget handles its own errors
         } finally {
             setIsLoading(false);
         }
@@ -47,18 +42,14 @@ const Analytics = () => {
 
     const handleDeleteConversation = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!window.confirm("Voulez-vous vraiment supprimer cette conversation ?")) return;
+        if (!window.confirm('Voulez-vous vraiment supprimer cette conversation ?')) return;
         try {
-            const token = localStorage.getItem('access_token');
-            await fetch(`http://localhost:8000/api/analytics/conversations/${id}/`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            await api.delete(`/analytics/conversations/${id}/`);
             setConversations(prev => prev.filter(c => c.id !== id));
             if (currentConversationId === id) setCurrentConversationId(null);
-            toast.success("Conversation supprimée");
-        } catch (error) {
-            toast.error("Erreur lors de la suppression");
+            toast.success('Conversation supprimée');
+        } catch {
+            toast.error('Erreur lors de la suppression');
         }
     };
 
@@ -68,7 +59,6 @@ const Analytics = () => {
             <div className="flex flex-1 h-[calc(100vh-4rem)]">
                 <Sidebar />
                 <main className="flex-1 lg:ml-64 flex flex-col">
-
                     {/* Tab Bar */}
                     <div className="flex items-center gap-1 px-4 pt-3 pb-0 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0">
                         <button
@@ -96,7 +86,6 @@ const Analytics = () => {
                     {/* Tab Content */}
                     {activeTab === 'chat' ? (
                         <div className="flex flex-1 overflow-hidden">
-                            {/* Chat History Sidebar */}
                             <div className={`${isSidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 ease-in-out overflow-hidden flex flex-col border-r border-slate-200 dark:border-slate-800 bg-slate-900 h-full`}>
                                 <div className="w-64 h-full flex flex-col">
                                     <ChatHistorySidebar
@@ -129,4 +118,3 @@ const Analytics = () => {
 };
 
 export default Analytics;
-

@@ -64,6 +64,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                 created_at: new Date().toISOString(),
                 author_name: user?.username || 'Moi',
                 attachment: selectedFile ? URL.createObjectURL(selectedFile) : null,
+                attachment_name: selectedFile ? selectedFile.name : null,
                 isOptimistic: true
             };
 
@@ -168,7 +169,9 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                                                 {comment.attachment && (
                                                     <div className="mt-3 p-2 bg-black/30 rounded-xl flex items-center gap-2 border border-white/5">
                                                         <FileText className="w-4 h-4 text-blue-400" />
-                                                        <a href={comment.attachment} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-300 hover:underline truncate block max-w-[150px]">{comment.attachment.split('/').pop()}</a>
+                                                        <a href={comment.attachment} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-300 hover:underline truncate block max-w-[150px]">
+                                                            {comment.attachment_name || comment.attachment.split('/').pop()}
+                                                        </a>
                                                         <Download className="w-3 h-3 text-white/30 ml-auto" />
                                                     </div>
                                                 )}

@@ -1,27 +1,21 @@
 import axios from 'axios';
 
-const API_URL = 'http://127.0.0.1:8000/api';
-
+// ---------------------------------------------------------------------------
+// Axios instance
+// ---------------------------------------------------------------------------
 const api = axios.create({
-    baseURL: API_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
+    baseURL: 'http://127.0.0.1:8000/api',
+    headers: { 'Content-Type': 'application/json' },
 });
 
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('access_token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
+// Attach access token to every request
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('access_token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+});
 
+// Auto-refresh on 401
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -31,120 +25,95 @@ api.interceptors.response.use(
             const refreshToken = localStorage.getItem('refresh_token');
             if (refreshToken) {
                 try {
-                    const response = await axios.post(`${API_URL}/token/refresh/`, {
-                        refresh: refreshToken,
-                    });
-                    localStorage.setItem('access_token', response.data.access);
-                    api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access}`;
+                    const { data } = await axios.post(
+                        'http://127.0.0.1:8000/api/token/refresh/',
+                        { refresh: refreshToken }
+                    );
+                    localStorage.setItem('access_token', data.access);
+                    api.defaults.headers.common['Authorization'] = `Bearer ${data.access}`;
                     return api(originalRequest);
-                } catch (refreshError) {
-                    console.error('RefreshToken expired or invalid', refreshError);
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('refresh_token');
-                    window.location.href = '/login';
+                } catch {
+                    // Refresh failed — fall through to logout
                 }
-            } else {
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('refresh_token');
-                window.location.href = '/login';
             }
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            window.location.href = '/login';
         }
         return Promise.reject(error);
     }
 );
 
+// ---------------------------------------------------------------------------
+// Helper: build multipart headers when data is FormData
+// ---------------------------------------------------------------------------
+const multipartHeaders = (data: unknown) =>
+    data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined;
 
+// ---------------------------------------------------------------------------
+// Services
+// ---------------------------------------------------------------------------
 export const projectService = {
-    getProjects: (params?: any) => api.get('/projects/', { params }),
-    createProject: (data: any) => api.post('/projects/', data),
-    updateProject: (id: any, data: any) => api.patch(`/projects/${id}/`, data),
-    deleteProject: (id: any) => api.delete(`/projects/${id}/`),
+    getProjects: (params?: Record<string, unknown>) => api.get('/projects/', { params }),
+    createProject: (data: unknown) => api.post('/projects/', data),
+    updateProject: (id: string | number, data: unknown) => api.patch(`/projects/${id}/`, data),
+    deleteProject: (id: string | number) => api.delete(`/projects/${id}/`),
 };
 
 export const campaignService = {
-    getCampaigns: (params?: any) => {
-        // Handle both simple project_id string (legacy) and params object
+    getCampaigns: (params?: Record<string, unknown> | string) => {
         const config = typeof params === 'string'
             ? { params: { project: params } }
             : { params };
         return api.get('/campaigns/', config);
     },
-    createCampaign: (data: FormData) => api.post('/campaigns/', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    }),
-    updateCampaign: (id: string, data: FormData | any) => {
-        const isFormData = data instanceof FormData;
-        return api.patch(`/campaigns/${id}/`, data, {
-            headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined
-        });
-    },
+    createCampaign: (data: FormData) =>
+        api.post('/campaigns/', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+    updateCampaign: (id: string, data: FormData | Record<string, unknown>) =>
+        api.patch(`/campaigns/${id}/`, data, { headers: multipartHeaders(data) }),
     deleteCampaign: (id: string) => api.delete(`/campaigns/${id}/`),
 };
 
 export const executionService = {
-    getExecutions: (params?: any) => api.get('/testcases/', { params }),
-    createExecution: (data: any) => {
-        const isFormData = data instanceof FormData;
-        return api.post('/testcases/', data, {
-            headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined
-        });
-    },
-    updateExecution: (id: string, data: any) => {
-        const isFormData = data instanceof FormData;
-        return api.patch(`/testcases/${id}/`, data, {
-            headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined
-        });
-    },
+    getExecutions: (params?: Record<string, unknown>) => api.get('/testcases/', { params }),
+    createExecution: (data: FormData | Record<string, unknown>) =>
+        api.post('/testcases/', data, { headers: multipartHeaders(data) }),
+    updateExecution: (id: string, data: FormData | Record<string, unknown>) =>
+        api.patch(`/testcases/${id}/`, data, { headers: multipartHeaders(data) }),
     deleteExecution: (id: string) => api.delete(`/testcases/${id}/`),
 };
 
 export const anomalyService = {
-    getAnomalies: (params?: any) => api.get('/anomalies/', { params }),
-    createAnomaly: (data: any) => {
-        const isFormData = data instanceof FormData;
-        return api.post('/anomalies/', data, {
-            headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined
-        });
-    },
-    updateAnomaly: (id: string, data: any) => api.patch(`/anomalies/${id}/`, data),
+    getAnomalies: (params?: Record<string, unknown>) => api.get('/anomalies/', { params }),
+    createAnomaly: (data: FormData | Record<string, unknown>) =>
+        api.post('/anomalies/', data, { headers: multipartHeaders(data) }),
+    updateAnomaly: (id: string, data: Record<string, unknown>) => api.patch(`/anomalies/${id}/`, data),
     deleteAnomaly: (id: string) => api.delete(`/anomalies/${id}/`),
 };
 
 export const commentService = {
-    getComments: (params?: any) => api.get('/comments/', { params }),
-    createComment: (data: any) => {
-        if (data instanceof FormData) {
-            return api.post('/comments/', data, {
-                headers: { 'Content-Type': undefined }
-            });
-        }
-        return api.post('/comments/', data);
-    },
+    getComments: (params?: Record<string, unknown>) => api.get('/comments/', { params }),
+    createComment: (data: FormData | Record<string, unknown>) =>
+        api.post('/comments/', data, { headers: multipartHeaders(data) }),
     deleteComment: (id: string) => api.delete(`/comments/${id}/`),
 };
 
 export const emailService = {
-    getEmails: (params?: any) => api.get('/emails/', { params }),
-    sendEmail: (data: any) => {
-        if (data instanceof FormData) {
-            return api.post('/emails/', data, {
-                headers: { 'Content-Type': undefined }
-            });
-        }
-        return api.post('/emails/', data);
-    },
+    getEmails: (params?: Record<string, unknown>) => api.get('/emails/', { params }),
+    sendEmail: (data: FormData | Record<string, unknown>) =>
+        api.post('/emails/', data, { headers: multipartHeaders(data) }),
     markAsRead: (id: number) => api.post(`/emails/${id}/mark_read/`),
 };
 
 export const userService = {
-    getUsers: (params?: any) => api.get('/users/', { params }),
+    getUsers: (params?: Record<string, unknown>) => api.get('/users/', { params }),
 };
 
 export const aiService = {
-    reformulate: (message: string) => api.post('/analytics/reformulate/', { message }),
-    getTimelineGuard: (campaignId: string) => api.get(`/analytics/timeline-guard/${campaignId}/`),
+    reformulate: (message: string, isSubject = false) =>
+        api.post('/analytics/reformulate/', { message, is_subject: isSubject }),
+    getTimelineGuard: (campaignId: string) =>
+        api.get(`/analytics/timeline-guard/${campaignId}/`),
 };
-
-
 
 export default api;

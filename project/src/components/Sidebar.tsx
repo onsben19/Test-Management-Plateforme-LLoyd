@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, TestTube, AlertTriangle, Brain, Settings, Users, LogOut, MessageSquare, List, Mail } from 'lucide-react';
-
-
+import {
+  BarChart3, TestTube, AlertTriangle, Brain, Settings,
+  Users, LogOut, MessageSquare, List, Mail, Layers
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar = () => {
@@ -13,20 +14,15 @@ const Sidebar = () => {
 
   const navigation = [
     { name: 'Espace Testeur', href: '/tester-dashboard', icon: List, roles: ['TESTER'] },
-    { name: 'Suivi d\'Exécution', href: isAdmin ? '/admin/executions' : '/execution', icon: BarChart3, roles: ['ADMIN', 'TESTER', 'MANAGER'] },
+    { name: "Suivi d'Exécution", href: isAdmin ? '/admin/executions' : '/execution', icon: BarChart3, roles: ['ADMIN', 'TESTER', 'MANAGER'] },
     { name: 'Messagerie', href: '/messages', icon: Mail, roles: ['ADMIN', 'MANAGER', 'TESTER'] },
-    {
-      name: 'Gestion des Releases', href: isAdmin ? '/admin/releases' : '/releases', icon: Object.assign((props: any) => (
-        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" /><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65" /><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65" /></svg>
-      ), { displayName: 'Layers' }), roles: ['ADMIN', 'MANAGER']
-    },
+    { name: 'Gestion des Releases', href: isAdmin ? '/admin/releases' : '/releases', icon: Layers, roles: ['ADMIN', 'MANAGER'] },
     { name: 'Campagne de Tests', href: isAdmin ? '/admin/campaigns' : '/manager', icon: Brain, roles: ['ADMIN'] },
     { name: 'Gestion des utilisateurs', href: '/users', icon: Users, roles: ['ADMIN'] },
     { name: 'Anomalies', href: isAdmin ? '/admin/anomalies' : '/anomalies', icon: AlertTriangle, roles: ['ADMIN', 'MANAGER', 'TESTER'] },
     { name: 'Commentaires', href: '/admin/comments', icon: MessageSquare, roles: ['ADMIN'] },
     { name: 'Performance Équipe', href: '/performance', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
-    { name: 'Analytics IA', href: '/analytics', icon: Brain, roles: ['ADMIN', 'MANAGER'] },
-
+    { name: 'Analytics IA', href: '/analytics', icon: Brain, roles: ['ADMIN', 'MANAGER', 'TESTER'] },
   ];
 
   const filteredNavigation = navigation.filter(item =>
@@ -40,7 +36,6 @@ const Sidebar = () => {
           {filteredNavigation.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.href;
-
             return (
               <Link
                 key={item.name}
@@ -55,11 +50,9 @@ const Sidebar = () => {
               </Link>
             );
           })}
-
         </nav>
       </div>
 
-      {/* User Profile Footer */}
       <div className="border-t border-slate-200/50 dark:border-slate-700/50 p-4 transition-colors duration-300">
         <div className="flex items-center w-full p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
           <div className="flex-shrink-0">
@@ -68,10 +61,10 @@ const Sidebar = () => {
             </div>
           </div>
           <div className="ml-3 min-w-0 flex-1">
-            <p className="text-sm font-medium text-slate-900 dark:text-white truncate transition-colors">
+            <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
               {user?.username || 'Utilisateur'}
             </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate transition-colors">
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
               {user?.email || ''}
             </p>
           </div>

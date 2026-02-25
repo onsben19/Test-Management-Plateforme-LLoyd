@@ -82,7 +82,7 @@ const App: React.FC = () => {
                 } />
 
                 <Route path="/analytics" element={
-                  <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
+                  <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
                     <Analytics />
                   </RoleGuard>
                 } />

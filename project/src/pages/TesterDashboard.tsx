@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../context/AuthContext';
-import { campaignService, executionService, anomalyService } from '../services/api'; // Ensure executionService supports create
-import { CheckCircle, XCircle, AlertTriangle, FileSpreadsheet, Eye, Play, List, Calendar } from 'lucide-react';
+import { campaignService, executionService, anomalyService } from '../services/api';
+import { CheckCircle, XCircle, AlertTriangle, Eye, List, Calendar } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const TesterDashboard = () => {
