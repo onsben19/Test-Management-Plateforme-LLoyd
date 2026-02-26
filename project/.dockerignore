@@ -1,0 +1,24 @@
+# Node modules — NEVER copy into Docker image
+node_modules/
+npm-debug.log
+
+# Build output (rebuilt inside Docker)
+dist/
+build/
+
+# Local environment
+.env
+.env.local
+.env.production
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Git
+.git/
+.gitignore
+
+# Dev files
+*.md

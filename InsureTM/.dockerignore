@@ -1,0 +1,43 @@
+# Python virtual environment — NEVER copy into Docker image
+venv/
+.venv/
+env/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Local environment files (secrets)
+.env
+.env.docker
+.env.local
+
+# Django development artifacts
+db.sqlite3
+*.sqlite3
+
+# Media and static files (served via volumes)
+media/
+staticfiles/
+
+# Test artifacts
+.pytest_cache/
+pytest_cache/
+htmlcov/
+.coverage
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+
+# ML / research files (not needed in prod image)
+research/
+*.pkl
+*.joblib
+
+# Git
+.git/
+.gitignore
