@@ -1,6 +1,7 @@
 # General
 .DS_Store
 .env
+.env.docker
 
 # Python
 __pycache__/
