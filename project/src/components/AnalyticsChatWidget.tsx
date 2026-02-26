@@ -66,7 +66,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
         try {
             setLoading(true);
             const token = localStorage.getItem('access_token');
-            const response = await fetch(`http://localhost:8000/api/analytics/conversations/${id}/messages/`, {
+            const response = await fetch(`/api/analytics/conversations/${id}/messages/`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -112,7 +112,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
 
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch('http://localhost:8000/api/analytics/ask/', {
+            const response = await fetch('/api/analytics/ask/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

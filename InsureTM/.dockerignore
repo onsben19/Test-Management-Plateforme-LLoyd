@@ -33,10 +33,10 @@ htmlcov/
 .idea/
 .vscode/
 
-# ML / research files (not needed in prod image)
-research/
+# ML / research files — keep the trained model, exclude raw notebooks
+research/*.ipynb
+research/train_model.py
 *.pkl
-*.joblib
 
 # Git
 .git/
