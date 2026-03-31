@@ -159,7 +159,7 @@ const ReleaseManager = () => {
         switch (status) {
             case 'ACTIVE': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
             case 'COMPLETED': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
-            case 'ARCHIVED': return 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20';
+            case 'PLANNING': return 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20';
             default: return 'bg-slate-500/10 text-slate-600 dark:text-slate-400';
         }
     };
@@ -171,10 +171,9 @@ const ReleaseManager = () => {
 
     const getStatusLabel = (status: string) => {
         switch (status) {
-            case 'ACTIVE': return 'Activé';
-            case 'PLANNING': return 'Planning';
+            case 'ACTIVE': return 'Actif';
+            case 'PLANNING': return 'Planifié';
             case 'COMPLETED': return 'Terminé';
-            case 'ARCHIVED': return 'Archivé';
             default: return status;
         }
     };
@@ -271,7 +270,14 @@ const ReleaseManager = () => {
                                                                 className="w-full text-left px-4 py-2 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
                                                             >
                                                                 <Activity className="w-4 h-4" />
-                                                                Activé
+                                                                Actif
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => handleStatusChange(release, 'PLANNING', e)}
+                                                                className="w-full text-left px-4 py-2 text-sm text-violet-600 dark:text-violet-400 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
+                                                            >
+                                                                <Activity className="w-4 h-4" />
+                                                                Planifié
                                                             </button>
                                                             <button
                                                                 onClick={(e) => handleStatusChange(release, 'COMPLETED', e)}
@@ -279,13 +285,6 @@ const ReleaseManager = () => {
                                                             >
                                                                 <Activity className="w-4 h-4" />
                                                                 Terminé
-                                                            </button>
-                                                            <button
-                                                                onClick={(e) => handleStatusChange(release, 'ARCHIVED', e)}
-                                                                className="w-full text-left px-4 py-2 text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors"
-                                                            >
-                                                                <Activity className="w-4 h-4" />
-                                                                Archivé
                                                             </button>
 
                                                             <div className="border-t border-slate-100 dark:border-slate-700/50 my-1"></div>
@@ -398,9 +397,9 @@ const ReleaseManager = () => {
                                         value={newRelease.status}
                                         onChange={(e) => setNewRelease({ ...newRelease, status: e.target.value })}
                                     >
-                                        <option value="ACTIVE">Activé</option>
+                                        <option value="ACTIVE">Actif</option>
+                                        <option value="PLANNING">Planifié</option>
                                         <option value="COMPLETED">Terminé</option>
-                                        <option value="ARCHIVED">Archivé</option>
                                     </select>
                                 </div>
                             </div>

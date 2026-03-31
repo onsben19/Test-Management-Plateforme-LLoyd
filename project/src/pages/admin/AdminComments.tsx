@@ -5,8 +5,10 @@ import AdminTable from '../../components/AdminTable';
 import { commentService } from '../../services/api';
 import { toast } from 'react-toastify';
 import { MessageSquare, Trash2 } from 'lucide-react';
+import { useSidebar } from '../../context/SidebarContext';
 
 const AdminComments = () => {
+    const { isOpen } = useSidebar();
     const [comments, setComments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -74,11 +76,11 @@ const AdminComments = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-900">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
             <Header />
-            <div className="flex">
+            <div className="flex relative">
                 <Sidebar />
-                <main className="flex-1 lg:ml-64 relative p-8">
+                <main className={`flex-1 p-8 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     <div className="max-w-7xl mx-auto">
                         <AdminTable
                             title="Administration des Commentaires"

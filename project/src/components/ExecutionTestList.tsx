@@ -69,7 +69,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
         if (displayTests.length === 0) return [];
         const first = displayTests[0];
         const keys = Object.keys(first);
-        const excluded = ['id', 'status', 'assigned_to', 'realized_by', 'lastRun', 'duration', 'name', 'module', 'captures', 'release', 'manual'];
+        const excluded = ['id', 'status', 'assigned_to', 'realized_by', 'lastRun', 'duration', 'name', 'module', 'captures', 'release', 'manual', 'rawDate'];
         return keys.filter(k =>
             !excluded.includes(k) &&
             !k.toLowerCase().includes('titre') &&

@@ -47,10 +47,17 @@ class AskAgentView(APIView):
             title = question[:50] + '...' if len(question) > 50 else question
             conversation = Conversation.objects.create(user=request.user, title=title)
 
-        Message.objects.create(conversation=conversation, sender='user', text=question, type='text')
+        image_file = request.FILES.get('image')
+        Message.objects.create(
+            conversation=conversation, 
+            sender='user', 
+            text=question, 
+            type='text',
+            image=image_file
+        )
 
         try:
-            result = GroqService().process_query(question, request.user)
+            result = GroqService().process_query(question, request.user, image=image_file)
 
             Message.objects.create(
                 conversation=conversation,

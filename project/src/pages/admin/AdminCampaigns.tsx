@@ -4,14 +4,26 @@ import Sidebar from '../../components/Sidebar';
 import AdminTable from '../../components/AdminTable';
 import { campaignService } from '../../services/api';
 import { toast } from 'react-toastify';
-import { Trash2, BookOpen } from 'lucide-react';
+import { Trash2, BookOpen, Edit } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { useSidebar } from '../../context/SidebarContext';
 
 const AdminCampaigns = () => {
+    const { isOpen } = useSidebar();
+    const location = useLocation();
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState(() => {
+        const params = new URLSearchParams(location.search);
+        return params.get('search') || '';
+    });
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, campaignId: null });
+
+    // Edit modal state
+    const [editingCampaign, setEditingCampaign] = useState<any>(null);
+    const [editForm, setEditForm] = useState({ title: '', description: '' });
+    const [isSaving, setIsSaving] = useState(false);
 
     const fetchCampaigns = async () => {
         try {
@@ -44,7 +56,6 @@ const AdminCampaigns = () => {
 
     const confirmDelete = async () => {
         if (!deleteModal.campaignId) return;
-
         try {
             await campaignService.deleteCampaign(deleteModal.campaignId);
             toast.success("Campagne supprimée");
@@ -52,6 +63,29 @@ const AdminCampaigns = () => {
             setDeleteModal({ isOpen: false, campaignId: null });
         } catch (error) {
             toast.error("Erreur lors de la suppression");
+        }
+    };
+
+    const handleEditClick = (campaign: any) => {
+        setEditingCampaign(campaign);
+        setEditForm({ title: campaign.title, description: campaign.description || '' });
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editForm.title.trim() || !editingCampaign) return;
+        setIsSaving(true);
+        try {
+            await campaignService.updateCampaign(editingCampaign.id, {
+                title: editForm.title,
+                description: editForm.description,
+            });
+            toast.success("Campagne modifiée avec succès");
+            setEditingCampaign(null);
+            fetchCampaigns();
+        } catch (error) {
+            toast.error("Erreur lors de la modification");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -77,7 +111,16 @@ const AdminCampaigns = () => {
         },
         {
             header: 'Projet',
-            accessor: (item: any) => item.project_name || 'N/A'
+            accessor: (item: any) => (
+                item.project_name ? (
+                    <Link
+                        to={`/admin/releases?search=${encodeURIComponent(item.project_name)}`}
+                        className="text-blue-400 hover:underline cursor-pointer"
+                    >
+                        {item.project_name}
+                    </Link>
+                ) : <span className="text-slate-500">N/A</span>
+            )
         },
         {
             header: 'Date de création',
@@ -86,11 +129,11 @@ const AdminCampaigns = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-900">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
             <Header />
-            <div className="flex">
+            <div className="flex relative">
                 <Sidebar />
-                <main className="flex-1 lg:ml-64 relative p-8">
+                <main className={`flex-1 p-8 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     <div className="max-w-7xl mx-auto">
                         <AdminTable
                             title="Administration des Campagnes"
@@ -110,18 +153,80 @@ const AdminCampaigns = () => {
                                 </select>
                             }
                             actions={(item) => (
-                                <button
-                                    onClick={() => handleDeleteClick(item.id)}
-                                    className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                    title="Supprimer"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => handleEditClick(item)}
+                                        className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                                        title="Modifier"
+                                    >
+                                        <Edit className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteClick(item.id)}
+                                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                        title="Supprimer"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
                             )}
                         />
                     </div>
                 </main>
             </div>
+
+            {/* Edit Campaign Modal */}
+            {editingCampaign && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-200">
+                        <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                            <Edit className="w-5 h-5 text-blue-400" />
+                            Modifier la Campagne
+                        </h2>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-400 mb-1">
+                                    Titre de la campagne
+                                </label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                    value={editForm.title}
+                                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-400 mb-1">
+                                    Description
+                                </label>
+                                <textarea
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all h-28 resize-none"
+                                    value={editForm.description}
+                                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 mt-8">
+                            <button
+                                onClick={() => setEditingCampaign(null)}
+                                className="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={handleSaveEdit}
+                                disabled={!editForm.title.trim() || isSaving}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-900/20"
+                            >
+                                {isSaving ? 'Enregistrement...' : 'Enregistrer'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Delete Confirmation Modal */}
             {deleteModal.isOpen && (

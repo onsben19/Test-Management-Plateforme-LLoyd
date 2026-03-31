@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import AnalyticsChatWidget from '../components/AnalyticsChatWidget';
 import ChatHistorySidebar from '../components/ChatHistorySidebar';
-import GrafanaDashboard from '../components/GrafanaDashboard';
 import { toast } from 'react-toastify';
-import { Bot, BarChart2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../services/api';
+import { useSidebar } from '../context/SidebarContext';
 
 interface Conversation {
     id: string;
@@ -15,34 +15,44 @@ interface Conversation {
 }
 
 const Analytics = () => {
+    const { isOpen } = useSidebar();
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    const [activeTab, setActiveTab] = useState<'chat' | 'grafana'>('chat');
 
-    useEffect(() => {
-        fetchConversations();
-    }, []);
-
-    const fetchConversations = async () => {
+    const fetchConversations = useCallback(async () => {
         try {
             setIsLoading(true);
             const response = await api.get('/analytics/conversations/');
-            setConversations(Array.isArray(response.data) ? response.data : []);
+            const sorted = (Array.isArray(response.data) ? response.data : [])
+                .sort((a: Conversation, b: Conversation) =>
+                    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                );
+            setConversations(sorted);
         } catch {
-            // Silently fail — widget handles its own errors
+            // Silently fail
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => { fetchConversations(); }, [fetchConversations]);
 
     const handleNewChat = () => setCurrentConversationId(null);
     const handleSelectConversation = (id: string) => setCurrentConversationId(id);
 
+    // Called by widget when a new conversation is created (first message sent)
+    const handleConversationStarted = (id: string) => {
+        if (id) {
+            setCurrentConversationId(id);
+            fetchConversations();
+        }
+    };
+
     const handleDeleteConversation = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!window.confirm('Voulez-vous vraiment supprimer cette conversation ?')) return;
+        if (!window.confirm('Supprimer cette conversation ?')) return;
         try {
             await api.delete(`/analytics/conversations/${id}/`);
             setConversations(prev => prev.filter(c => c.id !== id));
@@ -54,63 +64,50 @@ const Analytics = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 overflow-hidden flex flex-col">
+        <div className="min-h-screen bg-slate-900 flex flex-col overflow-hidden">
             <Header />
-            <div className="flex flex-1 h-[calc(100vh-4rem)]">
+            <div className="flex flex-1 h-[calc(100vh-4rem)] relative overflow-hidden">
                 <Sidebar />
-                <main className="flex-1 lg:ml-64 flex flex-col">
-                    {/* Tab Bar */}
-                    <div className="flex items-center gap-1 px-4 pt-3 pb-0 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0">
+                <main className={`flex-1 flex overflow-hidden transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
+                    {/* History sidebar with edge-tab toggle */}
+                    <div className="relative flex shrink-0">
+                        {/* Sliding panel */}
+                        <div className={`${isSidebarOpen ? 'w-64' : 'w-0'
+                            } transition-all duration-300 ease-in-out overflow-hidden`}>
+                            <ChatHistorySidebar
+                                conversations={conversations}
+                                currentConversationId={currentConversationId}
+                                onSelectConversation={handleSelectConversation}
+                                onNewChat={handleNewChat}
+                                onDeleteConversation={handleDeleteConversation}
+                                isLoading={isLoading}
+                            />
+                        </div>
+
+                        {/* Edge tab — always visible */}
                         <button
-                            onClick={() => setActiveTab('chat')}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-sm font-medium border-b-2 transition-all ${activeTab === 'chat'
-                                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                                }`}
+                            onClick={() => setIsSidebarOpen(v => !v)}
+                            className="absolute right-0 translate-x-full top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-5 h-12 bg-slate-800 hover:bg-slate-700 border border-l-0 border-slate-700 rounded-r-lg shadow-lg transition-all group"
+                            title={isSidebarOpen ? 'Fermer le panneau' : 'Ouvrir le panneau'}
                         >
-                            <Bot size={16} />
-                            Agent IA
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('grafana')}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-sm font-medium border-b-2 transition-all ${activeTab === 'grafana'
-                                ? 'border-orange-500 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                                }`}
-                        >
-                            <BarChart2 size={16} />
-                            Dashboards Grafana
+                            {isSidebarOpen
+                                ? <ChevronLeft className="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition-colors" />
+                                : <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition-colors" />
+                            }
                         </button>
                     </div>
 
-                    {/* Tab Content */}
-                    {activeTab === 'chat' ? (
-                        <div className="flex flex-1 overflow-hidden">
-                            <div className={`${isSidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 ease-in-out overflow-hidden flex flex-col border-r border-slate-200 dark:border-slate-800 bg-slate-900 h-full`}>
-                                <div className="w-64 h-full flex flex-col">
-                                    <ChatHistorySidebar
-                                        conversations={conversations}
-                                        currentConversationId={currentConversationId}
-                                        onSelectConversation={handleSelectConversation}
-                                        onNewChat={handleNewChat}
-                                        onDeleteConversation={handleDeleteConversation}
-                                        isLoading={isLoading}
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex-1 flex flex-col bg-white dark:bg-slate-800 relative">
-                                <AnalyticsChatWidget
-                                    embedded={true}
-                                    conversationId={currentConversationId}
-                                    onConversationUpdate={fetchConversations}
-                                    onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-                                    isSidebarOpen={isSidebarOpen}
-                                />
-                            </div>
-                        </div>
-                    ) : (
-                        <GrafanaDashboard />
-                    )}
+                    {/* Chat area */}
+                    <div className="flex-1 overflow-hidden">
+                        <AnalyticsChatWidget
+                            embedded={true}
+                            conversationId={currentConversationId}
+                            onConversationUpdate={fetchConversations}
+                            onConversationStarted={handleConversationStarted}
+                            onToggleSidebar={() => setIsSidebarOpen(v => !v)}
+                            isSidebarOpen={isSidebarOpen}
+                        />
+                    </div>
                 </main>
             </div>
         </div>

@@ -6,7 +6,7 @@ from django.core.mail import EmailMessage
 from django.db.models import Q
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 
 from notifications.models import Notification
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class EmailViewSet(viewsets.ModelViewSet):
     serializer_class = EmailSerializer
     permission_classes = [permissions.IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
         user = self.request.user
@@ -63,6 +63,17 @@ class EmailViewSet(viewsets.ModelViewSet):
             related_object_id=instance.id,
         )
 
+    def destroy(self, request, *args, **kwargs):
+        """Only the sender can delete their sent email."""
+        email = self.get_object()
+        if email.sender != request.user:
+            return Response(
+                {"detail": "Vous ne pouvez supprimer que vos propres messages envoyés."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        email.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def _send_smtp_email(self, instance, recipient):
         """Send the email via SMTP. Logs failures without raising to avoid breaking the request."""
         try:
@@ -89,3 +100,4 @@ class EmailViewSet(viewsets.ModelViewSet):
         email.is_read = True
         email.save()
         return Response({'status': 'email marked as read'})
+

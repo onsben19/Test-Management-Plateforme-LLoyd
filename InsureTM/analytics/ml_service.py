@@ -9,17 +9,25 @@ import os
 import pandas as pd
 
 class MLTimelineGuard:
+    _cached_model = None
+    _cached_model_path = None
+
     def __init__(self):
         self.groq_service = GroqService()
         # Chemin vers le modèle entraîné dans le dossier research
         self.model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'research', 'timeline_model.joblib')
-        self.model = None
-        if os.path.exists(self.model_path):
+        
+        if MLTimelineGuard._cached_model_path != self.model_path:
+            MLTimelineGuard._cached_model = None
+            MLTimelineGuard._cached_model_path = self.model_path
+
+        if MLTimelineGuard._cached_model is None and os.path.exists(self.model_path):
             try:
-                self.model = joblib.load(self.model_path)
+                MLTimelineGuard._cached_model = joblib.load(self.model_path)
             except Exception as e:
                 print(f"Erreur chargement modèle ML: {e}")
-                self.model = None
+        
+        self.model = MLTimelineGuard._cached_model
 
     def get_campaign_status(self, campaign_id):
         try:

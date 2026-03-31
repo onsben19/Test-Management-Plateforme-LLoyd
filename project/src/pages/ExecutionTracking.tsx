@@ -17,7 +17,8 @@ const ExecutionTracking = () => {
 
     const isTester = user?.role?.toLowerCase() === 'tester';
     const isAdmin = user?.role?.toLowerCase() === 'admin';
-    const canManage = isAdmin || isTester;
+    const isManager = user?.role?.toLowerCase() === 'manager';
+    const canManage = isAdmin || isTester || isManager;
     const canDelete = isAdmin;
 
     const [activeTab, setActiveTab] = useState<'list' | 'performance'>('list');
@@ -93,7 +94,6 @@ const ExecutionTracking = () => {
                 rawDate: t.execution_date,
                 captures: t.proof_file ? [t.proof_file] : [],
                 release: t.project_name || 'Release A',
-                ...t.data_json,
             }));
             setTests(mappedTests);
         } catch (error) {

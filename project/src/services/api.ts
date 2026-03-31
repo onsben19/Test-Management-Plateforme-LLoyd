@@ -87,7 +87,8 @@ export const anomalyService = {
     getAnomalies: (params?: Record<string, unknown>) => api.get('/anomalies/', { params }),
     createAnomaly: (data: FormData | Record<string, unknown>) =>
         api.post('/anomalies/', data, { headers: multipartHeaders(data) }),
-    updateAnomaly: (id: string, data: Record<string, unknown>) => api.patch(`/anomalies/${id}/`, data),
+    updateAnomaly: (id: string, data: FormData | Record<string, unknown>) =>
+        api.patch(`/anomalies/${id}/`, data, { headers: multipartHeaders(data) }),
     deleteAnomaly: (id: string) => api.delete(`/anomalies/${id}/`),
 };
 
@@ -103,6 +104,7 @@ export const emailService = {
     sendEmail: (data: FormData | Record<string, unknown>) =>
         api.post('/emails/', data, { headers: multipartHeaders(data) }),
     markAsRead: (id: number) => api.post(`/emails/${id}/mark_read/`),
+    deleteEmail: (id: number) => api.delete(`/emails/${id}/`),
 };
 
 export const userService = {

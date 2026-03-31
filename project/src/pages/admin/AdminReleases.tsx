@@ -5,18 +5,24 @@ import AdminTable from '../../components/AdminTable';
 import { projectService } from '../../services/api';
 import { toast } from 'react-toastify';
 import { Edit, Trash2, Layers } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { useSidebar } from '../../context/SidebarContext';
 
 const AdminReleases = () => {
+    const { isOpen } = useSidebar();
+    const location = useLocation();
     const [releases, setReleases] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState(() => {
+        const params = new URLSearchParams(location.search);
+        return params.get('search') || '';
+    });
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
     // Modal State
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRelease, setEditingRelease] = useState<any>(null);
-    const [newRelease, setNewRelease] = useState({
+    const [editForm, setEditForm] = useState({
         name: '',
         description: '',
         status: 'ACTIVE'
@@ -52,40 +58,30 @@ const AdminReleases = () => {
     });
 
     const resetForm = () => {
-        setNewRelease({ name: '', description: '', status: 'ACTIVE' });
+        setEditForm({ name: '', description: '', status: 'ACTIVE' });
         setEditingRelease(null);
-        setIsModalOpen(false);
     };
 
     const handleSaveRelease = async () => {
-        if (!newRelease.name) return;
-
+        if (!editForm.name || !editingRelease) return;
         try {
-            if (editingRelease) {
-                // UPDATE
-                await projectService.updateProject(editingRelease.id, newRelease);
-                toast.success("Release modifiée avec succès");
-            } else {
-                // CREATE
-                await projectService.createProject(newRelease);
-                toast.success("Release créée avec succès");
-            }
+            await projectService.updateProject(editingRelease.id, editForm);
+            toast.success("Release modifiée avec succès");
             resetForm();
             fetchReleases();
         } catch (error) {
-            console.error("Failed to save release", error);
+            console.error("Failed to update release", error);
             toast.error("Erreur lors de la sauvegarde de la release");
         }
     };
 
     const handleEditClick = (release: any) => {
         setEditingRelease(release);
-        setNewRelease({
+        setEditForm({
             name: release.name,
             description: release.description,
             status: release.status
         });
-        setIsModalOpen(true);
     };
 
     const handleDeleteClick = (id: any) => {
@@ -107,10 +103,9 @@ const AdminReleases = () => {
 
     const getStatusLabel = (status: string) => {
         switch (status) {
-            case 'ACTIVE': return 'Activé';
-            case 'PLANNING': return 'Planning';
+            case 'ACTIVE': return 'Actif';
+            case 'PLANNING': return 'Planifié';
             case 'COMPLETED': return 'Terminé';
-            case 'ARCHIVED': return 'Archivé';
             default: return status;
         }
     };
@@ -140,7 +135,8 @@ const AdminReleases = () => {
             accessor: (item: any) => (
                 <span className={`px-2 py-1 rounded text-xs font-medium ${item.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400' :
                     item.status === 'COMPLETED' ? 'bg-blue-500/10 text-blue-400' :
-                        'bg-slate-500/10 text-slate-400'
+                        item.status === 'PLANNING' ? 'bg-violet-500/10 text-violet-400' :
+                            'bg-slate-500/10 text-slate-400'
                     }`}>
                     {getStatusLabel(item.status)}
                 </span>
@@ -157,19 +153,17 @@ const AdminReleases = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-900">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
             <Header />
-            <div className="flex">
+            <div className="flex relative">
                 <Sidebar />
-                <main className="flex-1 lg:ml-64 relative p-8">
+                <main className={`flex-1 p-8 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     <div className="max-w-7xl mx-auto">
                         <AdminTable
                             title="Administration des Releases"
                             columns={columns}
                             data={releases}
                             isLoading={loading}
-                            onAdd={() => { resetForm(); setIsModalOpen(true); }}
-                            addButtonLabel="Nouvelle Release"
                             searchable
                             onSearch={setSearchQuery}
                             filters={
@@ -180,9 +174,9 @@ const AdminReleases = () => {
                                         onChange={(e) => setStatusFilter(e.target.value)}
                                     >
                                         <option value="ALL">Tous les statuts</option>
-                                        <option value="ACTIVE">Activé</option>
+                                        <option value="ACTIVE">Actif</option>
+                                        <option value="PLANNING">Planifié</option>
                                         <option value="COMPLETED">Terminé</option>
-                                        <option value="ARCHIVED">Archivé</option>
                                     </select>
                                     <select
                                         className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-blue-500 text-sm"
@@ -217,12 +211,12 @@ const AdminReleases = () => {
                 </main>
             </div>
 
-            {/* Add/Edit Release Modal */}
-            {isModalOpen && (
+            {/* Edit Release Modal */}
+            {editingRelease && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-200">
                         <h2 className="text-xl font-bold text-white mb-6">
-                            {editingRelease ? 'Modifier la Release' : 'Créer une nouvelle Release'}
+                            Modifier la Release
                         </h2>
 
                         <div className="space-y-4">
@@ -231,9 +225,8 @@ const AdminReleases = () => {
                                 <input
                                     type="text"
                                     className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                                    placeholder="Ex: Release Q3 2024"
-                                    value={newRelease.name}
-                                    onChange={(e) => setNewRelease({ ...newRelease, name: e.target.value })}
+                                    value={editForm.name}
+                                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                                 />
                             </div>
 
@@ -241,25 +234,22 @@ const AdminReleases = () => {
                                 <label className="block text-sm font-medium text-slate-400 mb-1">Description</label>
                                 <textarea
                                     className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all h-24 resize-none"
-                                    placeholder="Description des objectifs de la release..."
-                                    value={newRelease.description}
-                                    onChange={(e) => setNewRelease({ ...newRelease, description: e.target.value })}
+                                    value={editForm.description}
+                                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                                 />
                             </div>
 
-                            <div className="grid grid-cols-1 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-1">Statut Initial</label>
-                                    <select
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                                        value={newRelease.status}
-                                        onChange={(e) => setNewRelease({ ...newRelease, status: e.target.value })}
-                                    >
-                                        <option value="ACTIVE">Activé</option>
-                                        <option value="COMPLETED">Terminé</option>
-                                        <option value="ARCHIVED">Archivé</option>
-                                    </select>
-                                </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-400 mb-1">Statut</label>
+                                <select
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                    value={editForm.status}
+                                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                                >
+                                    <option value="ACTIVE">Actif</option>
+                                    <option value="PLANNING">Planifié</option>
+                                    <option value="COMPLETED">Terminé</option>
+                                </select>
                             </div>
                         </div>
 
@@ -272,10 +262,10 @@ const AdminReleases = () => {
                             </button>
                             <button
                                 onClick={handleSaveRelease}
-                                disabled={!newRelease.name}
+                                disabled={!editForm.name}
                                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-900/20"
                             >
-                                {editingRelease ? 'Enregistrer' : 'Créer la Release'}
+                                Enregistrer
                             </button>
                         </div>
                     </div>

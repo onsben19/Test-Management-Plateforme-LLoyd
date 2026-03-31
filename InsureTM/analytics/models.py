@@ -29,6 +29,7 @@ class Message(models.Model):
     type = models.CharField(max_length=20, default='text') # text, bar, line, table, metric, error
     sql = models.TextField(blank=True, null=True)
     data = models.JSONField(default=list, blank=True)
+    image = models.ImageField(upload_to='analytics_images/', null=True, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
 

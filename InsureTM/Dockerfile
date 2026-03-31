@@ -39,5 +39,5 @@ RUN mkdir -p /app/media
 
 EXPOSE 8000
 
-# Collect static files and start Gunicorn
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"]
+# Collect static files and start Gunicorn with --preload to save memory and longer timeout
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 180 --preload"]

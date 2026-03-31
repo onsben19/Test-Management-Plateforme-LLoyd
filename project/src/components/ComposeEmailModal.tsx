@@ -7,9 +7,15 @@ import { toast } from 'react-toastify';
 interface ComposeEmailModalProps {
     onClose: () => void;
     onSuccess: () => void;
+    initialData?: {
+        mode?: 'reply' | 'forward' | 'compose';
+        recipientId?: string;
+        subject?: string;
+        body?: string;
+    };
 }
 
-const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSuccess }) => {
+const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSuccess, initialData }) => {
     const { user } = useAuth();
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -28,11 +34,18 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
         fetchUsers();
     }, []);
 
+    // Pre-fill fields if initialData is provided (reply/forward)
+    useEffect(() => {
+        if (!initialData) return;
+        if (initialData.recipientId) setRecipientIds([initialData.recipientId]);
+        if (initialData.subject) setSubject(initialData.subject);
+        if (initialData.body) setBody(initialData.body);
+    }, [initialData]);
+
     const fetchUsers = async () => {
         try {
             setLoading(true);
             const response = await userService.getUsers();
-            // Filter out current user
             const otherUsers = response.data.filter((u: any) => u.id !== user?.id);
             setUsers(otherUsers);
         } catch (error) {
@@ -44,9 +57,9 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
 
     const toggleRecipient = (userId: string) => {
         setRecipientIds(prev =>
-            prev.includes(userId)
-                ? prev.filter(id => id !== userId)
-                : [...prev, userId]
+            prev.includes(String(userId))
+                ? prev.filter(id => id !== String(userId))
+                : [...prev, String(userId)]
         );
     };
 
@@ -55,49 +68,27 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
     );
 
     const handleReformulate = async () => {
-        if (!body.trim()) {
-            toast.warning("Écrivez d'abord un message à reformuler");
-            return;
-        }
+        if (!body.trim()) { toast.warning("Écrivez d'abord un message à reformuler"); return; }
         try {
             setReformulating(true);
             const response = await aiService.reformulate(body, false);
             const reformulated = response.data?.reformulated_message || response.data?.message;
-            if (reformulated) {
-                setBody(reformulated);
-                toast.success("Message reformulé par l'IA !");
-            } else {
-                toast.error("Aucune reformulation reçue");
-            }
-        } catch (error) {
-            console.error('Reformulation error', error);
-            toast.error("Erreur lors de la reformulation");
-        } finally {
-            setReformulating(false);
-        }
+            if (reformulated) { setBody(reformulated); toast.success("Message reformulé par l'IA !"); }
+            else toast.error("Aucune reformulation reçue");
+        } catch { toast.error("Erreur lors de la reformulation"); }
+        finally { setReformulating(false); }
     };
 
     const handleSubjectReformulate = async () => {
-        if (!subject.trim()) {
-            toast.warning("Écrivez d'abord un objet à reformuler");
-            return;
-        }
+        if (!subject.trim()) { toast.warning("Écrivez d'abord un objet à reformuler"); return; }
         try {
             setSubjectReformulating(true);
             const response = await aiService.reformulate(subject, true);
             const reformulated = response.data?.reformulated_message || response.data?.message;
-            if (reformulated) {
-                setSubject(reformulated);
-                toast.success("Objet reformulé par l'IA !");
-            } else {
-                toast.error("Aucune reformulation reçue");
-            }
-        } catch (error) {
-            console.error('Subject reformulation error', error);
-            toast.error("Erreur lors de la reformulation de l'objet");
-        } finally {
-            setSubjectReformulating(false);
-        }
+            if (reformulated) { setSubject(reformulated); toast.success("Objet reformulé par l'IA !"); }
+            else toast.error("Aucune reformulation reçue");
+        } catch { toast.error("Erreur lors de la reformulation de l'objet"); }
+        finally { setSubjectReformulating(false); }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -106,60 +97,51 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
             toast.error("Veuillez remplir tous les champs obligatoires");
             return;
         }
-
         try {
             setSending(true);
             const formData = new FormData();
-            recipientIds.forEach(id => {
-                formData.append('recipients', id);
-            });
+            recipientIds.forEach(id => formData.append('recipients', id));
             formData.append('subject', subject);
             formData.append('body', body);
-            if (attachment) {
-                formData.append('attachment', attachment);
-            }
-
+            if (attachment) formData.append('attachment', attachment);
             await emailService.sendEmail(formData);
             toast.success("Emails envoyés avec succès");
             onSuccess();
             onClose();
-        } catch (error) {
-            console.error("Failed to send email", error);
+        } catch {
             toast.error("Erreur lors de l'envoi de l'email");
         } finally {
             setSending(false);
         }
     };
 
+    const modalTitle = initialData?.mode === 'reply' ? 'Répondre' : initialData?.mode === 'forward' ? 'Transférer' : 'Nouveau Message';
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-2xl w-full shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 dark:bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 max-w-2xl w-full shadow-2xl animate-in zoom-in-95 duration-200">
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <Send className="w-5 h-5 text-blue-500" />
-                        Nouveau Message
+                        {modalTitle}
                     </h2>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors">
                         <X className="w-6 h-6" />
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="relative">
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Destinataires</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Destinataires</label>
 
                         {/* Selected Recipients Chips */}
                         <div className="mb-2 flex flex-wrap gap-2">
                             {recipientIds.map(id => {
-                                const user = users.find(u => u.id === id);
+                                const u = users.find(u => String(u.id) === id);
                                 return (
                                     <div key={id} className="bg-blue-600 text-white text-sm px-2 py-1 rounded-full flex items-center gap-1 animate-in zoom-in-50">
-                                        <span>{user?.username}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => toggleRecipient(id)}
-                                            className="hover:text-blue-200"
-                                        >
+                                        <span>{u?.username}</span>
+                                        <button type="button" onClick={() => toggleRecipient(id)} className="hover:text-blue-200">
                                             <X className="w-3 h-3" />
                                         </button>
                                     </div>
@@ -167,9 +149,8 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                             })}
                         </div>
 
-                        {/* Search and Dropdown Trigger */}
                         <div
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus-within:ring-2 focus-within:ring-blue-500 cursor-text min-h-[42px] flex items-center"
+                            className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus-within:ring-2 focus-within:ring-blue-500 cursor-text min-h-[42px] flex items-center"
                             onClick={() => setIsDropdownOpen(true)}
                         >
                             <input
@@ -177,19 +158,15 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 placeholder={recipientIds.length === 0 ? "Rechercher un utilisateur..." : "Ajouter d'autres..."}
-                                className="bg-transparent border-none outline-none flex-1 placeholder:text-slate-500 text-sm"
+                                className="bg-transparent border-none outline-none flex-1 placeholder:text-slate-400 text-sm"
                                 onFocus={() => setIsDropdownOpen(true)}
                             />
                         </div>
 
-                        {/* Dropdown List */}
                         {isDropdownOpen && (
                             <>
-                                <div
-                                    className="fixed inset-0 z-10"
-                                    onClick={() => setIsDropdownOpen(false)}
-                                ></div>
-                                <div className="absolute z-20 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)}></div>
+                                <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                                     {filteredUsers.length === 0 ? (
                                         <div className="p-3 text-slate-500 text-sm italic">Aucun utilisateur trouvé</div>
                                     ) : (
@@ -197,21 +174,20 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                                             <div
                                                 key={u.id}
                                                 onClick={() => toggleRecipient(u.id)}
-                                                className="p-3 hover:bg-slate-700 cursor-pointer flex items-center justify-between transition-colors"
+                                                className="p-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer flex items-center justify-between transition-colors"
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-xs font-bold text-white">
+                                                    <div className="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-600 flex items-center justify-center text-xs font-bold text-slate-800 dark:text-white">
                                                         {u.username.charAt(0).toUpperCase()}
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm font-medium text-white">{u.username}</p>
-                                                        <p className="text-xs text-slate-400">{u.role}</p>
+                                                        <p className="text-sm font-medium text-slate-900 dark:text-white">{u.username}</p>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400">{u.role}</p>
                                                     </div>
                                                 </div>
-                                                {recipientIds.includes(u.id) && (
+                                                {recipientIds.includes(String(u.id)) && (
                                                     <div className="h-5 w-5 bg-blue-500 rounded-full flex items-center justify-center">
                                                         <X className="w-3 h-3 text-white transform rotate-45" />
-                                                        {/* Using X rotated 45deg as checkmark or just standard Check icon if I import it */}
                                                     </div>
                                                 )}
                                             </div>
@@ -224,25 +200,21 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
 
                     <div>
                         <div className="flex justify-between items-center mb-1">
-                            <label className="block text-sm font-medium text-slate-300">Objets</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Objet</label>
                             <button
                                 type="button"
                                 onClick={handleSubjectReformulate}
                                 disabled={subjectReformulating || !subject.trim()}
-                                className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-violet-600/20 border border-violet-500/30 text-violet-300 hover:bg-violet-600/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-violet-100 dark:bg-violet-600/20 border border-violet-300 dark:border-violet-500/30 text-violet-700 dark:text-violet-300 hover:bg-violet-200 dark:hover:bg-violet-600/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                                {subjectReformulating ? (
-                                    <><Loader className="w-3 h-3 animate-spin" /> Reformulation...</>
-                                ) : (
-                                    <><Wand2 className="w-3 h-3" /> Reformuler l'objet</>
-                                )}
+                                {subjectReformulating ? <><Loader className="w-3 h-3 animate-spin" /> Reformulation...</> : <><Wand2 className="w-3 h-3" /> Reformuler l'objet</>}
                             </button>
                         </div>
                         <input
                             type="text"
                             value={subject}
                             onChange={(e) => setSubject(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required
                             placeholder="Sujet du message"
                         />
@@ -250,47 +222,35 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
 
                     <div>
                         <div className="flex justify-between items-center mb-1">
-                            <label className="block text-sm font-medium text-slate-300">Message</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Message</label>
                             <button
                                 type="button"
                                 onClick={handleReformulate}
                                 disabled={reformulating || !body.trim()}
-                                className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-violet-600/20 border border-violet-500/30 text-violet-300 hover:bg-violet-600/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-violet-100 dark:bg-violet-600/20 border border-violet-300 dark:border-violet-500/30 text-violet-700 dark:text-violet-300 hover:bg-violet-200 dark:hover:bg-violet-600/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                                {reformulating ? (
-                                    <><Loader className="w-3 h-3 animate-spin" /> Reformulation...</>
-                                ) : (
-                                    <><Wand2 className="w-3 h-3" /> Reformuler avec l'IA</>
-                                )}
+                                {reformulating ? <><Loader className="w-3 h-3 animate-spin" /> Reformulation...</> : <><Wand2 className="w-3 h-3" /> Reformuler avec l'IA</>}
                             </button>
                         </div>
                         <textarea
                             value={body}
                             onChange={(e) => setBody(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 h-40 resize-none"
+                            className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 h-40 resize-none"
                             required
                             placeholder="Votre message..."
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1">Pièce jointe (optionnel)</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Pièce jointe (optionnel)</label>
                         <div className="flex items-center gap-4">
-                            <label className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors">
+                            <label className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-slate-700 dark:text-slate-200 transition-colors">
                                 <Paperclip className="w-4 h-4" />
                                 <span>{attachment ? attachment.name : "Choisir un fichier"}</span>
-                                <input
-                                    type="file"
-                                    className="hidden"
-                                    onChange={(e) => e.target.files && setAttachment(e.target.files[0])}
-                                />
+                                <input type="file" className="hidden" onChange={(e) => e.target.files && setAttachment(e.target.files[0])} />
                             </label>
                             {attachment && (
-                                <button
-                                    type="button"
-                                    onClick={() => setAttachment(null)}
-                                    className="text-red-400 hover:text-red-300 text-sm"
-                                >
+                                <button type="button" onClick={() => setAttachment(null)} className="text-red-500 hover:text-red-400 text-sm">
                                     Supprimer
                                 </button>
                             )}
@@ -301,7 +261,7 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+                            className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                         >
                             Annuler
                         </button>
@@ -310,17 +270,7 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                             disabled={sending}
                             className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {sending ? (
-                                <>
-                                    <Loader className="w-4 h-4 animate-spin" />
-                                    Envoi...
-                                </>
-                            ) : (
-                                <>
-                                    <Send className="w-4 h-4" />
-                                    Envoyer
-                                </>
-                            )}
+                            {sending ? <><Loader className="w-4 h-4 animate-spin" /> Envoi...</> : <><Send className="w-4 h-4" /> Envoyer</>}
                         </button>
                     </div>
                 </form>

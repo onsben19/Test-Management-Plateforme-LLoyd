@@ -1,11 +1,24 @@
 import json
 import logging
+from datetime import datetime, date
 
 from rest_framework import serializers
 
 from .models import TestCase
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_for_json(obj):
+    """Recursively convert datetime/date objects to ISO strings so JSONField can store them."""
+    if isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_for_json(i) for i in obj]
+    elif isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    return obj
+
 
 
 class TestCaseSerializer(serializers.ModelSerializer):
@@ -65,7 +78,7 @@ class TestCaseSerializer(serializers.ModelSerializer):
         validated_data = super().to_internal_value(data_mutable)
 
         if parsed_data_json is not None:
-            validated_data['data_json'] = parsed_data_json
+            validated_data['data_json'] = sanitize_for_json(parsed_data_json)
 
         return validated_data
 

@@ -37,8 +37,7 @@ InsureTM est une plateforme de gestion de tests conçue pour Lloyd Assurances da
 - 🐛 **Signaler des anomalies** avec niveaux de criticité
 - 💬 **Collaborer** via commentaires sur les cas de tests
 - 📧 **Envoyer des notifications** par email et in-app
-- 🤖 **Analyser les données** avec un agent IA (Groq + Vanna)
-- 📈 **Visualiser** les métriques via Grafana
+- 🤖 **Interagir** avec l'analyse de données via l'Agent IA
 
 ---
 
@@ -55,7 +54,7 @@ Internet (port 80)
     ┌────┼────────────┐
     ▼         ▼            ▼
 ┌────────┐ ┌──────────┐ ┌─────────┐
-│Frontend│ │ Backend  │ │ Grafana │
+│Frontend│ │ Backend  │
 │ React  │ │ Django + │ │  :3000  │
 │ Nginx  │ │ Gunicorn │ └─────────┘
 └────────┘ └────┬─────┘
@@ -77,8 +76,8 @@ Internet (port 80)
 | **Backend** | Django 5, Django REST Framework, SimpleJWT |
 | **Base de données** | PostgreSQL 15 |
 | **Serveur prod** | Gunicorn (3 workers) + Nginx |
-| **IA / Analytics** | Groq API, Vanna.ai, scikit-learn |
-| **Monitoring** | Grafana |
+| **IA Agent** | Google Gemini |
+| **Emails** | SendGrid / SMTP |
 | **Conteneurisation** | Docker, Docker Compose |
 | **CI/CD** | GitHub Actions |
 
@@ -116,8 +115,7 @@ docker compose up --build
 |---------|-----|
 | 🖥️ Frontend | http://localhost |
 | 🔌 API REST | http://localhost/api/ |
-| ⚙️ Admin Django | http://localhost/admin/ |
-| 📊 Grafana | http://localhost:3000 |
+| 📄 Admin Django | http://localhost:8000/admin |
 
 ### Commandes utiles
 
@@ -173,7 +171,7 @@ Test-Management-Plateforme-LLoyd/
 │   ├── comments/                # Commentaires
 │   ├── emails/                  # Emails SMTP
 │   ├── notifications/           # Notifications in-app
-│   ├── analytics/               # Agent IA + Grafana
+│   ├── analytics/               # Agent IA d'analyse
 │   ├── Dockerfile               # Image Docker backend
 │   ├── requirements.txt         # Dépendances Python
 │   └── .env.example             # Template variables d'env

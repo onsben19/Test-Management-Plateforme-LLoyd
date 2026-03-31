@@ -70,29 +70,7 @@ services:
       - backend
       - frontend
 
-  # ─────────────────────────────────────────────────────────
-  # Grafana — Dashboards
-  # ─────────────────────────────────────────────────────────
-  grafana:
-    image: grafana/grafana-oss:latest
-    container_name: insuretm-grafana
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_SECURITY_ALLOW_EMBEDDING: "true"
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
-      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
-      GF_PANELS_DISABLE_SANITIZE_HTML: "true"
-      GF_FEATURE_TOGGLES_ENABLE: publicDashboards
-      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/grafana"
-      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
-    volumes:
-      - grafana_data:/var/lib/grafana
-
 volumes:
   postgres_data:
   media_data:
   static_data:
-  grafana_data:

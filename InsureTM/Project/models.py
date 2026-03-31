@@ -3,9 +3,9 @@ from django.conf import settings
 
 class Project(models.Model):
     STATUS_CHOICES = [
-        ('ACTIVE', 'Active'),
+        ('ACTIVE', 'Actif'),
+        ('PLANNING', 'Planifié'),
         ('COMPLETED', 'Terminé'),
-        ('ARCHIVED', 'Archivé'),
     ]
 
     name = models.CharField(max_length=200) # Ex: Release Q1 2024

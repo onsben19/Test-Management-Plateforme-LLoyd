@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../context/AuthContext';
+import { useSidebar } from '../context/SidebarContext';
 import { campaignService, executionService, anomalyService } from '../services/api';
 import { CheckCircle, XCircle, AlertTriangle, Eye, List, Calendar } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const TesterDashboard = () => {
     const { user } = useAuth();
+    const { isOpen: isSidebarOpen } = useSidebar();
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -164,9 +166,9 @@ const TesterDashboard = () => {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
             <Header />
-            <div className="flex">
+            <div className="flex relative">
                 <Sidebar />
-                <main className="flex-1 lg:ml-64 relative p-8">
+                <main className={`flex-1 p-8 transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     <div className="max-w-7xl mx-auto">
                         <div className="mb-6">
                             <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">Mon Espace Testeur</h1>

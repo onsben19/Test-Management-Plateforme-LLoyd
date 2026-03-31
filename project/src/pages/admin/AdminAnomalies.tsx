@@ -7,8 +7,10 @@ import { anomalyService } from '../../services/api';
 import { toast } from 'react-toastify';
 import { AlertTriangle, Trash2, Pencil } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { useSidebar } from '../../context/SidebarContext';
 
 const AdminAnomalies = () => {
+    const { isOpen } = useSidebar();
     const [anomalies, setAnomalies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -130,15 +132,42 @@ const AdminAnomalies = () => {
         },
         {
             header: 'Release',
-            accessor: (item: any) => item.project_name || '-'
+            accessor: (item: any) => (
+                item.project_name ? (
+                    <Link
+                        to={`/admin/releases?search=${encodeURIComponent(item.project_name)}`}
+                        className="text-blue-400 hover:underline cursor-pointer"
+                    >
+                        {item.project_name}
+                    </Link>
+                ) : <span className="text-slate-500">-</span>
+            )
         },
         {
             header: 'Campagne',
-            accessor: (item: any) => item.campaign_title || '-'
+            accessor: (item: any) => (
+                item.campaign_title ? (
+                    <Link
+                        to={`/admin/campaigns?search=${encodeURIComponent(item.campaign_title)}`}
+                        className="text-blue-400 hover:underline cursor-pointer"
+                    >
+                        {item.campaign_title}
+                    </Link>
+                ) : <span className="text-slate-500">-</span>
+            )
         },
         {
             header: 'Créé par',
-            accessor: (item: any) => item.cree_par_nom || 'Inconnu'
+            accessor: (item: any) => (
+                item.cree_par_nom ? (
+                    <Link
+                        to={`/users?search=${encodeURIComponent(item.cree_par_nom)}`}
+                        className="text-blue-400 hover:underline cursor-pointer"
+                    >
+                        {item.cree_par_nom}
+                    </Link>
+                ) : <span className="text-slate-500">Inconnu</span>
+            )
         },
         {
             header: 'Date',
@@ -147,11 +176,11 @@ const AdminAnomalies = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-900">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
             <Header />
-            <div className="flex">
+            <div className="flex relative">
                 <Sidebar />
-                <main className="flex-1 lg:ml-64 relative p-8">
+                <main className={`flex-1 p-8 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     <div className="max-w-7xl mx-auto">
                         <AdminTable
                             title="Administration des Anomalies"

@@ -4,7 +4,6 @@ import { Eye, EyeOff, Shield, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import StarBorder from '../components/bits/StarBorder';
-import SplashCursor from '../components/bits/SplashCursor'
 
 
 const Login = () => {
@@ -124,7 +123,6 @@ const Login = () => {
           &copy; 2026 InsureTM Inc. Tous droits réservés.
         </p>
       </div>
-      <SplashCursor />
     </div>
   );
 };
