@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { X, Send, Sparkles, Paperclip, FileText, Download, MessageSquare, User } from 'lucide-react';
+import { X, Send, Sparkles, Paperclip, FileText, Download, MessageSquare, User, Pencil, Check, X as Close, Trash2 } from 'lucide-react';
+import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { type TestItem } from './ExecutionTestList';
 import { commentService, aiService } from '../services/api';
@@ -20,6 +21,9 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
     const [loading, setLoading] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+    const [editMessage, setEditMessage] = useState('');
+    const [activeCommentId, setActiveCommentId] = useState<number | null>(null);
 
     React.useEffect(() => {
         if (test?.id) {
@@ -62,7 +66,9 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                 id: tempId,
                 message: chatMessage,
                 created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
                 author_name: user?.username || 'Moi',
+                author: user?.id,
                 attachment: selectedFile ? URL.createObjectURL(selectedFile) : null,
                 attachment_name: selectedFile ? selectedFile.name : null,
                 isOptimistic: true
@@ -81,6 +87,42 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
         }
     };
 
+    const handleStartEdit = (comment: any) => {
+        setEditingCommentId(comment.id);
+        setEditMessage(comment.message);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingCommentId(null);
+        setEditMessage('');
+    };
+
+    const handleSaveEdit = async (commentId: number) => {
+        if (!editMessage.trim()) return;
+        try {
+            await commentService.updateComment(commentId.toString(), { message: editMessage });
+            setComments(prev => prev.map(c => c.id === commentId ? { ...c, message: editMessage, updated_at: new Date().toISOString() } : c));
+            setEditingCommentId(null);
+            setEditMessage('');
+            fetchComments(); // Refresh to get the real updated_at from server
+        } catch (error) {
+            console.error("Failed to update comment", error);
+            toast.error("Erreur lors de la modification");
+        }
+    };
+
+    const handleDeleteComment = async (commentId: number) => {
+        if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce commentaire ?")) return;
+        try {
+            await commentService.deleteComment(commentId.toString());
+            setComments(prev => prev.filter(c => c.id !== commentId));
+            toast.success("Commentaire supprimé");
+        } catch (error) {
+            console.error("Failed to delete comment", error);
+            toast.error("Erreur lors de la suppression");
+        }
+    };
+
     const handleAIReformulate = async () => {
         if (!chatMessage) return;
         try {
@@ -92,6 +134,22 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleDownload = (url: string, filename?: string) => {
+        let link = url;
+        if (url.includes('/media/')) {
+            const mediaPart = url.substring(url.indexOf('/media/'));
+            link = mediaPart;
+        }
+
+        const a = document.createElement('a');
+        a.href = link;
+        a.download = filename || link.split('/').pop() || 'download';
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     };
 
     if (!test) return null;
@@ -156,7 +214,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                                         className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                                     >
                                         <div className={`max-w-[85%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                                            <div className={`p-3.5 rounded-2xl shadow-md transition-all ${isMe ? 'bg-blue-600 text-white rounded-tr-none shadow-blue-500/10'
+                                            <div className={`group relative p-3.5 rounded-2xl shadow-md transition-all ${isMe ? 'bg-blue-600 text-white rounded-tr-none shadow-blue-500/10'
                                                 : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700 shadow-lg shadow-black/20'
                                                 }`}>
                                                 {!isMe && (
@@ -165,20 +223,87 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                                                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{comment.author_name || 'Utilisateur'}</p>
                                                     </div>
                                                 )}
-                                                <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">{comment.message}</p>
+
+                                                {editingCommentId === comment.id ? (
+                                                    <div className="space-y-2 min-w-[200px]">
+                                                        <textarea
+                                                            value={editMessage}
+                                                            onChange={(e) => setEditMessage(e.target.value)}
+                                                            className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-white/30 resize-none"
+                                                            rows={3}
+                                                            autoFocus
+                                                        />
+                                                        <div className="flex justify-end gap-2">
+                                                            <button onClick={(e) => { e.stopPropagation(); handleCancelEdit(); }} className="p-1 hover:bg-white/10 rounded text-white/70"><Close className="w-4 h-4" /></button>
+                                                            <button onClick={(e) => { e.stopPropagation(); handleSaveEdit(comment.id); }} className="p-1 bg-white/20 hover:bg-white/30 rounded text-white"><Check className="w-4 h-4" /></button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div
+                                                        className="relative cursor-pointer"
+                                                        onClick={() => isMe ? setActiveCommentId(activeCommentId === comment.id ? null : comment.id) : null}
+                                                    >
+                                                        <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">{comment.message}</p>
+
+                                                        <AnimatePresence>
+                                                            {isMe && !comment.isOptimistic && activeCommentId === comment.id && (
+                                                                <motion.div
+                                                                    initial={{ opacity: 0, scale: 0.8, y: -10 }}
+                                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                                    exit={{ opacity: 0, scale: 0.8, y: -10 }}
+                                                                    className="absolute top-full mt-2 right-0 flex gap-1 p-1 bg-slate-800 rounded-xl border border-slate-700 shadow-2xl z-30"
+                                                                >
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); handleStartEdit(comment); }}
+                                                                        className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                                                        title="Modifier"
+                                                                    >
+                                                                        <Pencil className="w-4 h-4" />
+                                                                    </button>
+                                                                    <div className="w-[1px] h-4 bg-slate-700 my-auto" />
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); handleDeleteComment(comment.id); }}
+                                                                        className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                                                        title="Supprimer"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                </motion.div>
+                                                            )}
+                                                        </AnimatePresence>
+                                                    </div>
+                                                )}
+
                                                 {comment.attachment && (
-                                                    <div className="mt-3 p-2 bg-black/30 rounded-xl flex items-center gap-2 border border-white/5">
+                                                    <div className="mt-3 p-2 bg-black/30 rounded-xl flex items-center gap-2 border border-white/5 group/file">
                                                         <FileText className="w-4 h-4 text-blue-400" />
-                                                        <a href={comment.attachment} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-300 hover:underline truncate block max-w-[150px]">
+                                                        <button
+                                                            onClick={() => handleDownload(comment.attachment, comment.attachment_name)}
+                                                            className="text-[10px] text-blue-300 hover:text-blue-100 hover:underline truncate block max-w-[150px] text-left transition-colors"
+                                                        >
                                                             {comment.attachment_name || comment.attachment.split('/').pop()}
-                                                        </a>
-                                                        <Download className="w-3 h-3 text-white/30 ml-auto" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDownload(comment.attachment, comment.attachment_name)}
+                                                            className="p-1 hover:bg-white/10 rounded-md text-white/30 hover:text-white transition-all ml-auto active:scale-90"
+                                                            title="Télécharger"
+                                                        >
+                                                            <Download className="w-3.5 h-3.5" />
+                                                        </button>
                                                     </div>
                                                 )}
                                             </div>
-                                            <span className="text-[9px] mt-1.5 px-2 font-bold text-slate-500 uppercase tracking-tighter">
-                                                {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
+                                            <div className="flex items-center gap-2 mt-1.5 px-2">
+                                                {comment.updated_at && new Date(comment.updated_at).getTime() - new Date(comment.created_at).getTime() > 1000 && (
+                                                    <span className="text-[9px] font-bold text-blue-400 uppercase tracking-tighter flex items-center gap-1">
+                                                        <Pencil className="w-2 h-2" />
+                                                        Modifié à {new Date(comment.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                )}
+                                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">
+                                                    {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
                                         </div>
                                     </motion.div>
                                 );

@@ -16,7 +16,8 @@ class CampaignSerializer(serializers.ModelSerializer):
 
     def get_manager_name(self, obj):
         if obj.imported_by:
-            return f"{obj.imported_by.first_name} {obj.imported_by.last_name}"
+            name = f"{obj.imported_by.first_name} {obj.imported_by.last_name}".strip()
+            return name if name else obj.imported_by.username
         return "Inconnu"
 
     def get_assigned_testers_names(self, obj):

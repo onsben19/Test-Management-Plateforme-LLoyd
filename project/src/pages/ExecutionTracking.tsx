@@ -8,12 +8,14 @@ import ReviewPanel from '../components/ReviewPanel';
 import EditExecutionModal from '../components/EditExecutionModal';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { executionService, projectService, campaignService } from '../services/api';
+import { useSidebar } from '../context/SidebarContext';
 import { List, X } from 'lucide-react';
 
 const ExecutionTracking = () => {
     const { user } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
+    const { isOpen } = useSidebar();
 
     const isTester = user?.role?.toLowerCase() === 'tester';
     const isAdmin = user?.role?.toLowerCase() === 'admin';
@@ -131,7 +133,7 @@ const ExecutionTracking = () => {
             <Header />
             <div className="flex flex-1 relative">
                 <Sidebar />
-                <main className="flex-1 lg:ml-64 flex overflow-hidden h-[calc(100vh-64px)]">
+                <main className={`flex-1 flex overflow-hidden h-[calc(100vh-64px)] transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     {/* Left List Panel */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-6">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">

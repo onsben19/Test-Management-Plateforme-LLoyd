@@ -3,6 +3,7 @@ import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { User, Shield, CheckCircle, XCircle, MoreVertical, Plus, Search, Mail, Edit, Trash2, Lock, Unlock, Key, Copy, Check } from 'lucide-react';
 import api from '../services/api';
+import { useSidebar } from '../context/SidebarContext';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import EditUserModal from '../components/EditUserModal';
@@ -20,6 +21,7 @@ const UserManagement = () => {
     const { user } = useAuth();
     // Case-insensitive check just in case
     const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
+    const { isOpen } = useSidebar();
 
     const [users, setUsers] = useState<UserData[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -186,7 +188,7 @@ const UserManagement = () => {
             <Header />
             <div className="flex">
                 <Sidebar />
-                <main className="flex-1 lg:ml-64 p-6">
+                <main className={`flex-1 p-6 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     <div className="max-w-7xl mx-auto">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                             <div>

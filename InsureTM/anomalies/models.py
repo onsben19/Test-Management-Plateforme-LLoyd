@@ -9,7 +9,9 @@ class Anomalie(models.Model):
     test_case = models.ForeignKey(
         'testCases.TestCase', 
         on_delete=models.CASCADE, 
-        related_name='anomalies'
+        related_name='anomalies',
+        null=True, 
+        blank=True
     )
     
     # Champs correspondant à ton interface visuelle

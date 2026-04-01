@@ -11,6 +11,7 @@ class Comment(models.Model):
     message = models.TextField(blank=True)
     attachment = models.FileField(upload_to='comment_attachments/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Comment by {self.author} on {self.test_case}"

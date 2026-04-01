@@ -5,6 +5,7 @@ import { Switch } from '@radix-ui/themes';
 import { toast } from 'react-toastify';
 import { Save, CreditCard, Bell, Cpu } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useSidebar } from '../context/SidebarContext';
 
 const Settings: React.FC = () => {
   const [enableSSO, setEnableSSO] = useState(true);
@@ -13,6 +14,7 @@ const Settings: React.FC = () => {
   const [insightsEnabled, setInsightsEnabled] = useState(true);
   const [iaSensitivity, setIaSensitivity] = useState(75);
   const { theme, setTheme } = useTheme();
+  const { isOpen } = useSidebar();
 
   const handleSave = () => {
     // In a real app we'd persist settings to API
@@ -24,7 +26,7 @@ const Settings: React.FC = () => {
       <Header />
       <div className="flex">
         <Sidebar />
-        <main className="flex-1 lg:ml-64 p-6">
+        <main className={`flex-1 p-6 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
           <div className="max-w-7xl mx-auto">
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white transition-colors">Paramètres</h1>
@@ -95,7 +97,6 @@ const Settings: React.FC = () => {
                       <label className="block text-sm text-slate-600 dark:text-slate-300 mb-1 transition-colors">Seuil d'alerte</label>
                       <select className="w-full bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-lg px-3 py-2 focus:outline-none transition-all">
                         <option>Critique uniquement</option>
-                        <option>Critique + Haute</option>
                         <option>Toutes</option>
                       </select>
                     </div>

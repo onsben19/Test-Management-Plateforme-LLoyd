@@ -5,7 +5,7 @@ import AdminTable from '../../components/AdminTable';
 import EditAnomalyModal from '../../components/EditAnomalyModal';
 import { anomalyService } from '../../services/api';
 import { toast } from 'react-toastify';
-import { AlertTriangle, Trash2, Pencil } from 'lucide-react';
+import { AlertTriangle, Trash2, Pencil, Filter } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSidebar } from '../../context/SidebarContext';
 
@@ -191,16 +191,19 @@ const AdminAnomalies = () => {
                             onSearch={setSearchQuery}
                             filters={
                                 <div className="flex items-center gap-2">
-                                    <select
-                                        className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                        value={criticalityFilter}
-                                        onChange={(e) => setCriticalityFilter(e.target.value)}
-                                    >
-                                        <option value="ALL">Toutes criticités</option>
-                                        <option value="FAIBLE">Faible</option>
-                                        <option value="MOYENNE">Moyenne</option>
-                                        <option value="CRITIQUE">Critique</option>
-                                    </select>
+                                    <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-2 transition-colors">
+                                        <Filter className="w-4 h-4 text-slate-400" />
+                                        <select
+                                            className="bg-transparent border-none text-white outline-none focus:ring-0 text-sm py-2 pr-6"
+                                            value={criticalityFilter}
+                                            onChange={(e) => setCriticalityFilter(e.target.value)}
+                                        >
+                                            <option value="ALL">Tout</option>
+                                            <option value="FAIBLE">Faible</option>
+                                            <option value="MOYENNE">Moyenne</option>
+                                            <option value="CRITIQUE">Critique</option>
+                                        </select>
+                                    </div>
                                     <select
                                         className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                                         value={sortOrder}
@@ -217,8 +220,7 @@ const AdminAnomalies = () => {
                                         onClick={() => {
                                             // Map backend format to component expectation
                                             const mapSeverity = (s: string) => {
-                                                if (s === 'CRITIQUE') return 'Critique';
-                                                if (s === 'URGENT' || s === 'HAUTE') return 'Haute'; // Adjust based on actual backend values
+                                                if (s === 'CRITIQUE' || s === 'URGENT' || s === 'HAUTE') return 'Critique';
                                                 if (s === 'MOYENNE') return 'Moyenne';
                                                 return 'Faible';
                                             };

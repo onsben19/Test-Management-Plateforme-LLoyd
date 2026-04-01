@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import { useLocation } from 'react-router-dom';
+import { useSidebar } from '../context/SidebarContext';
 import {
     Upload, FileSpreadsheet, Calendar, Eye, Trash2, Edit, Search, Filter,
     Layers, Users, X, CheckCircle, ShieldAlert, ShieldCheck, ShieldQuestion,
@@ -50,6 +51,7 @@ interface User {
 
 const DataDrivenManager = () => {
     const location = useLocation();
+    const { isOpen } = useSidebar();
     const activeReleaseName = location.state?.releaseName;
     const activeReleaseId = location.state?.releaseId;
 
@@ -398,7 +400,7 @@ const DataDrivenManager = () => {
             <Header />
             <div className="flex">
                 <Sidebar />
-                <main className="flex-1 lg:ml-64 relative p-8">
+                <main className={`flex-1 relative p-8 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     <div className="max-w-7xl mx-auto">
 
                         {/* Header & Filters */}

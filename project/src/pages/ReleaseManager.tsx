@@ -6,10 +6,12 @@ import { useNavigate } from 'react-router-dom';
 import { projectService } from '../services/api';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
+import { useSidebar } from '../context/SidebarContext';
 
 const ReleaseManager = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { isOpen } = useSidebar();
     const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(user?.role?.toUpperCase() || '');
 
     // State for Release List
@@ -183,7 +185,7 @@ const ReleaseManager = () => {
             <Header />
             <div className="flex">
                 <Sidebar />
-                <main className="flex-1 lg:ml-64 relative p-8">
+                <main className={`flex-1 relative p-8 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     <div className="max-w-7xl mx-auto">
 
                         {/* Header Section */}

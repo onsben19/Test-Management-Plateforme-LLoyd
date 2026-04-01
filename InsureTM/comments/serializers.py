@@ -7,7 +7,8 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ['id', 'test_case', 'author_name', 'message', 'attachment', 'attachment_name', 'created_at']
+        fields = ['id', 'test_case', 'author', 'author_name', 'message', 'attachment', 'attachment_name', 'created_at', 'updated_at']
+        read_only_fields = ['author', 'author_name', 'created_at', 'updated_at']
 
     def get_attachment_name(self, obj):
         if obj.attachment:

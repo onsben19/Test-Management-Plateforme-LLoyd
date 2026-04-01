@@ -5,7 +5,7 @@ export interface AnomalyItem {
     id: string;
     title: string;
     description?: string;
-    severity: 'Critique' | 'Haute' | 'Moyenne' | 'Faible';
+    severity: 'Critique' | 'Moyenne' | 'Faible';
     status: 'Ouverte' | 'En investigation' | 'Résolue';
     proofImage?: string;
     relatedTest?: string;
@@ -23,7 +23,7 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
     // Initial States
     const [title, setTitle] = useState(anomaly?.title || '');
     const [description, setDescription] = useState(anomaly?.description || '');
-    const [severity, setSeverity] = useState<AnomalyItem['severity']>(anomaly?.severity || 'Faible');
+    const [severity, setSeverity] = useState<AnomalyItem['severity']>(anomaly?.severity || 'Critique');
     const [relatedTest, setRelatedTest] = useState(anomaly?.relatedTest || '');
 
     // Status only for editing (creation defaults to Open)
@@ -38,8 +38,15 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
         try {
             const formData = new FormData();
             formData.append('titre', title);
-            formData.append('description', description);
             formData.append('criticite', severity.toUpperCase()); // Backend expects uppercase
+
+            // If we have a related test reference but it's not a real test_case ID (it's just a string from UI)
+            // we prepend it to the description to maintain traceability in the dashboard.
+            let finalDescription = description;
+            if (!isEditing && relatedTest) {
+                finalDescription = `[Référence Test: ${relatedTest}]\n\n${description}`;
+            }
+            formData.append('description', finalDescription);
 
             // Only append relatedTest if creating (or if we allow editing it)
             // Backend might expect 'test_case' ID, but we only have string reference here.
@@ -67,7 +74,6 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
 
     const severityColors = {
         'Critique': 'text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400',
-        'Haute': 'text-orange-600 bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-400',
         'Moyenne': 'text-yellow-600 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-400',
         'Faible': 'text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400',
     };
@@ -123,7 +129,7 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
                             Gravité / Criticité
                         </label>
                         <div className="grid grid-cols-2 gap-3">
-                            {(['Critique', 'Haute', 'Moyenne', 'Faible'] as const).map((s) => (
+                            {(['Critique', 'Moyenne', 'Faible'] as const).map((s) => (
                                 <button
                                     key={s}
                                     type="button"
@@ -204,13 +210,7 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
                         )}
                     </div>
 
-                    {isEditing && anomaly?.relatedTest && (
-                        <div className="flex flex-col gap-2">
-                            <div className="text-xs text-slate-500 dark:text-slate-400">
-                                Test lié: {anomaly.relatedTest}
-                            </div>
-                        </div>
-                    )}
+
                 </form>
 
                 <div className="p-6 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3 bg-slate-50/50 dark:bg-slate-800/50">

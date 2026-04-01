@@ -9,22 +9,22 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { anomalyService } from '../services/api';
+import { useSidebar } from '../context/SidebarContext';
 
 
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  Tooltip
 } from 'recharts';
 
 interface Anomaly {
   id: string;
   title: string;
-  severity: 'Critique' | 'Haute' | 'Moyenne' | 'Faible';
+  severity: 'Critique' | 'Moyenne' | 'Faible';
   status: 'Ouverte' | 'En investigation' | 'Résolue';
   relatedTest?: string;
   assignedTo?: string; // This maps to 'cree_par_nom' (Created By)
@@ -35,23 +35,10 @@ interface Anomaly {
   campaign?: string;
 }
 
-const rawAnomalies: Anomaly[] = [];
-
-const anomaliesTrend = [
-  { month: 'Août', anomalies: 12 },
-  { month: 'Sept', anomalies: 9 },
-  { month: 'Oct', anomalies: 15 },
-  { month: 'Nov', anomalies: 8 },
-  { month: 'Déc', anomalies: 11 },
-  { month: 'Jan', anomalies: 7 }
-];
-
 const severityToBadgeColor = (s: Anomaly['severity']) => {
   switch (s) {
     case 'Critique':
       return 'red';
-    case 'Haute':
-      return 'orange';
     case 'Moyenne':
       return 'yellow';
     default:
@@ -62,6 +49,7 @@ const severityToBadgeColor = (s: Anomaly['severity']) => {
 const Anomalies: React.FC = () => {
   const { theme } = useTheme();
   const { user } = useAuth();
+  const { isOpen } = useSidebar();
   const isTester = user?.role?.toLowerCase() === 'tester';
 
   const location = useLocation();
@@ -89,8 +77,8 @@ const Anomalies: React.FC = () => {
       const mappedAnomalies: Anomaly[] = response.data.map((a: any) => ({
         id: a.id.toString(),
         title: a.titre,
-        severity: a.criticite === 'CRITIQUE' ? 'Critique' : a.criticite === 'MOYENNE' ? 'Moyenne' : a.criticite === 'FAIBLE' ? 'Faible' : 'Haute',
-        status: 'Ouverte', // Backend status defaults to standard?
+        severity: a.criticite === 'CRITIQUE' ? 'Critique' : a.criticite === 'MOYENNE' ? 'Moyenne' : 'Faible',
+        status: 'Ouverte',
         relatedTest: a.test_case_ref || `Test #${a.test_case}`,
         assignedTo: a.cree_par_nom || 'Non assigné',
         createdAt: a.cree_le,
@@ -108,17 +96,15 @@ const Anomalies: React.FC = () => {
   };
 
   const handleCreateAnomaly = () => {
-    setEditingAnomaly(null); // Ensure no anomaly is selected
+    setEditingAnomaly(null);
     setIsCreating(true);
   };
 
   const handleSaveAnomaly = async (id: string | null, updates: FormData) => {
     try {
       if (id) {
-        // Update
         await anomalyService.updateAnomaly(id, updates);
       } else {
-        // Create
         if (user) {
           updates.append('cree_par', user.id.toString());
         }
@@ -164,6 +150,22 @@ const Anomalies: React.FC = () => {
     });
   }, [data, query, severityFilter, sortOrder]);
 
+  const stats = useMemo(() => {
+    const total = data.length;
+    const critical = data.filter(a => a.severity === 'Critique').length;
+    const distribution = [
+      { name: 'Critique', value: data.filter(a => a.severity === 'Critique').length, color: '#ef4444' },
+      { name: 'Moyenne', value: data.filter(a => a.severity === 'Moyenne').length, color: '#eab308' },
+      { name: 'Faible', value: data.filter(a => a.severity === 'Faible').length, color: '#3b82f6' },
+    ].filter(d => d.value > 0);
+
+    if (distribution.length === 0) {
+      distribution.push({ name: 'Aucune', value: 1, color: '#475569' });
+    }
+
+    return { total, critical, distribution };
+  }, [data]);
+
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
@@ -198,7 +200,7 @@ const Anomalies: React.FC = () => {
       <Header />
       <div className="flex">
         <Sidebar />
-        <main className="flex-1 lg:ml-64 p-6">
+        <main className={`flex-1 p-6 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white transition-colors">Anomalies</h1>
@@ -238,7 +240,6 @@ const Anomalies: React.FC = () => {
                     >
                       <option value="Tout">Tout</option>
                       <option value="Critique">Critique</option>
-                      <option value="Haute">Haute</option>
                       <option value="Moyenne">Moyenne</option>
                       <option value="Faible">Faible</option>
                     </select>
@@ -365,30 +366,52 @@ const Anomalies: React.FC = () => {
             </div>
 
             <aside className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700/50 rounded-xl p-4 shadow-sm dark:shadow-none transition-colors">
-              <h3 className="text-slate-900 dark:text-white font-semibold mb-2 transition-colors">Tendances Anomalies</h3>
-              <p className="text-slate-500 dark:text-slate-400 text-sm mb-4 transition-colors">Volume d'anomalies sur 6 mois</p>
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={anomaliesTrend} margin={{ top: 6, right: 6, left: -10, bottom: 6 }}>
-                    <defs>
-                      <linearGradient id="anomalyColor" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#fb7185" stopOpacity={0.28} />
-                        <stop offset="95%" stopColor="#fb7185" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#e2e8f0'} />
-                    <XAxis dataKey="month" tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff', border: theme === 'dark' ? '1px solid #475569' : '1px solid #e2e8f0', borderRadius: 8, color: theme === 'dark' ? '#f1f5f9' : '#1e293b' }} />
-                    <Area type="monotone" dataKey="anomalies" stroke="#fb7185" strokeWidth={2} fill="url(#anomalyColor)" />
-                  </AreaChart>
-                </ResponsiveContainer>
+              <h3 className="text-slate-900 dark:text-white font-semibold mb-1 transition-colors text-sm">Répartition des Anomalies</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-xs mb-4 transition-colors font-medium">Réel par niveau de sévérité</p>
+
+              <div className="grid grid-cols-2 gap-2 mb-6">
+                <div className="bg-slate-100 dark:bg-slate-900/40 p-3 rounded-xl border border-slate-200 dark:border-slate-700/30">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Total</span>
+                  <span className="text-xl font-bold text-slate-900 dark:text-white">{stats.total}</span>
+                </div>
+                <div className="bg-red-500/10 p-3 rounded-xl border border-red-500/20">
+                  <span className="text-[10px] text-red-500 font-bold uppercase tracking-wider block mb-1">Bloquants</span>
+                  <span className="text-xl font-bold text-red-600 dark:text-red-400">{stats.critical}</span>
+                </div>
               </div>
 
-              <div className="mt-4">
-                <h4 className="text-slate-700 dark:text-slate-300 text-sm mb-2 transition-colors">Actions rapides</h4>
-                <button className="w-full mb-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors text-sm">Créer une tâche de résolution</button>
-                <button className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors text-sm">Assigner en masse</button>
+              <div className="h-56 relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={stats.distribution}
+                      cx="50%"
+                      cy="45%"
+                      innerRadius={55}
+                      outerRadius={75}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {stats.distribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
+                        border: 'none',
+                        borderRadius: 8,
+                        fontSize: 12
+                      }}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      align="center"
+                      iconSize={8}
+                      formatter={(val) => <span className="text-[10px] text-slate-500 font-medium">{val}</span>}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             </aside>
           </div>

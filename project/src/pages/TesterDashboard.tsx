@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
 import { campaignService, executionService, anomalyService } from '../services/api';
-import { CheckCircle, XCircle, AlertTriangle, Eye, List, Calendar } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Eye, List, Calendar, Layers, LayoutGrid } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const TesterDashboard = () => {
@@ -56,6 +56,14 @@ const TesterDashboard = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
     const [filteredCampaigns, setFilteredCampaigns] = useState<any[]>([]);
+    const [isGrouped, setIsGrouped] = useState(true);
+
+    const groupedCampaigns = filteredCampaigns.reduce((acc, camp) => {
+        const releaseName = camp.project_name || 'Sans Release';
+        if (!acc[releaseName]) acc[releaseName] = [];
+        acc[releaseName].push(camp);
+        return acc;
+    }, {} as Record<string, any[]>);
 
     useEffect(() => {
         let result = [...campaigns];
@@ -159,9 +167,59 @@ const TesterDashboard = () => {
     };
 
     const handleOpenExcel = (url: string) => {
-        if (url) window.open(url, '_blank');
-        else toast.error("Fichier introuvable");
+        if (!url) {
+            toast.error("Fichier introuvable");
+            return;
+        }
+
+        // Handle path extraction: if URL contains /media/, extract it so it works with current proxy origin
+        // This fixes URLs starting with http://backend:8000/media, which would fail in browser
+        let link = url;
+        if (url.includes('/media/')) {
+            const mediaPart = url.substring(url.indexOf('/media/'));
+            link = mediaPart;
+        }
+
+        window.open(link, '_blank');
     };
+
+    const renderCampaignCard = (camp: any) => (
+        <div key={camp.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:border-blue-500/50 transition-colors shadow-sm dark:shadow-none">
+            <div className="flex justify-between items-start mb-4">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 transition-colors">
+                    <List className="w-5 h-5" />
+                </div>
+                <div className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs text-slate-600 dark:text-slate-300 transition-colors">
+                    {camp.nb_test_cases} Tests Prévus
+                </div>
+            </div>
+
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 transition-colors">{camp.title}</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 line-clamp-2 transition-colors">{camp.description || "Aucune description"}</p>
+
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-500 mb-6 transition-colors">
+                <Calendar className="w-3 h-3" />
+                {new Date(camp.created_at).toLocaleDateString()}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+                <button
+                    onClick={() => handleOpenExcel(camp.excel_file)}
+                    className="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                    <Eye className="w-4 h-4" />
+                    Voir Excel
+                </button>
+                <button
+                    onClick={() => handleOpenValidation(camp)}
+                    className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                    <CheckCircle className="w-4 h-4" />
+                    Valider Tâche
+                </button>
+            </div>
+        </div>
+    );
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
@@ -186,6 +244,28 @@ const TesterDashboard = () => {
                                     className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-4 pr-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                                 />
                             </div>
+                            <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1">
+                                <button
+                                    onClick={() => setIsGrouped(true)}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${isGrouped
+                                        ? 'bg-blue-600 text-white shadow-sm'
+                                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                        }`}
+                                >
+                                    <Layers className="w-4 h-4" />
+                                    Groupé par Release
+                                </button>
+                                <button
+                                    onClick={() => setIsGrouped(false)}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${!isGrouped
+                                        ? 'bg-blue-600 text-white shadow-sm'
+                                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                        }`}
+                                >
+                                    <LayoutGrid className="w-4 h-4" />
+                                    Grille Simple
+                                </button>
+                            </div>
                             <select
                                 value={sortOrder}
                                 onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
@@ -202,45 +282,30 @@ const TesterDashboard = () => {
                             <div className="text-slate-500 dark:text-slate-500 bg-white dark:bg-slate-800 p-8 rounded-xl text-center shadow-sm dark:shadow-none transition-colors">
                                 {campaigns.length === 0 ? "Aucune campagne assignée pour le moment." : "Aucune campagne trouvée pour cette recherche."}
                             </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredCampaigns.map(camp => (
-                                    <div key={camp.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:border-blue-500/50 transition-colors shadow-sm dark:shadow-none">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 transition-colors">
-                                                <List className="w-5 h-5" />
+                        ) : isGrouped ? (
+                            <div className="space-y-8 pb-12">
+                                {Object.keys(groupedCampaigns).map(releaseName => (
+                                    <div key={releaseName} className="space-y-4">
+                                        <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-700 pb-2">
+                                            <div className="bg-blue-600/10 p-1.5 rounded-lg">
+                                                <Layers className="w-5 h-5 text-blue-500" />
                                             </div>
-                                            <div className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs text-slate-600 dark:text-slate-300 transition-colors">
-                                                {camp.nb_test_cases} Tests Prévus
-                                            </div>
+                                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                                                Release : <span className="text-blue-500">{releaseName}</span>
+                                            </h2>
+                                            <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded-full font-medium border border-slate-200 dark:border-slate-700">
+                                                {groupedCampaigns[releaseName].length} Campagnes
+                                            </span>
                                         </div>
-
-                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 transition-colors">{camp.title}</h3>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 line-clamp-2 transition-colors">{camp.description || "Aucune description"}</p>
-
-                                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-500 mb-6 transition-colors">
-                                            <Calendar className="w-3 h-3" />
-                                            {new Date(camp.created_at).toLocaleDateString()}
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <button
-                                                onClick={() => handleOpenExcel(camp.excel_file)}
-                                                className="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                                Voir Excel
-                                            </button>
-                                            <button
-                                                onClick={() => handleOpenValidation(camp)}
-                                                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                <CheckCircle className="w-4 h-4" />
-                                                Valider Tâche
-                                            </button>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {groupedCampaigns[releaseName].map(camp => renderCampaignCard(camp))}
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {filteredCampaigns.map(camp => renderCampaignCard(camp))}
                             </div>
                         )}
                     </div>
@@ -261,7 +326,7 @@ const TesterDashboard = () => {
                                             <span className="font-semibold text-slate-700 dark:text-slate-300 transition-colors">Campagne:</span> {validationModal.campaign.title}
                                         </div>
                                         <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 transition-colors">
-                                            <span className="font-semibold text-slate-700 dark:text-slate-300 transition-colors">Manager:</span> {validationModal.campaign.manager_name}
+                                            <span className="font-semibold text-slate-700 dark:text-slate-300 transition-colors">Manager:</span> {validationModal.campaign.manager_name || 'Inconnu'}
                                         </div>
                                     </div>
                                 </div>

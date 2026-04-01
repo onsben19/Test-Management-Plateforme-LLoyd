@@ -96,6 +96,8 @@ export const commentService = {
     getComments: (params?: Record<string, unknown>) => api.get('/comments/', { params }),
     createComment: (data: FormData | Record<string, unknown>) =>
         api.post('/comments/', data, { headers: multipartHeaders(data) }),
+    updateComment: (id: string, data: Record<string, unknown>) =>
+        api.patch(`/comments/${id}/`, data),
     deleteComment: (id: string) => api.delete(`/comments/${id}/`),
 };
 

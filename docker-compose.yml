@@ -33,6 +33,7 @@ services:
     env_file:
       - ./InsureTM/.env.docker
     volumes:
+      - ./InsureTM:/app
       - media_data:/app/media
       - static_data:/app/staticfiles
     depends_on:
