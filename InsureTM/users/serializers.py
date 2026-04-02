@@ -29,6 +29,15 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         fields = ['username', 'email', 'password', 'role', 'first_name', 'last_name']
 
     def create(self, validated_data):
-        # Password generation is handled by the User.save() method.
-        validated_data.pop('password', None)
-        return User.objects.create(**validated_data)
+        password = validated_data.pop('password', None)
+        if not password:
+            # We use the static method we added to the User model
+            password = User.generate_random_password()
+        
+        user = User.objects.create(**validated_data)
+        user.set_password(password)
+        user.save()
+        
+        # Attach raw password to instance temporarily for the view to use
+        user._raw_password = password
+        return user

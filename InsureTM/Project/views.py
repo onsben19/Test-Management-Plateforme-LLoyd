@@ -3,6 +3,23 @@ from rest_framework import viewsets
 from django.db.models import Q
 from .models import Project
 from .serializers import ProjectSerializer
+from django.contrib.auth import get_user_model
+from notifications.models import Notification
+from django.core.mail import send_mail
+from django.conf import settings
+
+def send_project_created_email(recipient, creator, project):
+    subject = f"[InsureTM] Nouveau projet créé : {project.name}"
+    message = f"""Bonjour {recipient.first_name or recipient.username},
+
+Un nouveau projet vient d'être créé sur la plateforme InsureTM par {creator.username}.
+
+  Projet : {project.name}
+  Statut : {project.status}
+
+Connectez-vous pour voir les détails.
+"""
+    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [recipient.email], fail_silently=True)
 
 class ProjectViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
@@ -21,4 +38,18 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        instance = serializer.save(created_by=self.request.user)
+        
+        # Notify all ADMINs
+        User = get_user_model()
+        admins = User.objects.filter(role='ADMIN').exclude(id=self.request.user.id)
+        
+        for admin in admins:
+            Notification.objects.create(
+                recipient=admin,
+                title="Nouveau Projet",
+                message=f"{self.request.user.username} a créé le projet : {instance.name}",
+                type='info'
+            )
+            if admin.email:
+                send_project_created_email(admin, self.request.user, instance)

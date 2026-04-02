@@ -6,6 +6,7 @@ from rest_framework import viewsets, permissions
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from notifications.models import Notification
+from utils.email_service import send_execution_validated_email
 from .models import TestCase
 from .serializers import TestCaseSerializer
 
@@ -45,29 +46,69 @@ class TestCaseViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         user = self.request.user
-        instance = serializer.instance
+        instance = self.get_object()
+        old_status = instance.status
+        old_tester = instance.tester
 
+        # If Admin is editing, keep original tester unless deliberately changed?
+        # Current logic: Admins keep tester, Testers take ownership.
         if user.role == 'ADMIN' and instance.tester:
             serializer.save()
         else:
             serializer.save(tester=user)
 
-        # Send notification when a test is completed
         updated = serializer.instance
-        if updated.status in ['PASSED', 'FAILED']:
-            campaign = updated.campaign
-            recipient = campaign.imported_by
-            recipients = [recipient] if recipient else list(
-                get_user_model().objects.filter(role='ADMIN')
-            )
+        campaign = updated.campaign
 
+        # 1. Notify Manager of Execution Results (PASSED/FAILED)
+        if updated.status in ['PASSED', 'FAILED'] and old_status != updated.status:
+            recipients = set()
+            if campaign and campaign.imported_by:
+                recipients.add(campaign.imported_by)
+            # Add all Admins if no specific manager
+            if not recipients:
+                recipients.update(get_user_model().objects.filter(role='ADMIN'))
+            
+            recipients.discard(user)
             for r in recipients:
-                if r and r != user:
-                    Notification.objects.create(
-                        recipient=r,
-                        title=f"Test {updated.status}",
-                        message=f"{user.username} a exécuté le test {updated.test_case_ref} : {updated.status}",
-                        type='execution_validated',
-                        related_campaign=campaign,
-                        related_object_id=updated.id,
-                    )
+                Notification.objects.create(
+                    recipient=r,
+                    title=f"Test {updated.status}",
+                    message=f"{user.username} a exécuté le test {updated.test_case_ref} : {updated.status}",
+                    type='execution_validated',
+                    related_campaign=campaign,
+                    related_object_id=updated.id,
+                )
+                if r.email:
+                    send_execution_validated_email(r, user, updated)
+
+        # 2. Notify Tester if Admin changed status or re-assigned
+        if user.role == 'ADMIN' and updated.tester and user != updated.tester:
+            if old_status != updated.status or old_tester != updated.tester:
+                Notification.objects.create(
+                    recipient=updated.tester,
+                    title="Mise à jour de Test",
+                    message=f"L'administrateur a mis à jour votre test {updated.test_case_ref} : {updated.status}",
+                    type='info',
+                    related_campaign=campaign,
+                    related_object_id=updated.id
+                )
+
+    def perform_destroy(self, instance):
+        campaign = instance.campaign
+        tester = instance.tester
+        manager = campaign.imported_by if campaign else None
+        
+        recipients = set()
+        if tester: recipients.add(tester)
+        if manager: recipients.add(manager)
+        recipients.discard(self.request.user)
+        
+        for r in recipients:
+            Notification.objects.create(
+                recipient=r,
+                title="Cas de test Supprimé",
+                message=f"Le cas de test {instance.test_case_ref} a été supprimé.",
+                type='info'
+            )
+        instance.delete()

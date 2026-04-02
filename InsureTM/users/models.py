@@ -16,10 +16,14 @@ class User(AbstractUser):
     )
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='TESTER')
 
-    def _generate_random_password(self, length=12):
+    @staticmethod
+    def generate_random_password(length=12):
         """Génère un mot de passe aléatoire de longueur `length`."""
         alphabet = string.ascii_letters + string.digits + string.punctuation
         return ''.join(secrets.choice(alphabet) for _ in range(length))
+
+    def _generate_random_password(self, length=12):
+        return self.generate_random_password(length)
 
     def save(self, *args, **kwargs):
         if not self.pk and not self.password:

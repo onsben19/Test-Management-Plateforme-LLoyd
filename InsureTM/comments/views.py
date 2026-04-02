@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from notifications.models import Notification
+from utils.email_service import send_comment_posted_email
 from .models import Comment
 from .serializers import CommentSerializer
 
@@ -57,3 +58,6 @@ class CommentViewSet(viewsets.ModelViewSet):
                 related_campaign=test_case.campaign,
                 related_object_id=test_case.id,
             )
+            # Send SMTP email
+            if recipient.email:
+                send_comment_posted_email(recipient, self.request.user, instance, test_case)

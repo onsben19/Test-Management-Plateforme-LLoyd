@@ -6,8 +6,11 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 
+from django.contrib.auth import get_user_model
 from .models import Campaign, TaskAssignment
 from .serializers import CampaignSerializer, TaskAssignmentSerializer
+from notifications.models import Notification
+from utils.email_service import send_campaign_created_email
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +42,50 @@ class CampaignViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        serializer.save(imported_by=self.request.user)
+        instance = serializer.save(imported_by=self.request.user)
+        
+        # Notify ADMINs and MANAGERs when a campaign is created
+        User = get_user_model()
+        recipients = User.objects.filter(role__in=['ADMIN', 'MANAGER']).exclude(id=self.request.user.id)
+        
+        for recipient in recipients:
+            Notification.objects.create(
+                recipient=recipient,
+                title="Nouvelle Campagne",
+                message=f"{self.request.user.username} a créé la campagne : {instance.title}",
+                type='info',
+                related_campaign=instance
+            )
+            if recipient.email:
+                send_campaign_created_email(recipient, self.request.user, instance)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        
+        # Notify all assigned testers of the update
+        testers = instance.assigned_testers.all()
+        for tester in testers:
+            if tester != self.request.user:
+                Notification.objects.create(
+                    recipient=tester,
+                    title="Mise à jour Campagne",
+                    message=f"La campagne '{instance.title}' a été mise à jour.",
+                    type='info',
+                    related_campaign=instance
+                )
+
+    def perform_destroy(self, instance):
+        # Notify assigned testers before deletion
+        testers = instance.assigned_testers.all()
+        for tester in testers:
+            if tester != self.request.user:
+                Notification.objects.create(
+                    recipient=tester,
+                    title="Campagne Supprimée",
+                    message=f"La campagne '{instance.title}' a été supprimée.",
+                    type='info'
+                )
+        instance.delete()
 
 
 class TaskAssignmentViewSet(viewsets.ModelViewSet):
