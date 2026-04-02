@@ -10,6 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { anomalyService } from '../services/api';
 import { useSidebar } from '../context/SidebarContext';
+import Pagination from '../components/Pagination';
 
 
 import {
@@ -63,18 +64,39 @@ const Anomalies: React.FC = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const pageSize = 10;
+
   const [editingAnomaly, setEditingAnomaly] = useState<Anomaly | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
   React.useEffect(() => {
-    fetchAnomalies();
-  }, []);
+    fetchAnomalies(1);
+    setCurrentPage(1);
+  }, [query, severityFilter, sortOrder]);
 
-  const fetchAnomalies = async () => {
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchAnomalies(page);
+  };
+
+  const fetchAnomalies = async (page = 1) => {
     try {
       setLoading(true);
-      const response = await anomalyService.getAnomalies();
-      const mappedAnomalies: Anomaly[] = response.data.map((a: any) => ({
+      const response = await anomalyService.getAnomalies({
+        page,
+        search: query,
+        criticite: severityFilter !== 'Tout' ? severityFilter.toUpperCase() : undefined,
+        ordering: sortOrder === 'recent' ? '-cree_le' : 'cree_le'
+      });
+      const data = response.data.results || response.data;
+      const count = response.data.count || (Array.isArray(response.data) ? response.data.length : 0);
+
+      setTotalItems(count);
+
+      const mappedAnomalies: Anomaly[] = data.map((a: any) => ({
         id: a.id.toString(),
         title: a.titre,
         severity: a.criticite === 'CRITIQUE' ? 'Critique' : a.criticite === 'MOYENNE' ? 'Moyenne' : 'Faible',
@@ -133,22 +155,8 @@ const Anomalies: React.FC = () => {
   const handleRefresh = fetchAnomalies;
 
   const filtered = useMemo(() => {
-    return data.filter((a) => {
-      if (severityFilter !== 'Tout' && a.severity !== severityFilter) return false;
-      if (!query) return true;
-      const q = query.toLowerCase();
-      return (
-        a.title.toLowerCase().includes(q) ||
-        (a.relatedTest || '').toLowerCase().includes(q) ||
-        (a.assignedTo || '').toLowerCase().includes(q) ||
-        (a.description || '').toLowerCase().includes(q)
-      );
-    }).sort((a, b) => {
-      const dateA = new Date(a.createdAt).getTime();
-      const dateB = new Date(b.createdAt).getTime();
-      return sortOrder === 'recent' ? dateB - dateA : dateA - dateB;
-    });
-  }, [data, query, severityFilter, sortOrder]);
+    return data;
+  }, [data]);
 
   const stats = useMemo(() => {
     const total = data.length;
@@ -258,7 +266,7 @@ const Anomalies: React.FC = () => {
                   </div>
 
                   <button
-                    onClick={handleRefresh}
+                    onClick={() => fetchAnomalies(currentPage)}
                     className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800/70 hover:bg-slate-200 dark:hover:bg-slate-800/90 rounded-lg transition-colors text-slate-700 dark:text-slate-200"
                     title="Rafraîchir"
                   >
@@ -278,9 +286,9 @@ const Anomalies: React.FC = () => {
                 </div>
               </div>
 
-              <div className="overflow-x-auto rounded-md">
-                <table className="w-full min-w-[900px]">
-                  <thead className="bg-slate-50 dark:bg-slate-900/50 transition-colors">
+              <div className="table-container mb-6 overflow-x-auto">
+                <table className="w-full min-w-[900px] text-left">
+                  <thead className="table-sticky-header text-slate-500 dark:text-slate-400 text-xs uppercase font-medium">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider transition-colors">Anomalie</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider transition-colors">Gravité</th>
@@ -363,6 +371,14 @@ const Anomalies: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+
+              <Pagination
+                currentPage={currentPage}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                loading={loading}
+              />
             </div>
 
             <aside className="bg-white dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700/50 rounded-xl p-4 shadow-sm dark:shadow-none transition-colors">

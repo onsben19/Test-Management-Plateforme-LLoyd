@@ -22,8 +22,9 @@ const AdminAnomalies = () => {
     const fetchAnomalies = async () => {
         try {
             const response = await anomalyService.getAnomalies();
+            const data = response.data.results || response.data;
             // Sort by date descending (Newest first)
-            const sortedData = response.data.sort((a: any, b: any) =>
+            const sortedData = data.sort((a: any, b: any) =>
                 new Date(b.cree_le).getTime() - new Date(a.cree_le).getTime()
             );
             setAnomalies(sortedData);

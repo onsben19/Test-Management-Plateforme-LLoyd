@@ -28,7 +28,8 @@ const AdminCampaigns = () => {
     const fetchCampaigns = async () => {
         try {
             const response = await campaignService.getCampaigns();
-            setCampaigns(response.data);
+            const data = response.data.results || response.data;
+            setCampaigns(data);
         } catch (error) {
             console.error("Failed to fetch campaigns", error);
             toast.error("Erreur lors du chargement des campagnes");

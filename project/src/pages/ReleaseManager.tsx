@@ -5,6 +5,7 @@ import { Layers, Calendar, User, BookOpen, Plus, MoreVertical, ArrowRight, Edit,
 import { useNavigate } from 'react-router-dom';
 import { projectService } from '../services/api';
 import { toast } from 'react-toastify';
+import Pagination from '../components/Pagination';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
 
@@ -21,6 +22,11 @@ const ReleaseManager = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const pageSize = 10;
+
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRelease, setEditingRelease] = useState<any>(null); // Track if editing
@@ -36,10 +42,23 @@ const ReleaseManager = () => {
     // Delete Confirmation State
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, releaseId: null });
 
-    const fetchReleases = async () => {
+    const fetchReleases = async (page = currentPage) => {
         try {
-            const response = await projectService.getProjects();
-            setReleases(response.data);
+            setLoading(true);
+            const response = await projectService.getProjects({
+                page,
+                search: searchQuery,
+                ordering: sortOrder === 'newest' ? '-created_at' : 'created_at'
+            });
+            // If the backend is paginated, it returns { count, results, next, previous }
+            if (response.data.results) {
+                setReleases(response.data.results);
+                setTotalItems(response.data.count);
+            } else {
+                // Fallback for non-paginated or early response
+                setReleases(response.data);
+                setTotalItems(response.data.length);
+            }
         } catch (error) {
             console.error("Failed to fetch releases", error);
             toast.error("Erreur lors du chargement des releases");
@@ -49,30 +68,18 @@ const ReleaseManager = () => {
     };
 
     useEffect(() => {
-        fetchReleases();
-    }, []);
+        fetchReleases(1);
+        setCurrentPage(1);
+    }, [searchQuery, sortOrder]);
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+        fetchReleases(page);
+    };
 
     useEffect(() => {
-        let result = [...releases];
-
-        // Search
-        if (searchQuery) {
-            const lowerQuery = searchQuery.toLowerCase();
-            result = result.filter(r =>
-                r.name.toLowerCase().includes(lowerQuery) ||
-                (r.description && r.description.toLowerCase().includes(lowerQuery))
-            );
-        }
-
-        // Sort
-        result.sort((a, b) => {
-            const dateA = new Date(a.created_at || 0).getTime();
-            const dateB = new Date(b.created_at || 0).getTime();
-            return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
-        });
-
-        setFilteredReleases(result);
-    }, [releases, searchQuery, sortOrder]);
+        setFilteredReleases(releases);
+    }, [releases]);
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -357,6 +364,13 @@ const ReleaseManager = () => {
                             </div>
                         )}
 
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={totalItems}
+                            pageSize={pageSize}
+                            onPageChange={handlePageChange}
+                            loading={loading}
+                        />
                     </div>
                 </main>
             </div>

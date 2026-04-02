@@ -36,11 +36,8 @@ const CampaignTable = () => {
     try {
       setLoading(true);
       const response = await campaignService.getCampaigns();
-      // Map backend data to UI format if needed
-      // Backend returns: id, project, title, created_at, description...
-      // Status/Priority/Progress might be mock or computed on backend.
-      // If backend doesn't send status/priority, use defaults/mocks for visual.
-      const data = response.data.map((c: any) => ({
+      const results = response.data.results || response.data;
+      const data = results.map((c: any) => ({
         id: c.id.toString(),
         title: c.title,
         status: c.is_processed ? 'Terminé' : 'En cours', // Simple logic for now

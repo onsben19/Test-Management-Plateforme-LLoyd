@@ -6,6 +6,7 @@ import { useSidebar } from '../context/SidebarContext';
 import { campaignService, executionService, anomalyService } from '../services/api';
 import { CheckCircle, XCircle, AlertTriangle, Eye, List, Calendar, Layers, LayoutGrid } from 'lucide-react';
 import { toast } from 'react-toastify';
+import Pagination from '../components/Pagination';
 
 const TesterDashboard = () => {
     const { user } = useAuth();
@@ -19,6 +20,12 @@ const TesterDashboard = () => {
         campaign: null
     });
 
+    const pageSize = 10;
+    const [searchQuery, setSearchQuery] = useState('');
+    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+    const [filteredCampaigns, setFilteredCampaigns] = useState<any[]>([]);
+    const [isGrouped, setIsGrouped] = useState(true);
+
     const [testCaseForm, setTestCaseForm] = useState({
         test_case_ref: '', // Manual entry
         status: 'PASSED', // PASSED | FAILED
@@ -31,21 +38,28 @@ const TesterDashboard = () => {
 
     useEffect(() => {
         if (user) {
-            fetchAssignedCampaigns();
+            fetchAssignedCampaigns(1);
+            setCurrentPage(1);
         }
-    }, [user]);
+    }, [user, searchQuery, sortOrder]);
 
-    const fetchAssignedCampaigns = async () => {
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+        fetchAssignedCampaigns(page);
+    };
+
+    const fetchAssignedCampaigns = async (page = 1) => {
         try {
             setLoading(true);
-            const response = await campaignService.getCampaigns(); // Fetch all (filter locally for now if backend doesn't filter)
-            // Filter by assigned_testers containing user.id
-            // Backend Campaign model: assigned_testers is M2M. Serializer returns list of IDs?
-            // Assuming response.data is array of objects with assigned_testers: [id1, id2]
-            const myCampaigns = response.data.filter((c: any) =>
-                c.assigned_testers && c.assigned_testers.includes(user?.id)
-            );
-            setCampaigns(myCampaigns);
+            const response = await campaignService.getCampaigns({
+                page,
+                search: searchQuery,
+            });
+            const data = response.data.results || response.data;
+            const count = response.data.count || (Array.isArray(response.data) ? response.data.length : 0);
+
+            setTotalItems(count);
+            setCampaigns(data);
         } catch (error) {
             console.error("Failed to fetch campaigns", error);
         } finally {
@@ -53,10 +67,8 @@ const TesterDashboard = () => {
         }
     };
 
-    const [searchQuery, setSearchQuery] = useState('');
-    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-    const [filteredCampaigns, setFilteredCampaigns] = useState<any[]>([]);
-    const [isGrouped, setIsGrouped] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
 
     const groupedCampaigns = filteredCampaigns.reduce((acc, camp) => {
         const releaseName = camp.project_name || 'Sans Release';
@@ -66,26 +78,8 @@ const TesterDashboard = () => {
     }, {} as Record<string, any[]>);
 
     useEffect(() => {
-        let result = [...campaigns];
-
-        // Search
-        if (searchQuery) {
-            const lowerQuery = searchQuery.toLowerCase();
-            result = result.filter(c =>
-                c.title.toLowerCase().includes(lowerQuery) ||
-                (c.description && c.description.toLowerCase().includes(lowerQuery))
-            );
-        }
-
-        // Sort
-        result.sort((a, b) => {
-            const dateA = new Date(a.created_at || 0).getTime();
-            const dateB = new Date(b.created_at || 0).getTime();
-            return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
-        });
-
-        setFilteredCampaigns(result);
-    }, [campaigns, searchQuery, sortOrder]);
+        setFilteredCampaigns(campaigns);
+    }, [campaigns]);
 
     const handleOpenValidation = (campaign: any) => {
         setValidationModal({ isOpen: true, campaign: campaign });
@@ -308,6 +302,14 @@ const TesterDashboard = () => {
                                 {filteredCampaigns.map(camp => renderCampaignCard(camp))}
                             </div>
                         )}
+
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={totalItems}
+                            pageSize={pageSize}
+                            onPageChange={handlePageChange}
+                            loading={loading}
+                        />
                     </div>
                 </main>
 

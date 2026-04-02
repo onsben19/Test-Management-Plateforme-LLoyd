@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import { campaignService, userService, aiService } from '../services/api';
+import Pagination from '../components/Pagination';
 
 interface TimelineGuardData {
     status: 'OPTIMAL' | 'WARNING' | 'CRITICAL' | 'INITIAL' | 'WAITING';
@@ -59,6 +60,11 @@ const DataDrivenManager = () => {
     const [timelineGuards, setTimelineGuards] = useState<Record<string, TimelineGuardData>>({});
     const [loading, setLoading] = useState(true);
 
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const pageSize = 10;
+
     // Filter States
     const [searchQuery, setSearchQuery] = useState('');
     const [testerFilter, setTesterFilter] = useState('');
@@ -90,19 +96,34 @@ const DataDrivenManager = () => {
     // Fetch Campaigns & Testers
     useEffect(() => {
         if (activeReleaseId) {
-            fetchCampaigns();
+            fetchCampaigns(1);
             fetchTesters();
+            setCurrentPage(1);
         } else {
             setLoading(false);
         }
-    }, [activeReleaseId]);
+    }, [activeReleaseId, searchQuery, testerFilter]);
 
-    const fetchCampaigns = async () => {
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+        fetchCampaigns(page);
+    };
+
+    const fetchCampaigns = async (page = 1) => {
         if (!activeReleaseId) return;
         try {
             setLoading(true);
-            const response = await campaignService.getCampaigns({ project: activeReleaseId });
-            const mappedCampaigns = response.data.map((camp: any) => ({
+            const response = await campaignService.getCampaigns({
+                project: activeReleaseId,
+                page,
+                search: searchQuery,
+            });
+            const data = response.data.results || response.data;
+            const count = response.data.count || (Array.isArray(response.data) ? response.data.length : 0);
+
+            setTotalItems(count);
+
+            const mappedCampaigns = data.map((camp: any) => ({
                 id: camp.id.toString(),
                 name: camp.title,
                 description: camp.description || '',
@@ -147,7 +168,7 @@ const DataDrivenManager = () => {
     const fetchTesters = async () => {
         try {
             const response = await userService.getUsers({ role: 'TESTER' });
-            setTesters(response.data);
+            setTesters(response.data.results || response.data);
         } catch (error) {
             console.error("Failed to fetch testers", error);
         }
@@ -155,12 +176,8 @@ const DataDrivenManager = () => {
 
     // Filter Logic
     const filteredFiles = useMemo(() => {
-        return importedFiles.filter(f => {
-            const matchesSearch = f.name.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesTester = testerFilter ? f.assigned_testers_names?.some(t => t.toLowerCase().includes(testerFilter.toLowerCase())) : true;
-            return matchesSearch && matchesTester;
-        });
-    }, [importedFiles, searchQuery, testerFilter]);
+        return importedFiles;
+    }, [importedFiles]);
 
     // Modal Handlers
     const openCreateModal = () => {
@@ -555,6 +572,14 @@ const DataDrivenManager = () => {
                                 )}
                             </div>
                         )}
+
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={totalItems}
+                            pageSize={pageSize}
+                            onPageChange={handlePageChange}
+                            loading={loading}
+                        />
                     </div>
                 </main>
 

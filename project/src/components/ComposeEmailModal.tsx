@@ -46,7 +46,8 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
         try {
             setLoading(true);
             const response = await userService.getUsers();
-            const otherUsers = response.data.filter((u: any) => u.id !== user?.id);
+            const data = response.data.results || response.data;
+            const otherUsers = data.filter((u: any) => u.id !== user?.id);
             setUsers(otherUsers);
         } catch (error) {
             console.error("Failed to fetch users", error);

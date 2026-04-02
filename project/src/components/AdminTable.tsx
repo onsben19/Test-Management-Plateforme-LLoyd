@@ -79,68 +79,66 @@ const AdminTable = <T extends { id?: string | number }>({
                 </div>
             )}
 
-            <div className="glass-panel rounded-xl overflow-hidden animate-fade-in shadow-sm dark:shadow-xl">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="border-b border-slate-200 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/80 transition-colors">
-                                {columns.map((col, idx) => (
-                                    <th
-                                        key={idx}
-                                        className={`px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider transition-colors ${col.className || ''}`}
-                                    >
-                                        {col.header}
-                                    </th>
-                                ))}
-                                {actions && (
-                                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right transition-colors">
-                                        Actions
-                                    </th>
-                                )}
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200 dark:divide-slate-700/30 transition-colors">
-                            {isLoading ? (
-                                <tr>
-                                    <td colSpan={columns.length + (actions ? 1 : 0)} className="px-6 py-12 text-center">
-                                        <div className="flex items-center justify-center gap-2 text-slate-400">
-                                            <Loader className="w-5 h-5 animate-spin text-blue-500" />
-                                            <span>Chargement des données...</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : data.length === 0 ? (
-                                <tr>
-                                    <td colSpan={columns.length + (actions ? 1 : 0)} className="px-6 py-12 text-center text-slate-500 transition-colors">
-                                        Aucune donnée disponible.
-                                    </td>
-                                </tr>
-                            ) : (
-                                data.map((item, rowIdx) => (
-                                    <tr
-                                        key={item.id || rowIdx}
-                                        className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group"
-                                    >
-                                        {columns.map((col, colIdx) => (
-                                            <td key={colIdx} className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 transition-colors">
-                                                {typeof col.accessor === 'function'
-                                                    ? col.accessor(item)
-                                                    : (item[col.accessor] as React.ReactNode)}
-                                            </td>
-                                        ))}
-                                        {actions && (
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    {actions(item)}
-                                                </div>
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))
+            <div className="table-container animate-fade-in shadow-sm dark:shadow-xl overflow-x-auto min-h-[400px]">
+                <table className="w-full text-left border-collapse">
+                    <thead className="table-sticky-header">
+                        <tr className="border-b border-slate-200 dark:border-slate-700/50 transition-colors">
+                            {columns.map((col, idx) => (
+                                <th
+                                    key={idx}
+                                    className={`px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider transition-colors ${col.className || ''}`}
+                                >
+                                    {col.header}
+                                </th>
+                            ))}
+                            {actions && (
+                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right transition-colors">
+                                    Actions
+                                </th>
                             )}
-                        </tbody>
-                    </table>
-                </div>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700/30 transition-colors">
+                        {isLoading ? (
+                            <tr>
+                                <td colSpan={columns.length + (actions ? 1 : 0)} className="px-6 py-12 text-center">
+                                    <div className="flex items-center justify-center gap-2 text-slate-400">
+                                        <Loader className="w-5 h-5 animate-spin text-blue-500" />
+                                        <span>Chargement des données...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : data.length === 0 ? (
+                            <tr>
+                                <td colSpan={columns.length + (actions ? 1 : 0)} className="px-6 py-12 text-center text-slate-500 transition-colors">
+                                    Aucune donnée disponible.
+                                </td>
+                            </tr>
+                        ) : (
+                            data.map((item, rowIdx) => (
+                                <tr
+                                    key={item.id || rowIdx}
+                                    className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group"
+                                >
+                                    {columns.map((col, colIdx) => (
+                                        <td key={colIdx} className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 transition-colors">
+                                            {typeof col.accessor === 'function'
+                                                ? col.accessor(item)
+                                                : (item[col.accessor] as React.ReactNode)}
+                                        </td>
+                                    ))}
+                                    {actions && (
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {actions(item)}
+                                            </div>
+                                        </td>
+                                    )}
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
             </div>
         </div>
     );

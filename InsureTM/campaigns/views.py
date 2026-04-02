@@ -23,7 +23,8 @@ class CampaignViewSet(viewsets.ModelViewSet):
 
         if hasattr(user, 'role') and user.role == 'TESTER':
             queryset = queryset.filter(
-                Q(scheduled_at__lte=timezone.now()) | Q(scheduled_at__isnull=True)
+                Q(assigned_testers=user) &
+                (Q(scheduled_at__lte=timezone.now()) | Q(scheduled_at__isnull=True))
             )
 
         project_id = self.request.query_params.get('project')

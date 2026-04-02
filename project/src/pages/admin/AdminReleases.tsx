@@ -33,7 +33,8 @@ const AdminReleases = () => {
     const fetchReleases = async () => {
         try {
             const response = await projectService.getProjects();
-            setReleases(response.data);
+            const data = response.data.results || response.data;
+            setReleases(data);
         } catch (error) {
             console.error("Failed to fetch releases", error);
             toast.error("Erreur lors du chargement des releases");

@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   BarChart3, AlertTriangle, Brain, Settings,
   Users, LogOut, MessageSquare, List, Mail, Layers,
-  ChevronLeft, ChevronRight, TestTube
+  ChevronLeft, ChevronRight, TestTube, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -13,23 +13,80 @@ const Sidebar = () => {
   const { user, logout } = useAuth();
   const { isOpen, toggle } = useSidebar();
 
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'admin';
 
-  const navigation = [
-    { name: 'Espace Testeur', href: '/tester-dashboard', icon: List, roles: ['TESTER'] },
-    { name: "Suivi d'Exécution", href: isAdmin ? '/admin/executions' : '/execution', icon: BarChart3, roles: ['ADMIN', 'TESTER', 'MANAGER'] },
-    { name: 'Messagerie', href: '/messages', icon: Mail, roles: ['ADMIN', 'MANAGER', 'TESTER'] },
-    { name: 'Gestion des Releases', href: isAdmin ? '/admin/releases' : '/releases', icon: Layers, roles: ['ADMIN', 'MANAGER'] },
-    { name: 'Campagne de Tests', href: isAdmin ? '/admin/campaigns' : '/manager', icon: Brain, roles: ['ADMIN'] },
-    { name: 'Gestion des utilisateurs', href: '/users', icon: Users, roles: ['ADMIN'] },
-    { name: 'Anomalies', href: isAdmin ? '/admin/anomalies' : '/anomalies', icon: AlertTriangle, roles: ['ADMIN', 'MANAGER', 'TESTER'] },
-    { name: 'Commentaires', href: '/admin/comments', icon: MessageSquare, roles: ['ADMIN'] },
-    { name: 'Analytics IA', href: '/analytics', icon: Brain, roles: ['ADMIN', 'MANAGER', 'TESTER'] },
+  const groups = [
+    {
+      title: 'PRINCIPAL',
+      items: [
+        { name: 'Gestion des utilisateurs', href: '/users', icon: Users, roles: ['ADMIN'] },
+      ]
+    },
+    {
+      title: 'GESTION DES TESTS',
+      items: [
+        { name: 'Gestion des Releases', href: isAdmin ? '/admin/releases' : '/releases', icon: Layers, roles: ['ADMIN', 'MANAGER', 'manager'] },
+        { name: 'Campagne de Tests', href: isAdmin ? '/admin/campaigns' : '/manager', icon: Brain, roles: ['ADMIN', 'MANAGER', 'manager'] },
+        { name: 'Campagne des tests', href: '/tester-dashboard', icon: List, roles: ['tester', 'TESTER'] },
+        { name: "Suivi d'Exécution", href: isAdmin ? '/admin/executions' : '/execution', icon: BarChart3, roles: ['ADMIN', 'tester', 'TESTER', 'MANAGER', 'manager'] },
+        { name: 'Anomalies', href: isAdmin ? '/admin/anomalies' : '/anomalies', icon: AlertTriangle, roles: ['ADMIN', 'tester', 'TESTER', 'MANAGER', 'manager'] },
+      ]
+    },
+    {
+      title: 'COMMUNICATION & IA',
+      items: [
+        { name: 'Commentaires', href: '/admin/comments', icon: MessageSquare, roles: ['ADMIN'] },
+        { name: 'Messagerie', href: '/messages', icon: Mail, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+        { name: 'Analytics IA', href: '/analytics', icon: Sparkles, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+      ]
+    }
   ];
 
-  const filteredNavigation = navigation.filter(item =>
-    user && item.roles.includes(user.role)
-  );
+  const renderNavGroup = (group: typeof groups[0]) => {
+    const filteredItems = group.items.filter(item =>
+      user && item.roles.map(r => r.toUpperCase()).includes(user?.role?.toUpperCase())
+    );
+
+    if (filteredItems.length === 0) return null;
+
+    return (
+      <div key={group.title} className="py-2">
+        {isOpen && (
+          <h3 className="px-4 mb-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-[0.15em] uppercase">
+            {group.title}
+          </h3>
+        )}
+        <div className="space-y-1">
+          {filteredItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                title={!isOpen ? item.name : undefined}
+                className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${isOpen ? 'mx-2' : 'justify-center mx-1'
+                  } ${isActive
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                  }`}
+              >
+                <Icon
+                  className={`w-5 h-5 shrink-0 ${isActive
+                    ? 'text-white'
+                    : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'
+                    } ${isOpen ? 'mr-3' : ''}`}
+                />
+                {isOpen && (
+                  <span className="truncate">{item.name}</span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <aside
@@ -50,34 +107,9 @@ const Sidebar = () => {
       </button>
 
       {/* Nav items */}
-      <div className="flex-1 flex flex-col min-h-0 pt-6 overflow-hidden">
-        <nav className="flex-1 px-2 space-y-1">
-          {filteredNavigation.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                to={item.href}
-                title={!isOpen ? item.name : undefined}
-                className={`group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${isOpen ? '' : 'justify-center'
-                  } ${isActive
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                  }`}
-              >
-                <Icon
-                  className={`w-5 h-5 shrink-0 ${isActive
-                    ? 'text-white'
-                    : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'
-                    } ${isOpen ? 'mr-3' : ''}`}
-                />
-                {isOpen && (
-                  <span className="truncate">{item.name}</span>
-                )}
-              </Link>
-            );
-          })}
+      <div className="flex-1 flex flex-col min-h-0 pt-4 overflow-hidden">
+        <nav className="flex-1 overflow-y-auto custom-scrollbar">
+          {groups.map(renderNavGroup)}
         </nav>
       </div>
 
@@ -85,17 +117,17 @@ const Sidebar = () => {
       <div className="border-t border-slate-200/50 dark:border-slate-700/50 p-3">
         <div className={`flex items-center ${isOpen ? '' : 'justify-center'} w-full p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors`}>
           <div className="flex-shrink-0">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium text-sm">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium text-sm shadow-lg shadow-blue-500/20">
               {user?.username?.charAt(0).toUpperCase() || 'U'}
             </div>
           </div>
           {isOpen && (
             <div className="ml-3 min-w-0 flex-1">
-              <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                 {user?.username || 'Utilisateur'}
               </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                {user?.email || ''}
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wide uppercase truncate">
+                {user?.role || ''}
               </p>
             </div>
           )}

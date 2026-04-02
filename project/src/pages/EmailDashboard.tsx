@@ -24,7 +24,8 @@ const EmailDashboard = () => {
         try {
             setLoading(true);
             const response = await emailService.getEmails();
-            setEmails(response.data);
+            const data = response.data.results || response.data;
+            setEmails(data);
         } catch (error) {
             console.error("Failed to fetch emails", error);
         } finally {

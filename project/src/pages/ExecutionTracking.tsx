@@ -10,6 +10,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { executionService, projectService, campaignService } from '../services/api';
 import { useSidebar } from '../context/SidebarContext';
 import { List, X } from 'lucide-react';
+import Pagination from '../components/Pagination';
 
 const ExecutionTracking = () => {
     const { user } = useAuth();
@@ -29,6 +30,11 @@ const ExecutionTracking = () => {
     const [tests, setTests] = useState<TestItem[]>([]);
     const [viewingCaptures, setViewingCaptures] = useState<TestItem | null>(null);
     const [loading, setLoading] = useState(true);
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const pageSize = 10;
 
     const [searchQuery, setSearchQuery] = useState('');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
@@ -52,9 +58,15 @@ const ExecutionTracking = () => {
     });
 
     useEffect(() => {
-        fetchExecutions();
+        fetchExecutions(1);
         fetchFilters();
-    }, []);
+        setCurrentPage(1);
+    }, [searchQuery, sortOrder]);
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+        fetchExecutions(page);
+    };
 
     // Deep-link: open ReviewPanel for a specific test from URL params
     useEffect(() => {
@@ -73,18 +85,28 @@ const ExecutionTracking = () => {
                 projectService.getProjects(),
                 campaignService.getCampaigns()
             ]);
-            setProjects(projRes.data);
-            setCampaigns(campRes.data);
+            setProjects(projRes.data.results || projRes.data);
+            setCampaigns(campRes.data.results || campRes.data);
         } catch {
             // Filter dropdowns are optional — fail silently
         }
     };
 
-    const fetchExecutions = async () => {
+    const fetchExecutions = async (page = 1) => {
         try {
             setLoading(true);
-            const response = await executionService.getExecutions();
-            const mappedTests: TestItem[] = response.data.map((t: any, index: number) => ({
+            const response = await executionService.getExecutions({
+                page,
+                search: searchQuery,
+                ordering: sortOrder === 'newest' ? '-execution_date' : 'execution_date'
+            });
+
+            const data = response.data.results || response.data;
+            const count = response.data.count || (Array.isArray(response.data) ? response.data.length : 0);
+
+            setTotalItems(count);
+
+            const mappedTests: TestItem[] = data.map((t: any, index: number) => ({
                 id: (t.id || index).toString(),
                 name: t.test_case_ref || `Test ${t.id}`,
                 module: t.campaign_title || `Campagne #${t.campaign}`,
@@ -180,7 +202,7 @@ const ExecutionTracking = () => {
 
                         <div className="min-h-[600px]">
                             <ExecutionTestList
-                                tests={filteredTests}
+                                tests={tests}
                                 onSelectTest={handleSelectTest}
                                 selectedTestId={selectedTest?.id}
                                 onViewCaptures={setViewingCaptures}
@@ -192,6 +214,14 @@ const ExecutionTracking = () => {
                                 groupBy={groupBy}
                             />
                         </div>
+
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={totalItems}
+                            pageSize={pageSize}
+                            onPageChange={handlePageChange}
+                            loading={loading}
+                        />
                     </div>
 
                     {/* Right Details Panel */}

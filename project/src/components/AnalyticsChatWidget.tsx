@@ -92,7 +92,8 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
-                const data = await response.json();
+                const responseData = await response.json();
+                const data = responseData.results || responseData;
                 const mapped: Message[] = data.map((msg: any) => ({
                     id: msg.id,
                     sender: msg.sender,

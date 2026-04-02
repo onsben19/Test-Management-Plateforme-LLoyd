@@ -100,6 +100,7 @@ module.exports = {
       'star-movement-top': 'star-movement-top linear infinite alternate',
     },
     boxShadow: {
+      none: "none",
       "2xs": "var(--shadow-2xs)",
       xs: "var(--shadow-xs)",
       sm: "var(--shadow-sm)",

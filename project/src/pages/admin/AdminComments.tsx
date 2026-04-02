@@ -17,7 +17,8 @@ const AdminComments = () => {
     const fetchComments = async () => {
         try {
             const response = await commentService.getComments();
-            setComments(response.data);
+            const data = response.data.results || response.data;
+            setComments(data);
         } catch (error) {
             console.error("Failed to fetch comments", error);
             toast.error("Erreur lors du chargement des commentaires");

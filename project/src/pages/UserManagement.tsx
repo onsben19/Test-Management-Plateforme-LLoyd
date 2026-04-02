@@ -7,6 +7,7 @@ import { useSidebar } from '../context/SidebarContext';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import EditUserModal from '../components/EditUserModal';
+import Pagination from '../components/Pagination';
 
 interface UserData {
     id: string;
@@ -25,6 +26,13 @@ const UserManagement = () => {
 
     const [users, setUsers] = useState<UserData[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const pageSize = 10;
+
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
     const [isAddUserOpen, setIsAddUserOpen] = useState(false);
@@ -40,10 +48,21 @@ const UserManagement = () => {
     const [copied, setCopied] = useState(false);
 
     // Fetch users from API
-    const fetchUsers = async () => {
+    const fetchUsers = async (page = 1) => {
         try {
-            const response = await api.get('/users/');
-            const apiUsers = response.data.map((u: any) => ({
+            setLoading(true);
+            const response = await api.get('/users/', {
+                params: {
+                    page,
+                    search: searchTerm
+                }
+            });
+            const data = response.data.results || response.data;
+            const count = response.data.count || (Array.isArray(response.data) ? response.data.length : 0);
+
+            setTotalItems(count);
+
+            const apiUsers = data.map((u: any) => ({
                 id: u.id.toString(),
                 name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username,
                 email: u.email,
@@ -55,12 +74,20 @@ const UserManagement = () => {
         } catch (error) {
             console.error("Error fetching users", error);
             toast.error("Impossible de charger les utilisateurs");
+        } finally {
+            setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchUsers();
-    }, []);
+        fetchUsers(1);
+        setCurrentPage(1);
+    }, [searchTerm]);
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+        fetchUsers(page);
+    };
 
     const mapBackendRole = (role: string): string => {
         const map: { [key: string]: string } = {
@@ -102,10 +129,7 @@ const UserManagement = () => {
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
 
-    const filteredUsers = users.filter(user =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredUsers = users;
 
     const handleDelete = async (id: string) => {
         if (window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
@@ -220,9 +244,9 @@ const UserManagement = () => {
                                 </div>
                             </div>
 
-                            <div className="overflow-x-auto">
+                            <div className="table-container">
                                 <table className="w-full text-left">
-                                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 text-xs uppercase font-medium transition-colors">
+                                    <thead className="table-sticky-header text-slate-500 dark:text-slate-400 text-xs uppercase font-medium">
                                         <tr>
                                             <th className="px-6 py-4">Utilisateur</th>
                                             <th className="px-6 py-4">Rôle</th>
@@ -336,6 +360,14 @@ const UserManagement = () => {
                                 </table>
                             </div>
                         </div>
+
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={totalItems}
+                            pageSize={pageSize}
+                            onPageChange={handlePageChange}
+                            loading={loading}
+                        />
                     </div>
                 </main>
             </div>

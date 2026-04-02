@@ -25,7 +25,8 @@ const AdminExecutions = () => {
         try {
             setLoading(true);
             const response = await executionService.getExecutions();
-            const mappedTests: TestItem[] = response.data.map((t: any, index: number) => ({
+            const data = response.data.results || response.data;
+            const mappedTests: TestItem[] = data.map((t: any, index: number) => ({
                 id: (t.id || index).toString(),
                 name: t.test_case_ref || `Test ${t.id}`,
                 module: t.campaign_title || `Campagne #${t.campaign}`,

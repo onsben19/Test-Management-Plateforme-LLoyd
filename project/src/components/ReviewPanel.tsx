@@ -36,7 +36,8 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
         try {
             setLoading(true);
             const response = await commentService.getComments({ test_case: test.id });
-            setComments(response.data);
+            const data = response.data.results || response.data;
+            setComments(data);
         } catch (error) {
             console.error("Failed to fetch comments", error);
         } finally {
