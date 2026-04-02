@@ -62,6 +62,7 @@ const Anomalies: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest'>('recent');
   const [data, setData] = useState<Anomaly[]>([]);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isPdfDownloading, setIsPdfDownloading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Pagination State
@@ -177,19 +178,27 @@ const Anomalies: React.FC = () => {
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      const header = ['ID', 'Titre', 'Gravité', 'Statut', 'Test lié', 'Assigné', 'Date', 'Description'];
+      const header = ['ID', 'Titre', 'Gravité', 'Statut', 'Test lié', 'Release', 'Campagne', 'Créé par', 'Date', 'Description'];
       const rows = filtered.map((r) => [
         r.id,
         r.title,
         r.severity,
         r.status,
         r.relatedTest || '',
+        r.release || '',
+        r.campaign || '',
         r.assignedTo || '',
-        r.createdAt,
+        new Date(r.createdAt).toLocaleDateString('fr-FR'),
         (r.description || '').replace(/\n/g, ' ')
       ]);
-      const csv = [header, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+
+      // Use semicolon as delimiter for French Excel compatibility
+      const csvContent = [header, ...rows]
+        .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';'))
+        .join('\n');
+
+      // Add UTF-8 BOM for Excel to recognize accents
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -200,6 +209,32 @@ const Anomalies: React.FC = () => {
       URL.revokeObjectURL(url);
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    setIsPdfDownloading(true);
+    try {
+      const response = await anomalyService.exportAnomaliesPdf({
+        search: query,
+        criticite: severityFilter !== 'Tout' ? severityFilter.toUpperCase() : undefined,
+        ordering: sortOrder === 'recent' ? '-cree_le' : 'cree_le'
+      });
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rapport_anomalies_${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to download PDF", error);
+      alert("Erreur lors de la génération du PDF.");
+    } finally {
+      setIsPdfDownloading(false);
     }
   };
 
@@ -277,11 +312,21 @@ const Anomalies: React.FC = () => {
                   <button
                     onClick={handleDownload}
                     disabled={isDownloading}
-                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-white"
+                    className="flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800/70 hover:bg-slate-200 dark:hover:bg-slate-800/90 rounded-lg transition-colors text-slate-700 dark:text-slate-200"
                     title="Exporter CSV"
                   >
                     <DownloadCloud className="w-4 h-4" />
-                    <span className="text-xs hidden sm:inline">Exporter</span>
+                    <span className="text-xs hidden sm:inline">CSV</span>
+                  </button>
+
+                  <button
+                    onClick={handleDownloadPdf}
+                    disabled={isPdfDownloading}
+                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-white"
+                    title="Exporter PDF"
+                  >
+                    <DownloadCloud className="w-4 h-4" />
+                    <span className="text-xs hidden sm:inline">PDF</span>
                   </button>
                 </div>
               </div>

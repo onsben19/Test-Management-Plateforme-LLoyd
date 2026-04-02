@@ -21,7 +21,10 @@ class ConversationViewSet(viewsets.ModelViewSet):
     serializer_class = ConversationSerializer
 
     def get_queryset(self):
-        return Conversation.objects.filter(user=self.request.user)
+        user = self.request.user
+        if user.role == 'ADMIN':
+            return Conversation.objects.all()
+        return Conversation.objects.filter(user=user)
 
     @action(detail=True, methods=['get'])
     def messages(self, request, pk=None):

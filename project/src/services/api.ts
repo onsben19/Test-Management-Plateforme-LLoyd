@@ -89,6 +89,8 @@ export const anomalyService = {
         api.post('/anomalies/', data, { headers: multipartHeaders(data) }),
     updateAnomaly: (id: string, data: FormData | Record<string, unknown>) =>
         api.patch(`/anomalies/${id}/`, data, { headers: multipartHeaders(data) }),
+    exportAnomaliesPdf: (params?: Record<string, unknown>) =>
+        api.get('/anomalies/export_pdf/', { params, responseType: 'blob' }),
     deleteAnomaly: (id: string) => api.delete(`/anomalies/${id}/`),
 };
 

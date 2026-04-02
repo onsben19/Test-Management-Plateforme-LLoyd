@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.views import TokenBlacklistView
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+
 urlpatterns = [
 path('admin/', admin.site.urls), 
 
@@ -17,7 +19,11 @@ path('api/logout/', TokenBlacklistView.as_view(), name='token_blacklist'),
     path('api/notifications/', include('notifications.urls')),
     path('api/emails/', include('emails.urls')),
     path('api/analytics/', include('analytics.urls')),
-   ]
+    # Swagger / OpenAPI
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+]
 
 from django.conf import settings
 from django.conf.urls.static import static

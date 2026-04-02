@@ -12,6 +12,7 @@ const Header = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -27,8 +28,9 @@ const Header = () => {
     if (!user) return;
     try {
       const response = await notificationService.getNotifications();
-      // Ensure response.data is an array
-      const data = Array.isArray(response.data) ? response.data : [];
+      // Handle paginated response from DRF (returns {count, results:[...]})
+      const raw = response.data as any;
+      const data: Notification[] = Array.isArray(raw) ? raw : (raw?.results ?? []);
       setNotifications(data);
       setUnreadCount(data.filter(n => !n.is_read).length);
     } catch (error) {
@@ -49,6 +51,8 @@ const Header = () => {
         await notificationService.markAsRead(notif.id);
         fetchNotifications();
       }
+      // Close the popover before navigating
+      setPopoverOpen(false);
 
       if (notif.type === 'campaign_assignment') {
         navigate('/tester-dashboard');
@@ -58,6 +62,8 @@ const Header = () => {
         navigate(`/admin/anomalies?highlight=${notif.related_object_id}`);
       } else if (notif.type === 'comment_posted') {
         navigate(`/execution?testId=${notif.related_object_id}`);
+      } else if (notif.type === 'email_received') {
+        navigate('/messages');
       }
     } catch (error) {
       console.error("Failed to process notification click", error);
@@ -83,7 +89,7 @@ const Header = () => {
               {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
-            <Popover.Root>
+            <Popover.Root open={popoverOpen} onOpenChange={setPopoverOpen}>
               <Popover.Trigger asChild>
                 <button className="relative p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 outline-none">
                   <Bell className="w-5 h-5" />

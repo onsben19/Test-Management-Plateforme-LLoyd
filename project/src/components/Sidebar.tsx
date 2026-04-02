@@ -20,6 +20,8 @@ const Sidebar = () => {
       title: 'PRINCIPAL',
       items: [
         { name: 'Gestion des utilisateurs', href: '/users', icon: Users, roles: ['ADMIN'] },
+        { name: 'Gestions des emails', href: '/management/messages', icon: Mail, roles: ['ADMIN'] },
+        { name: 'Gestions des discussions AI', href: '/management/analytics', icon: Sparkles, roles: ['ADMIN'] },
       ]
     },
     {

@@ -23,6 +23,8 @@ class EmailViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        if user.role == 'ADMIN':
+            return Email.objects.all()
         return Email.objects.filter(Q(sender=user) | Q(recipient=user))
 
     def create(self, request, *args, **kwargs):

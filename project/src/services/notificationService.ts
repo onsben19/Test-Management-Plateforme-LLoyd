@@ -8,6 +8,7 @@ export interface Notification {
     created_at: string;
     type: string;
     related_campaign?: number;
+    related_object_id?: number;
 }
 
 export const notificationService = {

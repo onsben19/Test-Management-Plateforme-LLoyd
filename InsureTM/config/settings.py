@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'notifications',
     'emails',
     'analytics',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -102,6 +103,14 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'config.pagination.StandardResultsSetPagination',
     'PAGE_SIZE': 10,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'InsureTM API',
+    'DESCRIPTION': 'Plateforme de Gestion de Tests pour Assurance',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
 }
 
 # ---------------------------------------------------------------------------
@@ -128,9 +137,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOW_ALL_ORIGINS = True
 
 # ---------------------------------------------------------------------------
-# Email (SMTP disabled in dev — using console backend)
 # ---------------------------------------------------------------------------
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Email (SMTP via Gmail — uses App Password from .env.docker)
+# ---------------------------------------------------------------------------
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True

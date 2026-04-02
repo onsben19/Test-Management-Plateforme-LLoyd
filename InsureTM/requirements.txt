@@ -30,3 +30,9 @@ plotly==6.5.2
 
 # HTTP
 requests==2.32.5
+
+# PDF Generation
+fpdf2==2.8.2
+
+# Swagger / OpenAPI
+drf-spectacular==0.27.1

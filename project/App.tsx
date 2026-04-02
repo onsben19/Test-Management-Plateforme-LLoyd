@@ -27,6 +27,8 @@ import AdminCampaigns from './src/pages/admin/AdminCampaigns';
 import AdminExecutions from './src/pages/admin/AdminExecutions';
 import AdminAnomalies from './src/pages/admin/AdminAnomalies';
 import AdminComments from './src/pages/admin/AdminComments';
+import AdminEmails from './src/pages/admin/AdminEmails';
+import AdminAnalytics from './src/pages/admin/AdminAnalytics';
 import EmailDashboard from './src/pages/EmailDashboard';
 
 
@@ -141,6 +143,16 @@ const App: React.FC = () => {
                   <Route path="/admin/comments" element={
                     <RoleGuard allowedRoles={['ADMIN']}>
                       <AdminComments />
+                    </RoleGuard>
+                  } />
+                  <Route path="/management/messages" element={
+                    <RoleGuard allowedRoles={['ADMIN']}>
+                      <AdminEmails />
+                    </RoleGuard>
+                  } />
+                  <Route path="/management/analytics" element={
+                    <RoleGuard allowedRoles={['ADMIN']}>
+                      <AdminAnalytics />
                     </RoleGuard>
                   } />
 

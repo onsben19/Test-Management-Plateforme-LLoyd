@@ -25,7 +25,9 @@ const Analytics = () => {
         try {
             setIsLoading(true);
             const response = await api.get('/analytics/conversations/');
-            const sorted = (Array.isArray(response.data) ? response.data : [])
+            // Handle paginated response
+            const data = response.data.results || response.data;
+            const sorted = (Array.isArray(data) ? data : [])
                 .sort((a: Conversation, b: Conversation) =>
                     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
                 );
