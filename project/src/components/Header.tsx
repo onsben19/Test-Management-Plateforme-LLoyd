@@ -59,7 +59,9 @@ const Header = () => {
       } else if (notif.type === 'execution_validated') {
         navigate(`/admin/executions?highlight=${notif.related_object_id}`);
       } else if (notif.type === 'anomaly_reported') {
-        navigate(`/admin/anomalies?highlight=${notif.related_object_id}`);
+        const role = user?.role?.toUpperCase();
+        const baseRoute = role === 'ADMIN' ? '/admin/anomalies' : '/anomalies';
+        navigate(`${baseRoute}?highlight=${notif.related_object_id}`);
       } else if (notif.type === 'comment_posted') {
         navigate(`/execution?testId=${notif.related_object_id}`);
       } else if (notif.type === 'email_received') {

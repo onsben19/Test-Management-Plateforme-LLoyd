@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
 import { Mail, Inbox, Send, Paperclip, FileText, Reply, Forward, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import ConfirmModal from '../components/ConfirmModal';
 
 const EmailDashboard = () => {
     const { user } = useAuth();
@@ -19,6 +20,8 @@ const EmailDashboard = () => {
     const [composeModalOpen, setComposeModalOpen] = useState(false);
     const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
     const [composeInitialData, setComposeInitialData] = useState<any>(undefined);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [emailToDelete, setEmailToDelete] = useState<any | null>(null);
 
     const fetchEmails = async () => {
         try {
@@ -81,14 +84,21 @@ const EmailDashboard = () => {
     };
 
     const handleDeleteEmail = async (email: any) => {
-        if (!window.confirm(`Supprimer le message "${email.subject}" ?`)) return;
+        setEmailToDelete(email);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDeleteEmail = async () => {
+        if (!emailToDelete) return;
         try {
-            await emailService.deleteEmail(email.id);
-            setEmails(prev => prev.filter(e => e.id !== email.id));
-            if (selectedEmail?.id === email.id) setSelectedEmail(null);
+            await emailService.deleteEmail(emailToDelete.id);
+            setEmails(prev => prev.filter(e => e.id !== emailToDelete.id));
+            if (selectedEmail?.id === emailToDelete.id) setSelectedEmail(null);
             toast.success("Message supprimé");
         } catch {
             toast.error("Erreur lors de la suppression");
+        } finally {
+            setEmailToDelete(null);
         }
     };
 
@@ -166,9 +176,9 @@ const EmailDashboard = () => {
                             </button>
                         </div>
 
-                        <div className="flex gap-6 flex-1 overflow-hidden">
+                        <div className="flex gap-6 flex-1 overflow-hidden min-h-0">
                             {/* Email List */}
-                            <div className={`${selectedEmail ? 'hidden md:block w-1/3' : 'w-full'} overflow-y-auto`}>
+                            <div className={`${selectedEmail ? 'hidden md:block w-1/3' : 'w-full'} overflow-y-auto h-full custom-scrollbar`}>
                                 <AdminTable
                                     title={activeTab === 'inbox' ? 'Reçus' : 'Envoyés'}
                                     columns={columns}
@@ -200,7 +210,7 @@ const EmailDashboard = () => {
 
                             {/* Email Details */}
                             {selectedEmail && (
-                                <div className="flex-1 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 overflow-y-auto animate-in fade-in slide-in-from-right-4">
+                                <div className="flex-1 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 overflow-y-auto h-full custom-scrollbar animate-in fade-in slide-in-from-right-4">
                                     <div className="flex justify-between items-start mb-6 border-b border-slate-200 dark:border-slate-700 pb-4">
                                         <div className="flex-1 min-w-0 mr-4">
                                             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{selectedEmail.subject}</h2>

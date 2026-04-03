@@ -5,6 +5,7 @@ import AnalyticsChatWidget from '../components/AnalyticsChatWidget';
 import ChatHistorySidebar from '../components/ChatHistorySidebar';
 import { toast } from 'react-toastify';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 import api from '../services/api';
 import { useSidebar } from '../context/SidebarContext';
 
@@ -20,6 +21,8 @@ const Analytics = () => {
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
 
     const fetchConversations = useCallback(async () => {
         try {
@@ -54,14 +57,21 @@ const Analytics = () => {
 
     const handleDeleteConversation = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!window.confirm('Supprimer cette conversation ?')) return;
+        setConversationToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDeleteConversation = async () => {
+        if (!conversationToDelete) return;
         try {
-            await api.delete(`/analytics/conversations/${id}/`);
-            setConversations(prev => prev.filter(c => c.id !== id));
-            if (currentConversationId === id) setCurrentConversationId(null);
+            await api.delete(`/analytics/conversations/${conversationToDelete}/`);
+            setConversations(prev => prev.filter(c => c.id !== conversationToDelete));
+            if (currentConversationId === conversationToDelete) setCurrentConversationId(null);
             toast.success('Conversation supprimée');
         } catch {
             toast.error('Erreur lors de la suppression');
+        } finally {
+            setConversationToDelete(null);
         }
     };
 
@@ -112,6 +122,16 @@ const Analytics = () => {
                     </div>
                 </main>
             </div>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                title="Supprimer la conversation"
+                message="Êtes-vous sûr de vouloir supprimer cette conversation ? Toute l'historique sera perdu."
+                onConfirm={confirmDeleteConversation}
+                onCancel={() => setIsDeleteModalOpen(false)}
+                confirmText="Supprimer"
+                type="danger"
+            />
         </div>
     );
 };

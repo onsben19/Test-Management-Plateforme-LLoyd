@@ -70,14 +70,35 @@ const ExecutionTracking = () => {
 
     // Deep-link: open ReviewPanel for a specific test from URL params
     useEffect(() => {
-        if (tests.length === 0) return;
         const params = new URLSearchParams(location.search);
         const testId = params.get('testId');
-        if (testId) {
-            const found = tests.find(t => t.id === testId);
-            if (found) setSelectedTest(found);
+        if (!testId) return;
+
+        const found = tests.find(t => t.id === testId);
+        if (found) {
+            setSelectedTest(found);
+        } else if (!selectedTest || selectedTest.id !== testId) {
+            // Fetch single test if not found in list or not already selected
+            executionService.getExecution(testId).then(res => {
+                const t = res.data;
+                setSelectedTest({
+                    id: t.id.toString(),
+                    name: t.test_case_ref || `Test ${t.id}`,
+                    module: t.campaign_title || `Campagne #${t.campaign}`,
+                    assigned_to: t.assigned_tester_name || 'Non assigné',
+                    realized_by: t.tester_name || 'Non assigné',
+                    status: t.status.toLowerCase(),
+                    duration: 'N/A',
+                    lastRun: new Date(t.execution_date || Date.now()).toLocaleString('fr-FR'),
+                    rawDate: t.execution_date,
+                    captures: t.proof_file ? [t.proof_file] : [],
+                    release: t.project_name || 'Release A',
+                });
+            }).catch(() => {
+                // Silently fail if testId is invalid
+            });
         }
-    }, [tests, location.search]);
+    }, [tests, location.search, selectedTest?.id]);
 
     const fetchFilters = async () => {
         try {
@@ -202,7 +223,7 @@ const ExecutionTracking = () => {
 
                         <div className="min-h-[600px]">
                             <ExecutionTestList
-                                tests={tests}
+                                tests={filteredTests}
                                 onSelectTest={handleSelectTest}
                                 selectedTestId={selectedTest?.id}
                                 onViewCaptures={setViewingCaptures}

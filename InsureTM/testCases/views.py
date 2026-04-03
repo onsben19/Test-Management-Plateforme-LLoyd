@@ -1,4 +1,5 @@
 import logging
+from django.utils import timezone
 
 from django.db.models import Q
 from django.contrib.auth import get_user_model
@@ -14,12 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class IsTesterOrAdmin(permissions.BasePermission):
-    """Allow read access to all authenticated users; write access only to Testers and Admins."""
+    """Allow read access to all authenticated users; write access only to Testers, Admins, and Managers."""
 
     def has_permission(self, request, view):
         if view.action in ['list', 'retrieve']:
             return True
-        return request.user.is_authenticated and request.user.role in ['TESTER', 'ADMIN']
+        return request.user.is_authenticated and request.user.role in ['TESTER', 'ADMIN', 'MANAGER']
 
 
 class TestCaseViewSet(viewsets.ModelViewSet):
@@ -32,6 +33,7 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         queryset = TestCase.objects.all()
         search = self.request.query_params.get('search')
         status = self.request.query_params.get('status')
+        ordering = self.request.query_params.get('ordering')
 
         if search:
             queryset = queryset.filter(
@@ -41,6 +43,9 @@ class TestCaseViewSet(viewsets.ModelViewSet):
 
         if status and status != 'ALL':
             queryset = queryset.filter(status=status)
+            
+        if ordering:
+            queryset = queryset.order_by(ordering)
 
         return queryset
 
@@ -50,9 +55,8 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         old_status = instance.status
         old_tester = instance.tester
 
-        # If Admin is editing, keep original tester unless deliberately changed?
-        # Current logic: Admins keep tester, Testers take ownership.
-        if user.role == 'ADMIN' and instance.tester:
+        # If Admin or Manager is editing, keep original tester unless deliberately changed?
+        if user.role in ['ADMIN', 'MANAGER'] and instance.tester:
             serializer.save()
         else:
             serializer.save(tester=user)
@@ -62,6 +66,9 @@ class TestCaseViewSet(viewsets.ModelViewSet):
 
         # 1. Notify Manager of Execution Results (PASSED/FAILED)
         if updated.status in ['PASSED', 'FAILED'] and old_status != updated.status:
+            updated.execution_date = timezone.now()
+            updated.save()
+            
             recipients = set()
             if campaign and campaign.imported_by:
                 recipients.add(campaign.imported_by)
@@ -82,13 +89,13 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                 if r.email:
                     send_execution_validated_email(r, user, updated)
 
-        # 2. Notify Tester if Admin changed status or re-assigned
-        if user.role == 'ADMIN' and updated.tester and user != updated.tester:
+        # 2. Notify Tester if Admin/Manager changed status or re-assigned
+        if user.role in ['ADMIN', 'MANAGER'] and updated.tester and user != updated.tester:
             if old_status != updated.status or old_tester != updated.tester:
                 Notification.objects.create(
                     recipient=updated.tester,
                     title="Mise à jour de Test",
-                    message=f"L'administrateur a mis à jour votre test {updated.test_case_ref} : {updated.status}",
+                    message=f"L'encadrement a mis à jour votre test {updated.test_case_ref} : {updated.status}",
                     type='info',
                     related_campaign=campaign,
                     related_object_id=updated.id

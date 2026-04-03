@@ -6,7 +6,7 @@ export interface AnomalyItem {
     title: string;
     description?: string;
     severity: 'Critique' | 'Moyenne' | 'Faible';
-    status: 'Ouverte' | 'En investigation' | 'Résolue';
+    status: 'OUVERTE' | 'EN_INVESTIGATION' | 'RESOLUE';
     proofImage?: string;
     relatedTest?: string;
 }
@@ -26,8 +26,8 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
     const [severity, setSeverity] = useState<AnomalyItem['severity']>(anomaly?.severity || 'Critique');
     const [relatedTest, setRelatedTest] = useState(anomaly?.relatedTest || '');
 
-    // Status only for editing (creation defaults to Open)
-    const [status, setStatus] = useState<AnomalyItem['status']>(anomaly?.status || 'Ouverte');
+    // Status only for editing (creation defaults to OUVERTE)
+    const [status, setStatus] = useState<AnomalyItem['status']>(anomaly?.status || 'OUVERTE');
 
     const [file, setFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,7 +38,8 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
         try {
             const formData = new FormData();
             formData.append('titre', title);
-            formData.append('criticite', severity.toUpperCase()); // Backend expects uppercase
+            formData.append('criticite', severity.toUpperCase());
+            formData.append('statut', status); // New field
 
             // If we have a related test reference but it's not a real test_case ID (it's just a string from UI)
             // we prepend it to the description to maintain traceability in the dashboard.
@@ -144,6 +145,24 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
                             ))}
                         </div>
                     </div>
+
+                    {/* Status (Only when editing) */}
+                    {isEditing && (
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 transition-colors">
+                                Statut de l'anomalie
+                            </label>
+                            <select
+                                value={status}
+                                onChange={(e) => setStatus(e.target.value as any)}
+                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                            >
+                                <option value="OUVERTE">Ouverte</option>
+                                <option value="EN_INVESTIGATION">En investigation</option>
+                                <option value="RESOLUE">Résolue</option>
+                            </select>
+                        </div>
+                    )}
 
                     {/* Related Test (Creation Only or Display) */}
                     {!isEditing && (

@@ -27,5 +27,5 @@ class AnomalieSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Anomalie
-        fields = ['id', 'titre', 'description', 'criticite', 'preuve_image', 'cree_le', 'cree_par', 'cree_par_nom', 'test_case', 'test_case_ref', 'campaign_title', 'project_name']
+        fields = ['id', 'titre', 'description', 'criticite', 'statut', 'preuve_image', 'cree_le', 'cree_par', 'cree_par_nom', 'test_case', 'test_case_ref', 'campaign_title', 'project_name']
         read_only_fields = ['cree_par', 'cree_le', 'cree_par_nom', 'test_case_ref', 'campaign_title', 'project_name']

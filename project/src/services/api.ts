@@ -76,6 +76,7 @@ export const campaignService = {
 
 export const executionService = {
     getExecutions: (params?: Record<string, unknown>) => api.get('/testcases/', { params }),
+    getExecution: (id: string | number) => api.get(`/testcases/${id}/`),
     createExecution: (data: FormData | Record<string, unknown>) =>
         api.post('/testcases/', data, { headers: multipartHeaders(data) }),
     updateExecution: (id: string, data: FormData | Record<string, unknown>) =>
@@ -120,6 +121,10 @@ export const aiService = {
         api.post('/analytics/reformulate/', { message, is_subject: isSubject }),
     getTimelineGuard: (campaignId: string) =>
         api.get(`/analytics/timeline-guard/${campaignId}/`),
+    getMessages: (conversationId: string) =>
+        api.get(`/analytics/conversations/${conversationId}/messages/`),
+    ask: (data: FormData) =>
+        api.post('/analytics/ask/', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
 };
 
 export default api;

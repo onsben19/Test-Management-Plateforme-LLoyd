@@ -12,6 +12,7 @@ import {
 
 import { campaignService, userService, aiService } from '../services/api';
 import Pagination from '../components/Pagination';
+import StarBorder from '../components/bits/StarBorder';
 
 interface TimelineGuardData {
     status: 'OPTIMAL' | 'WARNING' | 'CRITICAL' | 'INITIAL' | 'WAITING';
@@ -323,8 +324,8 @@ const DataDrivenManager = () => {
             }
         };
 
-        return (
-            <div className="mt-6 p-4 rounded-xl border bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm border-slate-200 dark:border-slate-700/50 shadow-sm transition-all hover:shadow-md">
+        const content = (
+            <div className={`p-4 rounded-xl border backdrop-blur-sm shadow-sm transition-all hover:shadow-md ${guard.status === 'CRITICAL' ? 'bg-rose-500/5 dark:bg-rose-900/10 border-rose-500/20' : 'bg-white/40 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700/50'}`}>
                 {/* Header with Status Badge */}
                 <div className="flex items-center justify-between mb-4">
                     <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full border text-[11px] font-bold uppercase tracking-wide ${getStatusStyles()}`}>
@@ -410,6 +411,16 @@ const DataDrivenManager = () => {
                 </div>
             </div>
         );
+
+        if (guard.status === 'CRITICAL') {
+            return (
+                <StarBorder color="#f43f5e" speed="3s" thickness={1} className="mt-6 w-full" innerClassName="w-full">
+                    {content}
+                </StarBorder>
+            );
+        }
+
+        return <div className="mt-6">{content}</div>;
     };
 
     return (

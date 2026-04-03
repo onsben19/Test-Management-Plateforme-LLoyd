@@ -8,6 +8,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import EditUserModal from '../components/EditUserModal';
 import Pagination from '../components/Pagination';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface UserData {
     id: string;
@@ -46,6 +47,8 @@ const UserManagement = () => {
 
     const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<string | null>(null);
 
     // Fetch users from API
     const fetchUsers = async (page = 1) => {
@@ -132,15 +135,21 @@ const UserManagement = () => {
     const filteredUsers = users;
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
-            try {
-                await api.delete(`/users/${id}/`);
-                toast.success("Utilisateur supprimé");
-                setUsers(users.filter(u => u.id !== id));
-            } catch (error) {
-                console.error(error);
-                toast.error("Erreur lors de la suppression");
-            }
+        setUserToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDeleteUser = async () => {
+        if (!userToDelete) return;
+        try {
+            await api.delete(`/users/${userToDelete}/`);
+            toast.success("Utilisateur supprimé");
+            setUsers(users.filter(u => u.id !== userToDelete));
+        } catch (error) {
+            console.error(error);
+            toast.error("Erreur lors de la suppression");
+        } finally {
+            setUserToDelete(null);
         }
     };
 
@@ -519,6 +528,16 @@ const UserManagement = () => {
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                title="Supprimer l'utilisateur"
+                message="Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible et retirera tous ses accès à la plateforme."
+                onConfirm={confirmDeleteUser}
+                onCancel={() => setIsDeleteModalOpen(false)}
+                confirmText="Supprimer"
+                type="danger"
+            />
         </div>
     );
 };

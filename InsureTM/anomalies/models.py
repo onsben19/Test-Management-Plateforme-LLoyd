@@ -22,6 +22,11 @@ class Anomalie(models.Model):
         choices=[('FAIBLE', 'Faible'), ('MOYENNE', 'Moyenne'), ('CRITIQUE', 'Critique')],
         default='FAIBLE'
     )
+    statut = models.CharField(
+        max_length=20, 
+        choices=[('OUVERTE', 'Ouverte'), ('EN_INVESTIGATION', 'En investigation'), ('RESOLUE', 'Résolue')],
+        default='OUVERTE'
+    )
     
     # Preuve visuelle (Capture d'écran ou fichier)
     preuve_image = models.FileField(upload_to='anomalies/preuves/%Y/%m/%d/', blank=True, null=True)

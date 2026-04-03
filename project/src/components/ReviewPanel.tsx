@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { type TestItem } from './ExecutionTestList';
 import { commentService, aiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import ConfirmModal from './ConfirmModal';
 
 interface ReviewPanelProps {
     test: TestItem | null;
@@ -24,6 +25,8 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
     const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
     const [editMessage, setEditMessage] = useState('');
     const [activeCommentId, setActiveCommentId] = useState<number | null>(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
 
     React.useEffect(() => {
         if (test?.id) {
@@ -113,14 +116,21 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
     };
 
     const handleDeleteComment = async (commentId: number) => {
-        if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce commentaire ?")) return;
+        setCommentToDelete(commentId);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDeleteComment = async () => {
+        if (!commentToDelete) return;
         try {
-            await commentService.deleteComment(commentId.toString());
-            setComments(prev => prev.filter(c => c.id !== commentId));
+            await commentService.deleteComment(commentToDelete.toString());
+            setComments(prev => prev.filter(c => c.id !== commentToDelete));
             toast.success("Commentaire supprimé");
         } catch (error) {
             console.error("Failed to delete comment", error);
             toast.error("Erreur lors de la suppression");
+        } finally {
+            setCommentToDelete(null);
         }
     };
 
@@ -344,6 +354,16 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                     </div>
                 </div>
             )}
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                title="Supprimer le commentaire"
+                message="Êtes-vous sûr de vouloir supprimer ce commentaire ? Cette action est irréversible."
+                onConfirm={confirmDeleteComment}
+                onCancel={() => setIsDeleteModalOpen(false)}
+                confirmText="Supprimer"
+                type="danger"
+            />
         </div>
     );
 };

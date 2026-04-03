@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { anomalyService } from '../services/api';
 import { useSidebar } from '../context/SidebarContext';
 import Pagination from '../components/Pagination';
+import ConfirmModal from '../components/ConfirmModal';
 
 
 import {
@@ -26,7 +27,7 @@ interface Anomaly {
   id: string;
   title: string;
   severity: 'Critique' | 'Moyenne' | 'Faible';
-  status: 'Ouverte' | 'En investigation' | 'Résolue';
+  status: 'OUVERTE' | 'EN_INVESTIGATION' | 'RESOLUE';
   relatedTest?: string;
   assignedTo?: string; // This maps to 'cree_par_nom' (Created By)
   createdAt: string;
@@ -56,8 +57,9 @@ const Anomalies: React.FC = () => {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const relatedTestFilter = queryParams.get('test');
+  const highlightId = queryParams.get('highlight');
 
-  const [query, setQuery] = useState(relatedTestFilter || '');
+  const [query, setQuery] = useState(highlightId || relatedTestFilter || '');
   const [severityFilter, setSeverityFilter] = useState<'Tout' | Anomaly['severity']>('Tout');
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest'>('recent');
   const [data, setData] = useState<Anomaly[]>([]);
@@ -72,6 +74,8 @@ const Anomalies: React.FC = () => {
 
   const [editingAnomaly, setEditingAnomaly] = useState<Anomaly | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [anomalyToDelete, setAnomalyToDelete] = useState<string | null>(null);
 
   React.useEffect(() => {
     fetchAnomalies(1);
@@ -101,7 +105,7 @@ const Anomalies: React.FC = () => {
         id: a.id.toString(),
         title: a.titre,
         severity: a.criticite === 'CRITIQUE' ? 'Critique' : a.criticite === 'MOYENNE' ? 'Moyenne' : 'Faible',
-        status: 'Ouverte',
+        status: a.statut || 'OUVERTE',
         relatedTest: a.test_case_ref || `Test #${a.test_case}`,
         assignedTo: a.cree_par_nom || 'Non assigné',
         createdAt: a.cree_le,
@@ -143,13 +147,20 @@ const Anomalies: React.FC = () => {
   };
 
   const handleDeleteAnomaly = async (id: string) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette anomalie ?")) return;
+    setAnomalyToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteAnomaly = async () => {
+    if (!anomalyToDelete) return;
     try {
-      await anomalyService.deleteAnomaly(id);
-      setData(prev => prev.filter(a => a.id !== id));
+      await anomalyService.deleteAnomaly(anomalyToDelete);
+      setData(prev => prev.filter(a => a.id !== anomalyToDelete));
     } catch (error) {
       console.error("Failed to delete anomaly", error);
       alert("Erreur lors de la suppression.");
+    } finally {
+      setAnomalyToDelete(null);
     }
   };
 
@@ -246,18 +257,12 @@ const Anomalies: React.FC = () => {
         <main className={`flex-1 p-6 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white transition-colors">Anomalies</h1>
+              <h1 className="text-2xl font-bold text-red-600 mb-2 tracking-tight transition-colors">
+                Liste des anomalies signalées
+              </h1>
               <p className="text-slate-500 dark:text-slate-400 transition-colors">Suivi, priorisation et résolution des anomalies détectées</p>
             </div>
-            <button
-              onClick={handleCreateAnomaly}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-lg shadow-red-500/20"
-            >
-              <div className="bg-white/20 p-1 rounded-full">
-                <AlertTriangle className="w-4 h-4" />
-              </div>
-              Signaler une anomalie
-            </button>
+            {/* Button removed as requested */}
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
@@ -361,7 +366,9 @@ const Anomalies: React.FC = () => {
                           </Badge>
                         </td>
                         <td className="px-4 py-4 align-top">
-                          <span className="text-sm text-slate-700 dark:text-slate-200 transition-colors">{an.status}</span>
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-200 transition-colors">
+                            {an.status === 'OUVERTE' ? 'Ouverte' : an.status === 'EN_INVESTIGATION' ? 'En investigation' : 'Résolue'}
+                          </span>
                         </td>
                         <td className="px-4 py-4 align-top">
                           <Link
@@ -489,6 +496,16 @@ const Anomalies: React.FC = () => {
           onSave={handleSaveAnomaly}
         />
       )}
+
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        title="Supprimer l'anomalie"
+        message="Êtes-vous sûr de vouloir supprimer cette anomalie ? Cette action est irréversible."
+        onConfirm={confirmDeleteAnomaly}
+        onCancel={() => setIsDeleteModalOpen(false)}
+        confirmText="Supprimer"
+        type="danger"
+      />
     </div>
   );
 };

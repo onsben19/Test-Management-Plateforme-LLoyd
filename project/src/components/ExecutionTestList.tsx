@@ -1,5 +1,6 @@
 import React from 'react';
 import { PlayCircle, CheckCircle, XCircle, Clock, User, Camera, Eye, Pencil, Trash2 } from 'lucide-react';
+import ConfirmModal from './ConfirmModal';
 
 export interface TestItem {
     id: string;
@@ -41,6 +42,9 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
     canDelete = true,
     groupBy = 'none'
 }) => {
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+    const [testToDelete, setTestToDelete] = React.useState<TestItem | null>(null);
+
     // Fallback if no tests provided
     const displayTests = tests.length > 0 ? tests : [];
 
@@ -203,9 +207,8 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        if (window.confirm('Voulez-vous vraiment supprimer cette exécution ?')) {
-                                            onDeleteTest?.(test);
-                                        }
+                                        setTestToDelete(test);
+                                        setIsDeleteModalOpen(true);
                                     }}
                                     className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
                                     title="Supprimer"
@@ -276,6 +279,16 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                     )}
                 </tbody>
             </table>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                title="Supprimer l'exécution"
+                message="Voulez-vous vraiment supprimer cette exécution de test ? Cette action est irréversible."
+                onConfirm={() => testToDelete && onDeleteTest?.(testToDelete)}
+                onCancel={() => setIsDeleteModalOpen(false)}
+                confirmText="Supprimer"
+                type="danger"
+            />
         </div>
     );
 };

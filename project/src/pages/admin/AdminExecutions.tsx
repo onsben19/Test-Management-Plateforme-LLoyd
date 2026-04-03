@@ -7,6 +7,7 @@ import { executionService } from '../../services/api';
 import { toast } from 'react-toastify';
 import EditExecutionModal from '../../components/EditExecutionModal';
 import { useLocation } from 'react-router-dom';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const AdminExecutions = () => {
     const { isOpen } = useSidebar();
@@ -20,6 +21,8 @@ const AdminExecutions = () => {
     const [groupBy, setGroupBy] = useState<'none' | 'campaign' | 'release'>('none');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
     const [editingTest, setEditingTest] = useState<TestItem | null>(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [testToDelete, setTestToDelete] = useState<TestItem | null>(null);
 
     const fetchExecutions = async () => {
         try {
@@ -69,14 +72,20 @@ const AdminExecutions = () => {
     const handleEditTest = (test: TestItem) => setEditingTest(test);
 
     const handleDeleteTest = async (test: TestItem) => {
-        if (window.confirm("Voulez-vous vraiment supprimer cette exécution ?")) {
-            try {
-                await executionService.deleteExecution(test.id);
-                setExecutions(prev => prev.filter(t => t.id !== test.id));
-                toast.success("Exécution supprimée avec succès");
-            } catch {
-                toast.error("Erreur lors de la suppression");
-            }
+        setTestToDelete(test);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDeleteTest = async () => {
+        if (!testToDelete) return;
+        try {
+            await executionService.deleteExecution(testToDelete.id);
+            setExecutions(prev => prev.filter(t => t.id !== testToDelete.id));
+            toast.success("Exécution supprimée avec succès");
+        } catch {
+            toast.error("Erreur lors de la suppression");
+        } finally {
+            setTestToDelete(null);
         }
     };
 
@@ -180,6 +189,16 @@ const AdminExecutions = () => {
                     )}
                 </main>
             </div>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                title="Supprimer l'exécution"
+                message="Êtes-vous sûr de vouloir supprimer cette exécution ? Cette action est irréversible."
+                onConfirm={confirmDeleteTest}
+                onCancel={() => setIsDeleteModalOpen(false)}
+                confirmText="Supprimer"
+                type="danger"
+            />
         </div>
     );
 };

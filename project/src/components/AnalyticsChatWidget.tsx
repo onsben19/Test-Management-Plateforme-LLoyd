@@ -9,9 +9,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-    ResponsiveContainer, AreaChart, Area
+    ResponsiveContainer
 } from 'recharts';
 import Plot from 'react-plotly.js';
+import { aiService } from '../services/api';
+import StarBorder from './bits/StarBorder';
 
 interface Message {
     id: string;
@@ -87,25 +89,19 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
     const fetchMessages = async (id: string) => {
         try {
             setLoading(true);
-            const token = localStorage.getItem('access_token');
-            const response = await fetch(`/api/analytics/conversations/${id}/messages/`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (response.ok) {
-                const responseData = await response.json();
-                const data = responseData.results || responseData;
-                const mapped: Message[] = data.map((msg: any) => ({
-                    id: msg.id,
-                    sender: msg.sender,
-                    text: msg.text,
-                    type: msg.type,
-                    sql: msg.sql,
-                    data: msg.data,
-                    image: msg.image,
-                    timestamp: new Date(msg.created_at)
-                }));
-                setMessages(mapped.length > 0 ? mapped : [WELCOME_MSG]);
-            }
+            const response = await aiService.getMessages(id);
+            const data = response.data.results || response.data;
+            const mapped: Message[] = data.map((msg: any) => ({
+                id: msg.id,
+                sender: msg.sender,
+                text: msg.text,
+                type: msg.type,
+                sql: msg.sql,
+                data: msg.data,
+                image: msg.image,
+                timestamp: new Date(msg.created_at)
+            }));
+            setMessages(mapped.length > 0 ? mapped : [WELCOME_MSG]);
         } catch {
             toast.error('Erreur chargement historique');
         } finally {
@@ -134,20 +130,13 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
         setLoading(true);
 
         try {
-            const token = localStorage.getItem('access_token');
             const formData = new FormData();
             formData.append('query', text);
             if (activeConvId) formData.append('conversation_id', activeConvId);
             if (selectedImage) formData.append('image', selectedImage);
 
-            const response = await fetch('/api/analytics/ask/', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData
-            });
-
-            if (!response.ok) throw new Error('Erreur réseau');
-            const data = await response.json();
+            const response = await aiService.ask(formData);
+            const data = response.data;
 
             if (!activeConvId && data.conversation_id) {
                 setActiveConvId(data.conversation_id);
@@ -202,8 +191,6 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
         await handleSendMessage(undefined, text);
     };
 
-    const isDarkTheme = () => document.documentElement.classList.contains('dark');
-
     const handleExportPDF = () => {
         if (messages.length <= 1) {
             toast.info("Rien à exporter");
@@ -211,16 +198,9 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
         }
 
         const doc = new jsPDF();
-
-        // Simple header (no dark banner)
         doc.setFontSize(18);
-        doc.setTextColor(0, 0, 0);
-        doc.setFont("helvetica", "bold");
         doc.text("Rapport d'Analyse IA", 20, 20);
-
         doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(120);
         doc.text(`Généré le : ${new Date().toLocaleString()}`, 20, 27);
 
         let y = 45;
@@ -230,16 +210,10 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
         messages.filter(m => m.id !== 'welcome').forEach((msg) => {
             if (y > 270) { doc.addPage(); y = 20; }
             doc.setFontSize(9);
-            doc.setTextColor(100);
-            doc.setFont("helvetica", "bold");
             doc.text(msg.sender === 'user' ? "Utilisateur" : "Assistant IA", margin, y);
             y += 5;
-
             doc.setFontSize(11);
-            doc.setTextColor(0);
-            doc.setFont("helvetica", "normal");
-            let cleanText = msg.text.replace(/Requête SQL générée :/g, '').replace(/Here is the data I found:/g, '').trim();
-            const textLines = doc.splitTextToSize(cleanText, contentWidth);
+            const textLines = doc.splitTextToSize(msg.text, contentWidth);
             doc.text(textLines, margin, y);
             y += (textLines.length * 6) + 5;
 
@@ -251,9 +225,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                     head: head,
                     body: body as any,
                     margin: { left: margin },
-                    styles: { fontSize: 8 },
-                    headStyles: { fillColor: [79, 70, 229] },
-                    alternateRowStyles: { fillColor: [249, 250, 251] }
+                    styles: { fontSize: 8 }
                 });
                 y = (doc as any).lastAutoTable.finalY + 15;
             } else {
@@ -270,9 +242,45 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
         if (msg.type === 'plotly') {
             let props = msg.data;
             if (typeof props === 'string') { try { props = JSON.parse(props); } catch { return null; } }
+            const plotTitle = typeof props.layout?.title === 'object' ? props.layout.title.text : (typeof props.layout?.title === 'string' ? props.layout.title : null);
+
             return (
-                <div className="mt-3 rounded-2xl overflow-hidden border border-slate-700/50 bg-slate-900/80">
-                    <Plot data={props.data || []} layout={{ ...props.layout, autosize: true, paper_bgcolor: 'transparent', plot_bgcolor: 'transparent', font: { color: '#94a3b8', size: 10 }, margin: { t: 40, r: 20, l: 40, b: 60 }, height: 300 }} style={{ width: '100%' }} useResizeHandler config={{ responsive: true, displayModeBar: false }} />
+                <div className="mt-4 rounded-[2rem] overflow-hidden border border-slate-700/50 bg-slate-950/40 backdrop-blur-md p-8 w-full shadow-2xl flex flex-col items-center">
+                    {plotTitle && (
+                        <h4 className="text-lg font-bold text-slate-100 mb-6 text-center leading-tight">
+                            {plotTitle}
+                        </h4>
+                    )}
+                    <Plot
+                        data={props.data || []}
+                        layout={{
+                            autosize: true,
+                            paper_bgcolor: 'transparent',
+                            plot_bgcolor: 'transparent',
+                            font: { color: '#f8fafc', family: 'Outfit, Inter, sans-serif', size: 13 },
+                            showlegend: true,
+                            legend: { orientation: 'h', y: -0.1, x: 0.5, xanchor: 'center' },
+                            ...props.layout,
+                            title: undefined, // Handled as HTML header
+                            margin: {
+                                t: 20, // Little top margin needed since title is now HTML
+                                b: 120,
+                                l: 40,
+                                r: 40,
+                                ...props.layout?.margin
+                            },
+                            height: 600,
+                        }}
+                        style={{ width: '100%', minHeight: '600px' }}
+                        useResizeHandler
+                        config={{
+                            responsive: true,
+                            displayModeBar: true,
+                            displaylogo: false,
+                            scrollZoom: false,
+                            modeBarButtonsToRemove: ['toImage', 'select2d', 'lasso2d']
+                        }}
+                    />
                 </div>
             );
         }
@@ -293,14 +301,14 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
 
         if (valueKey && (msg.type === 'bar' || !msg.type)) {
             return (
-                <div className="mt-3 h-56 w-full p-3 rounded-2xl border border-slate-700/50 bg-slate-900/80">
+                <div className="mt-3 h-[450px] w-full p-6 rounded-2xl border border-slate-700/50 bg-slate-900/80 shadow-inner">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={normalized} margin={{ top: 5, right: 5, left: -10, bottom: 25 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.08)" />
-                            <XAxis dataKey={labelKey} fontSize={9} tickLine={false} axisLine={false} tick={{ fill: '#64748b' }} angle={-25} textAnchor="end" interval={0} />
-                            <YAxis fontSize={9} tickLine={false} axisLine={false} tick={{ fill: '#64748b' }} width={30} />
-                            <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', fontSize: '11px' }} />
-                            <Bar dataKey={valueKey} fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                        <BarChart data={normalized} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.12)" />
+                            <XAxis dataKey={labelKey} fontSize={12} tickLine={false} axisLine={false} tick={{ fill: '#e2e8f0' }} angle={-35} textAnchor="end" interval={0} />
+                            <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: '#e2e8f0' }} width={40} />
+                            <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', fontSize: '12px', border: '1px solid rgba(148,163,184,0.2)' }} />
+                            <Bar dataKey={valueKey} fill="#3b82f6" radius={[8, 8, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
@@ -333,7 +341,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                     {isUser ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-blue-400" />}
                 </div>
 
-                <div className={`flex flex-col max-w-[80%] ${isUser ? 'items-end' : 'items-start'}`}>
+                <div className={`flex flex-col ${msg.type === 'plotly' || msg.type === 'bar' ? 'w-full max-w-full' : 'max-w-[85%]'} ${isUser ? 'items-end' : 'items-start'}`}>
                     {isUser && isEditing ? (
                         <div className="flex flex-col gap-2 w-72">
                             <textarea autoFocus value={editingText} onChange={e => setEditingText(e.target.value)} className="w-full bg-slate-700 border border-blue-500 text-white rounded-xl px-3 py-2 text-sm resize-none focus:outline-none" rows={3} />
@@ -386,8 +394,20 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                         <h3 className="font-bold text-slate-200 text-base">Assistant Analytics IA</h3>
                         <p className="text-slate-500 text-sm mt-1">Analysez vos données de test en langage naturel</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 mt-2 w-full max-w-lg">
-                        {SUGGESTIONS.map(s => <button key={s} onClick={() => handleSendMessage(undefined, s)} className="text-left text-xs text-slate-400 hover:text-white hover:bg-slate-700 border border-slate-700 rounded-xl px-3 py-2.5 transition-all">{s}</button>)}
+                    <div className="grid grid-cols-2 gap-3 mt-4 w-full max-w-lg">
+                        {SUGGESTIONS.map(s => (
+                            <StarBorder
+                                key={s}
+                                onClick={() => handleSendMessage(undefined, s)}
+                                color="#3b82f6"
+                                speed="4s"
+                                thickness={1}
+                                className="w-full"
+                                innerClassName="relative z-1 bg-slate-900 border border-slate-700/50 hover:border-blue-500/50 text-slate-300 text-left text-xs p-3 rounded-xl transition-all w-full h-full"
+                            >
+                                {s}
+                            </StarBorder>
+                        ))}
                     </div>
                 </div>
             )}
@@ -413,7 +433,20 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => { setMessages([WELCOME_MSG]); setActiveConvId(null); if (onConversationStarted) onConversationStarted(''); }} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-white hover:bg-slate-800 px-3 py-1.5 rounded-xl transition-all border border-transparent hover:border-slate-700"><Plus className="w-3.5 h-3.5" />Nouveau</button>
+                        <StarBorder
+                            onClick={() => { setMessages([WELCOME_MSG]); setActiveConvId(null); if (onConversationStarted) onConversationStarted(''); }}
+                            color="#3b82f6"
+                            speed="5s"
+                            thickness={1}
+                            innerClassName="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-xl transition-all"
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Nouveau</span>
+                        </StarBorder>
+                        {!embedded && onToggleSidebar && (
+                            <button onClick={onToggleSidebar} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">{isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}</button>
+                        )}
+                        <button onClick={handleExportPDF} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all" title="Exporter en PDF"><Download className="w-5 h-5" /></button>
                     </div>
                 </div>
                 {renderMessages()}
@@ -421,7 +454,36 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
             </div>
         );
     }
-    return null;
+
+    return (
+        <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+            <div className="shrink-0 bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    {!embedded && onToggleSidebar && (
+                        <button onClick={onToggleSidebar} className="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">{isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}</button>
+                    )}
+                    <div>
+                        <h2 className="text-lg font-bold text-white flex items-center gap-2"><div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />Analyseur de Données IA</h2>
+                        <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">Mode Intelligence Active</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button onClick={handleExportPDF} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"><Download className="w-4 h-4" />Exporter PDF</button>
+                    <StarBorder
+                        onClick={() => { setMessages([WELCOME_MSG]); setActiveConvId(null); if (onConversationStarted) onConversationStarted(''); }}
+                        color="#3b82f6"
+                        speed="5s"
+                        thickness={1}
+                        innerClassName="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white rounded-xl transition-all"
+                    >
+                        <Plus className="w-4 h-4" />Nouveau
+                    </StarBorder>
+                </div>
+            </div>
+            {renderMessages()}
+            {renderInput()}
+        </div>
+    );
 };
 
 export default AnalyticsChatWidget;

@@ -6,6 +6,7 @@ import { emailService } from '../../services/api';
 import { useSidebar } from '../../context/SidebarContext';
 import { Mail, Paperclip, Trash2, Eye } from 'lucide-react';
 import { toast } from 'react-toastify';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const AdminEmails = () => {
     const { isOpen } = useSidebar();
@@ -13,6 +14,8 @@ const AdminEmails = () => {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [emailToDelete, setEmailToDelete] = useState<any | null>(null);
 
     const fetchEmails = async () => {
         try {
@@ -43,14 +46,21 @@ const AdminEmails = () => {
     });
 
     const handleDeleteEmail = async (email: any) => {
-        if (!window.confirm(`Supprimer définitivement ce message (ID: ${email.id}) ?`)) return;
+        setEmailToDelete(email);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDeleteEmail = async () => {
+        if (!emailToDelete) return;
         try {
-            await emailService.deleteEmail(email.id);
-            setEmails(prev => prev.filter(e => e.id !== email.id));
-            if (selectedEmail?.id === email.id) setSelectedEmail(null);
+            await emailService.deleteEmail(emailToDelete.id);
+            setEmails(prev => prev.filter(e => e.id !== emailToDelete.id));
+            if (selectedEmail?.id === emailToDelete.id) setSelectedEmail(null);
             toast.success("Message supprimé par l'administrateur");
         } catch {
             toast.error("Erreur lors de la suppression");
+        } finally {
+            setEmailToDelete(null);
         }
     };
 
@@ -171,6 +181,16 @@ const AdminEmails = () => {
                     </div>
                 </main>
             </div>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                title="Supprimer le message"
+                message={`Êtes-vous sûr de vouloir supprimer définitivement ce message (ID: ${emailToDelete?.id}) ? Cette action est irréversible.`}
+                onConfirm={confirmDeleteEmail}
+                onCancel={() => setIsDeleteModalOpen(false)}
+                confirmText="Supprimer"
+                type="danger"
+            />
         </div>
     );
 };

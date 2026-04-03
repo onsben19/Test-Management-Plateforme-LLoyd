@@ -6,6 +6,7 @@ import api from '../../services/api';
 import { useSidebar } from '../../context/SidebarContext';
 import { Sparkles, MessageSquare, Trash2, Eye, Calendar, User } from 'lucide-react';
 import { toast } from 'react-toastify';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const AdminAnalytics = () => {
     const { isOpen } = useSidebar();
@@ -15,6 +16,8 @@ const AdminAnalytics = () => {
     const [selectedConv, setSelectedConv] = useState<any | null>(null);
     const [messages, setMessages] = useState<any[]>([]);
     const [loadingMessages, setLoadingMessages] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [convToDelete, setConvToDelete] = useState<string | null>(null);
 
     const fetchConversations = async () => {
         try {
@@ -53,14 +56,21 @@ const AdminAnalytics = () => {
     };
 
     const handleDeleteConv = async (id: string) => {
-        if (!window.confirm("Supprimer définitivement cette session d'analyse ?")) return;
+        setConvToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDeleteConv = async () => {
+        if (!convToDelete) return;
         try {
-            await api.delete(`/analytics/conversations/${id}/`);
-            setConversations(prev => prev.filter(c => c.id !== id));
-            if (selectedConv?.id === id) setSelectedConv(null);
+            await api.delete(`/analytics/conversations/${convToDelete}/`);
+            setConversations(prev => prev.filter(c => c.id !== convToDelete));
+            if (selectedConv?.id === convToDelete) setSelectedConv(null);
             toast.success("Session supprimée.");
         } catch {
             toast.error("Erreur lors de la suppression.");
+        } finally {
+            setConvToDelete(null);
         }
     };
 
@@ -182,6 +192,16 @@ const AdminAnalytics = () => {
                     </div>
                 </main>
             </div>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                title="Supprimer la session d'analyse"
+                message="Êtes-vous sûr de vouloir supprimer définitivement cette session d'analyse ? Toutes les requêtes et réponses associées seront perdues."
+                onConfirm={confirmDeleteConv}
+                onCancel={() => setIsDeleteModalOpen(false)}
+                confirmText="Supprimer"
+                type="danger"
+            />
         </div>
     );
 };

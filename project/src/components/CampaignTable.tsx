@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { Pencil, Trash2 } from 'lucide-react';
 import EditCampaignModal from './EditCampaignModal';
 import type { CampaignItem } from './EditCampaignModal';
+import ConfirmModal from './ConfirmModal';
 
 interface Campaign {
   id: string;
@@ -27,6 +28,8 @@ const CampaignTable = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCampaign, setEditingCampaign] = useState<CampaignItem | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCampaigns();
@@ -70,13 +73,20 @@ const CampaignTable = () => {
   };
 
   const handleDeleteCampaign = async (id: string) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette campagne ?")) return;
+    setCampaignToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteCampaign = async () => {
+    if (!campaignToDelete) return;
     try {
-      await campaignService.deleteCampaign(id);
-      setCampaigns(prev => prev.filter(c => c.id !== id));
+      await campaignService.deleteCampaign(campaignToDelete);
+      setCampaigns(prev => prev.filter(c => c.id !== campaignToDelete));
     } catch (error) {
       console.error("Failed to delete campaign", error);
       alert("Erreur lors de la suppression.");
+    } finally {
+      setCampaignToDelete(null);
     }
   };
 
@@ -177,6 +187,16 @@ const CampaignTable = () => {
           onSave={handleUpdateCampaign}
         />
       )}
+
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        title="Supprimer la campagne"
+        message="Êtes-vous sûr de vouloir supprimer cette campagne ? Tous les tests associés seront également supprimés. Cette action est irréversible."
+        onConfirm={confirmDeleteCampaign}
+        onCancel={() => setIsDeleteModalOpen(false)}
+        confirmText="Supprimer"
+        type="danger"
+      />
     </div>
   );
 };

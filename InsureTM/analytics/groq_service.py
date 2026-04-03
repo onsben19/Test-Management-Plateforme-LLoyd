@@ -105,16 +105,26 @@ class GroqService:
         Generate a high-quality Plotly.js configuration in JSON format.
         Return ONLY the JSON object with 'data' and 'layout' keys.
         
-        Guidelines for CLARITY & AESTHETICS:
-        1. If the data is a raw list of items (e.g. Names per Category), AGGREGATE them (count occurrences).
-        2. Use vibrant, varied categorical colors (e.g. ['#3b82f6', '#ec4899', '#8b5cf6', '#10b981', '#f59e0b']).
-        3. For single-trace charts, use a beautiful gradient or a very bright primary color.
-        4. Always use `mode: 'lines+markers'` for scatter/line charts.
-        5. Set `marker: {{ size: 12, opacity: 0.9, line: {{ width: 2, color: 'white' }} }}`.
-        6. In `layout`, use `plot_bgcolor: 'rgba(0,0,0,0)'` and `paper_bgcolor: 'rgba(0,0,0,0)'`.
-        7. Use `hovertemplate` for rich tooltips.
+        CRITICAL SPATIAL RULES (Avoid 'Spacing Error'):
+        1. TITLE: MANDATORY: Set 'title': {{ 'text': question }} in layout. It will be rendered as a header.
+        2. LEGEND: ALWAYS use 'legend': {{ 'orientation': 'h', 'y': -0.2, 'x': 0.5, 'xanchor': 'center', 'font': {{ 'size': 13 }} }}.
+        3. MARGINS: Use 'margin': {{ 't': 10, 'b': 20, 'l': 10, 'r': 10 }} for maximum chart diameter.
+        4. AXIS: For Bar/Line, use 'xaxis': {{ 'tickangle': -30, 'automargin': true, 'tickfont': {{ 'size': 12 }} }}.
+        5. PIE/DONUT: MANDATORY for large visibility: 
+           - Set 'hole': 0.4.
+           - Set 'textinfo': 'percent+label'.
+           - Set 'textposition': 'outside'.
+           - CRITICAL: Set 'domain': {{ 'x': [0, 1], 'y': [0.1, 0.9] }} to maximize diameter.
+           - For 3 or fewer slices, use 'pull': [0.03, 0.03, 0.03] to make it prominent.
+        6. RADAR/POLAR: In layout, use 'polar': {{ 'radialaxis': {{ 'visible': true }}, 'angularaxis': {{ 'tickfont': {{ 'size': 14 }} }} }}.
+        7. COLORS: Use the vibrant palette: ['#3b82f6', '#ec4899', '#8b5cf6', '#10b981', '#f59e0b', '#06b6d4', '#f43f5e'].
+        8. FONT: Set global font color to '#f1f5f9' (slate-100).
+        9. BACKGROUND: Use 'paper_bgcolor': 'transparent', 'plot_bgcolor': 'transparent'.
+        10. AUTO-SCALING: 'autosize': true.
+        11. THEME: Always prioritize creating a LARGE graphical representation over small ones. Maximize the chart's diameter or height. Use AT LEAST 90% of the available space.
+        12. SPACING: For charts with 2+ series, use 'barmode': 'group'. Ensure labels don't overlap.
         
-        Example JSON: {{"data": [{{ "type": "bar", "x": ["v1", "v2"], "y": [12, 5], "name": "Tests" }}], "layout": {{ "title": "Répartition", "xaxis": {{ "title": "Version" }} }} }}
+        Example Output: {{"data": [...], "layout": {{ ... }} }}
         """
         
         completion = self.client.chat.completions.create(
@@ -171,7 +181,7 @@ class GroqService:
             }
 
     def reformulate_message(self, text, is_subject=False):
-        system_prompt = f"Expert QA Platform Analyser. Rewrite as professional {'SUBJECT' if is_subject else 'BODY'}. French. Clear, concise."
+        system_prompt = f"Expert QA Platform Analyser. Rewrite as professional {'SUBJECT (Single line, NO markdown, NO newlines)' if is_subject else 'BODY'}. French. Clear, concise."
         try:
             completion = self.client.chat.completions.create(
                 messages=[
@@ -181,5 +191,9 @@ class GroqService:
                 model="llama-3.3-70b-versatile",
                 temperature=0.3,
             )
-            return completion.choices[0].message.content.strip()
+            result = completion.choices[0].message.content.strip()
+            if is_subject:
+                # Remove markdown and newlines
+                result = result.replace("**", "").replace("\n", " ").replace("\r", " ").strip()
+            return result
         except Exception: return text
