@@ -105,7 +105,23 @@ package "Gestion des Anomalies" {
     }
 }
 
-package "Collaboration" {
+package "Intelligence Artificielle" {
+    class Conversation {
+        - id : UUID
+        - title : String
+        - created_at : DateTime
+        + __str__() : String
+    }
+    class Message {
+        - id : Integer
+        - sender : String (user/agent)
+        - text : Text
+        - sql : Text
+        - data : JSON
+        - type : String
+        + __str__() : String
+    }
+}package "Collaboration" {
     class Comment {
         - id : Integer
         - content : Text
@@ -163,7 +179,8 @@ User "1" -- "0..*" Email : sender >
 User "1" -- "0..*" Email : recipient >
 User "1" -- "0..*" Notification : recipient >
 User "1" -- "0..*" Comment : author >
-
+User "1" -- "0..*" Conversation : owner >
+Conversation "1" *-- "0..*" Message : contains >
 ' Polymorphic / Generic Relations
 Comment ..> TestCase : attached to
 Comment ..> Anomalie : attached to

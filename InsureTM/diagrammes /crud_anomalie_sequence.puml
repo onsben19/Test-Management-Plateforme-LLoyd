@@ -10,6 +10,10 @@ participant "Anomalie" as Entity <<Entité>>
 
 == CREATE : Signaler un Bug ==
 User -> UI : reportBug(form, image)
+User -> UI : Demander Reformulation IA
+UI -> AI : reformulateText(text)
+AI -> AI : LLM Processing
+AI --> UI : Reformulated Professional Text
 activate UI
     UI -> Manager : createAnomalie(data)
     activate Manager

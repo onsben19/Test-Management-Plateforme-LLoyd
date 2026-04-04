@@ -9,8 +9,10 @@ import EditExecutionModal from '../components/EditExecutionModal';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { executionService, projectService, campaignService } from '../services/api';
 import { useSidebar } from '../context/SidebarContext';
-import { List, X } from 'lucide-react';
+import StatCard from '../components/StatCard';
+import { PlayCircle, CheckCircle, XCircle, BarChart3, Clock, List, X } from 'lucide-react';
 import Pagination from '../components/Pagination';
+import { useMemo } from 'react';
 
 const ExecutionTracking = () => {
     const { user } = useAuth();
@@ -43,19 +45,31 @@ const ExecutionTracking = () => {
     const [projects, setProjects] = useState<any[]>([]);
     const [campaigns, setCampaigns] = useState<any[]>([]);
 
-    const filteredTests = tests.filter(t => {
-        const query = searchQuery.toLowerCase();
-        return (
-            (t.name?.toLowerCase() || '').includes(query) ||
-            (t.module?.toLowerCase() || '').includes(query) ||
-            (t.release?.toLowerCase() || '').includes(query) ||
-            (t.realized_by?.toLowerCase() || '').includes(query)
-        );
-    }).sort((a, b) => {
-        const dateA = new Date(a.rawDate || 0).getTime();
-        const dateB = new Date(b.rawDate || 0).getTime();
-        return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
-    });
+    const stats = useMemo(() => {
+        const total = totalItems;
+        const passed = tests.filter(t => t.status === 'passed').length;
+        const failed = tests.filter(t => t.status === 'failed').length;
+        const pending = tests.filter(t => t.status === 'pending' || t.status === 'running').length;
+        const successRate = total > 0 ? Math.round((passed / total) * 100) : 0;
+
+        return { total, passed, failed, pending, successRate };
+    }, [tests, totalItems]);
+
+    const filteredTests = useMemo(() => {
+        return tests.filter(t => {
+            const query = searchQuery.toLowerCase();
+            return (
+                (t.name?.toLowerCase() || '').includes(query) ||
+                (t.module?.toLowerCase() || '').includes(query) ||
+                (t.release?.toLowerCase() || '').includes(query) ||
+                (t.realized_by?.toLowerCase() || '').includes(query)
+            );
+        }).sort((a, b) => {
+            const dateA = new Date(a.rawDate || 0).getTime();
+            const dateB = new Date(b.rawDate || 0).getTime();
+            return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+        });
+    }, [tests, searchQuery, sortOrder]);
 
     useEffect(() => {
         fetchExecutions(1);
@@ -178,71 +192,112 @@ const ExecutionTracking = () => {
                 <Sidebar />
                 <main className={`flex-1 flex overflow-hidden h-[calc(100vh-64px)] transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     {/* Left List Panel */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
-                            <div>
-                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight transition-colors">
-                                    <span className="text-gradient">Suivi d'Exécution</span>
-                                </h1>
-                                <p className="text-slate-500 dark:text-slate-400 transition-colors">Pilotez les campagnes de tests et suivez la performance de l'équipe</p>
+                    <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                        <div className="max-w-7xl mx-auto space-y-8">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div>
+                                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight transition-colors">
+                                        <span className="text-gradient">Suivi d'Exécution</span>
+                                    </h1>
+                                    <p className="text-slate-500 dark:text-slate-400 transition-colors">Pilotez les campagnes de tests et suivez la performance de l'équipe</p>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Search/Filter Bar */}
-                        <div className="flex flex-col md:flex-row gap-4 mb-6">
-                            <div className="relative flex-1">
-                                <List className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Rechercher par nom, release, campagne ou testeur..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors placeholder:text-slate-400"
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <StatCard
+                                    title="Total Exécutions"
+                                    value={stats.total}
+                                    icon={PlayCircle}
+                                    variant="blue"
+                                    description="Toutes campagnes confondues"
+                                    isLoading={loading}
+                                />
+                                <StatCard
+                                    title="Taux de Réussite"
+                                    value={`${stats.successRate}%`}
+                                    icon={BarChart3}
+                                    variant="blue"
+                                    description="Pourcentage de tests validés"
+                                    isLoading={loading}
+                                />
+                                <StatCard
+                                    title="Tests Échoués"
+                                    value={stats.failed}
+                                    icon={XCircle}
+                                    variant="red"
+                                    description="Anomalies détectées"
+                                    change={stats.failed > 0 ? `+${stats.failed}` : undefined}
+                                    changeType="negative"
+                                    isLoading={loading}
+                                />
+                                <StatCard
+                                    title="En Attente"
+                                    value={stats.pending}
+                                    icon={Clock}
+                                    variant="yellow"
+                                    description="Tests restants à exécuter"
+                                    isLoading={loading}
                                 />
                             </div>
-                            <div className="flex items-center gap-2">
-                                <select
-                                    value={sortOrder}
-                                    onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                                    className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                                >
-                                    <option value="newest">Plus récent</option>
-                                    <option value="oldest">Plus ancien</option>
-                                </select>
-                                <select
-                                    value={groupBy}
-                                    onChange={(e) => setGroupBy(e.target.value as 'none' | 'campaign' | 'release')}
-                                    className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                                >
-                                    <option value="none">Aucun groupement</option>
-                                    <option value="campaign">Par Campagne</option>
-                                    <option value="release">Par Release</option>
-                                </select>
-                            </div>
-                        </div>
 
-                        <div className="min-h-[600px]">
-                            <ExecutionTestList
-                                tests={filteredTests}
-                                onSelectTest={handleSelectTest}
-                                selectedTestId={selectedTest?.id}
-                                onViewCaptures={setViewingCaptures}
-                                onEditTest={setEditingTest}
-                                onDeleteTest={handleDeleteTest}
-                                isTester={isTester}
-                                canManage={canManage}
-                                canDelete={canDelete}
-                                groupBy={groupBy}
+                            {/* Search/Filter Bar */}
+                            <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
+                                <div className="flex flex-col md:flex-row gap-4">
+                                    <div className="relative flex-1">
+                                        <List className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Rechercher par nom, release, campagne ou testeur..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors placeholder:text-slate-400 text-sm"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <select
+                                            value={sortOrder}
+                                            onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                                            className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm font-medium"
+                                        >
+                                            <option value="newest">Plus récent</option>
+                                            <option value="oldest">Plus ancien</option>
+                                        </select>
+                                        <select
+                                            value={groupBy}
+                                            onChange={(e) => setGroupBy(e.target.value as 'none' | 'campaign' | 'release')}
+                                            className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm font-medium"
+                                        >
+                                            <option value="none">Aucun groupement</option>
+                                            <option value="campaign">Par Campagne</option>
+                                            <option value="release">Par Release</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden transition-colors">
+                                <ExecutionTestList
+                                    tests={filteredTests}
+                                    onSelectTest={handleSelectTest}
+                                    selectedTestId={selectedTest?.id}
+                                    onViewCaptures={setViewingCaptures}
+                                    onEditTest={setEditingTest}
+                                    onDeleteTest={handleDeleteTest}
+                                    isTester={isTester}
+                                    canManage={canManage}
+                                    canDelete={canDelete}
+                                    groupBy={groupBy}
+                                />
+                            </div>
+
+                            <Pagination
+                                currentPage={currentPage}
+                                totalItems={totalItems}
+                                pageSize={pageSize}
+                                onPageChange={handlePageChange}
+                                loading={loading}
                             />
                         </div>
-
-                        <Pagination
-                            currentPage={currentPage}
-                            totalItems={totalItems}
-                            pageSize={pageSize}
-                            onPageChange={handlePageChange}
-                            loading={loading}
-                        />
                     </div>
 
                     {/* Right Details Panel */}

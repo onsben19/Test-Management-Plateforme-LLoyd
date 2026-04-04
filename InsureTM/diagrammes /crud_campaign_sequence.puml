@@ -25,6 +25,12 @@ deactivate UI
 
 == READ : Détail d'une Campagne ==
 User -> UI : selectCampaign(id)
+User -> UI : Analyser les risques de retard (ML)
+UI -> ML : getTimelineRisk(id)
+ML -> Entity : getData(id)
+Entity --> ML : data
+ML -> ML : ML Model (Random Forest)
+ML --> UI : response (Optimale/Avertissement)
 activate UI
     UI -> Manager : getCampaignDetails(id)
     activate Manager

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Header from '../../components/Header';
 import Sidebar from '../../components/Sidebar';
 import AdminTable from '../../components/AdminTable';
@@ -7,6 +7,8 @@ import { useSidebar } from '../../context/SidebarContext';
 import { Sparkles, MessageSquare, Trash2, Eye, Calendar, User } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ConfirmModal from '../../components/ConfirmModal';
+import Pagination from '../../components/Pagination';
+import StatCard from '../../components/StatCard';
 
 const AdminAnalytics = () => {
     const { isOpen } = useSidebar();
@@ -18,6 +20,8 @@ const AdminAnalytics = () => {
     const [loadingMessages, setLoadingMessages] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [convToDelete, setConvToDelete] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 10;
 
     const fetchConversations = async () => {
         try {
@@ -49,6 +53,22 @@ const AdminAnalytics = () => {
     useEffect(() => {
         fetchConversations();
     }, []);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
+
+    const filteredConversations = useMemo(() => {
+        return conversations.filter(c =>
+            c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (c.user_name || '').toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [conversations, searchQuery]);
+
+    const paginatedConversations = useMemo(() => {
+        const startIndex = (currentPage - 1) * pageSize;
+        return filteredConversations.slice(startIndex, startIndex + pageSize);
+    }, [filteredConversations, currentPage, pageSize]);
 
     const handleSelectConv = (conv: any) => {
         setSelectedConv(conv);
@@ -104,23 +124,51 @@ const AdminAnalytics = () => {
                 <Sidebar />
                 <main className={`flex-1 p-8 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     <div className="max-w-7xl mx-auto">
-                        <div className="flex justify-between items-center mb-8">
-                            <div>
-                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Administration des Analytics</h1>
-                                <p className="text-slate-500 dark:text-slate-400">Suivi global de l'utilisation de l'agent IA par tous les utilisateurs</p>
-                            </div>
-                            <div className="bg-emerald-500/10 text-emerald-600 px-4 py-2 rounded-lg border border-emerald-200 text-sm font-medium flex items-center gap-2">
-                                <Sparkles className="w-4 h-4" />
-                                {conversations.length} Sessions Total
-                            </div>
+                        <div className="mb-8">
+                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 font-heading tracking-tight">Administration des Analytics</h1>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">Suivi global de l'utilisation de l'agent IA par tous les utilisateurs</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            <StatCard
+                                title="Sessions Totales"
+                                value={conversations.length}
+                                icon={MessageSquare}
+                                variant="blue"
+                                description="Historique complet"
+                                isLoading={loading}
+                            />
+                            <StatCard
+                                title="Utilisateurs Actifs"
+                                value={new Set(conversations.map(c => c.user)).size}
+                                icon={User}
+                                variant="purple"
+                                description="Contributeurs IA"
+                                isLoading={loading}
+                            />
+                            <StatCard
+                                title="Messages Échangés"
+                                value="N/A"
+                                icon={Sparkles}
+                                variant="green"
+                                description="Volume d'interactions"
+                                isLoading={loading}
+                            />
+                            <StatCard
+                                title="Santé IA"
+                                value="OK"
+                                icon={Calendar}
+                                variant="slate"
+                                description="Disponibilité Groq"
+                                isLoading={loading}
+                            />
                         </div>
 
                         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                             <div className="xl:col-span-2">
                                 <AdminTable
-                                    title="Historique Global"
                                     columns={columns}
-                                    data={conversations}
+                                    data={paginatedConversations}
                                     isLoading={loading}
                                     searchable
                                     onSearch={setSearchQuery}
@@ -143,6 +191,15 @@ const AdminAnalytics = () => {
                                         </div>
                                     )}
                                 />
+                                <div className="mt-6">
+                                    <Pagination
+                                        currentPage={currentPage}
+                                        totalItems={filteredConversations.length}
+                                        pageSize={pageSize}
+                                        onPageChange={setCurrentPage}
+                                        loading={loading}
+                                    />
+                                </div>
                             </div>
 
                             <div className="xl:col-span-1">

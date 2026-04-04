@@ -62,6 +62,7 @@ rectangle "InsureTM - Plateforme d'Orchestration de Tests" {
       usecase "Suivre l'Avancement (Dashboard)" as UC8
       usecase "Interroger Assistant IA (NL-to-SQL)" as UC9
       usecase "Reformuler Message (IA)" as UC10
+      usecase "Suivre Risques usecase "Reformuler Message (IA)" as UC10 Prédictions ML" as UC12
       usecase "Recevoir Notifications" as UC11
   }
   
@@ -71,6 +72,7 @@ rectangle "InsureTM - Plateforme d'Orchestration de Tests" {
   Manager --> UC9
   Tester --> UC8
   Tester --> UC10
+  Manager --> UC12
 
   UC8 ..> Login : <<include>>
   UC9 ..> Login : <<include>>
@@ -80,6 +82,7 @@ rectangle "InsureTM - Plateforme d'Orchestration de Tests" {
   UC11 -- SMTP
   UC9 -- AI
   UC10 -- AI
+  UC12 -- AI
   UC4 ..> UC11 : <<include>>
   UC7 ..> UC11 : <<include>>
 

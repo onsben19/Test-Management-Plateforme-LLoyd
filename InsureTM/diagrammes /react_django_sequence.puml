@@ -86,6 +86,23 @@ group #LightPink Exécution & Anomalies (Tester)
     React --> User: Toast "Bug signalé !"
 end
 
+group #LightCyan Intelligence Artificielle & ML (Analytics)
+    User -> React: Pose une question IA / Consulte Prediction
+    React -> Django: POST /api/analytics/ask/ OU /timeline-guard/
+    activate Django
+    Django -> AI_Service: generate_sql() / model.predict()
+    activate AI_Service
+    AI_Service -> GroqAPI: Call Llama 3.3 (NL-to-SQL)
+    activate GroqAPI
+    GroqAPI --> AI_Service: Result (SQL / Insights)
+    deactivate GroqAPI
+    AI_Service --> Django: Final Data / Formatted Prediction
+    deactivate AI_Service
+    Django --> React: 200 OK (JSON with Chart Data)
+    deactivate Django
+    React -> React: Rendu Plotly (650px) / Gauges ML
+    React --> User: Vision analytique interactive
+end
 group #LightGray Messagerie & Notifications
     User -> React: "Nouveau Message" (avec Fichier)
     React -> Django: POST /api/emails/ (Multipart/FormData)

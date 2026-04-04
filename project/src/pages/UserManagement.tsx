@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
-import { User, Shield, CheckCircle, XCircle, MoreVertical, Plus, Search, Mail, Edit, Trash2, Lock, Unlock, Key, Copy, Check } from 'lucide-react';
+import { User, Shield, CheckCircle, XCircle, MoreVertical, Plus, Search, Mail, Edit, Trash2, Lock, Unlock, Key, Copy, Check, Users, UserCheck, UserPlus, UserCog } from 'lucide-react';
 import api from '../services/api';
 import { useSidebar } from '../context/SidebarContext';
 import { toast } from 'react-toastify';
@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import EditUserModal from '../components/EditUserModal';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
+import StatCard from '../components/StatCard';
 
 interface UserData {
     id: string;
@@ -21,21 +22,20 @@ interface UserData {
 
 const UserManagement = () => {
     const { user } = useAuth();
-    // Case-insensitive check just in case
     const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
     const { isOpen } = useSidebar();
 
     const [users, setUsers] = useState<UserData[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [roleFilter, setRoleFilter] = useState('ALL');
+    const [statusFilter, setStatusFilter] = useState('ALL');
     const [loading, setLoading] = useState(false);
 
-    // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const pageSize = 10;
 
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-
     const [isAddUserOpen, setIsAddUserOpen] = useState(false);
     const [newUser, setNewUser] = useState({
         username: '',
@@ -49,15 +49,34 @@ const UserManagement = () => {
     const [copied, setCopied] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<string | null>(null);
+    const [editingUser, setEditingUser] = useState<any>(null);
 
-    // Fetch users from API
+    const mapBackendRole = (role: string): string => {
+        const map: { [key: string]: string } = {
+            'ADMIN': 'Admin',
+            'MANAGER': 'Manager',
+            'TESTER': 'Tester',
+        };
+        return map[role] || 'Viewer';
+    };
+
+    const mapFrontendRoleToBackend = (role: string): string => {
+        if (role === 'Admin') return 'ADMIN';
+        if (role === 'Manager') return 'MANAGER';
+        if (role === 'Tester') return 'TESTER';
+        return 'TESTER';
+    };
+
     const fetchUsers = async (page = 1) => {
         try {
             setLoading(true);
             const response = await api.get('/users/', {
                 params: {
                     page,
-                    search: searchTerm
+                    search: searchTerm,
+                    role: roleFilter !== 'ALL' ? mapFrontendRoleToBackend(roleFilter) : undefined,
+                    is_active: statusFilter === 'active' ? true : (statusFilter === 'inactive' ? false : undefined),
+                    ordering: '-date_joined' // Default to newest
                 }
             });
             const data = response.data.results || response.data;
@@ -85,27 +104,11 @@ const UserManagement = () => {
     useEffect(() => {
         fetchUsers(1);
         setCurrentPage(1);
-    }, [searchTerm]);
+    }, [searchTerm, roleFilter, statusFilter]);
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
         fetchUsers(page);
-    };
-
-    const mapBackendRole = (role: string): string => {
-        const map: { [key: string]: string } = {
-            'ADMIN': 'Admin',
-            'MANAGER': 'Manager',
-            'TESTER': 'Tester',
-        };
-        return map[role] || 'Viewer';
-    };
-
-    const mapFrontendRoleToBackend = (role: string): string => {
-        if (role === 'Admin') return 'ADMIN';
-        if (role === 'Manager') return 'MANAGER';
-        if (role === 'Tester') return 'TESTER';
-        return 'TESTER';
     };
 
     const generatePassword = () => {
@@ -125,14 +128,20 @@ const UserManagement = () => {
         }
     };
 
-    // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = () => setOpenMenuId(null);
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
 
-    const filteredUsers = users;
+    const stats = useMemo(() => {
+        const total = users.length;
+        const admins = users.filter(u => u.role === 'Admin').length;
+        const managers = users.filter(u => u.role === 'Manager').length;
+        const testers = users.filter(u => u.role === 'Tester').length;
+
+        return { total, admins, managers, testers };
+    }, [users]);
 
     const handleDelete = async (id: string) => {
         setUserToDelete(id);
@@ -184,7 +193,7 @@ const UserManagement = () => {
 
             setGeneratedPassword(pwd);
             setIsAddUserOpen(false);
-            setNewUser({ username: '', email: '', role: 'TESTER', first_name: '', last_name: '' });
+            setNewUser({ username: '', email: '', role: 'Tester', first_name: '', last_name: '' });
             fetchUsers();
         } catch (error) {
             console.error(error);
@@ -192,24 +201,15 @@ const UserManagement = () => {
         }
     };
 
-
-    const [editingUser, setEditingUser] = useState<any>(null);
-
     const handleUpdateUser = async (id: string, updates: FormData) => {
         try {
-            // Auto-generate password on edit as requested
             const newPassword = generatePassword();
             updates.append('password', newPassword);
-
             await api.patch(`/users/${id}/`, updates);
-
             toast.success("Utilisateur mis à jour");
             setEditingUser(null);
             fetchUsers();
-
-            // Show popup with new password
             setGeneratedPassword(newPassword);
-
         } catch (error) {
             console.error(error);
             toast.error("Erreur lors de la mise à jour");
@@ -223,15 +223,15 @@ const UserManagement = () => {
                 <Sidebar />
                 <main className={`flex-1 p-6 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     <div className="max-w-7xl mx-auto">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
-                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">Gestion des Utilisateurs</h1>
-                                <p className="text-slate-500 dark:text-slate-400 transition-colors">Gérez les accès et les rôles des membres de l'équipe</p>
+                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 font-heading tracking-tight">Gestion des Utilisateurs</h1>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm">Gérez les accès et les rôles des membres de l'équipe</p>
                             </div>
                             {isAdmin && (
                                 <button
                                     onClick={() => setIsAddUserOpen(true)}
-                                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20"
+                                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20 hover:scale-105 font-medium"
                                 >
                                     <Plus className="w-4 h-4" />
                                     Ajouter un utilisateur
@@ -239,9 +239,42 @@ const UserManagement = () => {
                             )}
                         </div>
 
+                        {/* Summary Stats Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            <StatCard
+                                title="Utilisateurs Totaux"
+                                value={stats.total}
+                                icon={Users}
+                                variant="blue"
+                                description="Base de données active"
+                            />
+                            <StatCard
+                                title="Administrateurs"
+                                value={stats.admins}
+                                icon={UserCog}
+                                variant="purple"
+                                description="Accès complet au système"
+                            />
+                            <StatCard
+                                title="Managers"
+                                value={stats.managers}
+                                icon={UserCheck}
+                                variant="yellow"
+                                description="Gestion d'équipes et projets"
+                            />
+                            <StatCard
+                                title="Testeurs"
+                                value={stats.testers}
+                                icon={UserPlus}
+                                variant="green"
+                                description="Exécution des tests QA"
+                                changeType="positive"
+                            />
+                        </div>
+
                         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm dark:shadow-none transition-colors">
-                            <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-4 transition-colors">
-                                <div className="relative flex-1 max-w-md">
+                            <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row items-center gap-4 transition-colors">
+                                <div className="relative flex-1 w-full md:max-w-md">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <input
                                         type="text"
@@ -251,11 +284,32 @@ const UserManagement = () => {
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />
                                 </div>
+                                <div className="flex items-center gap-2 w-full md:w-auto md:ml-auto overflow-x-auto no-scrollbar">
+                                    <select
+                                        className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-700 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
+                                        value={roleFilter}
+                                        onChange={(e) => setRoleFilter(e.target.value)}
+                                    >
+                                        <option value="ALL">Tous les rôles</option>
+                                        <option value="Admin">Admin</option>
+                                        <option value="Manager">Manager</option>
+                                        <option value="Tester">Tester</option>
+                                    </select>
+                                    <select
+                                        className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-700 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
+                                        value={statusFilter}
+                                        onChange={(e) => setStatusFilter(e.target.value)}
+                                    >
+                                        <option value="ALL">Tous les statuts</option>
+                                        <option value="active">Actif</option>
+                                        <option value="inactive">Désactivé</option>
+                                    </select>
+                                </div>
                             </div>
 
-                            <div className="table-container">
-                                <table className="w-full text-left">
-                                    <thead className="table-sticky-header text-slate-500 dark:text-slate-400 text-xs uppercase font-medium">
+                            <div className="table-container overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 text-xs uppercase font-medium">
                                         <tr>
                                             <th className="px-6 py-4">Utilisateur</th>
                                             <th className="px-6 py-4">Rôle</th>
@@ -264,7 +318,7 @@ const UserManagement = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-200 dark:divide-slate-700 transition-colors">
-                                        {filteredUsers.map((user) => (
+                                        {users.map((user) => (
                                             <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
@@ -312,26 +366,14 @@ const UserManagement = () => {
                                                                 <button
                                                                     className="w-full flex items-center gap-2 px-4 py-3 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white transition-colors"
                                                                     onClick={() => {
-                                                                        // Fill editing user with current data
                                                                         const selectedUser = users.find(u => u.id === user.id);
-                                                                        // Since selectedUser might not have first/last name separated, we try to parse or just set email
-                                                                        // Actually fetchUsers maps it, but we might want to store raw data or just split name again if needed
-                                                                        // Better: update fetch to store raw first/last name
-                                                                        // But users state has name string.
-                                                                        // Let's assume we can split name or just refetch.
-                                                                        // WAIT: the users state maps API data. `apiUsers` has `name`. It does NOT have first/last name separated in state.
-                                                                        // I should update the state interface to keep first/last name if possible, OR just parse it.
-                                                                        // Or, better, pass the 'user' object from map which might be incomplete?
-                                                                        // Let's looking at fetchUsers again.
-                                                                        // It maps: name: `${u.first_name}...`
-                                                                        // So I lost the original first/last name in state.
-                                                                        // Use the `users` state?
-                                                                        // I will update interface UserData to include first_name and last_name.
-                                                                        setEditingUser({
-                                                                            ...user,
-                                                                            first_name: user.name.split(' ')[0], // Approximate
-                                                                            last_name: user.name.split(' ').slice(1).join(' ') // Approximate
-                                                                        });
+                                                                        if (selectedUser) {
+                                                                            setEditingUser({
+                                                                                ...selectedUser,
+                                                                                first_name: selectedUser.name.split(' ')[0],
+                                                                                last_name: selectedUser.name.split(' ').slice(1).join(' ')
+                                                                            });
+                                                                        }
                                                                         setOpenMenuId(null);
                                                                     }}
                                                                 >
@@ -381,7 +423,7 @@ const UserManagement = () => {
                 </main>
             </div>
 
-            {/* Edit User Modal */}
+            {/* Modals */}
             {editingUser && (
                 <EditUserModal
                     user={editingUser}
@@ -390,16 +432,12 @@ const UserManagement = () => {
                 />
             )}
 
-            {/* Add User Modal */}
             {isAddUserOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-900/80 backdrop-blur-sm p-4 transition-colors">
                     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 transition-colors">
                         <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700 transition-colors">
                             <h2 className="text-xl font-bold text-slate-900 dark:text-white transition-colors">Ajouter un utilisateur</h2>
-                            <button
-                                onClick={() => setIsAddUserOpen(false)}
-                                className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
-                            >
+                            <button onClick={() => setIsAddUserOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
                                 <XCircle className="w-6 h-6" />
                             </button>
                         </div>
@@ -472,17 +510,8 @@ const UserManagement = () => {
                             </div>
 
                             <div className="flex items-center justify-end gap-3 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsAddUserOpen(false)}
-                                    className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
-                                >
-                                    Annuler
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20"
-                                >
+                                <button type="button" onClick={() => setIsAddUserOpen(false)} className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">Annuler</button>
+                                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20">
                                     <Plus className="w-4 h-4" />
                                     Créer l'utilisateur
                                 </button>
@@ -491,7 +520,7 @@ const UserManagement = () => {
                     </div>
                 </div>
             )}
-            {/* Password Success Modal */}
+
             {generatedPassword && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 dark:bg-slate-900/80 backdrop-blur-sm p-4 transition-colors">
                     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 w-full max-w-sm shadow-2xl animate-in fade-in zoom-in duration-200 transition-colors">
@@ -499,31 +528,15 @@ const UserManagement = () => {
                             <div className="w-12 h-12 bg-green-100 dark:bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-2 transition-colors">
                                 <Key className="w-6 h-6 text-green-600 dark:text-green-500 transition-colors" />
                             </div>
-
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white transition-colors">Utilisateur créé !</h2>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">
-                                Voici le mot de passe temporaire généré automatiquement. Copiez-le avant de fermer.
-                            </p>
-
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white transition-colors">Accès généré !</h2>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">Mot de passe temporaire généré. Copiez-le avant de fermer.</p>
                             <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-4 flex items-center justify-between gap-2 mt-4 transition-colors">
-                                <code className="text-blue-600 dark:text-blue-400 font-mono text-lg font-bold tracking-wider transition-colors">
-                                    {generatedPassword}
-                                </code>
-                                <button
-                                    onClick={handleCopyPassword}
-                                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-                                    title="Copier"
-                                >
+                                <code className="text-blue-600 dark:text-blue-400 font-mono text-lg font-bold tracking-wider transition-colors">{generatedPassword}</code>
+                                <button onClick={handleCopyPassword} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                                     {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
                                 </button>
                             </div>
-
-                            <button
-                                onClick={() => setGeneratedPassword(null)}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition-colors mt-4 shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20"
-                            >
-                                Terminer
-                            </button>
+                            <button onClick={() => setGeneratedPassword(null)} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition-colors mt-4 shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20">Terminer</button>
                         </div>
                     </div>
                 </div>
@@ -532,7 +545,7 @@ const UserManagement = () => {
             <ConfirmModal
                 isOpen={isDeleteModalOpen}
                 title="Supprimer l'utilisateur"
-                message="Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible et retirera tous ses accès à la plateforme."
+                message="Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible."
                 onConfirm={confirmDeleteUser}
                 onCancel={() => setIsDeleteModalOpen(false)}
                 confirmText="Supprimer"

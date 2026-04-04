@@ -88,6 +88,21 @@ group #LightPink Signalement d'Anomalie (Tester)
     UI --> User: "Ticket Anomalie créé avec succès"
 end
 
+group #LightCyan Analyse Prédictive (ML Timeline Guard - Manager)
+    User -> UI: Clic sur "Timeline Guard" pour Campagne #42
+    UI -> API: GET /api/analytics/timeline-guard/42/
+    activate API
+    API -> DB: SELECT * from TestCase where campaign_id=42
+    activate DB
+    DB --> API: Liste des résultats (Status)
+    deactivate DB
+    API -> API: ML Model Inférence (Random Forest)
+    API -> AI: Post-Analyse Insight
+    AI --> API: Conseil Pro
+    API --> UI: JSON {projected_end, risk_status, message}
+    deactivate API
+    UI --> User: Affichage Radar/Gauge (Optimale/Avertissement)
+end
 group #LightGray Messagerie Interne
     User -> UI: Clic sur "Messagerie" -> "Nouveau Message"
     UI -> API: POST /api/emails/ (multipart/form-data)

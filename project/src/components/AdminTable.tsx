@@ -8,7 +8,7 @@ interface Column<T> {
 }
 
 interface AdminTableProps<T> {
-    title: string;
+    title?: string;
     columns: Column<T>[];
     data: T[];
     isLoading?: boolean;
@@ -36,14 +36,16 @@ const AdminTable = <T extends { id?: string | number }>({
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight transition-colors">
-                        {title}
-                    </h2>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">
-                        Vue d'ensemble et gestion des données
-                    </p>
-                </div>
+                {title && (
+                    <div>
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight transition-colors">
+                            {title}
+                        </h2>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">
+                            Vue d'ensemble et gestion des données
+                        </p>
+                    </div>
+                )}
                 {onAdd && (
                     <button
                         onClick={onAdd}
@@ -56,9 +58,9 @@ const AdminTable = <T extends { id?: string | number }>({
 
             {/* Search and Filter Bar */}
             {(searchable || filters) && (
-                <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     {searchable && (
-                        <div className="relative flex-1">
+                        <div className="relative flex-1 w-full md:max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input
                                 type="text"
@@ -69,7 +71,7 @@ const AdminTable = <T extends { id?: string | number }>({
                         </div>
                     )}
                     {filters && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 md:ml-auto">
                             <div className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors">
                                 <Filter className="w-4 h-4 text-slate-500 dark:text-slate-400 transition-colors" />
                             </div>
@@ -100,14 +102,20 @@ const AdminTable = <T extends { id?: string | number }>({
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-700/30 transition-colors">
                         {isLoading ? (
-                            <tr>
-                                <td colSpan={columns.length + (actions ? 1 : 0)} className="px-6 py-12 text-center">
-                                    <div className="flex items-center justify-center gap-2 text-slate-400">
-                                        <Loader className="w-5 h-5 animate-spin text-blue-500" />
-                                        <span>Chargement des données...</span>
-                                    </div>
-                                </td>
-                            </tr>
+                            Array.from({ length: 5 }).map((_, i) => (
+                                <tr key={i} className="animate-pulse">
+                                    {columns.map((_, idx) => (
+                                        <td key={idx} className="px-6 py-4">
+                                            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded-full w-full" />
+                                        </td>
+                                    ))}
+                                    {actions && (
+                                        <td className="px-6 py-4">
+                                            <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded-lg w-20 ml-auto" />
+                                        </td>
+                                    )}
+                                </tr>
+                            ))
                         ) : data.length === 0 ? (
                             <tr>
                                 <td colSpan={columns.length + (actions ? 1 : 0)} className="px-6 py-12 text-center text-slate-500 transition-colors">

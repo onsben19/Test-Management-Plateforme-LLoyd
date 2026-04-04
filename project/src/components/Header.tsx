@@ -73,12 +73,24 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0 z-50 transition-colors duration-300">
+    <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0 z-50 transition-all duration-500">
       <div className="w-full px-4">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white transition-colors">InsureTM</h1>
+            <div className="flex-shrink-0 group flex items-center gap-2">
+              <div className="relative">
+                <img
+                  src={theme === 'dark' ? '/logo-lloyd-dark.webp' : '/logo-lloyd-light.webp'}
+                  alt="Lloyd Logo"
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/logo-lloyd.webp'; }}
+                  className="w-20 h-10 object-contain transition-all duration-300 group-hover:scale-110 dark:brightness-0 dark:invert opacity-90 group-hover:opacity-100"
+                />
+                <div className="absolute inset-0 bg-blue-500/10 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              </div>
+              <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+              <h1 className="text-xl font-black text-slate-900 dark:text-white transition-all duration-300 tracking-tighter font-heading cursor-default">
+                Insure<span className="text-blue-600 dark:text-blue-400">TM</span>
+              </h1>
             </div>
           </div>
 

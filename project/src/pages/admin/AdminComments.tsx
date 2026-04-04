@@ -1,17 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Header from '../../components/Header';
 import Sidebar from '../../components/Sidebar';
 import AdminTable from '../../components/AdminTable';
 import { commentService } from '../../services/api';
 import { toast } from 'react-toastify';
-import { MessageSquare, Trash2 } from 'lucide-react';
+import { MessageSquare, Trash2, Calendar, Users, BarChart3, TrendingUp } from 'lucide-react';
 import { useSidebar } from '../../context/SidebarContext';
+import StatCard from '../../components/StatCard';
+import Pagination from '../../components/Pagination';
 
 const AdminComments = () => {
     const { isOpen } = useSidebar();
     const [comments, setComments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 10;
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, commentId: null });
 
     const fetchComments = async () => {
@@ -31,11 +35,31 @@ const AdminComments = () => {
         fetchComments();
     }, []);
 
-    const filteredComments = comments.filter(comment => {
-        const matchesSearch = (comment.message || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (comment.author_username || comment.author || '').toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesSearch;
-    });
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
+    const filteredComments = useMemo(() => {
+        return comments.filter(c =>
+            c.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (c.author_name || c.author_username || '').toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [comments, searchQuery]);
+
+    const paginatedComments = useMemo(() => {
+        const startIndex = (currentPage - 1) * pageSize;
+        return filteredComments.slice(startIndex, startIndex + pageSize);
+    }, [filteredComments, currentPage, pageSize]);
+
+    const stats = useMemo(() => {
+        const total = comments.length;
+        const recent = comments.filter(c => {
+            const diff = new Date().getTime() - new Date(c.created_at).getTime();
+            return diff < (24 * 60 * 60 * 1000);
+        }).length;
+        const uniqueAuthors = new Set(comments.map(c => c.author_username || c.author)).size;
+
+        return { total, recent, uniqueAuthors };
+    }, [comments]);
 
     const handleDeleteClick = (id: any) => {
         setDeleteModal({ isOpen: true, commentId: id });
@@ -83,10 +107,48 @@ const AdminComments = () => {
                 <Sidebar />
                 <main className={`flex-1 p-8 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     <div className="max-w-7xl mx-auto">
+                        <div className="mb-8">
+                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 font-heading tracking-tight">Journal des Commentaires</h1>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">Gérez les échanges et retours d'expérience sur les tests de manière proactive</p>
+                        </div>
+
+                        {/* Summary Stats Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            <StatCard
+                                title="Commentaires"
+                                value={stats.total}
+                                icon={MessageSquare}
+                                variant="blue"
+                                description="Total des échanges"
+                            />
+                            <StatCard
+                                title="Contributeurs"
+                                value={stats.uniqueAuthors}
+                                icon={Users}
+                                variant="purple"
+                                description="Auteurs uniques"
+                            />
+                            <StatCard
+                                title="Activité (24h)"
+                                value={stats.recent}
+                                icon={TrendingUp}
+                                variant="green"
+                                description="Nouveaux posts"
+                                change={stats.recent > 0 ? `+${stats.recent}` : undefined}
+                                changeType="positive"
+                            />
+                            <StatCard
+                                title="Santé Sociale"
+                                value="Stable"
+                                icon={BarChart3}
+                                variant="slate"
+                                description="Modération optimale"
+                            />
+                        </div>
+
                         <AdminTable
-                            title="Administration des Commentaires"
                             columns={columns}
-                            data={comments}
+                            data={paginatedComments}
                             isLoading={loading}
                             searchable
                             onSearch={setSearchQuery}
@@ -100,6 +162,15 @@ const AdminComments = () => {
                                 </button>
                             )}
                         />
+                        <div className="mt-6">
+                            <Pagination
+                                currentPage={currentPage}
+                                totalItems={filteredComments.length}
+                                pageSize={pageSize}
+                                onPageChange={setCurrentPage}
+                                loading={loading}
+                            />
+                        </div>
                     </div>
                 </main>
             </div>

@@ -13,6 +13,8 @@ import {
 import { campaignService, userService, aiService } from '../services/api';
 import Pagination from '../components/Pagination';
 import StarBorder from '../components/bits/StarBorder';
+import StatCard from '../components/StatCard';
+import { Briefcase, Activity, Target, ShieldAlert as ShieldAlertIcon } from 'lucide-react';
 
 interface TimelineGuardData {
     status: 'OPTIMAL' | 'WARNING' | 'CRITICAL' | 'INITIAL' | 'WAITING';
@@ -179,6 +181,21 @@ const DataDrivenManager = () => {
     const filteredFiles = useMemo(() => {
         return importedFiles;
     }, [importedFiles]);
+
+    const stats = useMemo(() => {
+        const total = importedFiles.length;
+        const active = importedFiles.filter(f => {
+            const guard = timelineGuards[f.id];
+            return guard && guard.progress.percentage < 100;
+        }).length;
+        const critical = Object.values(timelineGuards).filter(g => g.status === 'CRITICAL').length;
+        const finished = importedFiles.filter(f => {
+            const guard = timelineGuards[f.id];
+            return guard && guard.progress.percentage === 100;
+        }).length;
+
+        return { total, active, critical, finished };
+    }, [importedFiles, timelineGuards]);
 
     // Modal Handlers
     const openCreateModal = () => {
@@ -452,6 +469,41 @@ const DataDrivenManager = () => {
                                     Nouvelle Campagne
                                 </button>
                             </div>
+                        </div>
+
+                        {/* Summary Stats Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            <StatCard
+                                title="Total Campagnes"
+                                value={stats.total}
+                                icon={Briefcase}
+                                variant="blue"
+                                description="Toutes les campagnes de la release"
+                            />
+                            <StatCard
+                                title="Campagnes Actives"
+                                value={stats.active}
+                                icon={Activity}
+                                variant="purple"
+                                description="En cours d'exécution"
+                            />
+                            <StatCard
+                                title="Risques Critiques"
+                                value={stats.critical}
+                                icon={ShieldAlertIcon}
+                                variant="red"
+                                description="Détecté par ML Timeline Guard"
+                                change={stats.critical > 0 ? `+${stats.critical}` : undefined}
+                                changeType="negative"
+                            />
+                            <StatCard
+                                title="Terminées"
+                                value={stats.finished}
+                                icon={Target}
+                                variant="green"
+                                description="Tests clôturés à 100%"
+                                changeType="positive"
+                            />
                         </div>
 
                         {/* Search and Filters Bar */}

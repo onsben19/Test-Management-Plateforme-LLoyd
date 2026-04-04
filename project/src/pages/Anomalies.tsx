@@ -12,6 +12,8 @@ import { anomalyService } from '../services/api';
 import { useSidebar } from '../context/SidebarContext';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
+import StatCard from '../components/StatCard';
+import { AlertCircle, AlertOctagon, CheckCircle2, ShieldAlert } from 'lucide-react';
 
 
 import {
@@ -173,17 +175,24 @@ const Anomalies: React.FC = () => {
   const stats = useMemo(() => {
     const total = data.length;
     const critical = data.filter(a => a.severity === 'Critique').length;
+    const items = {
+      total: data.length,
+      critical: data.filter(a => a.severity === 'Critique').length,
+      medium: data.filter(a => a.severity === 'Moyenne').length,
+      low: data.filter(a => a.severity === 'Faible').length,
+      resolved: data.filter(a => a.status === 'RESOLUE').length,
+    };
     const distribution = [
-      { name: 'Critique', value: data.filter(a => a.severity === 'Critique').length, color: '#ef4444' },
-      { name: 'Moyenne', value: data.filter(a => a.severity === 'Moyenne').length, color: '#eab308' },
-      { name: 'Faible', value: data.filter(a => a.severity === 'Faible').length, color: '#3b82f6' },
+      { name: 'Critique', value: items.critical, color: '#ef4444' },
+      { name: 'Moyenne', value: items.medium, color: '#eab308' },
+      { name: 'Faible', value: items.low, color: '#3b82f6' },
     ].filter(d => d.value > 0);
 
     if (distribution.length === 0) {
       distribution.push({ name: 'Aucune', value: 1, color: '#475569' });
     }
 
-    return { total, critical, distribution };
+    return { total, critical, items, distribution };
   }, [data]);
 
   const handleDownload = async () => {
@@ -262,7 +271,44 @@ const Anomalies: React.FC = () => {
               </h1>
               <p className="text-slate-500 dark:text-slate-400 transition-colors">Suivi, priorisation et résolution des anomalies détectées</p>
             </div>
-            {/* Button removed as requested */}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <StatCard
+              title="Total Anomalies"
+              value={stats.total}
+              icon={ShieldAlert}
+              variant="blue"
+              description="Anomalies détectées sur la période"
+              isLoading={loading}
+            />
+            <StatCard
+              title="Critiques"
+              value={stats.items.critical}
+              icon={AlertOctagon}
+              variant="red"
+              description="Nécessite une action immédiate"
+              change={stats.items.critical > 0 ? `+${stats.items.critical}` : undefined}
+              changeType="negative"
+              isLoading={loading}
+            />
+            <StatCard
+              title="Moyennes"
+              value={stats.items.medium}
+              icon={AlertCircle}
+              variant="yellow"
+              description="À traiter prioritairement"
+              isLoading={loading}
+            />
+            <StatCard
+              title="Résolues"
+              value={stats.items.resolved}
+              icon={CheckCircle2}
+              variant="green"
+              description="Anomalies corrigées et validées"
+              changeType="positive"
+              isLoading={loading}
+            />
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
@@ -437,17 +483,6 @@ const Anomalies: React.FC = () => {
               <h3 className="text-slate-900 dark:text-white font-semibold mb-1 transition-colors text-sm">Répartition des Anomalies</h3>
               <p className="text-slate-500 dark:text-slate-400 text-xs mb-4 transition-colors font-medium">Réel par niveau de sévérité</p>
 
-              <div className="grid grid-cols-2 gap-2 mb-6">
-                <div className="bg-slate-100 dark:bg-slate-900/40 p-3 rounded-xl border border-slate-200 dark:border-slate-700/30">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Total</span>
-                  <span className="text-xl font-bold text-slate-900 dark:text-white">{stats.total}</span>
-                </div>
-                <div className="bg-red-500/10 p-3 rounded-xl border border-red-500/20">
-                  <span className="text-[10px] text-red-500 font-bold uppercase tracking-wider block mb-1">Bloquants</span>
-                  <span className="text-xl font-bold text-red-600 dark:text-red-400">{stats.critical}</span>
-                </div>
-              </div>
-
               <div className="h-56 relative">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -484,7 +519,7 @@ const Anomalies: React.FC = () => {
             </aside>
           </div>
         </main>
-      </div>
+      </div >
 
       {(editingAnomaly || isCreating) && (
         <EditAnomalyModal
@@ -506,7 +541,7 @@ const Anomalies: React.FC = () => {
         confirmText="Supprimer"
         type="danger"
       />
-    </div>
+    </div >
   );
 };
 

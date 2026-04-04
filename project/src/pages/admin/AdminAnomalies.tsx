@@ -8,6 +8,10 @@ import { toast } from 'react-toastify';
 import { AlertTriangle, Trash2, Pencil, Filter } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSidebar } from '../../context/SidebarContext';
+import StatCard from '../../components/StatCard';
+import { AlertCircle, AlertOctagon, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { useMemo } from 'react';
+import Pagination from '../../components/Pagination';
 
 const AdminAnomalies = () => {
     const { isOpen } = useSidebar();
@@ -16,6 +20,8 @@ const AdminAnomalies = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [criticalityFilter, setCriticalityFilter] = useState('ALL');
     const [sortOrder, setSortOrder] = useState<'recent' | 'oldest'>('recent');
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 8;
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, anomalyId: null });
     const [editingAnomaly, setEditingAnomaly] = useState<any>(null);
 
@@ -53,6 +59,10 @@ const AdminAnomalies = () => {
         fetchAnomalies();
     }, []);
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, criticalityFilter]);
+
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const highlightId = queryParams.get('highlight');
@@ -69,6 +79,23 @@ const AdminAnomalies = () => {
         const dateB = new Date(b.cree_le).getTime();
         return sortOrder === 'recent' ? dateB - dateA : dateA - dateB;
     });
+
+    const paginatedAnomalies = useMemo(() => {
+        const startIndex = (currentPage - 1) * pageSize;
+        return filteredAnomalies.slice(startIndex, startIndex + pageSize);
+    }, [filteredAnomalies, currentPage, pageSize]);
+
+    const stats = useMemo(() => {
+        const total = anomalies.length;
+        const critical = anomalies.filter(a => a.criticite === 'CRITIQUE').length;
+        const medium = anomalies.filter(a => a.criticite === 'MOYENNE').length;
+        const recent = anomalies.filter(a => {
+            const diff = new Date().getTime() - new Date(a.cree_le).getTime();
+            return diff < (24 * 60 * 60 * 1000); // 24h
+        }).length;
+
+        return { total, critical, medium, recent };
+    }, [anomalies]);
 
     const handleDeleteClick = (id: any) => {
         setDeleteModal({ isOpen: true, anomalyId: id });
@@ -183,10 +210,48 @@ const AdminAnomalies = () => {
                 <Sidebar />
                 <main className={`flex-1 p-8 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     <div className="max-w-7xl mx-auto">
+                        <div className="mb-8">
+                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 font-heading tracking-tight">Administration des Anomalies</h1>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">Gestion globale et suivi des rapports d'erreurs</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            <StatCard
+                                title="Anomalies Totales"
+                                value={stats.total}
+                                icon={ShieldAlert}
+                                variant="blue"
+                                description="Total historique détecté"
+                            />
+                            <StatCard
+                                title="Bloquants / Critiques"
+                                value={stats.critical}
+                                icon={AlertOctagon}
+                                variant="red"
+                                description="Nécessite une action immédiate"
+                                change={stats.critical > 0 ? `+${stats.critical}` : undefined}
+                                changeType="negative"
+                            />
+                            <StatCard
+                                title="Priorité Moyenne"
+                                value={stats.medium}
+                                icon={AlertCircle}
+                                variant="yellow"
+                                description="Correctifs en attente"
+                            />
+                            <StatCard
+                                title="Signalées (24h)"
+                                value={stats.recent}
+                                icon={CheckCircle2}
+                                variant="green"
+                                description="Nouvelles entrées"
+                                changeType="positive"
+                            />
+                        </div>
+
                         <AdminTable
-                            title="Administration des Anomalies"
                             columns={columns}
-                            data={anomalies}
+                            data={paginatedAnomalies}
                             isLoading={loading}
                             searchable
                             onSearch={setSearchQuery}
@@ -210,8 +275,8 @@ const AdminAnomalies = () => {
                                         value={sortOrder}
                                         onChange={(e) => setSortOrder(e.target.value as 'recent' | 'oldest')}
                                     >
-                                        <option value="recent">Plus récent</option>
-                                        <option value="oldest">Plus ancien</option>
+                                        <option value="recent">Actif</option>
+                                        <option value="oldest">Désactivé</option>
                                     </select>
                                 </div>
                             }
@@ -251,6 +316,16 @@ const AdminAnomalies = () => {
                                 </div>
                             )}
                         />
+
+                        <div className="mt-6">
+                            <Pagination
+                                currentPage={currentPage}
+                                totalItems={filteredAnomalies.length}
+                                pageSize={pageSize}
+                                onPageChange={setCurrentPage}
+                                loading={loading}
+                            />
+                        </div>
                     </div>
                 </main>
             </div >

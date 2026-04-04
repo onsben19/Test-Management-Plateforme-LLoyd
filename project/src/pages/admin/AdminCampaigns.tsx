@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Header from '../../components/Header';
 import Sidebar from '../../components/Sidebar';
 import AdminTable from '../../components/AdminTable';
@@ -7,6 +7,9 @@ import { toast } from 'react-toastify';
 import { Trash2, BookOpen, Edit } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSidebar } from '../../context/SidebarContext';
+import StatCard from '../../components/StatCard';
+import { Briefcase, Layers, Calendar, Rocket } from 'lucide-react';
+import Pagination from '../../components/Pagination';
 
 const AdminCampaigns = () => {
     const { isOpen } = useSidebar();
@@ -17,7 +20,10 @@ const AdminCampaigns = () => {
         const params = new URLSearchParams(location.search);
         return params.get('search') || '';
     });
+    const [statusFilter, setStatusFilter] = useState('ALL');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 8;
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, campaignId: null });
 
     // Edit modal state
@@ -42,14 +48,38 @@ const AdminCampaigns = () => {
         fetchCampaigns();
     }, []);
 
-    const filteredCampaigns = campaigns.filter(campaign =>
-        campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (campaign.description && campaign.description.toLowerCase().includes(searchQuery.toLowerCase()))
-    ).sort((a, b) => {
-        const dateA = new Date(a.created_at || 0).getTime();
-        const dateB = new Date(b.created_at || 0).getTime();
-        return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
-    });
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
+
+    const filteredCampaigns = useMemo(() => {
+        return campaigns.filter(campaign => {
+            const matchesSearch = campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (campaign.description && campaign.description.toLowerCase().includes(searchQuery.toLowerCase()));
+            const matchesStatus = statusFilter === 'ALL' || (statusFilter === 'active' ? campaign.project : !campaign.project);
+            return matchesSearch && matchesStatus;
+        }).sort((a, b) => {
+            const dateA = new Date(a.created_at || 0).getTime();
+            const dateB = new Date(b.created_at || 0).getTime();
+            return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+        });
+    }, [campaigns, searchQuery, sortOrder, statusFilter]);
+
+    const paginatedCampaigns = useMemo(() => {
+        const startIndex = (currentPage - 1) * pageSize;
+        return filteredCampaigns.slice(startIndex, startIndex + pageSize);
+    }, [filteredCampaigns, currentPage, pageSize]);
+
+    const stats = useMemo(() => {
+        const total = campaigns.length;
+        const recent = campaigns.filter(c => {
+            const diff = new Date().getTime() - new Date(c.created_at).getTime();
+            return diff < (7 * 24 * 60 * 60 * 1000); // 7 days
+        }).length;
+        const uniqueProjects = new Set(campaigns.map(c => c.project)).size;
+
+        return { total, recent, uniqueProjects };
+    }, [campaigns]);
 
     const handleDeleteClick = (id: any) => {
         setDeleteModal({ isOpen: true, campaignId: id });
@@ -136,22 +166,70 @@ const AdminCampaigns = () => {
                 <Sidebar />
                 <main className={`flex-1 p-8 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     <div className="max-w-7xl mx-auto">
+                        <div className="mb-8">
+                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 font-heading tracking-tight">Administration des Campagnes</h1>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">Gestion et suivi des campagnes de tests importées</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            <StatCard
+                                title="Total Campagnes"
+                                value={stats.total}
+                                icon={Briefcase}
+                                variant="blue"
+                                description="Base de données complète"
+                            />
+                            <StatCard
+                                title="Récentes (7j)"
+                                value={stats.recent}
+                                icon={Calendar}
+                                variant="green"
+                                description="Nouveaux imports Excel"
+                                change={stats.recent > 0 ? `+${stats.recent}` : undefined}
+                                changeType="positive"
+                            />
+                            <StatCard
+                                title="Projets Rattachés"
+                                value={stats.uniqueProjects}
+                                icon={Layers}
+                                variant="purple"
+                                description="Releases actives et passées"
+                            />
+                            <StatCard
+                                title="Statut Système"
+                                value="OK"
+                                icon={Rocket}
+                                variant="slate"
+                                description="Service Analytics opérationnel"
+                            />
+                        </div>
+
                         <AdminTable
-                            title="Administration des Campagnes"
                             columns={columns}
-                            data={filteredCampaigns}
+                            data={paginatedCampaigns}
                             isLoading={loading}
                             searchable
                             onSearch={setSearchQuery}
                             filters={
-                                <select
-                                    className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                    value={sortOrder}
-                                    onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                                >
-                                    <option value="newest">Plus récents</option>
-                                    <option value="oldest">Plus anciens</option>
-                                </select>
+                                <div className="flex items-center gap-2">
+                                    <select
+                                        className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer"
+                                        value={statusFilter}
+                                        onChange={(e) => setStatusFilter(e.target.value)}
+                                    >
+                                        <option value="ALL">Tous les statuts</option>
+                                        <option value="active">Actif</option>
+                                        <option value="inactive">Désactivé</option>
+                                    </select>
+                                    <select
+                                        className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer"
+                                        value={sortOrder}
+                                        onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                                    >
+                                        <option value="newest">Actif</option>
+                                        <option value="oldest">Désactivé</option>
+                                    </select>
+                                </div>
                             }
                             actions={(item) => (
                                 <div className="flex items-center gap-2">
@@ -172,6 +250,16 @@ const AdminCampaigns = () => {
                                 </div>
                             )}
                         />
+
+                        <div className="mt-6">
+                            <Pagination
+                                currentPage={currentPage}
+                                totalItems={filteredCampaigns.length}
+                                pageSize={pageSize}
+                                onPageChange={setCurrentPage}
+                                loading={loading}
+                            />
+                        </div>
                     </div>
                 </main>
             </div>

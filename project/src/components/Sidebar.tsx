@@ -7,11 +7,13 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
+import { useTheme } from '../context/ThemeContext';
 
 const Sidebar = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { isOpen, toggle } = useSidebar();
+  const { theme } = useTheme();
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'admin';
 
@@ -21,7 +23,6 @@ const Sidebar = () => {
       items: [
         { name: 'Gestion des utilisateurs', href: '/users', icon: Users, roles: ['ADMIN'] },
         { name: 'Gestions des emails', href: '/management/messages', icon: Mail, roles: ['ADMIN'] },
-        { name: 'Gestions des discussions AI', href: '/management/analytics', icon: Sparkles, roles: ['ADMIN'] },
       ]
     },
     {
@@ -39,6 +40,7 @@ const Sidebar = () => {
       items: [
         { name: 'Commentaires', href: '/admin/comments', icon: MessageSquare, roles: ['ADMIN'] },
         { name: 'Messagerie', href: '/messages', icon: Mail, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+        { name: 'Gestion des discussions AI', href: '/management/analytics', icon: MessageSquare, roles: ['ADMIN'] },
         { name: 'Analytics IA', href: '/analytics', icon: Sparkles, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
       ]
     }
@@ -54,7 +56,7 @@ const Sidebar = () => {
     return (
       <div key={group.title} className="py-2">
         {isOpen && (
-          <h3 className="px-4 mb-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-[0.15em] uppercase">
+          <h3 className="px-6 mb-3 text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-[0.25em] uppercase font-heading">
             {group.title}
           </h3>
         )}
@@ -92,7 +94,7 @@ const Sidebar = () => {
 
   return (
     <aside
-      className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:pt-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-r border-slate-200/50 dark:border-slate-700/50 transition-all duration-300 z-40 ${isOpen ? 'lg:w-64' : 'lg:w-16'
+      className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:pt-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 transition-all duration-500 z-40 ${isOpen ? 'lg:w-64' : 'lg:w-16'
         }`}
       style={{ '--sidebar-width': isOpen ? '16rem' : '4rem' } as React.CSSProperties}
     >
@@ -125,10 +127,10 @@ const Sidebar = () => {
           </div>
           {isOpen && (
             <div className="ml-3 min-w-0 flex-1">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+              <p className="text-sm font-bold text-slate-900 dark:text-white truncate font-heading tracking-tight">
                 {user?.username || 'Utilisateur'}
               </p>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium tracking-wide uppercase truncate">
+              <p className="text-[9px] text-slate-500 dark:text-slate-400 font-extrabold tracking-[0.1em] uppercase truncate font-heading">
                 {user?.role || ''}
               </p>
             </div>
@@ -142,6 +144,18 @@ const Sidebar = () => {
           </button>
         </div>
       </div>
+      {/* Brand Footer */}
+      {isOpen && (
+        <div className="px-6 py-4 flex items-center gap-2 opacity-40 hover:opacity-100 transition-opacity duration-300">
+          <img
+            src={theme === 'dark' ? '/logo-lloyd-dark.webp' : '/logo-lloyd-light.webp'}
+            alt="Lloyd"
+            onError={(e) => { (e.target as HTMLImageElement).src = '/logo-lloyd.webp'; }}
+            className={`w-4 h-4 ${theme === 'dark' ? '' : 'grayscale'}`}
+          />
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter transition-colors">Lloyd Assurances</span>
+        </div>
+      )}
     </aside>
   );
 };

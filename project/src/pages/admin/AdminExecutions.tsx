@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Header from '../../components/Header';
 import Sidebar from '../../components/Sidebar';
 import { useSidebar } from '../../context/SidebarContext';
@@ -8,6 +8,8 @@ import { toast } from 'react-toastify';
 import EditExecutionModal from '../../components/EditExecutionModal';
 import { useLocation } from 'react-router-dom';
 import ConfirmModal from '../../components/ConfirmModal';
+import StatCard from '../../components/StatCard';
+import { PlayCircle, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
 const AdminExecutions = () => {
     const { isOpen } = useSidebar();
@@ -69,6 +71,15 @@ const AdminExecutions = () => {
         return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
     });
 
+    const stats = useMemo(() => {
+        const total = executions.length;
+        const passed = executions.filter(e => e.status === 'passed').length;
+        const failed = executions.filter(e => e.status === 'failed').length;
+        const pending = executions.filter(e => e.status === 'pending').length;
+
+        return { total, passed, failed, pending };
+    }, [executions]);
+
     const handleEditTest = (test: TestItem) => setEditingTest(test);
 
     const handleDeleteTest = async (test: TestItem) => {
@@ -106,6 +117,45 @@ const AdminExecutions = () => {
             <div className="flex flex-1 relative overflow-hidden">
                 <Sidebar />
                 <main className={`flex-1 flex flex-col h-[calc(100vh-64px)] overflow-hidden transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
+
+                    {/* Summary Stats Grid */}
+                    <div className="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-50 dark:bg-slate-900 overflow-x-auto shrink-0 border-b border-slate-200 dark:border-slate-800">
+                        <StatCard
+                            title="Total Tests"
+                            value={stats.total}
+                            icon={PlayCircle}
+                            variant="blue"
+                            description="Toutes exécutions confondues"
+                            isLoading={loading}
+                        />
+                        <StatCard
+                            title="Succès"
+                            value={stats.passed}
+                            icon={CheckCircle2}
+                            variant="green"
+                            description="Tests validés sans erreur"
+                            changeType="positive"
+                            isLoading={loading}
+                        />
+                        <StatCard
+                            title="Échecs / Bugs"
+                            value={stats.failed}
+                            icon={XCircle}
+                            variant="red"
+                            description="Anomalies à investiguer"
+                            change={stats.failed > 0 ? `+${stats.failed}` : undefined}
+                            changeType="negative"
+                            isLoading={loading}
+                        />
+                        <StatCard
+                            title="En Attente"
+                            value={stats.pending}
+                            icon={Clock}
+                            variant="yellow"
+                            description="Tests non encore réalisés"
+                            isLoading={loading}
+                        />
+                    </div>
 
                     {/* Top Controls */}
                     <div className="p-6 pb-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex-shrink-0">

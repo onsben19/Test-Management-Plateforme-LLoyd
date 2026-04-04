@@ -3,10 +3,13 @@ import Header from '../../components/Header';
 import Sidebar from '../../components/Sidebar';
 import AdminTable from '../../components/AdminTable';
 import { emailService } from '../../services/api';
-import { useSidebar } from '../../context/SidebarContext';
-import { Mail, Paperclip, Trash2, Eye } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useSidebar } from '../../context/SidebarContext';
 import ConfirmModal from '../../components/ConfirmModal';
+import StatCard from '../../components/StatCard';
+import { Mail, Paperclip, Trash2, Eye, Send, Inbox, AlertOctagon, Clock } from 'lucide-react';
+import { useMemo } from 'react';
+import Pagination from '../../components/Pagination';
 
 const AdminEmails = () => {
     const { isOpen } = useSidebar();
@@ -14,6 +17,8 @@ const AdminEmails = () => {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 10;
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [emailToDelete, setEmailToDelete] = useState<any | null>(null);
 
@@ -35,6 +40,10 @@ const AdminEmails = () => {
         fetchEmails();
     }, []);
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
+
     const filteredEmails = emails.filter(email => {
         const query = searchQuery.toLowerCase();
         return (
@@ -44,6 +53,25 @@ const AdminEmails = () => {
             (email.recipient_name || '').toLowerCase().includes(query)
         );
     });
+
+    const paginatedEmails = useMemo(() => {
+        const startIndex = (currentPage - 1) * pageSize;
+        return filteredEmails.slice(startIndex, startIndex + pageSize);
+    }, [filteredEmails, currentPage, pageSize]);
+
+    const stats = useMemo(() => {
+        const total = emails.length;
+        const withAttachments = emails.filter(e => e.attachment).length;
+        const recent = emails.filter(e => {
+            const diff = new Date().getTime() - new Date(e.created_at).getTime();
+            return diff < (24 * 60 * 60 * 1000);
+        }).length;
+        const readRate = total > 0
+            ? Math.round((emails.filter(e => e.is_read).length / total) * 100)
+            : 0;
+
+        return { total, withAttachments, recent, readRate };
+    }, [emails]);
 
     const handleDeleteEmail = async (email: any) => {
         setEmailToDelete(email);
@@ -90,23 +118,52 @@ const AdminEmails = () => {
                 <Sidebar />
                 <main className={`flex-1 p-8 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     <div className="max-w-7xl mx-auto">
-                        <div className="flex justify-between items-center mb-8">
-                            <div>
-                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Administration des Messageries</h1>
-                                <p className="text-slate-500 dark:text-slate-400">Supervision globale de toutes les communications internes</p>
-                            </div>
-                            <div className="flex items-center gap-2 bg-blue-500/10 text-blue-600 px-4 py-2 rounded-lg border border-blue-200 text-sm font-medium">
-                                <Mail className="w-4 h-4" />
-                                {emails.length} Emails Total
-                            </div>
+                        <div className="mb-8">
+                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 font-heading tracking-tight">Administration des Messageries</h1>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">Supervision globale de toutes les communications internes</p>
+                        </div>
+
+                        {/* Summary Stats Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            <StatCard
+                                title="Volume Messagerie"
+                                value={stats.total}
+                                icon={Inbox}
+                                variant="blue"
+                                description="Total historique"
+                            />
+                            <StatCard
+                                title="Pièces Jointes"
+                                value={stats.withAttachments}
+                                icon={Paperclip}
+                                variant="purple"
+                                description="Fichiers partagés"
+                            />
+                            <StatCard
+                                title="Nouveaux (24h)"
+                                value={stats.recent}
+                                icon={Send}
+                                variant="green"
+                                description="Flux journalier"
+                                change={stats.recent > 0 ? `+${stats.recent}` : undefined}
+                                changeType="positive"
+                            />
+                            <StatCard
+                                title="Engagement Lecture"
+                                value={`${stats.readRate}%`}
+                                icon={Eye}
+                                variant="yellow"
+                                description="Messages consultés"
+                                change={stats.readRate >= 80 ? "Optimal" : "À surveiller"}
+                                changeType={stats.readRate >= 80 ? "positive" : "neutral"}
+                            />
                         </div>
 
                         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                             <div className="xl:col-span-2">
                                 <AdminTable
-                                    title="Tous les Emails"
                                     columns={columns}
-                                    data={filteredEmails}
+                                    data={paginatedEmails}
                                     isLoading={loading}
                                     searchable
                                     onSearch={setSearchQuery}
@@ -129,6 +186,15 @@ const AdminEmails = () => {
                                         </div>
                                     )}
                                 />
+                                <div className="mt-6">
+                                    <Pagination
+                                        currentPage={currentPage}
+                                        totalItems={filteredEmails.length}
+                                        pageSize={pageSize}
+                                        onPageChange={setCurrentPage}
+                                        loading={loading}
+                                    />
+                                </div>
                             </div>
 
                             <div className="xl:col-span-1">

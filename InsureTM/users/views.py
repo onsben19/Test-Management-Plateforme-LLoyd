@@ -23,6 +23,22 @@ class UserViewSet(viewsets.ModelViewSet):
         role = self.request.query_params.get('role')
         if role:
             queryset = queryset.filter(role=role)
+            
+        is_active = self.request.query_params.get('is_active')
+        if is_active is not None:
+            is_active = is_active.lower() in ['true', '1', 't', 'y', 'yes']
+            queryset = queryset.filter(is_active=is_active)
+            
+        search = self.request.query_params.get('search')
+        if search:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search) |
+                Q(email__icontains=search) |
+                Q(username__icontains=search)
+            )
+            
         return queryset
 
     def perform_create(self, serializer):

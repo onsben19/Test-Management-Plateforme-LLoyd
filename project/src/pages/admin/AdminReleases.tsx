@@ -7,6 +7,10 @@ import { toast } from 'react-toastify';
 import { Edit, Trash2, Layers } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useSidebar } from '../../context/SidebarContext';
+import StatCard from '../../components/StatCard';
+import { CheckCircle2, Clock, Calendar, Rocket } from 'lucide-react';
+import { useMemo } from 'react';
+import Pagination from '../../components/Pagination';
 
 const AdminReleases = () => {
     const { isOpen } = useSidebar();
@@ -19,6 +23,8 @@ const AdminReleases = () => {
     });
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 8;
 
     // Modal State
     const [editingRelease, setEditingRelease] = useState<any>(null);
@@ -47,6 +53,10 @@ const AdminReleases = () => {
         fetchReleases();
     }, []);
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, statusFilter]);
+
     const filteredReleases = releases.filter(release => {
         const matchesSearch = release.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (release.description && release.description.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -57,6 +67,20 @@ const AdminReleases = () => {
         const dateB = new Date(b.created_at).getTime();
         return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
     });
+
+    const paginatedReleases = useMemo(() => {
+        const startIndex = (currentPage - 1) * pageSize;
+        return filteredReleases.slice(startIndex, startIndex + pageSize);
+    }, [filteredReleases, currentPage, pageSize]);
+
+    const stats = useMemo(() => {
+        const total = releases.length;
+        const active = releases.filter(r => r.status === 'ACTIVE').length;
+        const planning = releases.filter(r => r.status === 'PLANNING').length;
+        const completed = releases.filter(r => r.status === 'COMPLETED').length;
+
+        return { total, active, planning, completed };
+    }, [releases]);
 
     const resetForm = () => {
         setEditForm({ name: '', description: '', status: 'ACTIVE' });
@@ -160,10 +184,46 @@ const AdminReleases = () => {
                 <Sidebar />
                 <main className={`flex-1 p-8 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
                     <div className="max-w-7xl mx-auto">
+                        <div className="mb-8">
+                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 font-heading tracking-tight">Administration des Releases</h1>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm">Vision globale et historique complet des livrables</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            <StatCard
+                                title="Total Releases"
+                                value={stats.total}
+                                icon={Layers}
+                                variant="blue"
+                                description="Tous les projets rattachés"
+                            />
+                            <StatCard
+                                title="Releases Actives"
+                                value={stats.active}
+                                icon={Rocket}
+                                variant="green"
+                                description="En cours de test"
+                                changeType="positive"
+                            />
+                            <StatCard
+                                title="En Planification"
+                                value={stats.planning}
+                                icon={Calendar}
+                                variant="purple"
+                                description="Prochaines versions"
+                            />
+                            <StatCard
+                                title="Terminées"
+                                value={stats.completed}
+                                icon={CheckCircle2}
+                                variant="slate"
+                                description="Historique clôturé"
+                            />
+                        </div>
+
                         <AdminTable
-                            title="Administration des Releases"
                             columns={columns}
-                            data={releases}
+                            data={paginatedReleases}
                             isLoading={loading}
                             searchable
                             onSearch={setSearchQuery}
@@ -184,8 +244,8 @@ const AdminReleases = () => {
                                         value={sortOrder}
                                         onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
                                     >
-                                        <option value="newest">Plus récents</option>
-                                        <option value="oldest">Plus anciens</option>
+                                        <option value="newest">Actif</option>
+                                        <option value="oldest">Désactivé</option>
                                     </select>
                                 </div>
                             }
@@ -208,6 +268,16 @@ const AdminReleases = () => {
                                 </div>
                             )}
                         />
+
+                        <div className="mt-6">
+                            <Pagination
+                                currentPage={currentPage}
+                                totalItems={filteredReleases.length}
+                                pageSize={pageSize}
+                                onPageChange={setCurrentPage}
+                                loading={loading}
+                            />
+                        </div>
                     </div>
                 </main>
             </div>
