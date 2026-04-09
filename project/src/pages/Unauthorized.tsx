@@ -1,25 +1,52 @@
-
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, Home, ArrowLeft } from 'lucide-react';
+import PageLayout from '../components/PageLayout';
+import { motion } from 'framer-motion';
 
 const Unauthorized = () => {
+    const { t } = useTranslation();
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors">
-            <div className="p-8 max-w-md text-center bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700">
-                <ShieldAlert className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                <h1 className="text-3xl font-bold mb-2 text-white">Accès Refusé</h1>
-                <p className="text-slate-400 mb-6">
-                    Vous n'avez pas les permissions nécessaires pour accéder à cette page.
-                </p>
-                <Link
-                    to="/"
-                    className="inline-flex items-center justify-center px-5 py-2 text-base font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+        <PageLayout>
+            <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    className="relative"
                 >
-                    Retour au Tableau de bord
-                </Link>
+                    <div className="absolute inset-0 bg-rose-500/20 blur-3xl rounded-full" />
+                    <div className="relative w-24 h-24 rounded-[2rem] bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500 mb-8 mx-auto shadow-2xl">
+                        <ShieldAlert className="w-12 h-12" />
+                    </div>
+                </motion.div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="max-w-lg"
+                >
+                    <h1 className="text-4xl font-black text-white tracking-widest uppercase mb-4 leading-tight">
+                        {t('errors.403.title') || "ACCÈS INTERDIT"}
+                    </h1>
+                    <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-12 max-w-sm mx-auto opacity-70">
+                        {t('errors.403.message') || "VOUS N'AVEZ PAS LES PERMISSIONS NÉCESSAIRES POUR ACCÉDER À CETTE RESSOURCE."}
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+                        <Link
+                            to="/"
+                            className="bg-white text-black px-10 py-4 rounded-3xl font-black text-[10px] tracking-widest uppercase hover:bg-slate-200 transition-all shadow-xl active:scale-95 flex items-center gap-2"
+                        >
+                            <Home className="w-4 h-4" />
+                            {t('errors.403.back') || "RETOUR À L'ACCUEIL"}
+                        </Link>
+                    </div>
+                </motion.div>
             </div>
-        </div>
+        </PageLayout>
     );
 };
 

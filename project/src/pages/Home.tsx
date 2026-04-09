@@ -7,10 +7,10 @@ const Home = () => {
 
   if (!user) return <Navigate to="/login" />;
 
-  if (user.role === 'ADMIN') return <Navigate to="/admin/executions" />;
+  if (user.role === 'ADMIN') return <Navigate to="/admin/dashboard" />;
 
   // Managers can also see Releases or Execution. Defaulting to Execution as it's the main work.
-  if (user.role === 'MANAGER') return <Navigate to="/execution" />;
+  if (user.role === 'MANAGER') return <Navigate to="/manager/dashboard" />;
 
   if (user.role === 'TESTER') return <Navigate to="/tester-dashboard" />;
 

@@ -10,11 +10,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { executionService, projectService, campaignService } from '../services/api';
 import { useSidebar } from '../context/SidebarContext';
 import StatCard from '../components/StatCard';
-import { PlayCircle, CheckCircle, XCircle, BarChart3, Clock, List, X } from 'lucide-react';
+import PageLayout from '../components/PageLayout';
+import { PlayCircle, CheckCircle, XCircle, BarChart3, Clock, List, X, Search, Filter, SortAsc, LayoutGrid } from 'lucide-react';
 import Pagination from '../components/Pagination';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const ExecutionTracking = () => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
@@ -92,7 +95,6 @@ const ExecutionTracking = () => {
         if (found) {
             setSelectedTest(found);
         } else if (!selectedTest || selectedTest.id !== testId) {
-            // Fetch single test if not found in list or not already selected
             executionService.getExecution(testId).then(res => {
                 const t = res.data;
                 setSelectedTest({
@@ -123,7 +125,7 @@ const ExecutionTracking = () => {
             setProjects(projRes.data.results || projRes.data);
             setCampaigns(campRes.data.results || campRes.data);
         } catch {
-            // Filter dropdowns are optional — fail silently
+            // Filter dropdowns are optional
         }
     };
 
@@ -186,177 +188,196 @@ const ExecutionTracking = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 flex flex-col">
-            <Header />
-            <div className="flex flex-1 relative">
-                <Sidebar />
-                <main className={`flex-1 flex overflow-hidden h-[calc(100vh-64px)] transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
-                    {/* Left List Panel */}
-                    <div className="flex-1 overflow-y-auto p-8 space-y-8">
-                        <div className="max-w-7xl mx-auto space-y-8">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div>
-                                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight transition-colors">
-                                        <span className="text-gradient">Suivi d'Exécution</span>
-                                    </h1>
-                                    <p className="text-slate-500 dark:text-slate-400 transition-colors">Pilotez les campagnes de tests et suivez la performance de l'équipe</p>
+        <PageLayout
+            title={t('executionTracking.title')}
+            subtitle="AUDIT & PERFORMANCE"
+            actions={
+                <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
+                    <button
+                        onClick={() => setActiveTab('list')}
+                        className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'list' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                    >
+                        <List className="w-4 h-4" />
+                        LISTE
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('performance')}
+                        className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'performance' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                    >
+                        <BarChart3 className="w-4 h-4" />
+                        PERFORMANCE
+                    </button>
+                </div>
+            }
+        >
+            <div className="flex flex-col lg:flex-row gap-8 min-h-[calc(100vh-280px)]">
+                {/* Left List Panel */}
+                <div className="flex-1 space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                        <StatCard
+                            title="Total Exécutions"
+                            value={stats.total}
+                            icon={PlayCircle}
+                            variant="blue"
+                            description="Toutes campagnes"
+                            isLoading={loading}
+                        />
+                        <StatCard
+                            title="Taux de Réussite"
+                            value={`${stats.successRate}%`}
+                            icon={CheckCircle}
+                            variant="green"
+                            description="Tests validés"
+                            isLoading={loading}
+                        />
+                        <StatCard
+                            title="Tests Échoués"
+                            value={stats.failed}
+                            icon={XCircle}
+                            variant="red"
+                            description="Anomalies"
+                            isLoading={loading}
+                        />
+                        <StatCard
+                            title="En Attente"
+                            value={stats.pending}
+                            icon={Clock}
+                            variant="yellow"
+                            description="Restants"
+                            isLoading={loading}
+                        />
+                    </div>
+
+                    {/* Search/Filter Bar */}
+                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[3.5rem] overflow-hidden shadow-2xl shadow-blue-900/10">
+                        <div className="p-8 border-b border-white/5 flex flex-col xl:flex-row items-center gap-6">
+                            <div className="relative flex-1 group w-full">
+                                <Search className="absolute left-8 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                <input
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Rechercher une exécution..."
+                                    className="w-full bg-white/5 border border-white/10 rounded-full pl-16 pr-8 py-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-medium placeholder-slate-500"
+                                />
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+                                <div className="relative bg-white/5 rounded-2xl border border-white/10 overflow-hidden min-w-[180px] hover:bg-white/10 transition-all">
+                                    <select
+                                        className="w-full bg-transparent text-white text-[9px] font-bold uppercase tracking-[0.2em] pl-6 pr-10 py-4 outline-none cursor-pointer appearance-none relative z-10"
+                                        value={groupBy}
+                                        onChange={(e) => setGroupBy(e.target.value as 'none' | 'campaign' | 'release')}
+                                    >
+                                        <option value="none" className="bg-slate-900">SANS GROUPEMENT</option>
+                                        <option value="campaign" className="bg-slate-900">PAR CAMPAGNE</option>
+                                        <option value="release" className="bg-slate-900">PAR RELEASE</option>
+                                    </select>
+                                    <LayoutGrid className="absolute right-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                                </div>
+
+                                <div className="relative bg-white/5 rounded-2xl border border-white/10 overflow-hidden min-w-[180px] hover:bg-white/10 transition-all">
+                                    <select
+                                        className="w-full bg-transparent text-white text-[9px] font-bold uppercase tracking-[0.2em] pl-6 pr-10 py-4 outline-none cursor-pointer appearance-none relative z-10"
+                                        value={sortOrder}
+                                        onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                                    >
+                                        <option value="newest" className="bg-slate-900">PLUS RÉCENT</option>
+                                        <option value="oldest" className="bg-slate-900">PLUS ANCIEN</option>
+                                    </select>
+                                    <SortAsc className="absolute right-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
                                 </div>
                             </div>
+                        </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <StatCard
-                                    title="Total Exécutions"
-                                    value={stats.total}
-                                    icon={PlayCircle}
-                                    variant="blue"
-                                    description="Toutes campagnes confondues"
-                                    isLoading={loading}
-                                />
-                                <StatCard
-                                    title="Taux de Réussite"
-                                    value={`${stats.successRate}%`}
-                                    icon={BarChart3}
-                                    variant="blue"
-                                    description="Pourcentage de tests validés"
-                                    isLoading={loading}
-                                />
-                                <StatCard
-                                    title="Tests Échoués"
-                                    value={stats.failed}
-                                    icon={XCircle}
-                                    variant="red"
-                                    description="Anomalies détectées"
-                                    change={stats.failed > 0 ? `+${stats.failed}` : undefined}
-                                    changeType="negative"
-                                    isLoading={loading}
-                                />
-                                <StatCard
-                                    title="En Attente"
-                                    value={stats.pending}
-                                    icon={Clock}
-                                    variant="yellow"
-                                    description="Tests restants à exécuter"
-                                    isLoading={loading}
-                                />
-                            </div>
-
-                            {/* Search/Filter Bar */}
-                            <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-colors">
-                                <div className="flex flex-col md:flex-row gap-4">
-                                    <div className="relative flex-1">
-                                        <List className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <input
-                                            type="text"
-                                            placeholder="Rechercher par nom, release, campagne ou testeur..."
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors placeholder:text-slate-400 text-sm"
-                                        />
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <select
-                                            value={sortOrder}
-                                            onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                                            className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm font-medium"
-                                        >
-                                            <option value="newest">Plus récent</option>
-                                            <option value="oldest">Plus ancien</option>
-                                        </select>
-                                        <select
-                                            value={groupBy}
-                                            onChange={(e) => setGroupBy(e.target.value as 'none' | 'campaign' | 'release')}
-                                            className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-sm font-medium"
-                                        >
-                                            <option value="none">Aucun groupement</option>
-                                            <option value="campaign">Par Campagne</option>
-                                            <option value="release">Par Release</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden transition-colors">
-                                <ExecutionTestList
-                                    tests={filteredTests}
-                                    onSelectTest={handleSelectTest}
-                                    selectedTestId={selectedTest?.id}
-                                    onViewCaptures={setViewingCaptures}
-                                    onEditTest={setEditingTest}
-                                    onDeleteTest={handleDeleteTest}
-                                    isTester={isTester}
-                                    canManage={canManage}
-                                    canDelete={canDelete}
-                                    groupBy={groupBy}
-                                />
-                            </div>
-
-                            <Pagination
-                                currentPage={currentPage}
-                                totalItems={totalItems}
-                                pageSize={pageSize}
-                                onPageChange={handlePageChange}
-                                loading={loading}
+                        <div className="bg-slate-900/40">
+                            <ExecutionTestList
+                                tests={filteredTests}
+                                onSelectTest={handleSelectTest}
+                                selectedTestId={selectedTest?.id}
+                                onViewCaptures={setViewingCaptures}
+                                onEditTest={setEditingTest}
+                                onDeleteTest={handleDeleteTest}
+                                isTester={isTester}
+                                canManage={canManage}
+                                canDelete={canDelete}
+                                groupBy={groupBy}
                             />
                         </div>
                     </div>
 
-                    {/* Right Details Panel */}
-                    {selectedTest && (
-                        <div className="w-[450px] border-l border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 h-full overflow-hidden flex-shrink-0 animate-in slide-in-from-right duration-300">
-                            <ReviewPanel
-                                test={selectedTest}
-                                onClose={() => setSelectedTest(null)}
-                                onUpdate={(updates) => handleTestUpdate(selectedTest.id, updates)}
-                                embed={true}
-                                readOnly={!canManage}
-                            />
-                        </div>
-                    )}
-                </main>
-
-                {editingTest && (
-                    <EditExecutionModal
-                        test={editingTest}
-                        onClose={() => setEditingTest(null)}
-                        onSave={handleTestUpdate}
+                    <Pagination
+                        currentPage={currentPage}
+                        totalItems={totalItems}
+                        pageSize={pageSize}
+                        onPageChange={handlePageChange}
+                        loading={loading}
                     />
-                )}
+                </div>
 
-                {/* Image Viewer Lightbox */}
-                {viewingCaptures && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/90 backdrop-blur-sm" onClick={() => setViewingCaptures(null)}>
-                        <div className="relative max-w-5xl max-h-screen w-full p-4 flex flex-col items-center" onClick={e => e.stopPropagation()}>
-                            <button
-                                className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors"
-                                onClick={() => setViewingCaptures(null)}
-                            >
-                                <div className="bg-white/10 p-2 rounded-full hover:bg-white/20">
-                                    <X className="w-6 h-6" />
-                                </div>
-                            </button>
-                            <div className="flex overflow-x-auto gap-4 p-4 w-full justify-center snap-x">
-                                {(viewingCaptures.captures || []).map((cap, idx) => (
-                                    <div key={idx} className="snap-center shrink-0 max-w-[80vw] max-h-[80vh] flex flex-col items-center">
-                                        {cap.startsWith('data:') ? (
-                                            <img src={cap} alt={`Capture ${idx}`} className="rounded-lg shadow-2xl max-h-[80vh] object-contain" />
-                                        ) : (
-                                            <div className="w-96 h-64 bg-white dark:bg-slate-800 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700">
-                                                <span className="text-slate-500 dark:text-slate-400">{cap}</span>
-                                            </div>
-                                        )}
-                                        <p className="mt-2 text-slate-500 dark:text-slate-400 text-sm">Capture {idx + 1} / {(viewingCaptures.captures || []).length}</p>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="text-center mt-4">
-                                <h3 className="text-white font-medium text-lg">{viewingCaptures.name}</h3>
-                                <p className="text-slate-400 text-sm">{viewingCaptures.id}</p>
-                            </div>
-                        </div>
+                {/* Right Details Panel */}
+                {selectedTest && (
+                    <div className="w-full lg:w-[480px] border border-white/10 bg-white/5 backdrop-blur-3xl h-[calc(100vh-280px)] sticky top-0 rounded-[3.5rem] overflow-hidden flex-shrink-0 animate-in slide-in-from-right duration-500 shadow-2xl shadow-blue-900/20">
+                        <ReviewPanel
+                            test={selectedTest}
+                            onClose={() => setSelectedTest(null)}
+                            onUpdate={(updates) => handleTestUpdate(selectedTest.id, updates)}
+                            embed={true}
+                            readOnly={!canManage}
+                        />
                     </div>
                 )}
             </div>
-        </div>
+
+            {editingTest && (
+                <EditExecutionModal
+                    test={editingTest}
+                    onClose={() => setEditingTest(null)}
+                    onSave={handleTestUpdate}
+                />
+            )}
+
+            {/* Image Viewer Lightbox */}
+            {viewingCaptures && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl" onClick={() => setViewingCaptures(null)}>
+                    <div className="relative max-w-7xl max-h-screen w-full p-8 flex flex-col items-center" onClick={e => e.stopPropagation()}>
+                        <button
+                            className="absolute top-8 right-8 text-white/50 hover:text-white transition-all transform hover:rotate-90 hover:scale-110"
+                            onClick={() => setViewingCaptures(null)}
+                        >
+                            <div className="bg-white/5 p-3 rounded-full hover:bg-white/10 border border-white/10 shadow-2xl backdrop-blur-md">
+                                <X className="w-8 h-8" />
+                            </div>
+                        </button>
+                        <div className="flex overflow-x-auto gap-8 p-8 w-full justify-center snap-x custom-scrollbar">
+                            {(viewingCaptures.captures || []).map((cap, idx) => (
+                                <div key={idx} className="snap-center shrink-0 max-w-[85vw] max-h-[75vh] flex flex-col items-center group">
+                                    <div className="relative">
+                                        {cap.startsWith('data:') ? (
+                                            <img src={cap} alt={`Capture ${idx}`} className="rounded-[2.5rem] shadow-[0_0_100px_rgba(37,99,235,0.15)] border border-white/10 max-h-[75vh] object-contain transition-transform duration-500 group-hover:scale-[1.02]" />
+                                        ) : (
+                                            <div className="w-96 h-64 bg-white/5 flex items-center justify-center rounded-[2.5rem] border border-white/10">
+                                                <span className="text-slate-500 font-bold uppercase tracking-widest text-xs opacity-50">{cap}</span>
+                                            </div>
+                                        )}
+                                        <div className="absolute top-6 left-6 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                                            <p className="text-white/70 font-bold uppercase tracking-[0.2em] text-[8px]">CAPTURE {idx + 1} / {(viewingCaptures?.captures || []).length}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="text-center mt-12 space-y-3">
+                            <h3 className="text-3xl font-black text-white tracking-tight uppercase leading-none">{viewingCaptures.name}</h3>
+                            <div className="flex items-center justify-center gap-3">
+                                <div className="h-px w-6 bg-blue-500/50" />
+                                <p className="text-blue-500 font-bold tracking-[0.3em] text-[10px] uppercase">EXÉCUTION #{viewingCaptures.id}</p>
+                                <div className="h-px w-6 bg-blue-500/50" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </PageLayout>
     );
 };
 

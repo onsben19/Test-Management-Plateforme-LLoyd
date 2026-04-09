@@ -125,6 +125,12 @@ export const aiService = {
         api.get(`/analytics/conversations/${conversationId}/messages/`),
     ask: (data: FormData) =>
         api.post('/analytics/ask/', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+    getReadinessScore: (campaignId: string | number) =>
+        api.get(`/analytics/readiness-score/${campaignId}/`),
+    getReadinessScoreByProject: (projectId: string | number) =>
+        api.get(`/analytics/readiness-score/project/${projectId}/`),
+    exportClosureReport: (campaignId: string | number) =>
+        api.get(`/analytics/closure-report/${campaignId}/`, { responseType: 'blob' }),
 };
 
 export default api;

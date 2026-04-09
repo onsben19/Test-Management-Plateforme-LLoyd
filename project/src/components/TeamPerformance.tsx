@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const productivityData = [
@@ -12,11 +13,12 @@ const productivityData = [
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 const TeamPerformance = () => {
+    const { t } = useTranslation();
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Productivity Chart */}
             <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-medium text-white mb-6">Productivité des Testeurs (Tests vs Bugs)</h3>
+                <h3 className="text-lg font-medium text-white mb-6">{t('execution.performance.title')}</h3>
                 <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart
@@ -31,8 +33,8 @@ const TeamPerformance = () => {
                                 itemStyle={{ color: '#f8fafc' }}
                                 cursor={{ fill: 'rgba(51, 65, 85, 0.4)' }}
                             />
-                            <Bar dataKey="tests" name="Tests Exécutés" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="bugs" name="Bugs Trouvés" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="tests" name={t('execution.performance.tests')} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="bugs" name={t('execution.performance.bugs')} fill="#ef4444" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
@@ -40,7 +42,7 @@ const TeamPerformance = () => {
 
             {/* Success Ratio */}
             <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-medium text-white mb-6">Répartition de la Charge</h3>
+                <h3 className="text-lg font-medium text-white mb-6">{t('execution.performance.loadDistribution')}</h3>
                 <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>

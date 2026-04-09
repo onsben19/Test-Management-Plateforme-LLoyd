@@ -2,6 +2,7 @@ import os
 import groq
 import base64
 from django.db import connection
+from campaigns.models import Campaign
 
 class GroqService:
     def __init__(self):
@@ -144,7 +145,47 @@ class GroqService:
                 answer = self.analyze_image(image, question)
                 return {"answer": answer, "type": "text", "sql": "", "data": []}
             
-            # Case 2: Data query
+            # Case 2: Readiness Score Intent
+            readiness_keywords = ['score', 'readiness', 'prêt', 'déploiement', 'confiance', 'readynace']
+            if any(kw in question.lower() for kw in readiness_keywords):
+                campaign = Campaign.objects.filter(status='ACTIVE').order_by('-created_at').first()
+                if not campaign:
+                    campaign = Campaign.objects.order_by('-created_at').first()
+                
+                if campaign:
+                    from .readiness_service import ReleaseReadinessManager
+                    readiness = ReleaseReadinessManager().calculate_readiness_score(campaign.id)
+                    
+                    prompt = f"""
+                    Expert QA Platform Analyser. 
+                    Explique le 'Release Readiness Score' au manager.
+                    
+                    Campagne: {campaign.title}
+                    Score Actuel: {readiness.get('score', 0)}%
+                    Répartition: {readiness.get('breakdown', {})}
+                    Raisons précises: {readiness.get('reasons', [])}
+                    
+                    Question de l'utilisateur: {question}
+                    
+                    Règles:
+                    1. Réponds en Français de manière professionnelle et concise.
+                    2. Utilise les 'Raisons précises' pour justifier pourquoi le score est à ce niveau.
+                    3. À la fin, propose TOUJOURS une action concrète (ex: reformuler une notification, contacter un testeur, etc.).
+                    4. Si le score est < 80%, sois vigilant sur les risques.
+                    """
+                    completion = self.client.chat.completions.create(
+                        messages=[{"role": "user", "content": prompt}],
+                        model="llama-3.3-70b-versatile",
+                        temperature=0.7,
+                    )
+                    return {
+                        "answer": completion.choices[0].message.content,
+                        "type": "text", 
+                        "sql": "N/A (Calcul de score interne)", 
+                        "data": readiness
+                    }
+
+            # Case 3: Data query
             sql_query = self.generate_sql(question, user)
             data = self.execute_query(sql_query)
             

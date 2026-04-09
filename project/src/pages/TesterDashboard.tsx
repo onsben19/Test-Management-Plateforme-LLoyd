@@ -1,35 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import Header from '../components/Header';
-import Sidebar from '../components/Sidebar';
+import { useTranslation } from 'react-i18next';
+import PageLayout from '../components/PageLayout';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
 import { campaignService, executionService, anomalyService } from '../services/api';
-import { CheckCircle, XCircle, AlertTriangle, Eye, List, Calendar, Layers, LayoutGrid } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Eye, List, Calendar, Layers, LayoutGrid, Search, Filter, User } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Pagination from '../components/Pagination';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const TesterDashboard = () => {
+    const { t } = useTranslation();
     const { user } = useAuth();
-    const { isOpen: isSidebarOpen } = useSidebar();
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+    const [isGrouped, setIsGrouped] = useState(true);
+    const pageSize = 12;
 
-    // Validation Modal State
     const [validationModal, setValidationModal] = useState<{ isOpen: boolean; campaign: any | null }>({
         isOpen: false,
         campaign: null
     });
 
-    const pageSize = 10;
-    const [searchQuery, setSearchQuery] = useState('');
-    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-    const [filteredCampaigns, setFilteredCampaigns] = useState<any[]>([]);
-    const [isGrouped, setIsGrouped] = useState(true);
-
     const [testCaseForm, setTestCaseForm] = useState({
-        test_case_ref: '', // Manual entry
-        status: 'PASSED', // PASSED | FAILED
-        // Anomaly fields
+        test_case_ref: '',
+        status: 'PASSED',
         anomaly_title: '',
         anomaly_description: '',
         anomaly_criticite: 'FAIBLE',
@@ -38,15 +37,9 @@ const TesterDashboard = () => {
 
     useEffect(() => {
         if (user) {
-            fetchAssignedCampaigns(1);
-            setCurrentPage(1);
+            fetchAssignedCampaigns(currentPage);
         }
-    }, [user, searchQuery, sortOrder]);
-
-    const handlePageChange = (page: number) => {
-        setCurrentPage(page);
-        fetchAssignedCampaigns(page);
-    };
+    }, [user, searchQuery, sortOrder, currentPage]);
 
     const fetchAssignedCampaigns = async (page = 1) => {
         try {
@@ -57,7 +50,6 @@ const TesterDashboard = () => {
             });
             const data = response.data.results || response.data;
             const count = response.data.count || (Array.isArray(response.data) ? response.data.length : 0);
-
             setTotalItems(count);
             setCampaigns(data);
         } catch (error) {
@@ -67,19 +59,16 @@ const TesterDashboard = () => {
         }
     };
 
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalItems, setTotalItems] = useState(0);
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
 
-    const groupedCampaigns = filteredCampaigns.reduce((acc, camp) => {
-        const releaseName = camp.project_name || 'Sans Release';
+    const groupedCampaigns = (campaigns || []).reduce((acc, camp) => {
+        const releaseName = camp.project_name || t('common.noRelease');
         if (!acc[releaseName]) acc[releaseName] = [];
         acc[releaseName].push(camp);
         return acc;
     }, {} as Record<string, any[]>);
-
-    useEffect(() => {
-        setFilteredCampaigns(campaigns);
-    }, [campaigns]);
 
     const handleOpenValidation = (campaign: any) => {
         setValidationModal({ isOpen: true, campaign: campaign });
@@ -95,15 +84,9 @@ const TesterDashboard = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log("Submitting validation...", { validationModal, user });
-
-        if (!validationModal.campaign || !user) {
-            console.error("Missing campaign or user");
-            return;
-        }
+        if (!validationModal.campaign || !user) return;
 
         try {
-            // 1. Create Execution (TestCase record) with FormData
             const executionData = new FormData();
             executionData.append('campaign', validationModal.campaign.id);
             executionData.append('test_case_ref', testCaseForm.test_case_ref);
@@ -111,16 +94,12 @@ const TesterDashboard = () => {
             executionData.append('tester', user.id.toString());
             executionData.append('data_json', JSON.stringify({ manual: true }));
 
-            // Attach proof file if exists (reusing anomaly_file state or adding a new dedicated state would be better, but reusing for now if appropriate or adding new field)
-            // Let's assume we use anomaly_file as the general proof file
-            // Attach proof file if exists and is a valid File object
-            if (testCaseForm.anomaly_file && testCaseForm.anomaly_file instanceof File) {
+            if (testCaseForm.anomaly_file) {
                 executionData.append('proof_file', testCaseForm.anomaly_file);
             }
 
             const execResponse = await executionService.createExecution(executionData);
 
-            // 2. If Failed, create Anomaly linked to this TestCase
             if (testCaseForm.status === 'FAILED') {
                 const anomalyData = new FormData();
                 anomalyData.append('test_case', execResponse.data.id);
@@ -128,346 +107,369 @@ const TesterDashboard = () => {
                 anomalyData.append('description', testCaseForm.anomaly_description);
                 anomalyData.append('criticite', testCaseForm.anomaly_criticite);
                 anomalyData.append('cree_par', user.id.toString());
-
-                // If the proof file was also meant for the anomaly, we can attach it here too, 
-                // OR logically, if the execution failed, the proof file IS the anomaly proof.
-                // But the Anomaly model has 'preuve_image'. 
-                // Let's attach it to both to be safe or just execution. 
-                // User requirement: "si valider il peut aussi ajouter le capture" -> So it's primary for execution.
-                // For anomaly, let's keep it linked.
                 if (testCaseForm.anomaly_file) {
                     anomalyData.append('preuve_image', testCaseForm.anomaly_file);
                 }
-
                 await anomalyService.createAnomaly(anomalyData);
-                toast.warning(
-                    <div onClick={() => window.location.href = '/anomalies'}>
-                        Anomalie signalée ! Cliquez pour voir.
-                    </div>
-                );
+                toast.warning(t('testerDashboard.toasts.anomalyReported'));
             } else {
-                toast.success(
-                    <div onClick={() => window.location.href = '/execution'}>
-                        Test validé ! Voir le suivi.
-                    </div>
-                );
+                toast.success(t('testerDashboard.toasts.testValidated'));
             }
 
             setValidationModal({ isOpen: false, campaign: null });
+            fetchAssignedCampaigns(currentPage);
         } catch (error) {
             console.error("Submission failed", error);
-            toast.error("Erreur lors de la validation");
+            toast.error(t('testerDashboard.toasts.validationError'));
         }
     };
 
     const handleOpenExcel = (url: string) => {
         if (!url) {
-            toast.error("Fichier introuvable");
+            toast.error(t('testerDashboard.toasts.fileNotFound'));
             return;
         }
-
-        // Handle path extraction: if URL contains /media/, extract it so it works with current proxy origin
-        // This fixes URLs starting with http://backend:8000/media, which would fail in browser
         let link = url;
         if (url.includes('/media/')) {
-            const mediaPart = url.substring(url.indexOf('/media/'));
-            link = mediaPart;
+            link = url.substring(url.indexOf('/media/'));
         }
-
         window.open(link, '_blank');
     };
 
     const renderCampaignCard = (camp: any) => (
-        <div key={camp.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 hover:border-blue-500/50 transition-colors shadow-sm dark:shadow-none">
-            <div className="flex justify-between items-start mb-4">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 transition-colors">
-                    <List className="w-5 h-5" />
+        <motion.div
+            key={camp.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="group relative overflow-hidden bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 hover:bg-white/10 transition-all duration-500 flex flex-col h-full shadow-2xl shadow-black/20"
+        >
+            <div className="flex justify-between items-start mb-8">
+                <div className="w-14 h-14 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-400 border border-blue-500/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                    <List className="w-7 h-7" />
                 </div>
-                <div className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs text-slate-600 dark:text-slate-300 transition-colors">
-                    {camp.nb_test_cases} Tests Prévus
+                <div className="px-4 py-2 bg-white/5 rounded-2xl text-[10px] font-black text-slate-400 tracking-widest uppercase border border-white/5">
+                    {t('testerDashboard.card.testsPlanned', { count: camp.nb_test_cases })}
                 </div>
             </div>
 
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 transition-colors">{camp.title}</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 line-clamp-2 transition-colors">{camp.description || "Aucune description"}</p>
-
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-500 mb-6 transition-colors">
-                <Calendar className="w-3 h-3" />
-                {new Date(camp.created_at).toLocaleDateString()}
+            <div className="flex-1">
+                <h3 className="text-2xl font-black text-white mb-4 tracking-tighter leading-tight group-hover:text-blue-400 transition-colors">
+                    {camp.title}
+                </h3>
+                <p className="text-sm text-slate-400 mb-8 line-clamp-3 leading-relaxed font-medium">
+                    {camp.description || t('testerDashboard.card.noDescription')}
+                </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-4 mb-10 border-t border-white/5 pt-6">
+                <div className="flex items-center gap-3 text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                    <Calendar className="w-4 h-4 opacity-70" />
+                    {new Date(camp.created_at).toLocaleDateString(t('common.dateLocale'))}
+                </div>
+                <div className="flex items-center gap-3 text-[10px] font-black text-blue-400/70 uppercase tracking-widest">
+                    <User className="w-4 h-4 opacity-70" />
+                    {t('releaseManager.card.createdBy', { user: camp.manager_name || camp.imported_by_name || t('common.unknown') })}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-auto">
                 <button
+                    type="button"
                     onClick={() => handleOpenExcel(camp.excel_file)}
-                    className="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                    className="px-6 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 active:scale-95 border border-white/5 cursor-pointer"
                 >
-                    <Eye className="w-4 h-4" />
-                    Voir Excel
+                    <Eye className="w-4 h-4 text-blue-400" />
+                    {t('testerDashboard.card.viewExcel')}
                 </button>
                 <button
-                    onClick={() => handleOpenValidation(camp)}
-                    className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenValidation(camp);
+                    }}
+                    className="px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 active:scale-95 cursor-pointer z-10"
                 >
                     <CheckCircle className="w-4 h-4" />
-                    Valider Tâche
+                    {t('testerDashboard.card.validateTask')}
                 </button>
             </div>
-        </div>
+            <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-blue-600/10 rounded-full blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+        </motion.div>
     );
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-            <Header />
-            <div className="flex relative">
-                <Sidebar />
-                <main className={`flex-1 p-8 transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
-                    <div className="max-w-7xl mx-auto">
-                        <div className="mb-6">
-                            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">Mon Espace Testeur</h1>
-                            <p className="text-slate-500 dark:text-slate-400 transition-colors">Retrouvez les campagnes qui vous sont assignées et validez vos tests.</p>
-                        </div>
-
-                        {/* Search and Sort Controls */}
-                        <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                            <div className="relative flex-1">
-                                <input
-                                    type="text"
-                                    placeholder="Rechercher une campagne..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-4 pr-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                                />
-                            </div>
-                            <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-1">
-                                <button
-                                    onClick={() => setIsGrouped(true)}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${isGrouped
-                                        ? 'bg-blue-600 text-white shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                                        }`}
-                                >
-                                    <Layers className="w-4 h-4" />
-                                    Groupé par Release
-                                </button>
-                                <button
-                                    onClick={() => setIsGrouped(false)}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${!isGrouped
-                                        ? 'bg-blue-600 text-white shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                                        }`}
-                                >
-                                    <LayoutGrid className="w-4 h-4" />
-                                    Grille Simple
-                                </button>
-                            </div>
-                            <select
-                                value={sortOrder}
-                                onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                            >
-                                <option value="newest">Plus récent</option>
-                                <option value="oldest">Plus ancien</option>
-                            </select>
-                        </div>
-
-                        {loading ? (
-                            <div className="text-slate-900 dark:text-white transition-colors">Chargement...</div>
-                        ) : filteredCampaigns.length === 0 ? (
-                            <div className="text-slate-500 dark:text-slate-500 bg-white dark:bg-slate-800 p-8 rounded-xl text-center shadow-sm dark:shadow-none transition-colors">
-                                {campaigns.length === 0 ? "Aucune campagne assignée pour le moment." : "Aucune campagne trouvée pour cette recherche."}
-                            </div>
-                        ) : isGrouped ? (
-                            <div className="space-y-8 pb-12">
-                                {Object.keys(groupedCampaigns).map(releaseName => (
-                                    <div key={releaseName} className="space-y-4">
-                                        <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-700 pb-2">
-                                            <div className="bg-blue-600/10 p-1.5 rounded-lg">
-                                                <Layers className="w-5 h-5 text-blue-500" />
-                                            </div>
-                                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                                                Release : <span className="text-blue-500">{releaseName}</span>
-                                            </h2>
-                                            <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded-full font-medium border border-slate-200 dark:border-slate-700">
-                                                {groupedCampaigns[releaseName].length} Campagnes
-                                            </span>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {groupedCampaigns[releaseName].map(camp => renderCampaignCard(camp))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredCampaigns.map(camp => renderCampaignCard(camp))}
-                            </div>
-                        )}
-
-                        <Pagination
-                            currentPage={currentPage}
-                            totalItems={totalItems}
-                            pageSize={pageSize}
-                            onPageChange={handlePageChange}
-                            loading={loading}
+        <PageLayout
+            title={t('testerDashboard.title')}
+            subtitle={t('testerDashboard.subtitle')}
+        >
+            <div className="space-y-8">
+                <div className="flex flex-col lg:flex-row gap-6">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                        <input
+                            type="text"
+                            placeholder={t('testerDashboard.searchPlaceholder')}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
                         />
                     </div>
-                </main>
 
-                {/* Validation Modal */}
-                {validationModal.isOpen && validationModal.campaign && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 dark:bg-slate-900/90 backdrop-blur-sm p-4 transition-colors">
-                        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl w-full max-w-lg shadow-2xl transition-colors">
-                            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-700/20 transition-colors">
+                    <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/10">
+                        <button
+                            onClick={() => setIsGrouped(true)}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black tracking-widest uppercase transition-all ${isGrouped ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            <Layers className="w-4 h-4" />
+                            {t('testerDashboard.controls.groupByRelease')}
+                        </button>
+                        <button
+                            onClick={() => setIsGrouped(false)}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black tracking-widest uppercase transition-all ${!isGrouped ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            <LayoutGrid className="w-4 h-4" />
+                            {t('testerDashboard.controls.simpleGrid')}
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-3 bg-white/5 px-6 rounded-2xl border border-white/10 min-w-[200px]">
+                        <Filter className="w-4 h-4 text-slate-500" />
+                        <select
+                            value={sortOrder}
+                            onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                            className="bg-transparent border-none py-4 text-sm font-bold text-white focus:ring-0 w-full cursor-pointer"
+                        >
+                            <option value="newest" className="bg-slate-900">{t('testerDashboard.controls.recent')}</option>
+                            <option value="oldest" className="bg-slate-900">{t('testerDashboard.controls.oldest')}</option>
+                        </select>
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="h-[400px] bg-white/5 animate-pulse rounded-[2.5rem] border border-white/10" />
+                        ))}
+                    </div>
+                ) : (campaigns || []).length === 0 ? (
+                    <div className="text-center py-32 bg-white/5 rounded-[2.5rem] border border-dashed border-white/10">
+                        <List className="w-16 h-16 text-slate-600 mx-auto mb-4 opacity-50" />
+                        <p className="text-xl font-bold text-slate-400 italic">
+                            {(campaigns || []).length === 0 ? t('testerDashboard.state.emptyAssigned') : t('testerDashboard.state.emptySearch')}
+                        </p>
+                    </div>
+                ) : isGrouped ? (
+                    <div className="space-y-12">
+                        {Object.keys(groupedCampaigns).map(releaseName => (
+                            <div key={releaseName} className="space-y-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-xl bg-blue-600/20 flex items-center justify-center border border-blue-600/30">
+                                        <Layers className="w-5 h-5 text-blue-400" />
+                                    </div>
+                                    <h2 className="text-xl font-black text-white tracking-widest uppercase">
+                                        {t('testerDashboard.group.release')} <span className="text-blue-500 ml-2">{releaseName}</span>
+                                    </h2>
+                                    <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+                                    <span className="text-[10px] font-black text-slate-500 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 uppercase tracking-widest">
+                                        {t('testerDashboard.group.count', { count: groupedCampaigns[releaseName].length })}
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    {groupedCampaigns[releaseName].map(camp => renderCampaignCard(camp))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {(campaigns || []).map(camp => renderCampaignCard(camp))}
+                    </div>
+                )}
+
+                <div className="pt-10">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalItems={totalItems}
+                        pageSize={pageSize}
+                        onPageChange={handlePageChange}
+                        loading={loading}
+                    />
+                </div>
+            </div>
+
+            <AnimatePresence>
+                {validationModal.isOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setValidationModal({ isOpen: false, campaign: null })}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-2xl bg-[#0f172a] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl"
+                        >
+                            <div className="p-8 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-blue-600/10 to-transparent">
                                 <div>
-                                    <h2 className="text-lg font-bold text-slate-900 dark:text-white transition-colors">Valider une tâche</h2>
-                                    <div className="flex flex-col gap-1 mt-1">
-                                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 transition-colors">
-                                            <span className="font-semibold text-slate-700 dark:text-slate-300 transition-colors">Release:</span> {validationModal.campaign.project_name}
+                                    <h2 className="text-2xl font-black text-white tracking-widest uppercase">{t('testerDashboard.modal.title')}</h2>
+                                    <div className="flex flex-wrap gap-4 mt-3">
+                                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                            <Layers className="w-3 h-3 text-blue-400" />
+                                            {validationModal.campaign?.project_name}
                                         </div>
-                                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 transition-colors">
-                                            <span className="font-semibold text-slate-700 dark:text-slate-300 transition-colors">Campagne:</span> {validationModal.campaign.title}
+                                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                            <Calendar className="w-3 h-3 text-blue-400" />
+                                            {validationModal.campaign?.title}
                                         </div>
-                                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 transition-colors">
-                                            <span className="font-semibold text-slate-700 dark:text-slate-300 transition-colors">Manager:</span> {validationModal.campaign.manager_name || 'Inconnu'}
+                                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                            <User className="w-3 h-3 text-blue-400" />
+                                            {t('testerDashboard.modal.manager')} {validationModal.campaign?.manager_name}
                                         </div>
                                     </div>
                                 </div>
-                                <button onClick={() => setValidationModal({ isOpen: false, campaign: null })} className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                                <button
+                                    onClick={() => setValidationModal({ isOpen: false, campaign: null })}
+                                    className="p-3 bg-white/5 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-all border border-white/5"
+                                >
                                     <XCircle className="w-6 h-6" />
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                                {/* Proof File Input (Always visible) - Moved to top */}
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1 transition-colors">Preuve d'Exécution / Capture</label>
-                                    <div className="flex items-center gap-2">
-                                        <label className={`flex-1 cursor-pointer border border-dashed rounded-lg p-3 text-center transition-colors ${testCaseForm.anomaly_file ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10' : 'border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
-                                            <input
-                                                type="file"
-                                                accept="image/*, .pdf, .docx"
-                                                onChange={e => {
-                                                    if (e.target.files && e.target.files[0]) {
-                                                        setTestCaseForm({ ...testCaseForm, anomaly_file: e.target.files[0] });
-                                                    }
-                                                }}
-                                                className="hidden"
-                                            />
-                                            <span className="text-sm text-slate-600 dark:text-slate-300">
-                                                {testCaseForm.anomaly_file ? `Fichier: ${testCaseForm.anomaly_file.name}` : "Cliquez pour ajouter une capture"}
-                                            </span>
-                                        </label>
-                                        {testCaseForm.anomaly_file && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setTestCaseForm({ ...testCaseForm, anomaly_file: null })}
-                                                className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
-                                                title="Supprimer le fichier"
-                                            >
-                                                <XCircle className="w-5 h-5" />
-                                            </button>
-                                        )}
+                            <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('testerDashboard.modal.testRefLabel')}</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={testCaseForm.test_case_ref}
+                                            onChange={e => setTestCaseForm({ ...testCaseForm, test_case_ref: e.target.value })}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
+                                            placeholder={t('testerDashboard.modal.testRefPlaceholder')}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('testerDashboard.modal.proofLabel')}</label>
+                                        <div className="flex items-center gap-3">
+                                            <label className={`flex-1 cursor-pointer border-2 border-dashed rounded-2xl p-4 text-center transition-all ${testCaseForm.anomaly_file ? 'border-blue-500 bg-blue-500/10' : 'border-white/10 hover:bg-white/5'}`}>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*, .pdf, .docx"
+                                                    onChange={e => {
+                                                        if (e.target.files && e.target.files[0]) {
+                                                            setTestCaseForm({ ...testCaseForm, anomaly_file: e.target.files[0] });
+                                                        }
+                                                    }}
+                                                    className="hidden"
+                                                />
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate block">
+                                                    {testCaseForm.anomaly_file ? testCaseForm.anomaly_file.name : t('testerDashboard.modal.addCapture')}
+                                                </span>
+                                            </label>
+                                            {testCaseForm.anomaly_file && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setTestCaseForm({ ...testCaseForm, anomaly_file: null })}
+                                                    className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-2xl transition-all"
+                                                >
+                                                    <XCircle className="w-5 h-5" />
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1 transition-colors">Nom du Cas de Test / Référence</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={testCaseForm.test_case_ref}
-                                        onChange={e => setTestCaseForm({ ...testCaseForm, test_case_ref: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:ring-blue-500 outline-none transition-colors"
-                                        placeholder="Ex: TC-001 Connexion"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1 transition-colors">Statut</label>
-                                    <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('testerDashboard.modal.statusLabel')}</label>
+                                    <div className="grid grid-cols-2 gap-4">
                                         <button
                                             type="button"
                                             onClick={() => setTestCaseForm({ ...testCaseForm, status: 'PASSED' })}
-                                            className={`p-3 rounded-lg border flex items-center justify-center gap-2 transition-all ${testCaseForm.status === 'PASSED'
-                                                ? 'bg-emerald-100 dark:bg-emerald-500/10 border-emerald-500 text-emerald-700 dark:text-emerald-400'
-                                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500'
-                                                }`}
+                                            className={`p-6 rounded-3xl border-2 flex items-center justify-center gap-3 transition-all ${testCaseForm.status === 'PASSED' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 shadow-lg shadow-emerald-500/10' : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/10'}`}
                                         >
-                                            <CheckCircle className="w-5 h-5" />
-                                            Succès (Valide)
+                                            <CheckCircle className="w-6 h-6" />
+                                            <span className="text-xs font-black tracking-widest uppercase">{t('testerDashboard.modal.success')}</span>
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setTestCaseForm({ ...testCaseForm, status: 'FAILED' })}
-                                            className={`p-3 rounded-lg border flex items-center justify-center gap-2 transition-all ${testCaseForm.status === 'FAILED'
-                                                ? 'bg-red-100 dark:bg-red-500/10 border-red-500 text-red-700 dark:text-red-400'
-                                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500'
-                                                }`}
+                                            className={`p-6 rounded-3xl border-2 flex items-center justify-center gap-3 transition-all ${testCaseForm.status === 'FAILED' ? 'bg-rose-500/10 border-rose-500 text-rose-400 shadow-lg shadow-rose-500/10' : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/10'}`}
                                         >
-                                            <AlertTriangle className="w-5 h-5" />
-                                            Échec (Invalid)
+                                            <AlertTriangle className="w-6 h-6" />
+                                            <span className="text-xs font-black tracking-widest uppercase">{t('testerDashboard.modal.failure')}</span>
                                         </button>
                                     </div>
                                 </div>
 
-                                {/* Anomaly Sub-form */}
-                                {testCaseForm.status === 'FAILED' && (
-                                    <div className="bg-red-50 dark:bg-red-500/5 border border-red-200 dark:border-red-500/20 rounded-lg p-4 space-y-3 animate-in fade-in slide-in-from-top-2 transition-colors">
-                                        <h3 className="text-sm font-bold text-red-600 dark:text-red-400 flex items-center gap-2 transition-colors">
-                                            <AlertTriangle className="w-4 h-4" />
-                                            Déclaration d'anomalie
-                                        </h3>
+                                <AnimatePresence>
+                                    {testCaseForm.status === 'FAILED' && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                            animate={{ opacity: 1, height: 'auto', marginTop: 24 }}
+                                            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                                            className="bg-rose-500/5 border border-rose-500/20 rounded-3xl p-6 space-y-6 overflow-hidden"
+                                        >
+                                            <div className="flex items-center gap-3 text-rose-500 animate-pulse">
+                                                <AlertTriangle className="w-5 h-5" />
+                                                <h3 className="text-xs font-black tracking-widest uppercase">{t('testerDashboard.modal.anomalyTitle')}</h3>
+                                            </div>
 
-                                        <div>
-                                            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 transition-colors">Titre de l'anomalie</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                value={testCaseForm.anomaly_title}
-                                                onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_title: e.target.value })}
-                                                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-red-500 outline-none transition-colors"
-                                            />
-                                        </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('testerDashboard.modal.anomalyNameLabel')}</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    value={testCaseForm.anomaly_title}
+                                                    onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_title: e.target.value })}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-rose-500/50 outline-none transition-all font-bold"
+                                                />
+                                            </div>
 
-                                        <div>
-                                            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 transition-colors">Description</label>
-                                            <textarea
-                                                required
-                                                value={testCaseForm.anomaly_description}
-                                                onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_description: e.target.value })}
-                                                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-red-500 outline-none min-h-[80px] transition-colors"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 transition-colors">Criticité</label>
-                                            <select
-                                                value={testCaseForm.anomaly_criticite}
-                                                onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_criticite: e.target.value })}
-                                                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-red-500 outline-none transition-colors"
-                                            >
-                                                <option value="FAIBLE">Faible</option>
-                                                <option value="MOYENNE">Moyenne</option>
-                                                <option value="CRITIQUE">Critique</option>
-                                            </select>
-                                        </div>
-
-
-                                    </div>
-                                )}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('testerDashboard.modal.anomalyCritLabel')}</label>
+                                                    <select
+                                                        value={testCaseForm.anomaly_criticite}
+                                                        onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_criticite: e.target.value })}
+                                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-rose-500/50 outline-none transition-all font-bold appearance-none cursor-pointer"
+                                                    >
+                                                        <option value="FAIBLE" className="bg-slate-900">{t('anomalies.severity.low')}</option>
+                                                        <option value="MOYENNE" className="bg-slate-900">{t('anomalies.severity.medium')}</option>
+                                                        <option value="CRITIQUE" className="bg-slate-900">{t('anomalies.severity.critical')}</option>
+                                                    </select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('testerDashboard.modal.anomalyDescLabel')}</label>
+                                                    <textarea
+                                                        required
+                                                        value={testCaseForm.anomaly_description}
+                                                        onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_description: e.target.value })}
+                                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-rose-500/50 outline-none transition-all font-bold min-h-[100px]"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
 
                                 <button
                                     type="submit"
-                                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-all shadow-lg shadow-blue-900/20 mt-2"
+                                    className="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-[2rem] font-black tracking-[0.2em] uppercase transition-all shadow-xl shadow-blue-900/40 active:scale-95 group flex items-center justify-center gap-3 mt-4"
                                 >
-                                    Enregistrer
+                                    <CheckCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                    {t('testerDashboard.modal.save')}
                                 </button>
                             </form>
-                        </div>
+                        </motion.div>
                     </div>
                 )}
-            </div>
-        </div>
+            </AnimatePresence>
+        </PageLayout>
     );
 };
 

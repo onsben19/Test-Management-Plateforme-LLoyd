@@ -1,5 +1,6 @@
 import React from 'react';
-import { Plus, Trash2, MessageCircle, Clock, Sparkles } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Plus, Trash2, MessageCircle, Clock, Sparkles, History } from 'lucide-react';
 
 interface Conversation {
     id: string;
@@ -16,16 +17,16 @@ interface ChatHistorySidebarProps {
     isLoading: boolean;
 }
 
-const groupByDate = (conversations: Conversation[]) => {
+const groupByDate = (conversations: Conversation[], t: any) => {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const weekStart = new Date(todayStart);
     weekStart.setDate(weekStart.getDate() - 7);
 
     const groups: { label: string; items: Conversation[] }[] = [
-        { label: "Aujourd'hui", items: [] },
-        { label: 'Cette semaine', items: [] },
-        { label: 'Plus anciens', items: [] },
+        { label: t('analytics.history.today'), items: [] },
+        { label: t('analytics.history.thisWeek'), items: [] },
+        { label: t('analytics.history.older'), items: [] },
     ];
 
     conversations.forEach(conv => {
@@ -46,24 +47,28 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
     onDeleteConversation,
     isLoading
 }) => {
-    const groups = groupByDate(conversations);
+    const { t } = useTranslation();
+    const groups = groupByDate(conversations, t);
 
     return (
-        <div className="w-64 bg-slate-950 flex flex-col h-full shrink-0 border-r border-slate-800/60">
+        <div className="w-80 bg-slate-950 flex flex-col h-full shrink-0">
             {/* Header */}
-            <div className="p-4 border-b border-slate-800/60">
-                <div className="flex items-center gap-2 mb-4">
-                    <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-violet-600 rounded-lg flex items-center justify-center shadow-lg">
-                        <Sparkles className="w-3.5 h-3.5 text-white" />
+            <div className="p-8 border-b border-white/5 bg-slate-900/40">
+                <div className="flex items-center gap-3 mb-8">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                        <History className="w-5 h-5 text-blue-400" />
                     </div>
-                    <span className="text-sm font-bold text-white tracking-tight">Analytics IA</span>
+                    <div className="flex flex-col">
+                        <h2 className="font-bold text-white tracking-tight text-lg leading-none">{t('analytics.history.title')}</h2>
+                        <span className="text-[10px] text-slate-500 font-medium tracking-wide mt-1 uppercase">VOTRE HISTORIQUE</span>
+                    </div>
                 </div>
                 <button
                     onClick={onNewChat}
-                    className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white rounded-xl px-4 py-2.5 transition-all font-semibold text-sm shadow-lg shadow-blue-900/30"
+                    className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-[1.25rem] transition-all shadow-xl shadow-blue-900/30 active:scale-[0.98] font-bold text-sm"
                 >
-                    <Plus className="w-4 h-4" />
-                    Nouvelle discussion
+                    <Plus className="w-5 h-5" />
+                    {t('analytics.history.newChat')}
                 </button>
             </div>
 
@@ -81,7 +86,7 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                             <MessageCircle className="w-6 h-6 text-slate-600" />
                         </div>
                         <p className="text-slate-500 text-xs leading-relaxed">
-                            Commencez une discussion pour voir votre historique ici
+                            {t('analytics.history.empty')}
                         </p>
                     </div>
                 ) : (
@@ -91,22 +96,24 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                                 <Clock className="w-3 h-3" />
                                 {group.label}
                             </div>
-                            <div className="space-y-0.5 px-2">
+                            <div className="space-y-1.5 px-4">
                                 {group.items.map((conv) => (
                                     <button
                                         key={conv.id}
                                         onClick={() => onSelectConversation(conv.id)}
-                                        className={`w-full text-left px-3 py-2.5 rounded-xl flex items-start gap-2.5 transition-all group relative ${currentConversationId === conv.id
-                                                ? 'bg-blue-600/20 text-white border border-blue-500/30'
-                                                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 border border-transparent'
+                                        className={`w-full text-left px-4 py-4 rounded-2xl flex items-start gap-4 transition-all group relative border ${currentConversationId === conv.id
+                                            ? 'bg-blue-600/10 text-white border-blue-500/30'
+                                            : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 border-transparent'
                                             }`}
                                     >
-                                        <MessageCircle className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${currentConversationId === conv.id ? 'text-blue-400' : 'text-slate-600'}`} />
-                                        <div className="flex-1 min-w-0">
-                                            <span className="text-xs font-medium truncate block">
-                                                {conv.title || 'Nouvelle conversation'}
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 ${currentConversationId === conv.id ? 'bg-blue-600/20 text-blue-400' : 'bg-slate-800 text-slate-500'}`}>
+                                            <MessageCircle className="w-5 h-5" />
+                                        </div>
+                                        <div className="flex-1 min-w-0 py-0.5">
+                                            <span className="text-[14px] font-bold text-slate-200 group-hover:text-white truncate block leading-tight">
+                                                {conv.title || t('analytics.history.untitled')}
                                             </span>
-                                            <span className="text-[10px] text-slate-600 mt-0.5 block">
+                                            <span className="text-[10px] text-slate-500 mt-1 block font-medium">
                                                 {new Date(conv.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>

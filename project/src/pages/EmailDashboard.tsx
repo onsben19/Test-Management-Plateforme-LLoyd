@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import Header from '../components/Header';
-import Sidebar from '../components/Sidebar';
-import AdminTable from '../components/AdminTable';
+import PageLayout from '../components/PageLayout';
+import EmailList from '../components/EmailList';
 import ComposeEmailModal from '../components/ComposeEmailModal';
 import { emailService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { useSidebar } from '../context/SidebarContext';
-import { Mail, Inbox, Send, Paperclip, FileText, Reply, Forward, Trash2 } from 'lucide-react';
+import { Mail, Inbox, Send, Paperclip, FileText, Reply, Forward, Trash2, Search, X, ChevronLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ConfirmModal from '../components/ConfirmModal';
+import { useTranslation } from 'react-i18next';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const EmailDashboard = () => {
+    const { t } = useTranslation();
     const { user } = useAuth();
-    const { isOpen } = useSidebar();
     const [emails, setEmails] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -43,6 +43,8 @@ const EmailDashboard = () => {
     const filteredEmails = emails.filter(email => {
         const isInbox = activeTab === 'inbox' ? email.recipient === user?.id : email.sender === user?.id;
         if (!isInbox) return false;
+
+        if (!searchQuery) return true;
         const query = searchQuery.toLowerCase();
         return (
             email.subject.toLowerCase().includes(query) ||
@@ -69,7 +71,7 @@ const EmailDashboard = () => {
             mode: 'reply',
             recipientId: String(email.sender),
             subject: email.subject.startsWith('Re:') ? email.subject : `Re: ${email.subject}`,
-            body: `\n\n--- Message original ---\nDe : ${email.sender_name}\n${email.body}`,
+            body: `\n\n--- ${t('email.details.originalMessage')} ---\n${t('email.details.from')} ${email.sender_name}\n${email.body}`,
         });
         setComposeModalOpen(true);
     };
@@ -78,12 +80,12 @@ const EmailDashboard = () => {
         setComposeInitialData({
             mode: 'forward',
             subject: email.subject.startsWith('Fwd:') ? email.subject : `Fwd: ${email.subject}`,
-            body: `\n\n--- Message transféré ---\nDe : ${email.sender_name}\nDate : ${new Date(email.created_at).toLocaleString('fr-FR')}\nObjet : ${email.subject}\n\n${email.body}`,
+            body: `\n\n--- ${t('email.details.forwardedMessage')} ---\n${t('email.details.from')} ${email.sender_name}\n${t('email.details.date')} ${new Date(email.created_at).toLocaleString(t('common.dateLocale'))}\n${t('email.details.subject')} ${email.subject}\n\n${email.body}`,
         });
         setComposeModalOpen(true);
     };
 
-    const handleDeleteEmail = async (email: any) => {
+    const handleDeleteEmail = (email: any) => {
         setEmailToDelete(email);
         setIsDeleteModalOpen(true);
     };
@@ -94,198 +96,224 @@ const EmailDashboard = () => {
             await emailService.deleteEmail(emailToDelete.id);
             setEmails(prev => prev.filter(e => e.id !== emailToDelete.id));
             if (selectedEmail?.id === emailToDelete.id) setSelectedEmail(null);
-            toast.success("Message supprimé");
+            toast.success(t('email.toasts.deleted'));
         } catch {
-            toast.error("Erreur lors de la suppression");
+            toast.error(t('email.toasts.deleteError'));
         } finally {
             setEmailToDelete(null);
+            setIsDeleteModalOpen(false);
         }
     };
 
-    const columns = [
-        {
-            header: activeTab === 'inbox' ? 'De' : 'À',
-            accessor: (item: any) => (
-                <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${!item.is_read && activeTab === 'inbox' ? 'bg-blue-500' : 'bg-transparent'}`}></div>
-                    <span className={`font-medium ${!item.is_read && activeTab === 'inbox' ? 'text-slate-900 dark:text-white font-semibold' : 'text-slate-600 dark:text-slate-400'}`}>
-                        {activeTab === 'inbox' ? item.sender_name : item.recipient_name}
-                    </span>
-                </div>
-            )
-        },
-        {
-            header: 'Sujet',
-            accessor: (item: any) => (
-                <div className="flex items-center gap-2">
-                    <span className={`${!item.is_read && activeTab === 'inbox' ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-600 dark:text-slate-400'}`}>
-                        {item.subject}
-                    </span>
-                    {item.attachment && <Paperclip className="w-3 h-3 text-slate-400" />}
-                </div>
-            )
-        },
-        {
-            header: 'Date',
-            accessor: (item: any) => new Date(item.created_at).toLocaleString('fr-FR')
-        }
-    ];
+    const HeaderActions = (
+        <button
+            onClick={() => { setComposeInitialData(undefined); setComposeModalOpen(true); }}
+            className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 transition-all hover:scale-105 active:scale-95 font-bold text-sm"
+        >
+            <Mail className="w-4 h-4" />
+            {t('email.new')}
+        </button>
+    );
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors flex flex-col">
-            <Header />
-            <div className="flex flex-1 relative">
-                <Sidebar />
-                <main className={`flex-1 p-8 flex flex-col h-[calc(100vh-64px)] overflow-hidden transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
-                    <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col">
-                        <div className="flex justify-between items-center mb-6">
-                            <div>
-                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Messagerie</h1>
-                                <p className="text-slate-500 dark:text-slate-400">Gérez vos communications internes</p>
-                            </div>
-                            <button
-                                onClick={() => { setComposeInitialData(undefined); setComposeModalOpen(true); }}
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors shadow-lg shadow-blue-500/20"
-                            >
-                                <Mail className="w-4 h-4" />
-                                Nouveau Message
-                            </button>
-                        </div>
+        <PageLayout
+            title={t('email.title')}
+            subtitle="MESSAGING CENTER"
+            actions={HeaderActions}
+        >
+            <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-280px)] min-h-[600px]">
 
-                        {/* Tabs */}
-                        <div className="flex space-x-1 bg-slate-200 dark:bg-slate-800 p-1 rounded-lg w-fit mb-6">
-                            <button
-                                onClick={() => { setActiveTab('inbox'); setSelectedEmail(null); }}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'inbox'
-                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                                    }`}
-                            >
-                                <Inbox className="w-4 h-4" />
-                                Boîte de réception
-                            </button>
-                            <button
-                                onClick={() => { setActiveTab('sent'); setSelectedEmail(null); }}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'sent'
-                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                                    }`}
-                            >
-                                <Send className="w-4 h-4" />
-                                Envoyés
-                            </button>
-                        </div>
+                {/* 1. Folders Column (Left Sidebar) */}
+                <div className="w-full lg:w-64 flex-shrink-0 flex lg:flex-col gap-2">
+                    <button
+                        onClick={() => { setActiveTab('inbox'); setSelectedEmail(null); }}
+                        className={`flex-1 lg:flex-none flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm ${activeTab === 'inbox'
+                            ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20 ring-1 ring-blue-500/50'
+                            : 'bg-white/50 dark:bg-slate-800/40 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/50'
+                            }`}
+                    >
+                        <Inbox className="w-4 h-4" />
+                        <span>{t('email.tabs.inbox')}</span>
+                        {activeTab === 'inbox' && (
+                            <span className="ml-auto bg-white/20 px-2 py-0.5 rounded-full text-[10px]">
+                                {filteredEmails.length}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab('sent'); setSelectedEmail(null); }}
+                        className={`flex-1 lg:flex-none flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm ${activeTab === 'sent'
+                            ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20 ring-1 ring-blue-500/50'
+                            : 'bg-white/50 dark:bg-slate-800/40 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/50'
+                            }`}
+                    >
+                        <Send className="w-4 h-4" />
+                        <span>{t('email.tabs.sent')}</span>
+                        {activeTab === 'sent' && (
+                            <span className="ml-auto bg-white/20 px-2 py-0.5 rounded-full text-[10px]">
+                                {filteredEmails.length}
+                            </span>
+                        )}
+                    </button>
+                </div>
 
-                        <div className="flex gap-6 flex-1 overflow-hidden min-h-0">
-                            {/* Email List */}
-                            <div className={`${selectedEmail ? 'hidden md:block w-1/3' : 'w-full'} overflow-y-auto h-full custom-scrollbar`}>
-                                <AdminTable
-                                    title={activeTab === 'inbox' ? 'Reçus' : 'Envoyés'}
-                                    columns={columns}
-                                    data={filteredEmails}
-                                    isLoading={loading}
-                                    searchable
-                                    onSearch={setSearchQuery}
-                                    actions={(item) => (
-                                        <div className="flex items-center gap-2">
+                {/* 2. Message List Column */}
+                <div className={`w-full lg:w-[400px] flex-shrink-0 flex flex-col gap-4 ${selectedEmail ? 'hidden lg:flex' : 'flex'}`}>
+                    <div className="relative group">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                        <input
+                            type="text"
+                            placeholder={t('email.searchPlaceholder') || "Rechercher..."}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 bg-white/50 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                            >
+                                <X className="w-3.5 h-3.5" />
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                        <EmailList
+                            emails={filteredEmails}
+                            selectedEmailId={selectedEmail?.id}
+                            onEmailClick={handleEmailClick}
+                            activeTab={activeTab}
+                        />
+                    </div>
+                </div>
+
+                {/* 3. Message Detail Column */}
+                <div className={`flex-1 flex flex-col min-w-0 ${selectedEmail ? 'flex' : 'hidden lg:flex'}`}>
+                    <AnimatePresence mode="wait">
+                        {selectedEmail ? (
+                            <motion.div
+                                key={selectedEmail.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="flex flex-col h-full bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 rounded-3xl shadow-2xl overflow-hidden"
+                            >
+                                {/* Detail Header */}
+                                <div className="p-6 border-b border-slate-200/50 dark:border-slate-700/50 bg-white/20 dark:bg-slate-900/40">
+                                    <div className="flex items-start justify-between gap-4 mb-6">
+                                        <div className="flex items-center gap-4 lg:hidden">
                                             <button
-                                                onClick={() => handleEmailClick(item)}
-                                                className="px-3 py-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded text-xs transition-colors"
+                                                onClick={() => setSelectedEmail(null)}
+                                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors"
                                             >
-                                                Ouvrir
+                                                <ChevronLeft className="w-5 h-5" />
                                             </button>
-                                            {activeTab === 'sent' && (
-                                                <button
-                                                    onClick={() => handleDeleteEmail(item)}
-                                                    className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 hover:text-red-400 rounded transition-colors"
-                                                    title="Supprimer"
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </button>
-                                            )}
                                         </div>
-                                    )}
-                                />
-                            </div>
-
-                            {/* Email Details */}
-                            {selectedEmail && (
-                                <div className="flex-1 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 overflow-y-auto h-full custom-scrollbar animate-in fade-in slide-in-from-right-4">
-                                    <div className="flex justify-between items-start mb-6 border-b border-slate-200 dark:border-slate-700 pb-4">
-                                        <div className="flex-1 min-w-0 mr-4">
-                                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{selectedEmail.subject}</h2>
-                                            <div className="text-sm text-slate-500 dark:text-slate-400">
-                                                <span className="text-slate-400 dark:text-slate-500">De:</span>{' '}
-                                                <span className="text-slate-800 dark:text-white font-medium">{selectedEmail.sender_name}</span>
-                                                <span className="mx-2">•</span>
-                                                <span className="text-slate-400 dark:text-slate-500">À:</span>{' '}
-                                                <span className="text-slate-800 dark:text-white font-medium">{selectedEmail.recipient_name}</span>
-                                                <span className="mx-2">•</span>
-                                                <span>{new Date(selectedEmail.created_at).toLocaleString('fr-FR')}</span>
+                                        <div className="flex-1 min-w-0">
+                                            <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight mb-2 line-clamp-2">
+                                                {selectedEmail.subject}
+                                            </h2>
+                                            <div className="flex items-center gap-2 text-xs">
+                                                <div className="flex -space-x-2">
+                                                    <div className="w-6 h-6 rounded-full bg-blue-500 border-2 border-white dark:border-slate-800 flex items-center justify-center text-[8px] font-bold text-white">
+                                                        {selectedEmail.sender_name?.[0]?.toUpperCase()}
+                                                    </div>
+                                                </div>
+                                                <span className="text-slate-500 dark:text-slate-400 font-medium">
+                                                    {t('email.details.from')}
+                                                    <strong className="text-slate-900 dark:text-slate-200 ml-1">{selectedEmail.sender_name}</strong>
+                                                </span>
+                                                <span className="text-slate-300 dark:text-slate-700">•</span>
+                                                <span className="text-slate-400">
+                                                    {new Date(selectedEmail.created_at).toLocaleString()}
+                                                </span>
                                             </div>
                                         </div>
-                                        {/* Reply / Forward Actions */}
-                                        <div className="flex items-center gap-2 flex-shrink-0">
+
+                                        <div className="flex items-center gap-2">
                                             {activeTab === 'inbox' && (
                                                 <>
                                                     <button
                                                         onClick={() => handleReply(selectedEmail)}
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-blue-600 hover:text-white text-slate-700 dark:text-slate-300 rounded-lg text-sm transition-colors"
+                                                        className="p-2.5 hover:bg-blue-500 hover:text-white text-slate-500 dark:text-slate-400 rounded-xl transition-all border border-slate-200 dark:border-slate-700 hover:border-blue-500 shadow-sm"
+                                                        title={t('email.details.reply')}
                                                     >
                                                         <Reply className="w-4 h-4" />
-                                                        Répondre
                                                     </button>
                                                     <button
                                                         onClick={() => handleForward(selectedEmail)}
-                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-emerald-600 hover:text-white text-slate-700 dark:text-slate-300 rounded-lg text-sm transition-colors"
+                                                        className="p-2.5 hover:bg-emerald-500 hover:text-white text-slate-500 dark:text-slate-400 rounded-xl transition-all border border-slate-200 dark:border-slate-700 hover:border-emerald-500 shadow-sm"
+                                                        title={t('email.details.forward')}
                                                     >
                                                         <Forward className="w-4 h-4" />
-                                                        Transférer
                                                     </button>
                                                 </>
                                             )}
                                             <button
-                                                onClick={() => setSelectedEmail(null)}
-                                                className="md:hidden text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white text-sm"
+                                                onClick={() => handleDeleteEmail(selectedEmail)}
+                                                className="p-2.5 hover:bg-red-500 hover:text-white text-slate-500 dark:text-slate-400 rounded-xl transition-all border border-slate-200 dark:border-slate-700 hover:border-red-500 shadow-sm"
+                                                title={t('email.table.delete')}
                                             >
-                                                Fermer
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </div>
-
-                                    <div className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed mb-6">
-                                        {selectedEmail.body}
-                                    </div>
-
-                                    {selectedEmail.attachment && (
-                                        <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
-                                            <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
-                                                <Paperclip className="w-4 h-4" />
-                                                Pièce jointe
-                                            </h4>
-                                            <a
-                                                href={selectedEmail.attachment}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center gap-3 p-3 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-400 transition-colors group"
-                                            >
-                                                <div className="p-2 bg-white dark:bg-slate-800 rounded text-blue-500 group-hover:text-blue-400">
-                                                    <FileText className="w-6 h-6" />
-                                                </div>
-                                                <div className="text-left">
-                                                    <p className="text-sm font-medium text-slate-800 dark:text-white group-hover:text-blue-500 transition-colors">
-                                                        {selectedEmail.attachment.split('/').pop()}
-                                                    </p>
-                                                    <p className="text-xs text-slate-500">Cliquer pour télécharger</p>
-                                                </div>
-                                            </a>
-                                        </div>
-                                    )}
                                 </div>
-                            )}
-                        </div>
-                    </div>
-                </main>
+
+                                {/* Detail Content */}
+                                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                                    <div className="max-w-3xl mx-auto">
+                                        <div className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed text-sm md:text-base">
+                                            {selectedEmail.body}
+                                        </div>
+
+                                        {selectedEmail.attachment && (
+                                            <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-700/50">
+                                                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                    <Paperclip className="w-3.5 h-3.5 text-blue-500" />
+                                                    {t('email.details.attachment')}
+                                                </h4>
+                                                <a
+                                                    href={selectedEmail.attachment}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 group transition-all"
+                                                >
+                                                    <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm text-blue-500 group-hover:scale-110 transition-transform">
+                                                        <FileText className="w-6 h-6" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-500 transition-colors">
+                                                            {selectedEmail.attachment.split('/').pop()}
+                                                        </p>
+                                                        <p className="text-[10px] text-slate-500 font-medium uppercase tracking-tighter">
+                                                            {t('email.details.download')}
+                                                        </p>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center bg-slate-100/30 dark:bg-slate-800/20 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700">
+                                <div className="text-center">
+                                    <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <Inbox className="w-10 h-10 text-blue-500 opacity-20" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-400 dark:text-slate-500 mb-2">
+                                        {t('email.details.empty') || "Sélectionnez un message"}
+                                    </h3>
+                                    <p className="text-sm text-slate-400/60">
+                                        {t('email.details.emptyDesc') || "Choisissez un message dans la liste pour l'afficher ici"}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </AnimatePresence>
+                </div>
             </div>
 
             {composeModalOpen && (
@@ -298,7 +326,17 @@ const EmailDashboard = () => {
                     initialData={composeInitialData}
                 />
             )}
-        </div>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                title={t('email.modal.deleteTitle')}
+                message={t('email.modal.deleteConfirm')}
+                onConfirm={confirmDeleteEmail}
+                onCancel={() => setIsDeleteModalOpen(false)}
+                confirmText={t('common.delete')}
+                type="danger"
+            />
+        </PageLayout>
     );
 };
 

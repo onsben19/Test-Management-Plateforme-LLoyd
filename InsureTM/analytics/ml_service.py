@@ -2,7 +2,7 @@ from django.utils import timezone
 from datetime import timedelta
 from campaigns.models import Campaign
 from testCases.models import TestCase
-from .groq_service import GroqService
+from testCases.models import TestCase
 import math
 import joblib
 import os
@@ -13,6 +13,7 @@ class MLTimelineGuard:
     _cached_model_path = None
 
     def __init__(self):
+        from .groq_service import GroqService
         self.groq_service = GroqService()
         # Chemin vers le modèle entraîné dans le dossier research
         self.model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'research', 'timeline_model.joblib')

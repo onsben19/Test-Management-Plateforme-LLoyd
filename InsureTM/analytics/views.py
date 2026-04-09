@@ -7,9 +7,16 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from django.http import HttpResponse
+from fpdf import FPDF
+from datetime import datetime
+
 from campaigns.models import Campaign
+from anomalies.models import Anomalie
+from testCases.models import TestCase
 from .groq_service import GroqService
 from .ml_service import MLTimelineGuard
+from .readiness_service import ReleaseReadinessManager
 from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
 
@@ -126,3 +133,168 @@ class ReformulateMessageView(APIView):
         except Exception:
             logger.exception("Error reformulating message for user %s", request.user.username)
             return Response({'error': 'An internal error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ReleaseReadinessView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, campaign_id=None, project_id=None):
+        if project_id:
+            result = ReleaseReadinessManager().calculate_readiness_score(project_id=project_id)
+        else:
+            campaign = get_object_or_404(Campaign, id=campaign_id)
+            # Basic role check similar to TimelineGuard
+            if request.user.role == 'TESTER':
+                if not campaign.assigned_testers.filter(id=request.user.id).exists():
+                    return Response({'error': 'Accès non autorisé à cette campagne.'}, status=status.HTTP_403_FORBIDDEN)
+            result = ReleaseReadinessManager().calculate_readiness_score(campaign_id=campaign_id)
+
+        if 'error' in result:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(result)
+class CampaignClosureReportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, campaign_id):
+        try:
+            campaign = get_object_or_404(Campaign, id=campaign_id)
+            logger.info("Generating closure report for campaign %s", campaign_id)
+            
+            # Security check
+            if request.user.role not in ['ADMIN', 'MANAGER']:
+                return Response({'error': 'Accès restreint aux administrateurs et managers.'}, status=status.HTTP_403_FORBIDDEN)
+
+            # 1. Gather Data
+            readiness_manager = ReleaseReadinessManager()
+            readiness_data = readiness_manager.calculate_readiness_score(campaign_id=campaign_id)
+            if not readiness_data:
+                readiness_data = {"score": 0, "reasons": ["Impossible de calculer le score."], "breakdown": {}}
+                
+            ml_status = MLTimelineGuard().get_campaign_status(campaign_id)
+            if not ml_status:
+                ml_status = {"status": "INCONNU", "progress": {"percentage": 0}, "delay_days": 0}
+                
+            critical_anomalies = Anomalie.objects.filter(test_case__campaign=campaign, criticite='CRITIQUE').exclude(statut='RESOLUE')
+            logger.info("Data gathered. Score: %s, Anomalies: %d", readiness_data.get('score'), critical_anomalies.count())
+            
+            # 2. Generate PDF
+            pdf = FPDF()
+            pdf.set_auto_page_break(auto=True, margin=15)
+            pdf.add_page()
+            
+            # Header
+            pdf.set_fill_color(30, 41, 59)
+            pdf.rect(0, 0, 210, 40, 'F')
+            
+            pdf.set_font('helvetica', 'B', 24)
+            pdf.set_text_color(255, 255, 255)
+            pdf.set_xy(10, 10)
+            pdf.cell(w=pdf.epw, h=15, txt="FICHE DE CLOTURE DE CAMPAGNE", border=0, ln=1, align='L')
+            
+            pdf.set_font('helvetica', 'I', 10)
+            pdf.set_xy(10, 25)
+            date_str = datetime.now().strftime('%d/%m/%Y %H:%M')
+            author = campaign.imported_by
+            author_name = author.get_full_name() if author and author.get_full_name() else (author.username if author else "Inconnu")
+            pdf.multi_cell(w=pdf.epw, h=7, txt=f"Document Officiel - Lloyd Assurances - Genere le {date_str}\nPublie par : {author_name}", border=0, align='L')
+            
+            pdf.set_y(50)
+            pdf.set_text_color(30, 41, 59)
+            pdf.set_font('helvetica', 'B', 16)
+            camp_title = str(campaign.title or 'Sans Titre')
+            pdf.multi_cell(w=pdf.epw, h=10, txt=f"Campagne : {camp_title}", border=0, align='L')
+            pdf.ln(2)
+            
+            pdf.set_font('helvetica', '', 12)
+            proj_name = str(campaign.project.name if campaign.project else 'N/A')
+            pdf.multi_cell(w=pdf.epw, h=8, txt=f"Projet : {proj_name}", border=0, align='L')
+            pdf.ln(5)
+            
+            # Score
+            pdf.set_fill_color(248, 250, 252)
+            pdf.set_font('helvetica', 'B', 14)
+            pdf.cell(w=pdf.epw, h=12, txt="  1. SCORE GLOBAL DE PREPARATION", border=1, ln=1, align='L', fill=True)
+            pdf.ln(5)
+            
+            score = readiness_data.get('score', 0)
+            pdf.set_font('helvetica', 'B', 40)
+            if score >= 80:
+                pdf.set_text_color(16, 185, 129)
+            elif score >= 40:
+                pdf.set_text_color(245, 158, 11)
+            else:
+                pdf.set_text_color(239, 68, 68)
+            pdf.cell(w=pdf.epw, h=25, txt=f"{score}%", border=0, ln=1, align='C')
+            
+            pdf.set_text_color(30, 41, 59)
+            pdf.set_font('helvetica', 'B', 10)
+            pdf.cell(w=pdf.epw, h=8, txt="JUSTIFICATION DE L'IA :", border=0, ln=1)
+            pdf.set_font('helvetica', '', 10)
+            reasons = readiness_data.get('reasons', [])
+            if not isinstance(reasons, list):
+                reasons = [str(reasons)]
+            for reason in reasons:
+                # Force a narrower width and explicit move to next line
+                pdf.multi_cell(w=pdf.epw - 15, h=6, txt=f"- {str(reason)}", border=0, align='L')
+                pdf.ln(2)
+            pdf.ln(5)
+            
+            # ML
+            pdf.set_font('helvetica', 'B', 14)
+            pdf.set_text_color(30, 41, 59)
+            pdf.set_fill_color(248, 250, 252)
+            pdf.cell(w=pdf.epw, h=12, txt="  2. ANALYSE PREDICTIVE ML VS REALITE", border=1, ln=1, align='L', fill=True)
+            pdf.ln(5)
+            pdf.set_font('helvetica', '', 11)
+            pdf.cell(w=pdf.epw, h=8, txt=f"Statut de Sante : {str(ml_status.get('status', 'N/A'))}", border=0, ln=1)
+            prog_val = ml_status.get('progress', {}).get('percentage', 0) if isinstance(ml_status.get('progress'), dict) else 0
+            pdf.cell(w=pdf.epw, h=8, txt=f"Progression Actuelle : {prog_val}%", border=0, ln=1)
+            pdf.cell(w=pdf.epw, h=8, txt=f"Delai estime : {ml_status.get('delay_days', 0)} jours", border=0, ln=1)
+            pdf.cell(w=pdf.epw, h=8, txt=f"Date de fin projetee : {str(ml_status.get('projected_end_date', 'N/A'))}", border=0, ln=1)
+            pdf.ln(10)
+            
+            # Anomalies
+            pdf.set_font('helvetica', 'B', 14)
+            pdf.set_fill_color(239, 68, 68)
+            pdf.set_text_color(255, 255, 255)
+            pdf.cell(w=pdf.epw, h=12, txt="  3. ANOMALIES CRITIQUES BLOQUANTES", border=1, ln=1, align='L', fill=True)
+            pdf.set_text_color(30, 41, 59)
+            pdf.ln(5)
+            
+            if not critical_anomalies.exists():
+                pdf.set_font('helvetica', 'I', 11)
+                pdf.cell(w=pdf.epw, h=8, txt="Aucune anomalie critique non resolue detectee.", border=0, ln=1)
+            else:
+                pdf.set_font('helvetica', 'B', 10)
+                pdf.cell(30, 10, "ID", 1)
+                pdf.cell(120, 10, "TITRE", 1)
+                pdf.cell(40, 10, "STATUT", 1)
+                pdf.ln()
+                pdf.set_font('helvetica', '', 9)
+                for an in critical_anomalies[:20]: # Show up to 20
+                    pdf.cell(30, 8, str(an.id), 1)
+                    pdf.cell(120, 8, str(an.titre)[:65], 1)
+                    pdf.cell(40, 8, str(an.statut), 1)
+                    pdf.ln()
+
+            # Signatures
+            pdf.ln(15)
+            pdf.set_font('helvetica', 'B', 10)
+            
+            # Simple centered signature for QA Manager only
+            pdf.cell(w=pdf.epw, h=10, txt="SIGNATURE DU QA MANAGER / VALIDATEUR", border=0, ln=1, align='C')
+            pdf.ln(20)
+            pdf.set_font('helvetica', 'I', 8)
+            pdf.cell(w=pdf.epw, h=10, txt="Document certifie automatiquement par la plateforme InsureTM.", border=0, ln=1, align='C')
+
+            logger.info("PDF generation complete, returning response.")
+            pdf_out = bytes(pdf.output())
+            logger.info("PDF Size: %d bytes", len(pdf_out))
+            response = HttpResponse(pdf_out, content_type='application/pdf')
+            filename = f"fiche_cloture_{campaign.id}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        except Exception as e:
+            logger.exception("FATAL ERROR in closure report")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

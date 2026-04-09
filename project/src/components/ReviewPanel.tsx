@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Send, Sparkles, Paperclip, FileText, Download, MessageSquare, User, Pencil, Check, X as Close, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,6 +17,7 @@ interface ReviewPanelProps {
 }
 
 const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embed = false, readOnly = false }) => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const [chatMessage, setChatMessage] = useState('');
     const [comments, setComments] = useState<any[]>([]);
@@ -71,7 +73,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                 message: chatMessage,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
-                author_name: user?.username || 'Moi',
+                author_name: user?.username || t('execution.panel.me'),
                 author: user?.id,
                 attachment: selectedFile ? URL.createObjectURL(selectedFile) : null,
                 attachment_name: selectedFile ? selectedFile.name : null,
@@ -87,7 +89,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
             fetchComments();
         } catch (error) {
             console.error("Failed to post comment", error);
-            alert("Erreur lors de l'envoi du commentaire");
+            alert(t('execution.toasts.commentPostError'));
         }
     };
 
@@ -111,7 +113,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
             fetchComments(); // Refresh to get the real updated_at from server
         } catch (error) {
             console.error("Failed to update comment", error);
-            toast.error("Erreur lors de la modification");
+            toast.error(t('execution.toasts.commentUpdateError'));
         }
     };
 
@@ -125,10 +127,10 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
         try {
             await commentService.deleteComment(commentToDelete.toString());
             setComments(prev => prev.filter(c => c.id !== commentToDelete));
-            toast.success("Commentaire supprimé");
+            toast.success(t('execution.toasts.commentDeleteSuccess'));
         } catch (error) {
             console.error("Failed to delete comment", error);
-            toast.error("Erreur lors de la suppression");
+            toast.error(t('execution.toasts.deleteError'));
         } finally {
             setCommentToDelete(null);
         }
@@ -179,15 +181,15 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                     </div>
                     <div className="overflow-hidden">
                         <h2 className="text-sm font-bold text-white truncate" title={test.name || (test as any).Titre}>
-                            {test.name || (test as any).Titre || (test as any).NOM || 'Test sans nom'}
+                            {test.name || (test as any).Titre || (test as any).NOM || t('execution.list.untitled')}
                         </h2>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] font-mono text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded">ID: {test.id}</span>
+                            <span className="text-[10px] font-mono text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded">{t('execution.panel.id')}: {test.id}</span>
                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${test.status === 'passed' ? 'bg-emerald-500/20 text-emerald-400' :
                                 test.status === 'failed' ? 'bg-rose-500/20 text-rose-400' :
                                     'bg-slate-700 text-slate-400'
                                 }`}>
-                                {test.status || 'En attente'}
+                                {t(`status.${test.status || 'pending'}`)}
                             </span>
                         </div>
                     </div>
@@ -195,7 +197,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                 <button
                     onClick={onClose}
                     className="p-2 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white transition-all active:scale-95"
-                    title="Fermer"
+                    title={t('common.close')}
                 >
                     <X className="w-5 h-5" />
                 </button>
@@ -211,7 +213,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                             className="h-full flex flex-col items-center justify-center text-slate-600 italic py-20"
                         >
                             <MessageSquare className="w-12 h-12 mb-4 opacity-5" />
-                            <p className="text-sm font-medium">Aucun commentaire pour le moment.</p>
+                            <p className="text-sm font-medium">{t('execution.panel.emptyComments')}</p>
                         </motion.div>
                     ) : (
                         <div className="space-y-6">
@@ -231,7 +233,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                                                 {!isMe && (
                                                     <div className="flex items-center gap-2 mb-1.5 border-b border-white/5 pb-1">
                                                         <User className="w-3 h-3 text-blue-400" />
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{comment.author_name || 'Utilisateur'}</p>
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{comment.author_name || t('analytics.chat.pdfUserLabel')}</p>
                                                     </div>
                                                 )}
 
@@ -267,7 +269,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                                                                     <button
                                                                         onClick={(e) => { e.stopPropagation(); handleStartEdit(comment); }}
                                                                         className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                                                                        title="Modifier"
+                                                                        title={t('common.edit')}
                                                                     >
                                                                         <Pencil className="w-4 h-4" />
                                                                     </button>
@@ -275,7 +277,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                                                                     <button
                                                                         onClick={(e) => { e.stopPropagation(); handleDeleteComment(comment.id); }}
                                                                         className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                                                                        title="Supprimer"
+                                                                        title={t('common.delete')}
                                                                     >
                                                                         <Trash2 className="w-4 h-4" />
                                                                     </button>
@@ -297,7 +299,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                                                         <button
                                                             onClick={() => handleDownload(comment.attachment, comment.attachment_name)}
                                                             className="p-1 hover:bg-white/10 rounded-md text-white/30 hover:text-white transition-all ml-auto active:scale-90"
-                                                            title="Télécharger"
+                                                            title={t('execution.panel.download')}
                                                         >
                                                             <Download className="w-3.5 h-3.5" />
                                                         </button>
@@ -308,7 +310,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                                                 {comment.updated_at && new Date(comment.updated_at).getTime() - new Date(comment.created_at).getTime() > 1000 && (
                                                     <span className="text-[9px] font-bold text-blue-400 uppercase tracking-tighter flex items-center gap-1">
                                                         <Pencil className="w-2 h-2" />
-                                                        Modifié à {new Date(comment.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        {t('execution.panel.modifiedAt', { time: new Date(comment.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })}
                                                     </span>
                                                 )}
                                                 <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">
@@ -338,16 +340,16 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                     )}
                     <div className="relative flex items-center gap-2">
                         <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" id="file-upload" />
-                        <button onClick={() => fileInputRef.current?.click()} className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-xl transition-all" title="Joindre un fichier"><Paperclip className="w-5 h-5" /></button>
+                        <button onClick={() => fileInputRef.current?.click()} className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-xl transition-all" title={t('execution.panel.attach')}><Paperclip className="w-5 h-5" /></button>
                         <div className="relative flex-1">
                             <input
                                 type="text" value={chatMessage} onChange={(e) => setChatMessage(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                                 className="w-full bg-slate-900/50 border border-slate-700 rounded-xl pl-4 pr-20 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 placeholder-slate-600 transition-all font-medium"
-                                placeholder="Votre commentaire..."
+                                placeholder={t('execution.panel.placeholder')}
                             />
                             <div className="absolute right-1.5 top-1.5 flex items-center gap-1">
-                                <button onClick={handleAIReformulate} className="p-1.5 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg transition-colors" title="Reformuler avec l'IA"><Sparkles className="w-4 h-4" /></button>
+                                <button onClick={handleAIReformulate} className="p-1.5 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg transition-colors" title={t('execution.panel.reformulate')}><Sparkles className="w-4 h-4" /></button>
                                 <button onClick={handleSendMessage} disabled={!chatMessage.trim() && !selectedFile} className="p-1.5 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-colors disabled:opacity-30"><Send className="w-4 h-4" /></button>
                             </div>
                         </div>
@@ -357,11 +359,11 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
 
             <ConfirmModal
                 isOpen={isDeleteModalOpen}
-                title="Supprimer le commentaire"
-                message="Êtes-vous sûr de vouloir supprimer ce commentaire ? Cette action est irréversible."
+                title={t('execution.modal.commentDeleteTitle')}
+                message={t('execution.modal.commentDeleteMessage')}
                 onConfirm={confirmDeleteComment}
                 onCancel={() => setIsDeleteModalOpen(false)}
-                confirmText="Supprimer"
+                confirmText={t('common.delete')}
                 type="danger"
             />
         </div>

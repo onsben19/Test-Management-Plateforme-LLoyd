@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { notificationService, type Notification } from '../services/notificationService';
 import { useAuth } from '../context/AuthContext';
 import * as Popover from '@radix-ui/react-popover';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const Header = () => {
   const { theme, toggleTheme } = useTheme();
@@ -102,6 +103,8 @@ const Header = () => {
             >
               {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
+
+            <LanguageSwitcher />
 
             <Popover.Root open={popoverOpen} onOpenChange={setPopoverOpen}>
               <Popover.Trigger asChild>

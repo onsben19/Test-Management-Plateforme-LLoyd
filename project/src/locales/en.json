@@ -1,0 +1,1017 @@
+{
+    "common": {
+        "loading": "Loading...",
+        "error": "Error",
+        "success": "Success",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "add": "Add",
+        "search": "Search...",
+        "actions": "Actions",
+        "status": "Status",
+        "date": "Date",
+        "unknown": "Unknown",
+        "unassigned": "Unassigned",
+        "noRelease": "No Release",
+        "dateLocale": "en-US"
+    },
+    "login": {
+        "title": "InsureTM",
+        "subtitle": "Sign in to your workspace",
+        "username": "Username",
+        "password": "Password",
+        "forgotPassword": "Forgot password?",
+        "submit": "Sign In",
+        "placeholderUsername": "username",
+        "placeholderPassword": "••••••••",
+        "success": "Login successful!",
+        "failure": "Login failed. Check your credentials."
+    },
+    "sidebar": {
+        "dashboard": "Dashboard",
+        "anomalies": "Anomalies",
+        "analytics": "AI Analytics",
+        "emails": "Emails",
+        "campaigns": "Campaigns",
+        "executions": "Execution Tracking",
+        "users": "Users",
+        "settings": "Settings",
+        "logout": "Logout",
+        "tester": "Tester",
+        "admin": "Admin",
+        "testerDashboard": "Tester Hub",
+        "adminDashboard": "Admin Hub",
+        "collapse": "Collapse Sidebar",
+        "expand": "Expand Sidebar",
+        "groups": {
+            "principal": "PRINCIPAL",
+            "tests": "TEST MANAGEMENT",
+            "communication": "COMMUNICATION & AI"
+        },
+        "items": {
+            "users": "User Management",
+            "emails": "Email Management",
+            "releases": "Release Management",
+            "campaigns": "Test Campaigns",
+            "testerDashboard": "My Campaigns",
+            "executions": "Execution Tracking",
+            "anomalies": "Anomalies",
+            "comments": "Comments",
+            "messages": "Messaging",
+            "aiDiscussions": "AI Discussions",
+            "aiAnalytics": "AI Analytics"
+        }
+    },
+    "header": {
+        "notifications": "Notifications",
+        "newNotifications": "{{count}} new",
+        "noNotifications": "No notifications",
+        "profile": "Profile",
+        "darkMode": "Dark Mode",
+        "lightMode": "Light Mode",
+        "language": "Language"
+    },
+    "stats": {
+        "increase": "Increase",
+        "decrease": "Decrease",
+        "fromLastMonth": "from last month"
+    },
+    "adminAnalytics": {
+        "title": "Analytics Administration",
+        "subtitle": "Global tracking of AI agent usage for all users",
+        "stats": {
+            "totalSessions": "Total Sessions",
+            "activeUsers": "Active Users",
+            "totalMessages": "Messages Exchanged",
+            "avgResponseTime": "Avg Response Time",
+            "history": "Full history",
+            "contributors": "AI Contributors",
+            "totalInteractions": "Total interactions",
+            "efficiency": "System efficiency"
+        }
+    },
+    "adminDashboard": {
+        "welcome": "Welcome to your control center.",
+        "customize": "Customize",
+        "refresh": "Refresh",
+        "widgets": {
+            "trend": "Execution Trend",
+            "distribution": "Anomaly Severity",
+            "activity": "Recent Activity",
+            "users": "Users by Role"
+        },
+        "aiExpertOpinion": "AI Expert Opinion",
+        "viewDetails": "View Analysis",
+        "newProject": {
+            "title": "New Project",
+            "nameLabel": "Project Name",
+            "namePlaceholder": "e.g. Mobile App Redesign",
+            "descLabel": "Description",
+            "descPlaceholder": "Description of project goals...",
+            "cancel": "Cancel",
+            "submit": "Create Project",
+            "submitting": "Creating..."
+        }
+    },
+    "managerDashboard": {
+        "title": "Manager Dashboard",
+        "subtitle": "Manager Quality View",
+        "description": "Monitoring the quality and performance of your projects.",
+        "stats": {
+            "successRate": "Success Rate",
+            "successRateDesc": "Across all tests",
+            "activeProjects": "Active Projects",
+            "activeProjectsDesc": "Monitored campaigns",
+            "openAnomalies": "Open Anomalies",
+            "openAnomaliesDesc": "Action required"
+        },
+        "widgets": {
+            "trend": "Quality Trend",
+            "trendSubtitle": "LAST 7 DAYS",
+            "mlGuard": "Predictive ML Alerts",
+            "mlGuardSubtitle": "TIMELINE GUARD",
+            "mlGuardEmpty": "No alerts predicted for now.",
+            "distributionSubtitle": "SEVERITY",
+            "activity": "Recent Activity",
+            "activitySubtitle": "MONITORING"
+        }
+    },
+    "adminAnomalies": {
+        "title": "Anomaly Administration",
+        "subtitle": "Global management and tracking of error reports",
+        "stats": {
+            "total": "Total Anomalies",
+            "totalDesc": "Total historical detected",
+            "critical": "Blockers / Critical",
+            "criticalDesc": "Immediate action required",
+            "medium": "Medium Priority",
+            "mediumDesc": "Pending fixes",
+            "recent": "Reported (24h)",
+            "recentDesc": "New entries"
+        },
+        "table": {
+            "anomaly": "Anomaly",
+            "severity": "Severity",
+            "status": "Status",
+            "relatedTest": "Related Test",
+            "release": "Release",
+            "campaign": "Campaign",
+            "createdBy": "Created By",
+            "date": "Date"
+        },
+        "badges": {
+            "critical": "Critical",
+            "medium": "Medium",
+            "low": "Low",
+            "open": "Open",
+            "unknown": "Unknown"
+        },
+        "filters": {
+            "all": "All",
+            "recent": "Active",
+            "oldest": "Disabled"
+        },
+        "actions": {
+            "edit": "Edit",
+            "delete": "Delete"
+        },
+        "modal": {
+            "deleteTitle": "Delete Anomaly",
+            "deleteConfirm": "Are you sure you want to delete this anomaly?",
+            "cancel": "Cancel",
+            "delete": "Delete"
+        },
+        "toasts": {
+            "fetchError": "Error loading anomalies",
+            "updateSuccess": "Anomaly updated",
+            "updateError": "Error during update",
+            "deleteSuccess": "Anomaly deleted",
+            "deleteError": "Error during deletion"
+        }
+    },
+    "adminCampaigns": {
+        "title": "Campaign Administration",
+        "subtitle": "Management and tracking of imported test campaigns",
+        "stats": {
+            "total": "Total Campaigns",
+            "totalDesc": "Full database",
+            "recent": "Recent (7d)",
+            "recentDesc": "New Excel imports",
+            "projects": "Linked Projects",
+            "projectsDesc": "Active and past releases",
+            "status": "System Status",
+            "statusDesc": "Analytics service operational"
+        },
+        "table": {
+            "title": "Title",
+            "description": "Description",
+            "project": "Project",
+            "createdAt": "Creation Date"
+        },
+        "filters": {
+            "all": "All Statuses",
+            "active": "Active",
+            "inactive": "Disabled"
+        },
+        "actions": {
+            "edit": "Edit",
+            "delete": "Delete"
+        },
+        "modal": {
+            "editTitle": "Edit Campaign",
+            "fieldTitle": "Campaign Title",
+            "fieldDescription": "Description",
+            "cancel": "Cancel",
+            "save": "Save",
+            "saving": "Saving...",
+            "deleteTitle": "Delete Campaign",
+            "deleteConfirm": "Are you sure you want to delete this campaign?",
+            "delete": "Delete"
+        },
+        "toasts": {
+            "fetchError": "Error loading campaigns",
+            "deleteSuccess": "Campaign deleted",
+            "deleteError": "Error during deletion",
+            "updateSuccess": "Campaign modified successfully",
+            "updateError": "Error during modification"
+        }
+    },
+    "adminComments": {
+        "title": "Comment Log",
+        "subtitle": "Proactively manage discussions and testing feedback",
+        "stats": {
+            "total": "Comments",
+            "totalDesc": "Total messages",
+            "authors": "Contributors",
+            "authorsDesc": "Unique authors",
+            "activity": "Activity (24h)",
+            "activityDesc": "New posts",
+            "health": "Social Health",
+            "healthDesc": "Optimal moderation",
+            "healthValue": "Stable"
+        },
+        "table": {
+            "message": "Message",
+            "author": "Author",
+            "date": "Date"
+        },
+        "modal": {
+            "deleteTitle": "Delete Comment",
+            "deleteConfirm": "Are you sure you want to delete this comment?",
+            "cancel": "Cancel",
+            "delete": "Delete"
+        },
+        "toasts": {
+            "fetchError": "Error loading comments",
+            "deleteSuccess": "Comment deleted",
+            "deleteError": "Error during deletion"
+        },
+        "unknown": "Unknown"
+    },
+    "adminEmails": {
+        "title": "Email Administration",
+        "subtitle": "Global oversight of all internal communications",
+        "stats": {
+            "volume": "Email Volume",
+            "volumeDesc": "Total historical",
+            "attachments": "Attachments",
+            "attachmentsDesc": "Shared files",
+            "recent": "New (24h)",
+            "recentDesc": "Daily flow",
+            "readRate": "Read Engagement",
+            "readRateDesc": "Viewed messages",
+            "optimal": "Optimal",
+            "watch": "To watch"
+        },
+        "table": {
+            "sender": "Sender",
+            "recipient": "Recipient",
+            "subject": "Subject",
+            "date": "Date"
+        },
+        "details": {
+            "title": "Message Details",
+            "close": "Close",
+            "subject": "Subject",
+            "from": "From",
+            "to": "To",
+            "content": "Content",
+            "attachment": "Attachment",
+            "empty": "Select an email to view its full content securely."
+        },
+        "actions": {
+            "view": "View content",
+            "delete": "Delete"
+        },
+        "modal": {
+            "deleteTitle": "Delete Message",
+            "deleteConfirm": "Are you sure you want to permanently delete this message (ID: {{id}})? This action is irreversible.",
+            "delete": "Delete"
+        },
+        "toasts": {
+            "fetchError": "Error retrieving messages.",
+            "deleteSuccess": "Message deleted by administrator",
+            "deleteError": "Error during deletion"
+        }
+    },
+    "adminExecutions": {
+        "title": "Execution Tracking",
+        "subtitle": "Overview and management of execution data",
+        "moduleFallback": "Campaign #{{id}}",
+        "unassigned": "Unassigned",
+        "na": "N/A",
+        "releaseFallback": "Release A",
+        "stats": {
+            "total": "Total Tests",
+            "totalDesc": "All combined executions",
+            "passed": "Success",
+            "passedDesc": "Validated tests without error",
+            "failed": "Failures / Bugs",
+            "failedDesc": "Anomalies to investigate",
+            "pending": "Pending",
+            "pendingDesc": "Tests not yet performed"
+        },
+        "controls": {
+            "sort": "Sort:",
+            "newest": "Newest",
+            "oldest": "Oldest",
+            "group": "Group:",
+            "none": "None",
+            "campaign": "Campaign",
+            "release": "Release"
+        },
+        "search": "Search by reference, campaign, release or tester...",
+        "modal": {
+            "deleteTitle": "Delete Execution",
+            "deleteConfirm": "Are you sure you want to delete this execution? This action is irreversible.",
+            "delete": "Delete"
+        },
+        "toasts": {
+            "fetchError": "Error loading executions",
+            "deleteSuccess": "Execution successfully deleted",
+            "deleteError": "Error during deletion",
+            "updateSuccess": "Execution updated",
+            "updateError": "Error during update"
+        }
+    },
+    "adminReleases": {
+        "title": "Release Administration",
+        "subtitle": "Global vision and complete history of deliverables",
+        "stats": {
+            "total": "Total Releases",
+            "totalDesc": "All attached projects",
+            "active": "Active Releases",
+            "activeDesc": "Testing in progress",
+            "planning": "In Planning",
+            "planningDesc": "Upcoming versions",
+            "completed": "Completed",
+            "completedDesc": "Closed history"
+        },
+        "status": {
+            "all": "All statuses",
+            "active": "Active",
+            "planning": "Planning",
+            "completed": "Completed"
+        },
+        "table": {
+            "name": "Name",
+            "description": "Description",
+            "status": "Status",
+            "createdBy": "Created by",
+            "createdAt": "Creation Date"
+        },
+        "actions": {
+            "edit": "Edit",
+            "delete": "Delete"
+        },
+        "modal": {
+            "editTitle": "Edit Release",
+            "nameLabel": "Release Name",
+            "descLabel": "Description",
+            "statusLabel": "Status",
+            "deleteTitle": "Delete Release",
+            "deleteConfirm": "Are you sure you want to delete this release?",
+            "cancel": "Cancel",
+            "save": "Save",
+            "delete": "Delete"
+        },
+        "toasts": {
+            "fetchError": "Error loading releases",
+            "updateSuccess": "Release successfully modified",
+            "updateError": "Error saving release",
+            "deleteSuccess": "Release deleted",
+            "deleteError": "Error during deletion"
+        }
+    },
+    "anomalies": {
+        "title": "List of reported anomalies",
+        "subtitle": "Tracking, prioritization and resolution of detected anomalies",
+        "stats": {
+            "total": "Total Anomalies",
+            "totalDesc": "Anomalies detected over the period",
+            "critical": "Critical",
+            "criticalDesc": "Requires immediate action",
+            "medium": "Medium",
+            "mediumDesc": "To be treated as a priority",
+            "resolved": "Resolved",
+            "resolvedDesc": "Corrected and validated anomalies"
+        },
+        "searchPlaceholder": "Search for an anomaly, test, assigned...",
+        "filters": {
+            "severity": "Severity",
+            "all": "All",
+            "sort": "Sort:",
+            "recent": "Most recent",
+            "oldest": "Oldest"
+        },
+        "actions": {
+            "refresh": "Refresh",
+            "exportCsv": "CSV",
+            "exportPdf": "PDF",
+            "edit": "Edit",
+            "delete": "Delete"
+        },
+        "table": {
+            "anomaly": "Anomaly",
+            "severity": "Severity",
+            "status": "Status",
+            "relatedTest": "Linked Test",
+            "release": "Release",
+            "campaign": "Campaign",
+            "createdBy": "Created by",
+            "date": "Date",
+            "context": "Context",
+            "reported": "Reported",
+            "actions": "Actions",
+            "empty": "No results for your search / filter."
+        },
+        "status": {
+            "open": "Open",
+            "investigating": "Investigating",
+            "resolved": "Resolved"
+        },
+        "severity": {
+            "critical": "Critical",
+            "medium": "Medium",
+            "low": "Low"
+        },
+        "chart": {
+            "title": "Anomaly Distribution",
+            "subtitle": "Real by severity level",
+            "none": "None"
+        },
+        "modal": {
+            "deleteTitle": "Delete anomaly",
+            "deleteConfirm": "Are you sure you want to delete this anomaly? This action is irreversible.",
+            "delete": "Delete"
+        },
+        "toasts": {
+            "saveError": "Error during saving.",
+            "deleteError": "Error during deletion.",
+            "pdfError": "Error during PDF generation."
+        },
+        "testFallback": "Test #{{id}}"
+    },
+    "testerDashboard": {
+        "title": "My Tester Space",
+        "subtitle": "Find campaigns assigned to you and validate your tests.",
+        "searchPlaceholder": "Search for a campaign...",
+        "controls": {
+            "groupByRelease": "Grouped by Release",
+            "simpleGrid": "Simple Grid",
+            "recent": "Most recent",
+            "oldest": "Oldest"
+        },
+        "state": {
+            "loading": "Loading...",
+            "emptyAssigned": "No campaigns assigned for now.",
+            "emptySearch": "No campaigns found for this search."
+        },
+        "group": {
+            "release": "Release:",
+            "count": "{{count}} Campaigns"
+        },
+        "card": {
+            "testsPlanned": "{{count}} Tests Planned",
+            "noDescription": "No description",
+            "viewExcel": "View Excel",
+            "validateTask": "Validate Task"
+        },
+        "modal": {
+            "title": "Validate a task",
+            "release": "Release:",
+            "campaign": "Campaign:",
+            "manager": "Manager:",
+            "proofLabel": "Execution Proof / Screenshot",
+            "file": "File: {{name}}",
+            "addCapture": "Click to add a screenshot",
+            "removeFile": "Delete file",
+            "testRefLabel": "Test Case Name / Reference",
+            "testRefPlaceholder": "Ex: TC-001 Login",
+            "statusLabel": "Status",
+            "success": "Success (Valid)",
+            "failure": "Failure (Invalid)",
+            "anomalyTitle": "Anomaly Declaration",
+            "anomalyNameLabel": "Anomaly Title",
+            "anomalyDescLabel": "Description",
+            "anomalyCritLabel": "Severity",
+            "save": "Save"
+        },
+        "toasts": {
+            "anomalyReported": "Anomaly reported! Click to view.",
+            "testValidated": "Test validated! See tracking.",
+            "validationError": "Error during validation",
+            "fileNotFound": "File not found"
+        }
+    },
+    "settings": {
+        "title": "Settings",
+        "subtitle": "Platform configuration, authentication and AI settings",
+        "auth": {
+            "title": "Authentication",
+            "subtitle": "Configure access and Single Sign-On (SSO)",
+            "enableSso": "Enable SSO",
+            "ssoDesc": "Centralized login via external provider",
+            "provider": "SSO Provider",
+            "clientId": "Client ID",
+            "clientIdPlaceholder": "ex: client-id-xxx",
+            "secret": "Secret (hidden)"
+        },
+        "notifications": {
+            "title": "Notifications",
+            "subtitle": "Platform alerts and notifications",
+            "enable": "Enable notifications",
+            "desc": "Receive alerts for critical anomalies",
+            "email": "Email Notifications",
+            "threshold": "Alert threshold",
+            "criticalOnly": "Critical only",
+            "all": "All"
+        },
+        "ai": {
+            "title": "AI Settings",
+            "subtitle": "Sensitivity controls and insight behaviors",
+            "enableInsights": "Enable AI Insights",
+            "insightsDesc": "Automatically generate priorities & summaries",
+            "sensitivity": "AI Sensitivity: {{value}}%",
+            "sensitivityDesc": "The higher the sensitivity, the more anomalies and priorities the engine will report."
+        },
+        "side": {
+            "billing": "Billing & Subscription",
+            "billingDesc": "Subscription info and billing integration",
+            "channels": "Notification channel",
+            "channelsDesc": "Email, Slack or Webhook for real-time alerts",
+            "model": "AI Model",
+            "modelVersion": "Version: {{version}} • Last update: {{date}}"
+        },
+        "appearance": {
+            "darkTheme": "Dark theme",
+            "darkThemeDesc": "Enable the interface dark mode"
+        },
+        "actions": {
+            "save": "Save",
+            "reset": "Reset"
+        },
+        "toasts": {
+            "saved": "Settings saved",
+            "resetInfo": "Resetting to default settings"
+        }
+    },
+    "userManagement": {
+        "title": "User Management",
+        "subtitle": "Manage member access and roles",
+        "addUser": "Add user",
+        "stats": {
+            "total": "Total Users",
+            "totalDesc": "Active database",
+            "admins": "Administrators",
+            "adminsDesc": "Full system access",
+            "managers": "Managers",
+            "managersDesc": "Team & project management",
+            "testers": "Testers",
+            "testersDesc": "QA test execution"
+        },
+        "filters": {
+            "searchPlaceholder": "Search for a user...",
+            "allRoles": "All roles",
+            "allStatuses": "All statuses"
+        },
+        "table": {
+            "user": "User",
+            "role": "Role",
+            "status": "Status",
+            "actions": "Actions",
+            "active": "Active",
+            "inactive": "Inactive"
+        },
+        "roles": {
+            "admin": "Admin",
+            "manager": "Manager",
+            "tester": "Tester",
+            "viewer": "Viewer"
+        },
+        "menu": {
+            "edit": "Edit",
+            "deactivate": "Deactivate",
+            "activate": "Activate",
+            "delete": "Delete"
+        },
+        "modal": {
+            "addTitle": "Add user",
+            "fullName": "Full name (First / Last Name)",
+            "firstName": "First name",
+            "lastName": "Last name",
+            "professionalEmail": "Professional email",
+            "username": "Username",
+            "usernameDesc": "If left empty, will be generated from email.",
+            "role": "Role",
+            "cancel": "Cancel",
+            "create": "Create user",
+            "accessGenerated": "Access generated!",
+            "accessDesc": "Temporary password generated. Copy it before closing.",
+            "finish": "Finish",
+            "deleteTitle": "Delete user",
+            "deleteMessage": "Are you sure you want to delete this user? This action is irreversible.",
+            "deleteConfirm": "Delete"
+        },
+        "toasts": {
+            "fetchError": "Unable to load users",
+            "deleted": "User deleted",
+            "deleteError": "Error during deletion",
+            "activated": "User activated",
+            "deactivated": "User deactivated",
+            "toggleError": "Error during status change",
+            "created": "User created successfully",
+            "createError": "Error during user creation",
+            "updated": "User updated",
+            "updateError": "Error during update"
+        }
+    },
+    "releaseManager": {
+        "title": "Release Management",
+        "subtitle": "Manage your releases and track project progress.",
+        "newRelease": "New Release",
+        "searchPlaceholder": "Search for a release...",
+        "sort": {
+            "newest": "Newest",
+            "oldest": "Oldest"
+        },
+        "card": {
+            "createdAt": "Created on {{date}}",
+            "createdBy": "By {{user}}",
+            "campaignCount_one": "{{count}} Campaign",
+            "campaignCount_other": "{{count}} Campaigns",
+            "viewTests": "View test suite",
+            "unknownUser": "Unknown",
+            "noReleases": "No releases found. Create a new one to start.",
+            "readinessTitle": "Readiness Analysis",
+            "readinessDetails": "Readiness Details",
+            "aiDetails": "AI DETAILS"
+        },
+        "status": {
+            "active": "Active",
+            "planning": "Planning",
+            "completed": "Completed",
+            "label": "Status"
+        },
+        "menu": {
+            "edit": "Edit",
+            "delete": "Delete"
+        },
+        "modal": {
+            "editTitle": "Edit Release",
+            "createTitle": "Create New Release",
+            "name": "Release Name",
+            "namePlaceholder": "E.g.: Release Q3 2024",
+            "description": "Description",
+            "descriptionPlaceholder": "Description of release objectives...",
+            "initialStatus": "Initial Status",
+            "cancel": "Cancel",
+            "save": "Save",
+            "create": "Create Release",
+            "deleteTitle": "Delete Release",
+            "deleteMessage": "Are you sure you want to delete this release?",
+            "deleteConfirm": "Delete"
+        },
+        "toasts": {
+            "fetchError": "Error loading releases",
+            "updated": "Release updated successfully",
+            "created": "Release created successfully",
+            "saveError": "Error saving release",
+            "deleted": "Release deleted",
+            "deleteError": "Error during deletion",
+            "statusUpdated": "Status updated: {{status}}",
+            "statusError": "Error during status change"
+        }
+    },
+    "dataDriven": {
+        "title": "Test Campaigns",
+        "releaseLabel": "Release:",
+        "noRelease": "Not specified",
+        "newCampaign": "New Campaign",
+        "stats": {
+            "total": "Total Campaigns",
+            "totalDesc": "All release campaigns",
+            "active": "Active Campaigns",
+            "activeDesc": "In execution",
+            "critical": "Critical Risks",
+            "criticalDesc": "Detected by ML Timeline Guard",
+            "finished": "Completed",
+            "finishedDesc": "Tests 100% closed"
+        },
+        "searchPlaceholder": "Search for a campaign...",
+        "filterTester": "Filter by tester...",
+        "card": {
+            "estimatedEnd": "Estimated completion",
+            "scheduledAt": "Scheduled start: {{date}}",
+            "noTesters": "No testers",
+            "testCases": "Cases",
+            "viewTests": "View Test Suite",
+            "noCampaigns": "No campaigns found for this search."
+        },
+        "timelineGuard": {
+            "optimal": "Optimal Health",
+            "warning": "Risk of Drift",
+            "critical": "Critical Delay",
+            "waiting": "Calculation in progress",
+            "analyzing": "Analyzing...",
+            "delay": "+{{count}}d delay",
+            "velocity": "Test Velocity (AI)",
+            "unitTestsDay": "tests/day",
+            "estimatedEnd": "Estimated End",
+            "predictiveAnalysis": "Predictive Analysis",
+            "campaignSuccess": "Campaign Success",
+            "objective": "Objective: {{count}} Cases",
+            "readinessScore": "Global Score",
+            "readinessAnalysis": "Readiness Analysis"
+        },
+        "modal": {
+            "editTitle": "Edit Campaign",
+            "createTitle": "Add Campaign",
+            "titleLabel": "Test Suite Title",
+            "titlePlaceholder": "E.g.: Release Q3 2024",
+            "nbCases": "Nb. Test Cases",
+            "description": "Description",
+            "descriptionPlaceholder": "Optional description...",
+            "schedule": {
+                "header": "Schedule & Launch",
+                "delayed": "Schedule deferred launch",
+                "cancelDelayed": "Cancel deferral",
+                "immediate": "Immediate launch",
+                "estimatedStart": "Estimated start",
+                "estimatedEnd": "Estimated end",
+                "footer": "The campaign will start on the defined date and testers must finish by the end date."
+            },
+            "file": {
+                "label": "Excel File (.xlsx)",
+                "optional": "(Leave empty to keep current)",
+                "replace": "Click to replace file",
+                "import": "Click to import a file"
+            },
+            "testers": {
+                "label": "Assign Testers",
+                "none": "No testers found."
+            },
+            "delete": {
+                "title": "Delete campaign?",
+                "message": "This action is irreversible and will delete all associated test cases.",
+                "confirm": "Confirm"
+            },
+            "cancel": "Cancel",
+            "save": "Save changes",
+            "create": "Create Campaign"
+        },
+        "toasts": {
+            "fetchError": "Error loading campaigns",
+            "fileRequired": "Please select a file.",
+            "updated": "Campaign updated successfully",
+            "created": "Campaign created successfully",
+            "saveError": "Error while saving technical campaign.",
+            "deleted": "Campaign deleted",
+            "deleteError": "Deletion error",
+            "fileNotFound": "File not found"
+        }
+    },
+    "email": {
+        "title": "Messaging",
+        "subtitle": "Manage your internal communications",
+        "new": "New Message",
+        "tabs": {
+            "inbox": "Inbox",
+            "sent": "Sent"
+        },
+        "table": {
+            "received": "Received",
+            "sent": "Sent",
+            "from": "From",
+            "to": "To",
+            "subject": "Subject",
+            "date": "Date",
+            "open": "Open",
+            "delete": "Delete"
+        },
+        "details": {
+            "from": "From:",
+            "to": "To:",
+            "date": "Date:",
+            "subject": "Subject:",
+            "reply": "Reply",
+            "forward": "Forward",
+            "close": "Close",
+            "attachment": "Attachment",
+            "download": "Click to download",
+            "originalMessage": "Original Message",
+            "forwardedMessage": "Forwarded Message"
+        },
+        "compose": {
+            "title": "New Message",
+            "reply": "Reply",
+            "forward": "Forward",
+            "recipients": "Recipients",
+            "recipientsPlaceholder": "Search for a user...",
+            "recipientsAdd": "Add others...",
+            "noUser": "No user found",
+            "subject": "Subject",
+            "subjectPlaceholder": "Message subject",
+            "message": "Message",
+            "messagePlaceholder": "Your message...",
+            "attachment": "Attachment (optional)",
+            "chooseFile": "Choose a file",
+            "remove": "Remove",
+            "cancel": "Cancel",
+            "send": "Send",
+            "sending": "Sending...",
+            "ai": {
+                "reformulateSubject": "Reformulate subject",
+                "reformulateBody": "Reformulate with AI",
+                "reformulating": "Reformulating..."
+            }
+        },
+        "toasts": {
+            "deleted": "Message deleted",
+            "deleteError": "Error during deletion",
+            "reformulated": "Message reformulated by AI!",
+            "noReformulation": "No reformulation received",
+            "reformulateError": "Error during reformulation",
+            "subjectReformulated": "Subject reformulated by AI!",
+            "subjectReformulateError": "Error during subject reformulation",
+            "requiredFields": "Please fill in all required fields",
+            "sent": "Emails sent successfully",
+            "sendError": "Error while sending email",
+            "aiWarningBody": "Write a message to reformulate first",
+            "aiWarningSubject": "Write a subject to reformulate first"
+        }
+    },
+    "errors": {
+        "404": {
+            "title": "OOPS! Page Not Found",
+            "message": "We can't seem to find the page you are looking for!",
+            "back": "Back to homepage"
+        },
+        "403": {
+            "title": "Access Denied",
+            "message": "You don't have the necessary permissions to access this page.",
+            "back": "Back to Dashboard"
+        }
+    },
+    "execution": {
+        "title": "Execution Tracking",
+        "subtitle": "Drive test campaigns and monitor team performance",
+        "stats": {
+            "total": "Total Executions",
+            "totalDesc": "Across all campaigns",
+            "successRate": "Success Rate",
+            "successDesc": "Percentage of passed tests",
+            "failed": "Failed Tests",
+            "failedDesc": "Detected anomalies",
+            "pending": "Pending",
+            "pendingDesc": "Remaining tests to execute"
+        },
+        "filters": {
+            "search": "Search by name, release, campaign or tester...",
+            "sortNewest": "Newest",
+            "sortOldest": "Oldest",
+            "groupNone": "No grouping",
+            "groupCampaign": "By Campaign",
+            "groupRelease": "By Release"
+        },
+        "table": {
+            "notAssigned": "Not assigned",
+            "unassigned": "Unassigned",
+            "durationNA": "N/A",
+            "campaignPrefix": "Campaign #"
+        },
+        "toasts": {
+            "deleteError": "Error during deletion. Please try again.",
+            "fetchError": "Error loading executions",
+            "updateError": "Error during update",
+            "commentPostError": "Error sending comment",
+            "commentUpdateError": "Error modifying comment",
+            "commentDeleteSuccess": "Comment deleted"
+        },
+        "modal": {
+            "editTitle": "Edit Execution",
+            "nameLabel": "Test Name",
+            "namePlaceholder": "Enter test name",
+            "statusLabel": "Status",
+            "proofLabel": "Proof / Capture (Optional)",
+            "clickToAdd": "Click to add",
+            "orDrag": " or drag and drop",
+            "currentCapture": "Current capture",
+            "viewFile": "View file",
+            "replaceWarning": "Uploading a new file will replace the existing one.",
+            "deleteTitle": "Delete Execution",
+            "deleteMessage": "Are you sure you want to delete this test execution? This action is irreversible.",
+            "commentDeleteTitle": "Delete Comment",
+            "commentDeleteMessage": "Are you sure you want to delete this comment? This action is irreversible."
+        },
+        "panel": {
+            "title": "Test Details",
+            "id": "ID",
+            "pending": "Pending",
+            "emptyComments": "No comments yet.",
+            "me": "Me",
+            "modifiedAt": "Modified at {{time}}",
+            "placeholder": "Your comment...",
+            "attach": "Attach a file",
+            "reformulate": "Reformulate with AI",
+            "download": "Download"
+        },
+        "performance": {
+            "title": "Tester Productivity (Tests vs Bugs)",
+            "tests": "Executed Tests",
+            "bugs": "Found Bugs",
+            "loadDistribution": "Load Distribution"
+        },
+        "list": {
+            "start": "Start execution",
+            "untitled": "Untitled test",
+            "never": "Never",
+            "actions": "Actions",
+            "test": "Test",
+            "campaign": "Campaign",
+            "release": "Release",
+            "realizedBy": "Realized by",
+            "captures": "Captures",
+            "status": "Status",
+            "lastExecution": "Last Execution",
+            "empty": "No tests to execute. Launch a campaign from the Manager."
+        }
+    },
+    "analytics": {
+        "title": "AI Assistant",
+        "subtitle": "Analyze your test data in natural language",
+        "statusActive": "AI ACTIVE",
+        "modeActive": "Active Intelligence Mode",
+        "newChat": "New",
+        "exportPDF": "Export PDF",
+        "toasts": {
+            "fetchError": "Error loading history",
+            "deleteError": "Error during deletion",
+            "deleteSuccess": "Conversation deleted",
+            "exportError": "An error occurred during export.",
+            "exportSuccess": "PDF exported successfully",
+            "saving": "Saving PDF...",
+            "agentError": "AI Agent error"
+        },
+        "history": {
+            "title": "AI Analytics",
+            "newChat": "New discussion",
+            "empty": "Start a discussion to see your history here",
+            "today": "Today",
+            "yesterday": "Yesterday",
+            "thisWeek": "This week",
+            "older": "Older",
+            "delete": "Delete",
+            "untitled": "New conversation"
+        },
+        "chat": {
+            "welcome": "Hello! I am your Analytics assistant. Ask me questions about your test data, anomalies, releases or campaigns.",
+            "placeholder": "Ask a question about your data...",
+            "suggestionsTitle": "Here are some suggestions:",
+            "suggestions": {
+                "quality": "Test quality analysis",
+                "coverage": "Coverage by module",
+                "trends": "Anomaly trends",
+                "performance": "Team performance"
+            },
+            "results": "Here are the results:",
+            "error": "Sorry, I could not process your request. Please try again.",
+            "cancel": "Cancel",
+            "resend": "Resend",
+            "edit": "Edit",
+            "nothingToExport": "Nothing to export",
+            "pdfTitle": "AI Analysis Report - InsureTM",
+            "pdfUserLabel": "User",
+            "pdfAiLabel": "AI Assistant",
+            "pdfGeneratedAt": "Generated at",
+            "user": "User",
+            "aiResponse": "AI Response"
+        },
+        "modal": {
+            "deleteTitle": "Delete conversation",
+            "deleteMessage": "Are you sure you want to delete this conversation? All history will be lost."
+        }
+    }
+}

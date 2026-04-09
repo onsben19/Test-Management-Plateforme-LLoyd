@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import Header from '../../components/Header';
-import Sidebar from '../../components/Sidebar';
-import AdminTable from '../../components/AdminTable';
+import PageLayout from '../../components/PageLayout';
+import EmailList from '../../components/EmailList';
 import { emailService } from '../../services/api';
 import { toast } from 'react-toastify';
-import { useSidebar } from '../../context/SidebarContext';
 import ConfirmModal from '../../components/ConfirmModal';
 import StatCard from '../../components/StatCard';
-import { Mail, Paperclip, Trash2, Eye, Send, Inbox, AlertOctagon, Clock } from 'lucide-react';
+import { Mail, Paperclip, Trash2, Eye, Send, Inbox, Search, X, ChevronLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
 import Pagination from '../../components/Pagination';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const AdminEmails = () => {
-    const { isOpen } = useSidebar();
+    const { t } = useTranslation();
     const [emails, setEmails] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -27,10 +27,10 @@ const AdminEmails = () => {
             setLoading(true);
             const response = await emailService.getEmails();
             const data = response.data.results || response.data;
-            setEmails(data);
+            setEmails(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Failed to fetch emails", error);
-            toast.error("Erreur lors de la récupération des messages.");
+            toast.error(t('adminEmails.toasts.fetchError'));
         } finally {
             setLoading(false);
         }
@@ -40,19 +40,16 @@ const AdminEmails = () => {
         fetchEmails();
     }, []);
 
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchQuery]);
-
-    const filteredEmails = emails.filter(email => {
+    const filteredEmails = useMemo(() => {
+        if (!searchQuery) return emails;
         const query = searchQuery.toLowerCase();
-        return (
-            email.subject.toLowerCase().includes(query) ||
-            email.body.toLowerCase().includes(query) ||
+        return emails.filter(email =>
+            email.subject?.toLowerCase().includes(query) ||
+            email.body?.toLowerCase().includes(query) ||
             (email.sender_name || '').toLowerCase().includes(query) ||
             (email.recipient_name || '').toLowerCase().includes(query)
         );
-    });
+    }, [emails, searchQuery]);
 
     const paginatedEmails = useMemo(() => {
         const startIndex = (currentPage - 1) * pageSize;
@@ -73,7 +70,7 @@ const AdminEmails = () => {
         return { total, withAttachments, recent, readRate };
     }, [emails]);
 
-    const handleDeleteEmail = async (email: any) => {
+    const handleDeleteEmail = (email: any) => {
         setEmailToDelete(email);
         setIsDeleteModalOpen(true);
     };
@@ -84,180 +81,172 @@ const AdminEmails = () => {
             await emailService.deleteEmail(emailToDelete.id);
             setEmails(prev => prev.filter(e => e.id !== emailToDelete.id));
             if (selectedEmail?.id === emailToDelete.id) setSelectedEmail(null);
-            toast.success("Message supprimé par l'administrateur");
+            toast.success(t('adminEmails.toasts.deleteSuccess'));
         } catch {
-            toast.error("Erreur lors de la suppression");
+            toast.error(t('adminEmails.toasts.deleteError'));
         } finally {
             setEmailToDelete(null);
+            setIsDeleteModalOpen(false);
         }
     };
 
-    const columns = [
-        { header: 'ID', accessor: 'id' },
-        { header: 'Expéditeur', accessor: 'sender_name' },
-        { header: 'Destinataire', accessor: 'recipient_name' },
-        {
-            header: 'Sujet',
-            accessor: (item: any) => (
-                <div className="flex items-center gap-2">
-                    <span className="font-medium text-slate-900 dark:text-white">{item.subject}</span>
-                    {item.attachment && <Paperclip className="w-3 h-3 text-slate-400" />}
-                </div>
-            )
-        },
-        {
-            header: 'Date',
-            accessor: (item: any) => new Date(item.created_at).toLocaleString('fr-FR')
-        }
-    ];
-
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors flex flex-col">
-            <Header />
-            <div className="flex flex-1 relative">
-                <Sidebar />
-                <main className={`flex-1 p-8 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
-                    <div className="max-w-7xl mx-auto">
-                        <div className="mb-8">
-                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 font-heading tracking-tight">Administration des Messageries</h1>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm">Supervision globale de toutes les communications internes</p>
+        <PageLayout
+            title={t('adminEmails.title')}
+            subtitle="ADMINISTRATION MESSAGERIE"
+        >
+            <div className="space-y-8">
+                {/* 1. Stats Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <StatCard
+                        title={t('adminEmails.stats.volume')}
+                        value={stats.total}
+                        icon={Inbox}
+                        variant="blue"
+                        description={t('adminEmails.stats.volumeDesc')}
+                    />
+                    <StatCard
+                        title={t('adminEmails.stats.attachments')}
+                        value={stats.withAttachments}
+                        icon={Paperclip}
+                        variant="purple"
+                        description={t('adminEmails.stats.attachmentsDesc')}
+                    />
+                    <StatCard
+                        title={t('adminEmails.stats.recent')}
+                        value={stats.recent}
+                        icon={Send}
+                        variant="green"
+                        description={t('adminEmails.stats.recentDesc')}
+                        change={stats.recent > 0 ? `+${stats.recent}` : undefined}
+                        changeType="positive"
+                    />
+                    <StatCard
+                        title={t('adminEmails.stats.readRate')}
+                        value={`${stats.readRate}%`}
+                        icon={Eye}
+                        variant="yellow"
+                        description={t('adminEmails.stats.readRateDesc')}
+                        change={stats.readRate >= 80 ? t('adminEmails.stats.optimal') : t('adminEmails.stats.watch')}
+                        changeType={stats.readRate >= 80 ? "positive" : "neutral"}
+                    />
+                </div>
+
+                {/* 2. Messaging UI */}
+                <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-450px)] min-h-[500px]">
+
+                    {/* List Column */}
+                    <div className={`w-full lg:w-[450px] flex-shrink-0 flex flex-col gap-4 ${selectedEmail ? 'hidden lg:flex' : 'flex'}`}>
+                        <div className="relative group">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                            <input
+                                type="text"
+                                placeholder={t('adminEmails.searchPlaceholder') || "Rechercher un message..."}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 bg-white/50 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                            />
+                            {searchQuery && (
+                                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            )}
                         </div>
 
-                        {/* Summary Stats Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                            <StatCard
-                                title="Volume Messagerie"
-                                value={stats.total}
-                                icon={Inbox}
-                                variant="blue"
-                                description="Total historique"
-                            />
-                            <StatCard
-                                title="Pièces Jointes"
-                                value={stats.withAttachments}
-                                icon={Paperclip}
-                                variant="purple"
-                                description="Fichiers partagés"
-                            />
-                            <StatCard
-                                title="Nouveaux (24h)"
-                                value={stats.recent}
-                                icon={Send}
-                                variant="green"
-                                description="Flux journalier"
-                                change={stats.recent > 0 ? `+${stats.recent}` : undefined}
-                                changeType="positive"
-                            />
-                            <StatCard
-                                title="Engagement Lecture"
-                                value={`${stats.readRate}%`}
-                                icon={Eye}
-                                variant="yellow"
-                                description="Messages consultés"
-                                change={stats.readRate >= 80 ? "Optimal" : "À surveiller"}
-                                changeType={stats.readRate >= 80 ? "positive" : "neutral"}
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                            <EmailList
+                                emails={paginatedEmails}
+                                selectedEmailId={selectedEmail?.id}
+                                onEmailClick={setSelectedEmail}
+                                activeTab="inbox"
                             />
                         </div>
 
-                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                            <div className="xl:col-span-2">
-                                <AdminTable
-                                    columns={columns}
-                                    data={paginatedEmails}
-                                    isLoading={loading}
-                                    searchable
-                                    onSearch={setSearchQuery}
-                                    actions={(item) => (
-                                        <div className="flex items-center gap-2">
+                        <div className="mt-2">
+                            <Pagination
+                                currentPage={currentPage}
+                                totalItems={filteredEmails.length}
+                                pageSize={pageSize}
+                                onPageChange={setCurrentPage}
+                                loading={loading}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Detail Column */}
+                    <div className={`flex-1 flex flex-col min-w-0 ${selectedEmail ? 'flex' : 'hidden lg:flex'}`}>
+                        <AnimatePresence mode="wait">
+                            {selectedEmail ? (
+                                <motion.div
+                                    key={selectedEmail.id}
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    className="flex flex-col h-full bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 rounded-3xl shadow-2xl overflow-hidden"
+                                >
+                                    <div className="p-6 border-b border-slate-200/50 dark:border-slate-700/50 bg-white/20 dark:bg-slate-900/40">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex items-center gap-4 lg:hidden">
+                                                <button onClick={() => setSelectedEmail(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
+                                                    <ChevronLeft className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight mb-2 line-clamp-2">{selectedEmail.subject}</h2>
+                                                <div className="flex flex-wrap gap-4 text-xs font-medium text-slate-500">
+                                                    <span>{t('adminEmails.details.from')}: <strong className="text-blue-500">{selectedEmail.sender_name}</strong></span>
+                                                    <span>{t('adminEmails.details.to')}: <strong className="text-emerald-500">{selectedEmail.recipient_name}</strong></span>
+                                                    <span>{new Date(selectedEmail.created_at).toLocaleString()}</span>
+                                                </div>
+                                            </div>
                                             <button
-                                                onClick={() => setSelectedEmail(item)}
-                                                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-500 transition-colors"
-                                                title="Voir le contenu"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteEmail(item)}
-                                                className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full text-slate-500 hover:text-red-600 transition-colors"
-                                                title="Supprimer"
+                                                onClick={() => handleDeleteEmail(selectedEmail)}
+                                                className="p-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all border border-red-500/20 shadow-sm"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
-                                    )}
-                                />
-                                <div className="mt-6">
-                                    <Pagination
-                                        currentPage={currentPage}
-                                        totalItems={filteredEmails.length}
-                                        pageSize={pageSize}
-                                        onPageChange={setCurrentPage}
-                                        loading={loading}
-                                    />
-                                </div>
-                            </div>
+                                    </div>
 
-                            <div className="xl:col-span-1">
-                                {selectedEmail ? (
-                                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 sticky top-24 shadow-sm">
-                                        <div className="flex justify-between items-start mb-6">
-                                            <h3 className="font-bold text-slate-900 dark:text-white">Détails du Message</h3>
-                                            <button onClick={() => setSelectedEmail(null)} className="text-slate-400 hover:text-slate-600 text-xs uppercase font-bold tracking-wider">Fermer</button>
+                                    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                                        <div className="max-w-3xl mx-auto bg-slate-50/50 dark:bg-slate-900/30 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 italic leading-relaxed text-slate-700 dark:text-slate-300">
+                                            {selectedEmail.body}
                                         </div>
-                                        <div className="space-y-4">
-                                            <div>
-                                                <p className="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Objet</p>
-                                                <p className="text-sm text-slate-900 dark:text-white font-medium">{selectedEmail.subject}</p>
+
+                                        {selectedEmail.attachment && (
+                                            <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-700/50">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{t('adminEmails.details.attachment')}</p>
+                                                <a href={selectedEmail.attachment} target="_blank" rel="noreferrer" className="inline-flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-blue-100 dark:border-blue-900/30 text-blue-500 hover:bg-blue-50 transition-all font-bold text-sm shadow-sm">
+                                                    <Paperclip className="w-4 h-4" />
+                                                    {selectedEmail.attachment.split('/').pop()}
+                                                </a>
                                             </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <p className="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">De</p>
-                                                    <p className="text-sm text-slate-900 dark:text-white">{selectedEmail.sender_name}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">À</p>
-                                                    <p className="text-sm text-slate-900 dark:text-white">{selectedEmail.recipient_name}</p>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Contenu</p>
-                                                <div className="text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg whitespace-pre-wrap border border-slate-100 dark:border-slate-700/50 italic leading-relaxed">
-                                                    {selectedEmail.body}
-                                                </div>
-                                            </div>
-                                            {selectedEmail.attachment && (
-                                                <div>
-                                                    <p className="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Pièce Jointe</p>
-                                                    <a href={selectedEmail.attachment} target="_blank" rel="noreferrer" className="text-sm text-blue-500 hover:underline flex items-center gap-1">
-                                                        <Paperclip className="w-3 h-3" />
-                                                        {selectedEmail.attachment.split('/').pop()}
-                                                    </a>
-                                                </div>
-                                            )}
-                                        </div>
+                                        )}
                                     </div>
-                                ) : (
-                                    <div className="bg-slate-100 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-12 text-center sticky top-24">
-                                        <Mail className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4 opacity-50" />
-                                        <p className="text-slate-500 dark:text-slate-400 text-sm">Sélectionnez un email pour en consulter le contenu complet de manière sécurisée.</p>
+                                </motion.div>
+                            ) : (
+                                <div className="flex-1 flex items-center justify-center bg-slate-100/30 dark:bg-slate-800/20 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700">
+                                    <div className="text-center">
+                                        <Mail className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4 opacity-20" />
+                                        <p className="text-slate-500 dark:text-slate-400 font-bold">{t('adminEmails.details.empty')}</p>
                                     </div>
-                                )}
-                            </div>
-                        </div>
+                                </div>
+                            )}
+                        </AnimatePresence>
                     </div>
-                </main>
+                </div>
             </div>
 
             <ConfirmModal
                 isOpen={isDeleteModalOpen}
-                title="Supprimer le message"
-                message={`Êtes-vous sûr de vouloir supprimer définitivement ce message (ID: ${emailToDelete?.id}) ? Cette action est irréversible.`}
+                title={t('adminEmails.modal.deleteTitle')}
+                message={t('adminEmails.modal.deleteConfirm', { id: emailToDelete?.id })}
                 onConfirm={confirmDeleteEmail}
                 onCancel={() => setIsDeleteModalOpen(false)}
-                confirmText="Supprimer"
+                confirmText={t('common.delete')}
                 type="danger"
             />
-        </div>
+        </PageLayout>
     );
 };
 

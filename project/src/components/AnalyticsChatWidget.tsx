@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Send, Bot, User, Database, Sparkles,
-    PanelLeft, PanelLeftClose, Paperclip, X, Plus, Pencil, Check, Download
+    PanelLeft, PanelLeftClose, Paperclip, X, Plus, Pencil, Check, Download,
+    CheckCircle, PieChart, Activity, Zap
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -35,21 +37,6 @@ interface AnalyticsChatWidgetProps {
     onConversationStarted?: (id: string) => void;
 }
 
-const WELCOME_MSG: Message = {
-    id: 'welcome',
-    sender: 'agent',
-    text: "Bonjour ! Je suis votre assistant Analytics. Posez-moi des questions sur vos données de test, anomalies, releases ou campagnes.",
-    type: 'text',
-    timestamp: new Date()
-};
-
-const SUGGESTIONS = [
-    "Combien de cas de test par projet ?",
-    "Montre-moi les anomalies critiques",
-    "Quel est le taux de réussite des tests ?",
-    "Évolution des campagnes ce mois-ci",
-];
-
 const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
     embedded = false,
     conversationId,
@@ -58,6 +45,15 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
     isSidebarOpen = true,
     onConversationStarted,
 }) => {
+    const { t } = useTranslation();
+    const WELCOME_MSG: Message = {
+        id: 'welcome',
+        sender: 'agent',
+        text: t('analytics.chat.welcome'),
+        type: 'text',
+        timestamp: new Date()
+    };
+
     const [messages, setMessages] = useState<Message[]>([WELCOME_MSG]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -103,7 +99,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
             }));
             setMessages(mapped.length > 0 ? mapped : [WELCOME_MSG]);
         } catch {
-            toast.error('Erreur chargement historique');
+            toast.error(t('analytics.toasts.errorHistory'));
         } finally {
             setLoading(false);
         }
@@ -146,7 +142,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
             const agentMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 sender: 'agent',
-                text: data.answer ?? 'Voici les résultats :',
+                text: data.answer ?? t('analytics.chat.defaultAnswer'),
                 type: data.type ?? 'text',
                 data: data.data,
                 sql: data.sql,
@@ -159,11 +155,11 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
             setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(),
                 sender: 'agent',
-                text: "Désolé, je n'ai pas pu traiter votre demande. Veuillez réessayer.",
+                text: t('analytics.chat.errorAgent'),
                 type: 'error',
                 timestamp: new Date()
             }]);
-            toast.error('Erreur agent');
+            toast.error(t('analytics.toasts.errorAgent'));
         } finally {
             setLoading(false);
         }
@@ -193,15 +189,15 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
 
     const handleExportPDF = () => {
         if (messages.length <= 1) {
-            toast.info("Rien à exporter");
+            toast.info(t('analytics.toasts.nothingToExport'));
             return;
         }
 
         const doc = new jsPDF();
         doc.setFontSize(18);
-        doc.text("Rapport d'Analyse IA", 20, 20);
+        doc.text(t('analytics.chat.pdfTitle'), 20, 20);
         doc.setFontSize(9);
-        doc.text(`Généré le : ${new Date().toLocaleString()}`, 20, 27);
+        doc.text(`${t('analytics.chat.pdfDate')} : ${new Date().toLocaleString()}`, 20, 27);
 
         let y = 45;
         const margin = 20;
@@ -210,7 +206,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
         messages.filter(m => m.id !== 'welcome').forEach((msg) => {
             if (y > 270) { doc.addPage(); y = 20; }
             doc.setFontSize(9);
-            doc.text(msg.sender === 'user' ? "Utilisateur" : "Assistant IA", margin, y);
+            doc.text(msg.sender === 'user' ? t('analytics.chat.pdfUserLabel') : t('analytics.chat.pdfAiLabel'), margin, y);
             y += 5;
             doc.setFontSize(11);
             const textLines = doc.splitTextToSize(msg.text, contentWidth);
@@ -234,7 +230,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
         });
 
         doc.save(`rapport-analytics-${new Date().getTime()}.pdf`);
-        toast.success("Rapport PDF généré");
+        toast.success(t('analytics.toasts.exportSuccess'));
     };
 
     const renderVisualization = (msg: Message) => {
@@ -261,9 +257,9 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                             showlegend: true,
                             legend: { orientation: 'h', y: -0.1, x: 0.5, xanchor: 'center' },
                             ...props.layout,
-                            title: undefined, // Handled as HTML header
+                            title: undefined,
                             margin: {
-                                t: 20, // Little top margin needed since title is now HTML
+                                t: 20,
                                 b: 120,
                                 l: 40,
                                 r: 40,
@@ -346,8 +342,8 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                         <div className="flex flex-col gap-2 w-72">
                             <textarea autoFocus value={editingText} onChange={e => setEditingText(e.target.value)} className="w-full bg-slate-700 border border-blue-500 text-white rounded-xl px-3 py-2 text-sm resize-none focus:outline-none" rows={3} />
                             <div className="flex items-center justify-end gap-2">
-                                <button onClick={() => setEditingMessageId(null)} className="text-xs text-slate-400 px-3 py-1.5 rounded-lg hover:bg-slate-700">Annuler</button>
-                                <button onClick={() => handleEditSubmit(msg.id)} className="flex items-center gap-1.5 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg"><Check className="w-3.5 h-3.5" />Renvoyer</button>
+                                <button onClick={() => setEditingMessageId(null)} className="text-xs text-slate-400 px-3 py-1.5 rounded-lg hover:bg-slate-700">{t('analytics.chat.cancel')}</button>
+                                <button onClick={() => handleEditSubmit(msg.id)} className="flex items-center gap-1.5 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg"><Check className="w-3.5 h-3.5" />{t('analytics.chat.resend')}</button>
                             </div>
                         </div>
                     ) : (
@@ -357,7 +353,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                                 <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                                 {!isUser && msg.type !== 'text' && msg.type !== 'error' && <div className="mt-1">{renderVisualization(msg)}</div>}
                             </div>
-                            {isUser && <button onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }} className="mt-1.5 opacity-0 group-hover:opacity-100 flex items-center gap-1 text-[10px] text-slate-500 hover:text-blue-400 px-2 py-1 rounded-lg hover:bg-slate-800"><Pencil className="w-3 h-3" />Modifier</button>}
+                            {isUser && <button onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }} className="mt-1.5 opacity-0 group-hover:opacity-100 flex items-center gap-1 text-[10px] text-slate-500 hover:text-blue-400 px-2 py-1 rounded-lg hover:bg-slate-800"><Pencil className="w-3 h-3" />{t('analytics.chat.edit')}</button>}
                         </>
                     )}
                     <span className="text-[10px] mt-1.5 text-slate-600 font-medium px-1">{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -377,7 +373,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
             <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                 <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" className="hidden" />
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2.5 text-slate-500 hover:text-blue-400 hover:bg-slate-800 rounded-xl transition-all shrink-0"><Paperclip className="w-4 h-4" /></button>
-                <input ref={inputRef} type="text" value={input} onChange={e => setInput(e.target.value)} placeholder="Posez une question sur vos données..." className="flex-1 bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all" disabled={loading} />
+                <input ref={inputRef} type="text" value={input} onChange={e => setInput(e.target.value)} placeholder={t('analytics.chat.placeholder')} className="flex-1 bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all" disabled={loading} />
                 <button type="submit" disabled={(!input.trim() && !selectedImage) || loading} className="p-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-xl shadow-lg active:scale-95 shrink-0"><Send className="w-4 h-4" /></button>
             </form>
         </div>
@@ -391,11 +387,16 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                         <Sparkles className="w-7 h-7 text-white" />
                     </div>
                     <div className="text-center">
-                        <h3 className="font-bold text-slate-200 text-base">Assistant Analytics IA</h3>
-                        <p className="text-slate-500 text-sm mt-1">Analysez vos données de test en langage naturel</p>
+                        <h3 className="font-bold text-slate-200 text-base">{t('analytics.chat.title')}</h3>
+                        <p className="text-slate-500 text-sm mt-1">{t('analytics.subtitle')}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3 mt-4 w-full max-w-lg">
-                        {SUGGESTIONS.map(s => (
+                        {[
+                            t('analytics.chat.suggestions.quality'),
+                            t('analytics.chat.suggestions.anomalies'),
+                            t('analytics.chat.suggestions.successRate'),
+                            t('analytics.chat.suggestions.trends')
+                        ].map(s => (
                             <StarBorder
                                 key={s}
                                 onClick={() => handleSendMessage(undefined, s)}

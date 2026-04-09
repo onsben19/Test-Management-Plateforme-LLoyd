@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import Header from '../components/Header';
-import Sidebar from '../components/Sidebar';
+import { useTranslation } from 'react-i18next';
+import PageLayout from '../components/PageLayout';
 import AnalyticsChatWidget from '../components/AnalyticsChatWidget';
 import ChatHistorySidebar from '../components/ChatHistorySidebar';
 import { toast } from 'react-toastify';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import ConfirmModal from '../components/ConfirmModal';
 import api from '../services/api';
-import { useSidebar } from '../context/SidebarContext';
 
 interface Conversation {
     id: string;
@@ -16,11 +15,11 @@ interface Conversation {
 }
 
 const Analytics = () => {
-    const { isOpen } = useSidebar();
+    const { t } = useTranslation();
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(true);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
 
@@ -28,7 +27,6 @@ const Analytics = () => {
         try {
             setIsLoading(true);
             const response = await api.get('/analytics/conversations/');
-            // Handle paginated response
             const data = response.data.results || response.data;
             const sorted = (Array.isArray(data) ? data : [])
                 .sort((a: Conversation, b: Conversation) =>
@@ -47,7 +45,6 @@ const Analytics = () => {
     const handleNewChat = () => setCurrentConversationId(null);
     const handleSelectConversation = (id: string) => setCurrentConversationId(id);
 
-    // Called by widget when a new conversation is created (first message sent)
     const handleConversationStarted = (id: string) => {
         if (id) {
             setCurrentConversationId(id);
@@ -67,72 +64,74 @@ const Analytics = () => {
             await api.delete(`/analytics/conversations/${conversationToDelete}/`);
             setConversations(prev => prev.filter(c => c.id !== conversationToDelete));
             if (currentConversationId === conversationToDelete) setCurrentConversationId(null);
-            toast.success('Conversation supprimée');
+            toast.success(t('analytics.toasts.deleted'));
         } catch {
-            toast.error('Erreur lors de la suppression');
+            toast.error(t('analytics.toasts.deleteError'));
         } finally {
             setConversationToDelete(null);
+            setIsDeleteModalOpen(false);
         }
     };
 
     return (
-        <div className="h-screen bg-slate-900 flex flex-col overflow-hidden">
-            <Header />
-            <div className="flex flex-1 h-[calc(100vh-4rem)] relative overflow-hidden">
-                <Sidebar />
-                <main className={`flex-1 flex overflow-hidden transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
-                    {/* History sidebar with edge-tab toggle */}
-                    <div className="relative flex shrink-0">
-                        {/* Sliding panel */}
-                        <div className={`${isSidebarOpen ? 'w-64' : 'w-0'
-                            } transition-all duration-300 ease-in-out overflow-hidden`}>
-                            <ChatHistorySidebar
-                                conversations={conversations}
-                                currentConversationId={currentConversationId}
-                                onSelectConversation={handleSelectConversation}
-                                onNewChat={handleNewChat}
-                                onDeleteConversation={handleDeleteConversation}
-                                isLoading={isLoading}
-                            />
-                        </div>
-
-                        {/* Edge tab — always visible */}
-                        <button
-                            onClick={() => setIsSidebarOpen(v => !v)}
-                            className="absolute right-0 translate-x-full top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-5 h-12 bg-slate-800 hover:bg-slate-700 border border-l-0 border-slate-700 rounded-r-lg shadow-lg transition-all group"
-                            title={isSidebarOpen ? 'Fermer le panneau' : 'Ouvrir le panneau'}
-                        >
-                            {isSidebarOpen
-                                ? <ChevronLeft className="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition-colors" />
-                                : <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition-colors" />
-                            }
-                        </button>
-                    </div>
-
-                    {/* Chat area */}
-                    <div className="flex-1 h-full overflow-hidden flex flex-col">
-                        <AnalyticsChatWidget
-                            embedded={true}
-                            conversationId={currentConversationId}
-                            onConversationUpdate={fetchConversations}
-                            onConversationStarted={handleConversationStarted}
-                            onToggleSidebar={() => setIsSidebarOpen(v => !v)}
-                            isSidebarOpen={isSidebarOpen}
+        <PageLayout
+            title={t('analytics.title')}
+            subtitle="AI ANALYTICS"
+            fullHeight={true}
+            noPadding={true}
+        >
+            <div className="flex flex-1 h-full relative overflow-hidden bg-white/5 dark:bg-black/20 backdrop-blur-sm border border-white/10 rounded-t-[2.5rem]">
+                {/* History sidebar with edge-tab toggle */}
+                <div className="relative flex shrink-0">
+                    {/* Sliding panel */}
+                    <div className={`${isHistorySidebarOpen ? 'w-80' : 'w-0'
+                        } transition-all duration-500 ease-in-out overflow-hidden border-r border-white/5 bg-slate-950`}>
+                        <ChatHistorySidebar
+                            conversations={conversations}
+                            currentConversationId={currentConversationId}
+                            onSelectConversation={handleSelectConversation}
+                            onNewChat={handleNewChat}
+                            onDeleteConversation={handleDeleteConversation}
+                            isLoading={isLoading}
                         />
                     </div>
-                </main>
+
+                    {/* Edge tab — always visible */}
+                    <button
+                        onClick={() => setIsHistorySidebarOpen(v => !v)}
+                        className="absolute right-0 translate-x-1/2 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-6 h-12 bg-blue-600 hover:bg-blue-500 border border-blue-400/30 rounded-full shadow-xl shadow-blue-900/40 transition-all group scale-75 lg:scale-100"
+                        title={isHistorySidebarOpen ? t('common.close') : t('common.open')}
+                    >
+                        {isHistorySidebarOpen
+                            ? <ChevronLeft className="w-4 h-4 text-white" />
+                            : <ChevronRight className="w-4 h-4 text-white" />
+                        }
+                    </button>
+                </div>
+
+                {/* Chat area */}
+                <div className="flex-1 h-full overflow-hidden flex flex-col relative z-10">
+                    <AnalyticsChatWidget
+                        embedded={true}
+                        conversationId={currentConversationId}
+                        onConversationUpdate={fetchConversations}
+                        onConversationStarted={handleConversationStarted}
+                        onToggleSidebar={() => setIsHistorySidebarOpen(v => !v)}
+                        isSidebarOpen={isHistorySidebarOpen}
+                    />
+                </div>
             </div>
 
             <ConfirmModal
                 isOpen={isDeleteModalOpen}
-                title="Supprimer la conversation"
-                message="Êtes-vous sûr de vouloir supprimer cette conversation ? Toute l'historique sera perdu."
+                title={t('analytics.modal.deleteTitle')}
+                message={t('analytics.modal.deleteMessage')}
                 onConfirm={confirmDeleteConversation}
                 onCancel={() => setIsDeleteModalOpen(false)}
-                confirmText="Supprimer"
+                confirmText={t('analytics.history.delete')}
                 type="danger"
             />
-        </div>
+        </PageLayout>
     );
 };
 

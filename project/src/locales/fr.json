@@ -1,0 +1,1017 @@
+{
+    "common": {
+        "loading": "Chargement...",
+        "error": "Erreur",
+        "success": "Succès",
+        "save": "Enregistrer",
+        "cancel": "Annuler",
+        "delete": "Supprimer",
+        "edit": "Modifier",
+        "add": "Ajouter",
+        "search": "Rechercher...",
+        "actions": "Actions",
+        "status": "Statut",
+        "date": "Date",
+        "unknown": "Inconnu",
+        "unassigned": "Non assigné",
+        "noRelease": "Sans Release",
+        "dateLocale": "fr-FR"
+    },
+    "login": {
+        "title": "InsureTM",
+        "subtitle": "Connectez-vous à votre espace de travail",
+        "username": "Nom d'utilisateur",
+        "password": "Mot de passe",
+        "forgotPassword": "Mot de passe oublié ?",
+        "submit": "Se connecter",
+        "placeholderUsername": "nom.utilisateur",
+        "placeholderPassword": "••••••••",
+        "success": "Connexion réussie !",
+        "failure": "Échec de la connexion. Vérifiez vos identifiants."
+    },
+    "sidebar": {
+        "dashboard": "Tableau de Bord",
+        "anomalies": "Anomalies",
+        "analytics": "AI Analytics",
+        "emails": "Emails",
+        "campaigns": "Campagnes",
+        "executions": "Suivi d'Exécution",
+        "users": "Utilisateurs",
+        "settings": "Paramètres",
+        "logout": "Déconnexion",
+        "tester": "Testeur",
+        "admin": "Admin",
+        "testerDashboard": "Espace Testeur",
+        "adminDashboard": "Espace Admin",
+        "collapse": "Réduire le menu",
+        "expand": "Agrandir le menu",
+        "groups": {
+            "principal": "PRINCIPAL",
+            "tests": "GESTION DES TESTS",
+            "communication": "COMMUNICATION & IA"
+        },
+        "items": {
+            "users": "Gestion des utilisateurs",
+            "emails": "Gestion des emails",
+            "releases": "Gestion des Releases",
+            "campaigns": "Campagnes de Tests",
+            "testerDashboard": "Campagne des tests",
+            "executions": "Suivi d'Exécution",
+            "anomalies": "Anomalies",
+            "comments": "Commentaires",
+            "messages": "Messagerie",
+            "aiDiscussions": "Gestion des discussions AI",
+            "aiAnalytics": "Analytics IA"
+        }
+    },
+    "header": {
+        "notifications": "Notifications",
+        "newNotifications": "{{count}} nouvelles",
+        "noNotifications": "Aucune notification",
+        "profile": "Profil",
+        "darkMode": "Mode Sombre",
+        "lightMode": "Mode Clair",
+        "language": "Langue"
+    },
+    "stats": {
+        "increase": "Augmentation",
+        "decrease": "Diminution",
+        "fromLastMonth": "par rapport au mois dernier"
+    },
+    "adminAnalytics": {
+        "title": "Administration des Analytics",
+        "subtitle": "Suivi global de l'utilisation de l'agent IA par tous les utilisateurs",
+        "stats": {
+            "totalSessions": "Sessions Totales",
+            "activeUsers": "Utilisateurs Actifs",
+            "totalMessages": "Messages Échangés",
+            "avgResponseTime": "Temps de Réponse Moyen",
+            "history": "Historique complet",
+            "contributors": "Contributeurs IA",
+            "totalInteractions": "Total des interactions",
+            "efficiency": "Efficacité système"
+        }
+    },
+    "adminDashboard": {
+        "welcome": "Bienvenue dans votre centre de contrôle.",
+        "customize": "Personnaliser",
+        "refresh": "Actualiser",
+        "widgets": {
+            "trend": "Tendance des exécutions",
+            "distribution": "Sévérité des anomalies",
+            "activity": "Activité récente",
+            "users": "Utilisateurs par Rôle"
+        },
+        "aiExpertOpinion": "Avis de l'Expert IA",
+        "viewDetails": "Voir l'analyse",
+        "newProject": {
+            "title": "Nouveau Projet",
+            "nameLabel": "Nom du projet",
+            "namePlaceholder": "Ex: Refonte Application Mobile",
+            "descLabel": "Description",
+            "descPlaceholder": "Description des objectifs du projet...",
+            "cancel": "Annuler",
+            "submit": "Créer le projet",
+            "submitting": "Création..."
+        }
+    },
+    "managerDashboard": {
+        "title": "Tableau de Bord Manager",
+        "subtitle": "Vue Qualité Manager",
+        "description": "Surveillance de la qualité et des performances de vos projets.",
+        "stats": {
+            "successRate": "Taux de Succès",
+            "successRateDesc": "Sur l'ensemble des tests",
+            "activeProjects": "Projets Actifs",
+            "activeProjectsDesc": "Campagnes monitorées",
+            "openAnomalies": "Anomalies Ouvertes",
+            "openAnomaliesDesc": "Action requise"
+        },
+        "widgets": {
+            "trend": "Tendance Qualité",
+            "trendSubtitle": "7 DERNIERS JOURS",
+            "mlGuard": "Alertes Prédictives ML",
+            "mlGuardSubtitle": "TIMELINE GUARD",
+            "mlGuardEmpty": "Aucune alerte prédite pour le moment.",
+            "distributionSubtitle": "SÉVÉRITÉ",
+            "activity": "Dernières Actions",
+            "activitySubtitle": "MONITORING"
+        }
+    },
+    "adminAnomalies": {
+        "title": "Administration des Anomalies",
+        "subtitle": "Gestion globale et suivi des rapports d'erreurs",
+        "stats": {
+            "total": "Anomalies Totales",
+            "totalDesc": "Total historique détecté",
+            "critical": "Bloquants / Critiques",
+            "criticalDesc": "Nécessite une action immédiate",
+            "medium": "Priorité Moyenne",
+            "mediumDesc": "Correctifs en attente",
+            "recent": "Signalées (24h)",
+            "recentDesc": "Nouvelles entrées"
+        },
+        "table": {
+            "anomaly": "Anomalie",
+            "severity": "Gravité",
+            "status": "Statut",
+            "relatedTest": "Test lié",
+            "release": "Release",
+            "campaign": "Campagne",
+            "createdBy": "Créé par",
+            "date": "Date"
+        },
+        "badges": {
+            "critical": "Critique",
+            "medium": "Moyenne",
+            "low": "Faible",
+            "open": "Ouverte",
+            "unknown": "Inconnu"
+        },
+        "filters": {
+            "all": "Tout",
+            "recent": "Actif",
+            "oldest": "Désactivé"
+        },
+        "actions": {
+            "edit": "Modifier",
+            "delete": "Supprimer"
+        },
+        "modal": {
+            "deleteTitle": "Supprimer l'anomalie",
+            "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette anomalie ?",
+            "cancel": "Annuler",
+            "delete": "Supprimer"
+        },
+        "toasts": {
+            "fetchError": "Erreur lors du chargement des anomalies",
+            "updateSuccess": "Anomalie mise à jour",
+            "updateError": "Erreur lors de la mise à jour",
+            "deleteSuccess": "Anomalie supprimée",
+            "deleteError": "Erreur lors de la suppression"
+        }
+    },
+    "adminCampaigns": {
+        "title": "Administration des Campagnes",
+        "subtitle": "Gestion et suivi des campagnes de tests importées",
+        "stats": {
+            "total": "Total Campagnes",
+            "totalDesc": "Base de données complète",
+            "recent": "Récentes (7j)",
+            "recentDesc": "Nouveaux imports Excel",
+            "projects": "Projets Rattachés",
+            "projectsDesc": "Releases actives et passées",
+            "status": "Statut Système",
+            "statusDesc": "Service Analytics opérationnel"
+        },
+        "table": {
+            "title": "Titre",
+            "description": "Description",
+            "project": "Projet",
+            "createdAt": "Date de création"
+        },
+        "filters": {
+            "all": "Tous les statuts",
+            "active": "Actif",
+            "inactive": "Désactivé"
+        },
+        "actions": {
+            "edit": "Modifier",
+            "delete": "Supprimer"
+        },
+        "modal": {
+            "editTitle": "Modifier la Campagne",
+            "fieldTitle": "Titre de la campagne",
+            "fieldDescription": "Description",
+            "cancel": "Annuler",
+            "save": "Enregistrer",
+            "saving": "Enregistrement...",
+            "deleteTitle": "Supprimer la campagne",
+            "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette campagne ?",
+            "delete": "Supprimer"
+        },
+        "toasts": {
+            "fetchError": "Erreur lors du chargement des campagnes",
+            "deleteSuccess": "Campagne supprimée",
+            "deleteError": "Erreur lors de la suppression",
+            "updateSuccess": "Campagne modifiée avec succès",
+            "updateError": "Erreur lors de la modification"
+        }
+    },
+    "adminComments": {
+        "title": "Journal des Commentaires",
+        "subtitle": "Gérez les échanges et retours d'expérience sur les tests de manière proactive",
+        "stats": {
+            "total": "Commentaires",
+            "totalDesc": "Total des échanges",
+            "authors": "Contributeurs",
+            "authorsDesc": "Auteurs uniques",
+            "activity": "Activité (24h)",
+            "activityDesc": "Nouveaux posts",
+            "health": "Santé Sociale",
+            "healthDesc": "Modération optimale",
+            "healthValue": "Stable"
+        },
+        "table": {
+            "message": "Message",
+            "author": "Auteur",
+            "date": "Date"
+        },
+        "modal": {
+            "deleteTitle": "Supprimer le commentaire",
+            "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce commentaire ?",
+            "cancel": "Annuler",
+            "delete": "Supprimer"
+        },
+        "toasts": {
+            "fetchError": "Erreur lors du chargement des commentaires",
+            "deleteSuccess": "Commentaire supprimé",
+            "deleteError": "Erreur lors de la suppression"
+        },
+        "unknown": "Inconnu"
+    },
+    "adminEmails": {
+        "title": "Administration des Messageries",
+        "subtitle": "Supervision globale de toutes les communications internes",
+        "stats": {
+            "volume": "Volume Messagerie",
+            "volumeDesc": "Total historique",
+            "attachments": "Pièces Jointes",
+            "attachmentsDesc": "Fichiers partagés",
+            "recent": "Nouveaux (24h)",
+            "recentDesc": "Flux journalier",
+            "readRate": "Engagement Lecture",
+            "readRateDesc": "Messages consultés",
+            "optimal": "Optimal",
+            "watch": "À surveiller"
+        },
+        "table": {
+            "sender": "Expéditeur",
+            "recipient": "Destinataire",
+            "subject": "Sujet",
+            "date": "Date"
+        },
+        "details": {
+            "title": "Détails du Message",
+            "close": "Fermer",
+            "subject": "Objet",
+            "from": "De",
+            "to": "À",
+            "content": "Contenu",
+            "attachment": "Pièce Jointe",
+            "empty": "Sélectionnez un email pour en consulter le contenu complet de manière sécurisée."
+        },
+        "actions": {
+            "view": "Voir le contenu",
+            "delete": "Supprimer"
+        },
+        "modal": {
+            "deleteTitle": "Supprimer le message",
+            "deleteConfirm": "Êtes-vous sûr de vouloir supprimer définitivement ce message (ID: {{id}}) ? Cette action est irréversible.",
+            "delete": "Supprimer"
+        },
+        "toasts": {
+            "fetchError": "Erreur lors de la récupération des messages.",
+            "deleteSuccess": "Message supprimé par l'administrateur",
+            "deleteError": "Erreur lors de la suppression"
+        }
+    },
+    "adminExecutions": {
+        "title": "Suivi d'Exécution",
+        "subtitle": "Vue d'ensemble et gestion des données d'exécution",
+        "moduleFallback": "Campagne #{{id}}",
+        "unassigned": "Non assigné",
+        "na": "N/A",
+        "releaseFallback": "Release A",
+        "stats": {
+            "total": "Total Tests",
+            "totalDesc": "Toutes exécutions confondues",
+            "passed": "Succès",
+            "passedDesc": "Tests validés sans erreur",
+            "failed": "Échecs / Bugs",
+            "failedDesc": "Anomalies à investiguer",
+            "pending": "En Attente",
+            "pendingDesc": "Tests non encore réalisés"
+        },
+        "controls": {
+            "sort": "Trier :",
+            "newest": "Plus récents",
+            "oldest": "Plus anciens",
+            "group": "Grouper :",
+            "none": "Aucun",
+            "campaign": "Campagne",
+            "release": "Release"
+        },
+        "search": "Rechercher par référence, campagne, release ou testeur...",
+        "modal": {
+            "deleteTitle": "Supprimer l'exécution",
+            "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette exécution ? Cette action est irréversible.",
+            "delete": "Supprimer"
+        },
+        "toasts": {
+            "fetchError": "Erreur lors du chargement des exécutions",
+            "deleteSuccess": "Exécution supprimée avec succès",
+            "deleteError": "Erreur lors de la suppression",
+            "updateSuccess": "Exécution mise à jour",
+            "updateError": "Erreur lors de la mise à jour"
+        }
+    },
+    "adminReleases": {
+        "title": "Administration des Releases",
+        "subtitle": "Vision globale et historique complet des livrables",
+        "stats": {
+            "total": "Total Releases",
+            "totalDesc": "Tous les projets rattachés",
+            "active": "Releases Actives",
+            "activeDesc": "En cours de test",
+            "planning": "En Planification",
+            "planningDesc": "Prochaines versions",
+            "completed": "Terminées",
+            "completedDesc": "Historique clôturé"
+        },
+        "status": {
+            "all": "Tous les statuts",
+            "active": "Actif",
+            "planning": "Planifié",
+            "completed": "Terminé"
+        },
+        "table": {
+            "name": "Nom",
+            "description": "Description",
+            "status": "Statut",
+            "createdBy": "Créé par",
+            "createdAt": "Date de création"
+        },
+        "actions": {
+            "edit": "Modifier",
+            "delete": "Supprimer"
+        },
+        "modal": {
+            "editTitle": "Modifier la Release",
+            "nameLabel": "Nom de la Release",
+            "descLabel": "Description",
+            "statusLabel": "Statut",
+            "deleteTitle": "Supprimer la release",
+            "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette release ?",
+            "cancel": "Annuler",
+            "save": "Enregistrer",
+            "delete": "Supprimer"
+        },
+        "toasts": {
+            "fetchError": "Erreur lors du chargement des releases",
+            "updateSuccess": "Release modifiée avec succès",
+            "updateError": "Erreur lors de la sauvegarde de la release",
+            "deleteSuccess": "Release supprimée",
+            "deleteError": "Erreur lors de la suppression"
+        }
+    },
+    "anomalies": {
+        "title": "Liste des anomalies signalées",
+        "subtitle": "Suivi, priorisation et résolution des anomalies détectées",
+        "stats": {
+            "total": "Total Anomalies",
+            "totalDesc": "Anomalies détectées sur la période",
+            "critical": "Critiques",
+            "criticalDesc": "Nécessite une action immédiate",
+            "medium": "Moyennes",
+            "mediumDesc": "À traiter prioritairement",
+            "resolved": "Résolues",
+            "resolvedDesc": "Anomalies corrigées et validées"
+        },
+        "searchPlaceholder": "Rechercher une anomalie, test, assigné...",
+        "filters": {
+            "severity": "Gravité",
+            "all": "Tout",
+            "sort": "Tri :",
+            "recent": "Plus récent",
+            "oldest": "Plus ancien"
+        },
+        "actions": {
+            "refresh": "Rafraîchir",
+            "exportCsv": "CSV",
+            "exportPdf": "PDF",
+            "edit": "Modifier",
+            "delete": "Supprimer"
+        },
+        "table": {
+            "anomaly": "Anomalie",
+            "severity": "Gravité",
+            "status": "Statut",
+            "relatedTest": "Test lié",
+            "release": "Release",
+            "campaign": "Campagne",
+            "createdBy": "Créé par",
+            "date": "Date",
+            "context": "Contexte",
+            "reported": "Signalé",
+            "actions": "Actions",
+            "empty": "Aucun résultat pour votre recherche / filter."
+        },
+        "status": {
+            "open": "Ouverte",
+            "investigating": "En investigation",
+            "resolved": "Résolue"
+        },
+        "severity": {
+            "critical": "Critique",
+            "medium": "Moyenne",
+            "low": "Faible"
+        },
+        "chart": {
+            "title": "Répartition des Anomalies",
+            "subtitle": "Réel par niveau de sévérité",
+            "none": "Aucune"
+        },
+        "modal": {
+            "deleteTitle": "Supprimer l'anomalie",
+            "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette anomalie ? Cette action est irréversible.",
+            "delete": "Supprimer"
+        },
+        "toasts": {
+            "saveError": "Erreur lors de l'enregistrement.",
+            "deleteError": "Erreur lors de la suppression.",
+            "pdfError": "Erreur lors de la génération du PDF."
+        },
+        "testFallback": "Test #{{id}}"
+    },
+    "testerDashboard": {
+        "title": "Mon Espace Testeur",
+        "subtitle": "Retrouvez les campagnes qui vous sont assignées et validez vos tests.",
+        "searchPlaceholder": "Rechercher une campagne...",
+        "controls": {
+            "groupByRelease": "Groupé par Release",
+            "simpleGrid": "Grille Simple",
+            "recent": "Plus récent",
+            "oldest": "Plus ancien"
+        },
+        "state": {
+            "loading": "Chargement...",
+            "emptyAssigned": "Aucune campagne assignée pour le moment.",
+            "emptySearch": "Aucune campagne trouvée pour cette recherche."
+        },
+        "group": {
+            "release": "Release :",
+            "count": "{{count}} Campagnes"
+        },
+        "card": {
+            "testsPlanned": "{{count}} Tests Prévus",
+            "noDescription": "Aucune description",
+            "viewExcel": "Voir Excel",
+            "validateTask": "Valider Cas de Test"
+        },
+        "modal": {
+            "title": "Valider un Cas de Test",
+            "release": "Release:",
+            "campaign": "Campagne:",
+            "manager": "Manager:",
+            "proofLabel": "Preuve d'Exécution / Capture",
+            "file": "Fichier: {{name}}",
+            "addCapture": "Cliquez pour ajouter une capture",
+            "removeFile": "Supprimer le fichier",
+            "testRefLabel": "Nom du Cas de Test / Référence",
+            "testRefPlaceholder": "Ex: TC-001 Connexion",
+            "statusLabel": "Statut",
+            "success": "Succès (Valide)",
+            "failure": "Échec (Invalid)",
+            "anomalyTitle": "Déclaration d'anomalie",
+            "anomalyNameLabel": "Titre de l'anomalie",
+            "anomalyDescLabel": "Description",
+            "anomalyCritLabel": "Criticité",
+            "save": "Enregistrer"
+        },
+        "toasts": {
+            "anomalyReported": "Anomalie signalée ! Cliquez pour voir.",
+            "testValidated": "Test validé ! Voir le suivi.",
+            "validationError": "Erreur lors de la validation",
+            "fileNotFound": "Fichier introuvable"
+        }
+    },
+    "settings": {
+        "title": "Paramètres",
+        "subtitle": "Configuration de la plateforme, authentification et paramètres IA",
+        "auth": {
+            "title": "Authentification",
+            "subtitle": "Configurer l'accès et le Single Sign-On (SSO)",
+            "enableSso": "Activer SSO",
+            "ssoDesc": "Connexion centralisée via fournisseur externe",
+            "provider": "Fournisseur SSO",
+            "clientId": "Client ID",
+            "clientIdPlaceholder": "ex: client-id-xxx",
+            "secret": "Secret (masqué)"
+        },
+        "notifications": {
+            "title": "Notifications",
+            "subtitle": "Alertes et notifications de la plateforme",
+            "enable": "Activer notifications",
+            "desc": "Recevoir des alertes en cas d'anomalies critiques",
+            "email": "Notifications Email",
+            "threshold": "Seuil d'alerte",
+            "criticalOnly": "Critique uniquement",
+            "all": "Toutes"
+        },
+        "ai": {
+            "title": "Paramètres IA",
+            "subtitle": "Contrôles de sensibilité et comportement des insights",
+            "enableInsights": "Activer Insights IA",
+            "insightsDesc": "Générer automatiquement des priorités & synthèses",
+            "sensitivity": "Sensibilité IA: {{value}}%",
+            "sensitivityDesc": "Plus la sensibilité est élevée, plus le moteur signalera d'anomalies et de priorités."
+        },
+        "side": {
+            "billing": "Facturation & Abonnement",
+            "billingDesc": "Informations sur l'abonnement et intégration facturation",
+            "channels": "Canal de notifications",
+            "channelsDesc": "Email, Slack ou Webhook pour alertes en temps réel",
+            "model": "Modèle IA",
+            "modelVersion": "Version: {{version}} • Dernière mise à jour: {{date}}"
+        },
+        "appearance": {
+            "darkTheme": "Thème sombre",
+            "darkThemeDesc": "Activer le mode sombre de l'interface"
+        },
+        "actions": {
+            "save": "Enregistrer",
+            "reset": "Réinitialiser"
+        },
+        "toasts": {
+            "saved": "Paramètres sauvegardés",
+            "resetInfo": "Réinitialisation des paramètres par défaut"
+        }
+    },
+    "userManagement": {
+        "title": "Gestion des Utilisateurs",
+        "subtitle": "Gérez les accès et les rôles des membres de l'équipe",
+        "addUser": "Ajouter un utilisateur",
+        "stats": {
+            "total": "Utilisateurs Totaux",
+            "totalDesc": "Base de données active",
+            "admins": "Administrateurs",
+            "adminsDesc": "Accès complet au système",
+            "managers": "Managers",
+            "managersDesc": "Gestion d'équipes et projets",
+            "testers": "Testeurs",
+            "testersDesc": "Exécution des tests QA"
+        },
+        "filters": {
+            "searchPlaceholder": "Rechercher un utilisateur...",
+            "allRoles": "Tous les rôles",
+            "allStatuses": "Tous les statuts"
+        },
+        "table": {
+            "user": "Utilisateur",
+            "role": "Rôle",
+            "status": "Statut",
+            "actions": "Actions",
+            "active": "Actif",
+            "inactive": "Inactif"
+        },
+        "roles": {
+            "admin": "Admin",
+            "manager": "Manager",
+            "tester": "Tester",
+            "viewer": "Viewer"
+        },
+        "menu": {
+            "edit": "Modifier",
+            "deactivate": "Désactiver",
+            "activate": "Activer",
+            "delete": "Supprimer"
+        },
+        "modal": {
+            "addTitle": "Ajouter un utilisateur",
+            "fullName": "Nom complet (Prénom / Nom)",
+            "firstName": "Prénom",
+            "lastName": "Nom",
+            "professionalEmail": "Email professionnel",
+            "username": "Nom d'utilisateur",
+            "usernameDesc": "Si laissé vide, sera généré depuis l'email.",
+            "role": "Rôle",
+            "cancel": "Annuler",
+            "create": "Créer l'utilisateur",
+            "accessGenerated": "Accès généré !",
+            "accessDesc": "Mot de passe temporaire généré. Copiez-le avant de fermer.",
+            "finish": "Terminer",
+            "deleteTitle": "Supprimer l'utilisateur",
+            "deleteMessage": "Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.",
+            "deleteConfirm": "Supprimer"
+        },
+        "toasts": {
+            "fetchError": "Impossible de charger les utilisateurs",
+            "deleted": "Utilisateur supprimé",
+            "deleteError": "Erreur lors de la suppression",
+            "activated": "Utilisateur activé",
+            "deactivated": "Utilisateur désactivé",
+            "toggleError": "Erreur lors du changement de statut",
+            "created": "Utilisateur créé avec succès",
+            "createError": "Erreur lors de la création de l'utilisateur",
+            "updated": "Utilisateur mis à jour",
+            "updateError": "Erreur lors de la mise à jour"
+        }
+    },
+    "releaseManager": {
+        "title": "Gestion des Releases",
+        "subtitle": "Gérez vos releases et suivez l'avancement des projets.",
+        "newRelease": "Nouvelle Release",
+        "searchPlaceholder": "Rechercher une release...",
+        "sort": {
+            "newest": "Plus récent",
+            "oldest": "Plus ancien"
+        },
+        "card": {
+            "createdAt": "Créé le {{date}}",
+            "createdBy": "Par {{user}}",
+            "campaignCount_one": "{{count}} Campagne",
+            "campaignCount_other": "{{count}} Campagnes",
+            "viewTests": "Voir cahier de tests",
+            "unknownUser": "Inconnu",
+            "noReleases": "Aucune release trouvée. Créez-en une nouvelle pour commencer.",
+            "readinessTitle": "Analyse de Préparation",
+            "readinessDetails": "Détails de Préparation",
+            "aiDetails": "DÉTAILS IA"
+        },
+        "status": {
+            "active": "Actif",
+            "planning": "Planifié",
+            "completed": "Terminé",
+            "label": "Statut"
+        },
+        "menu": {
+            "edit": "Modifier",
+            "delete": "Supprimer"
+        },
+        "modal": {
+            "editTitle": "Modifier la Release",
+            "createTitle": "Créer une nouvelle Release",
+            "name": "Nom de la Release",
+            "namePlaceholder": "Ex: Release Q3 2024",
+            "description": "Description",
+            "descriptionPlaceholder": "Description des objectifs de la release...",
+            "initialStatus": "Statut Initial",
+            "cancel": "Annuler",
+            "save": "Enregistrer",
+            "create": "Créer la Release",
+            "deleteTitle": "Supprimer la release",
+            "deleteMessage": "Êtes-vous sûr de vouloir supprimer cette release ?",
+            "deleteConfirm": "Supprimer"
+        },
+        "toasts": {
+            "fetchError": "Erreur lors du chargement des releases",
+            "updated": "Release modifiée avec succès",
+            "created": "Release créée avec succès",
+            "saveError": "Erreur lors de la sauvegarde de la release",
+            "deleted": "Release supprimée",
+            "deleteError": "Erreur lors de la suppression",
+            "statusUpdated": "Statut mis à jour : {{status}}",
+            "statusError": "Erreur lors du changement de statut"
+        }
+    },
+    "dataDriven": {
+        "title": "Campagnes de Tests",
+        "releaseLabel": "Release:",
+        "noRelease": "Non spécifiée",
+        "newCampaign": "Nouvelle Campagne",
+        "stats": {
+            "total": "Total Campagnes",
+            "totalDesc": "Toutes les campagnes de la release",
+            "active": "Campagnes Actives",
+            "activeDesc": "En cours d'exécution",
+            "critical": "Risques Critiques",
+            "criticalDesc": "Détecté par ML Timeline Guard",
+            "finished": "Terminées",
+            "finishedDesc": "Tests clôturés à 100%"
+        },
+        "searchPlaceholder": "Rechercher une campagne...",
+        "filterTester": "Filtrer par testeur...",
+        "card": {
+            "estimatedEnd": "Fin estimée",
+            "scheduledAt": "Début prévu : {{date}}",
+            "noTesters": "Aucun testeur",
+            "testCases": "Cas",
+            "viewTests": "Voir le Cahier de Tests",
+            "noCampaigns": "Aucune campagne trouvée pour cette recherche."
+        },
+        "timelineGuard": {
+            "optimal": "Santé Optimale",
+            "warning": "Risque de Dérive",
+            "critical": "Retard Critique",
+            "waiting": "Calcul en cours",
+            "analyzing": "Analyse...",
+            "delay": "+{{count}}j de retard",
+            "velocity": "Cadence de Test (IA)",
+            "unitTestsDay": "tests/jour",
+            "estimatedEnd": "Fin Estimée",
+            "predictiveAnalysis": "Analyse prédictive",
+            "campaignSuccess": "Succès de Campagne",
+            "objective": "Objectif : {{count}} Cas",
+            "readinessScore": "Score Global",
+            "readinessAnalysis": "Analyse de Préparation"
+        },
+        "modal": {
+            "editTitle": "Modifier la Campagne",
+            "createTitle": "Ajouter une Campagne",
+            "titleLabel": "Titre du Cahier de Test",
+            "titlePlaceholder": "Ex: Campagne Release 1.2",
+            "nbCases": "Nb. Cas de Test",
+            "description": "Description",
+            "descriptionPlaceholder": "Description optionnelle...",
+            "schedule": {
+                "header": "Calendrier & Lancement",
+                "delayed": "Programmer un lancement différé",
+                "cancelDelayed": "Annuler le différé",
+                "immediate": "Lancement immédiat",
+                "estimatedStart": "Début estimé",
+                "estimatedEnd": "Fin estimée",
+                "footer": "La campagne débutera à la date définie et les testeurs devront terminer avant la date de fin."
+            },
+            "file": {
+                "label": "Fichier Excel (.xlsx)",
+                "optional": "(Laisser vide pour conserver l'actuel)",
+                "replace": "Cliquez pour remplacer le fichier",
+                "import": "Cliquez pour importer un fichier"
+            },
+            "testers": {
+                "label": "Assigner des Testeurs",
+                "none": "Aucun testeur trouvé."
+            },
+            "delete": {
+                "title": "Supprimer la campagne ?",
+                "message": "Cette action est irréversible et supprimera tous les cas de tests associés.",
+                "confirm": "Confirmer"
+            },
+            "cancel": "Annuler",
+            "save": "Enregistrer les modifications",
+            "create": "Créer la Campagne"
+        },
+        "toasts": {
+            "fetchError": "Erreur de chargement des campagnes",
+            "fileRequired": "Veuillez sélectionner un fichier.",
+            "updated": "Campagne modifiée avec succès",
+            "created": "Campagne créée avec succès",
+            "saveError": "Erreur lors de l'enregistrement de la campagne.",
+            "deleted": "Campagne supprimée",
+            "deleteError": "Erreur suppression",
+            "fileNotFound": "Fichier introuvable"
+        }
+    },
+    "email": {
+        "title": "Messagerie",
+        "subtitle": "Gérez vos communications internes",
+        "new": "Nouveau Message",
+        "tabs": {
+            "inbox": "Boîte de réception",
+            "sent": "Envoyés"
+        },
+        "table": {
+            "received": "Reçus",
+            "sent": "Envoyés",
+            "from": "De",
+            "to": "À",
+            "subject": "Sujet",
+            "date": "Date",
+            "open": "Ouvrir",
+            "delete": "Supprimer"
+        },
+        "details": {
+            "from": "De :",
+            "to": "À :",
+            "date": "Date :",
+            "subject": "Objet :",
+            "reply": "Répondre",
+            "forward": "Transférer",
+            "close": "Fermer",
+            "attachment": "Pièce jointe",
+            "download": "Cliquer pour télécharger",
+            "originalMessage": "Message original",
+            "forwardedMessage": "Message transféré"
+        },
+        "compose": {
+            "title": "Nouveau Message",
+            "reply": "Répondre",
+            "forward": "Transférer",
+            "recipients": "Destinataires",
+            "recipientsPlaceholder": "Rechercher un utilisateur...",
+            "recipientsAdd": "Ajouter d'autres...",
+            "noUser": "Aucun utilisateur trouvé",
+            "subject": "Objet",
+            "subjectPlaceholder": "Sujet du message",
+            "message": "Message",
+            "messagePlaceholder": "Votre message...",
+            "attachment": "Pièce jointe (optionnel)",
+            "chooseFile": "Choisir un fichier",
+            "remove": "Supprimer",
+            "cancel": "Annuler",
+            "send": "Envoyer",
+            "sending": "Envoi...",
+            "ai": {
+                "reformulateSubject": "Reformuler l'objet",
+                "reformulateBody": "Reformuler avec l'IA",
+                "reformulating": "Reformulation..."
+            }
+        },
+        "toasts": {
+            "deleted": "Message supprimé",
+            "deleteError": "Erreur lors de la suppression",
+            "reformulated": "Message reformulé par l'IA !",
+            "noReformulation": "Aucune reformulation reçue",
+            "reformulateError": "Erreur lors de la reformulation",
+            "subjectReformulated": "Objet reformulé par l'IA !",
+            "subjectReformulateError": "Erreur lors de la reformulation de l'objet",
+            "requiredFields": "Veuillez remplir tous les champs obligatoires",
+            "sent": "Emails envoyés avec succès",
+            "sendError": "Erreur lors de l'envoi de l'email",
+            "aiWarningBody": "Écrivez d'abord un message à reformuler",
+            "aiWarningSubject": "Écrivez d'abord un objet à reformuler"
+        }
+    },
+    "errors": {
+        "404": {
+            "title": "OUPS ! Page Introuvable",
+            "message": "Il semble que nous ne parvenions pas à trouver la page que vous recherchez !",
+            "back": "Retour à l'accueil"
+        },
+        "403": {
+            "title": "Accès Refusé",
+            "message": "Vous n'avez pas les permissions nécessaires pour accéder à cette page.",
+            "back": "Retour au Tableau de bord"
+        }
+    },
+    "execution": {
+        "title": "Suivi d'Exécution",
+        "subtitle": "Pilotez les campagnes de tests et suivez la performance de l'équipe",
+        "stats": {
+            "total": "Total Exécutions",
+            "totalDesc": "Toutes campagnes confondues",
+            "successRate": "Taux de Réussite",
+            "successDesc": "Pourcentage de tests validés",
+            "failed": "Tests Échoués",
+            "failedDesc": "Anomalies détectées",
+            "pending": "En Attente",
+            "pendingDesc": "Tests restants à exécuter"
+        },
+        "filters": {
+            "search": "Rechercher par nom, release, campagne ou testeur...",
+            "sortNewest": "Plus récent",
+            "sortOldest": "Plus ancien",
+            "groupNone": "Aucun groupement",
+            "groupCampaign": "Par Campagne",
+            "groupRelease": "Par Release"
+        },
+        "table": {
+            "notAssigned": "Non assigné",
+            "unassigned": "Non assigné",
+            "durationNA": "N/A",
+            "campaignPrefix": "Campagne #"
+        },
+        "toasts": {
+            "deleteError": "Erreur lors de la suppression. Veuillez réessayer.",
+            "fetchError": "Erreur de chargement des exécutions",
+            "updateError": "Erreur lors de la mise à jour",
+            "commentPostError": "Erreur lors de l'envoi du commentaire",
+            "commentUpdateError": "Erreur lors de la modification",
+            "commentDeleteSuccess": "Commentaire supprimé"
+        },
+        "modal": {
+            "editTitle": "Modifier l'exécution",
+            "nameLabel": "Nom du test",
+            "namePlaceholder": "Entrez le nom du test",
+            "statusLabel": "Statut",
+            "proofLabel": "Preuve / Capture (Optionnel)",
+            "clickToAdd": "Cliquez pour ajouter",
+            "orDrag": " ou glisser-déposer",
+            "currentCapture": "Capture actuelle",
+            "viewFile": "Voir le fichier",
+            "replaceWarning": "Uploader un nouveau fichier remplacera l'existant.",
+            "deleteTitle": "Supprimer l'exécution",
+            "deleteMessage": "Voulez-vous vraiment supprimer cette exécution de test ? Cette action est irréversible.",
+            "commentDeleteTitle": "Supprimer le commentaire",
+            "commentDeleteMessage": "Êtes-vous sûr de vouloir supprimer ce commentaire ? Cette action est irréversible."
+        },
+        "panel": {
+            "title": "Détails du Test",
+            "id": "ID",
+            "pending": "En attente",
+            "emptyComments": "Aucun commentaire pour le moment.",
+            "me": "Moi",
+            "modifiedAt": "Modifié à {{time}}",
+            "placeholder": "Votre commentaire...",
+            "attach": "Joindre un fichier",
+            "reformulate": "Reformuler avec l'IA",
+            "download": "Télécharger"
+        },
+        "performance": {
+            "title": "Productivité des Testeurs (Tests vs Bugs)",
+            "tests": "Tests Exécutés",
+            "bugs": "Bugs Trouvés",
+            "loadDistribution": "Répartition de la Charge"
+        },
+        "list": {
+            "start": "Démarrer l'exécution",
+            "untitled": "Test sans nom",
+            "never": "Jamais",
+            "actions": "Actions",
+            "test": "Test",
+            "campaign": "Campagne",
+            "release": "Release",
+            "realizedBy": "Réalisé par",
+            "captures": "Captures",
+            "status": "Statut",
+            "lastExecution": "Dernière Exécution",
+            "empty": "Aucun test à exécuter. Lancez une campagne depuis le Manager."
+        }
+    },
+    "analytics": {
+        "title": "Assistant Analytics",
+        "subtitle": "Analysez vos données de test en langage naturel",
+        "statusActive": "IA ACTIVE",
+        "modeActive": "Mode Intelligence Active",
+        "newChat": "Nouveau",
+        "exportPDF": "Exporter PDF",
+        "toasts": {
+            "fetchError": "Erreur de chargement de l'historique",
+            "deleteError": "Erreur lors de la suppression",
+            "deleteSuccess": "Conversation supprimée",
+            "exportError": "Une erreur est survenue lors de l'exportation.",
+            "exportSuccess": "PDF exporté avec succès",
+            "saving": "Enregistrement du PDF...",
+            "agentError": "Erreur de l'agent IA"
+        },
+        "history": {
+            "title": "Analytics IA",
+            "newChat": "Nouvelle discussion",
+            "empty": "Commencez une discussion pour voir votre historique ici",
+            "today": "Aujourd'hui",
+            "yesterday": "Hier",
+            "thisWeek": "Cette semaine",
+            "older": "Plus anciens",
+            "delete": "Supprimer",
+            "untitled": "Nouvelle conversation"
+        },
+        "chat": {
+            "welcome": "Bonjour ! Je suis votre assistant Analytics. Posez-moi des questions sur vos données de test, anomalies, releases ou campagnes.",
+            "placeholder": "Posez une question sur vos données...",
+            "suggestionsTitle": "Voici quelques suggestions :",
+            "suggestions": {
+                "quality": "Analyse de la qualité des tests",
+                "coverage": "Couverture par module",
+                "trends": "Tendance des anomalies",
+                "performance": "Performances de l'équipe"
+            },
+            "results": "Voici les résultats :",
+            "error": "Désolé, je n'ai pas pu traiter votre demande. Veuillez réessayer.",
+            "cancel": "Annuler",
+            "resend": "Renvoyer",
+            "edit": "Modifier",
+            "nothingToExport": "Rien à exporter",
+            "pdfTitle": "Rapport d'Analyse IA - InsureTM",
+            "pdfUserLabel": "Utilisateur",
+            "pdfAiLabel": "Assistant IA",
+            "pdfGeneratedAt": "Généré le",
+            "user": "Utilisateur",
+            "aiResponse": "Réponse de l'IA"
+        },
+        "modal": {
+            "deleteTitle": "Supprimer la conversation",
+            "deleteMessage": "Êtes-vous sûr de vouloir supprimer cette conversation ? Tout l'historique sera perdu."
+        }
+    }
+}

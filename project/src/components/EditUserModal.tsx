@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Save, User as UserIcon } from 'lucide-react';
 
 export interface UserItem {
@@ -17,6 +18,7 @@ interface EditUserModalProps {
 }
 
 const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) => {
+    const { t } = useTranslation();
     const [firstName, setFirstName] = useState(user.first_name);
     const [lastName, setLastName] = useState(user.last_name);
     const [email, setEmail] = useState(user.email);
@@ -43,7 +45,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) 
             await onSave(user.id, formData);
             onClose();
         } catch (error) {
-            console.error("Failed to update user", error);
+            console.error(t('userManagement.toasts.updateError'), error);
         } finally {
             setIsSubmitting(false);
         }
@@ -55,7 +57,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) 
                 <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <UserIcon className="w-5 h-5 text-blue-500" />
-                        Modifier l'utilisateur
+                        {t('userManagement.menu.edit')}
                     </h2>
                     <button
                         onClick={onClose}
@@ -69,7 +71,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Prénom
+                                {t('userManagement.modal.firstName')}
                             </label>
                             <input
                                 type="text"
@@ -81,7 +83,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) 
                         </div>
                         <div className="space-y-2">
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Nom
+                                {t('userManagement.modal.lastName')}
                             </label>
                             <input
                                 type="text"
@@ -95,7 +97,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) 
 
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                            Email
+                            {t('userManagement.modal.professionalEmail')}
                         </label>
                         <input
                             type="email"
@@ -108,16 +110,16 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) 
 
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                            Rôle
+                            {t('userManagement.modal.role')}
                         </label>
                         <select
                             value={role}
                             onChange={(e) => setRole(e.target.value)}
                             className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                         >
-                            <option value="Tester">Tester</option>
-                            <option value="Manager">Manager</option>
-                            <option value="Admin">Admin</option>
+                            <option value="Tester">{t('userManagement.roles.tester')}</option>
+                            <option value="Manager">{t('userManagement.roles.manager')}</option>
+                            <option value="Admin">{t('userManagement.roles.admin')}</option>
                         </select>
                     </div>
                 </form>
@@ -128,7 +130,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) 
                         onClick={onClose}
                         className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                     >
-                        Annuler
+                        {t('userManagement.modal.cancel')}
                     </button>
                     <button
                         onClick={handleSubmit}
@@ -136,7 +138,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) 
                         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
                     >
                         <Save className="w-4 h-4" />
-                        {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                        {isSubmitting ? t('common.saving') || 'Enregistrement...' : t('common.save') || 'Enregistrer'}
                     </button>
                 </div>
             </div>

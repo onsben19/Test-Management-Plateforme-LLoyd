@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import Header from '../components/Header';
-import Sidebar from '../components/Sidebar';
-import { User, Shield, CheckCircle, XCircle, MoreVertical, Plus, Search, Mail, Edit, Trash2, Lock, Unlock, Key, Copy, Check, Users, UserCheck, UserPlus, UserCog } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import PageLayout from '../components/PageLayout';
+import { User, Shield, CheckCircle, XCircle, MoreVertical, Plus, Search, Mail, Edit, Trash2, Lock, Unlock, Key, Copy, Check, Users, UserCheck, UserPlus, UserCog, Filter } from 'lucide-react';
 import api from '../services/api';
-import { useSidebar } from '../context/SidebarContext';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import EditUserModal from '../components/EditUserModal';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
 import StatCard from '../components/StatCard';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface UserData {
     id: string;
@@ -21,9 +21,9 @@ interface UserData {
 }
 
 const UserManagement = () => {
-    const { user } = useAuth();
-    const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
-    const { isOpen } = useSidebar();
+    const { t } = useTranslation();
+    const { user: currentUser } = useAuth();
+    const isAdmin = currentUser?.role?.toUpperCase() === 'ADMIN';
 
     const [users, setUsers] = useState<UserData[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -33,7 +33,7 @@ const UserManagement = () => {
 
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
-    const pageSize = 10;
+    const pageSize = 12;
 
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [isAddUserOpen, setIsAddUserOpen] = useState(false);
@@ -53,17 +53,17 @@ const UserManagement = () => {
 
     const mapBackendRole = (role: string): string => {
         const map: { [key: string]: string } = {
-            'ADMIN': 'Admin',
-            'MANAGER': 'Manager',
-            'TESTER': 'Tester',
+            'ADMIN': t('userManagement.roles.admin'),
+            'MANAGER': t('userManagement.roles.manager'),
+            'TESTER': t('userManagement.roles.tester'),
         };
-        return map[role] || 'Viewer';
+        return map[role] || t('userManagement.roles.viewer');
     };
 
     const mapFrontendRoleToBackend = (role: string): string => {
-        if (role === 'Admin') return 'ADMIN';
-        if (role === 'Manager') return 'MANAGER';
-        if (role === 'Tester') return 'TESTER';
+        const r = role.toUpperCase();
+        if (r === 'ADMIN') return 'ADMIN';
+        if (r === 'MANAGER') return 'MANAGER';
         return 'TESTER';
     };
 
@@ -76,7 +76,7 @@ const UserManagement = () => {
                     search: searchTerm,
                     role: roleFilter !== 'ALL' ? mapFrontendRoleToBackend(roleFilter) : undefined,
                     is_active: statusFilter === 'active' ? true : (statusFilter === 'inactive' ? false : undefined),
-                    ordering: '-date_joined' // Default to newest
+                    ordering: '-date_joined'
                 }
             });
             const data = response.data.results || response.data;
@@ -94,8 +94,8 @@ const UserManagement = () => {
             }));
             setUsers(apiUsers);
         } catch (error) {
-            console.error("Error fetching users", error);
-            toast.error("Impossible de charger les utilisateurs");
+            console.error("Failed to fetch users", error);
+            toast.error(t('userManagement.toasts.fetchError'));
         } finally {
             setLoading(false);
         }
@@ -134,14 +134,18 @@ const UserManagement = () => {
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
 
-    const stats = useMemo(() => {
-        const total = users.length;
-        const admins = users.filter(u => u.role === 'Admin').length;
-        const managers = users.filter(u => u.role === 'Manager').length;
-        const testers = users.filter(u => u.role === 'Tester').length;
-
-        return { total, admins, managers, testers };
-    }, [users]);
+    const userStats = useMemo(() => {
+        // Since we only have current page, we rely on totalItems for total
+        // But for roles, we approximate or wait for real backend stats if available.
+        // For now, use the current page's distribution as a sample if total count is large,
+        // or just show totalItems and specific labels.
+        return {
+            total: totalItems,
+            admins: users.filter(u => u.role === t('userManagement.roles.admin')).length,
+            managers: users.filter(u => u.role === t('userManagement.roles.manager')).length,
+            testers: users.filter(u => u.role === t('userManagement.roles.tester')).length,
+        };
+    }, [users, totalItems]);
 
     const handleDelete = async (id: string) => {
         setUserToDelete(id);
@@ -152,13 +156,14 @@ const UserManagement = () => {
         if (!userToDelete) return;
         try {
             await api.delete(`/users/${userToDelete}/`);
-            toast.success("Utilisateur supprimé");
+            toast.success(t('userManagement.toasts.deleted'));
             setUsers(users.filter(u => u.id !== userToDelete));
         } catch (error) {
             console.error(error);
-            toast.error("Erreur lors de la suppression");
+            toast.error(t('userManagement.toasts.deleteError'));
         } finally {
             setUserToDelete(null);
+            setIsDeleteModalOpen(false);
         }
     };
 
@@ -166,11 +171,11 @@ const UserManagement = () => {
         try {
             const newStatus = currentStatus === 'active' ? false : true;
             await api.patch(`/users/${id}/`, { is_active: newStatus });
-            toast.success(`Utilisateur ${newStatus ? 'activé' : 'désactivé'}`);
-            fetchUsers();
+            toast.success(newStatus ? t('userManagement.toasts.activated') : t('userManagement.toasts.deactivated'));
+            fetchUsers(currentPage);
         } catch (error) {
             console.error("Failed to toggle status", error);
-            toast.error("Erreur lors du changement de statut");
+            toast.error(t('userManagement.toasts.toggleError'));
         }
     };
 
@@ -189,184 +194,213 @@ const UserManagement = () => {
             };
 
             await api.post('/users/', payload);
-            toast.success("Utilisateur créé avec succès");
+            toast.success(t('userManagement.toasts.created'));
 
             setGeneratedPassword(pwd);
             setIsAddUserOpen(false);
-            setNewUser({ username: '', email: '', role: 'Tester', first_name: '', last_name: '' });
-            fetchUsers();
+            setNewUser({ username: '', email: '', role: 'TESTER', first_name: '', last_name: '' });
+            fetchUsers(1);
         } catch (error) {
             console.error(error);
-            toast.error("Erreur lors de la création de l'utilisateur");
+            toast.error(t('userManagement.toasts.createError'));
         }
     };
 
     const handleUpdateUser = async (id: string, updates: FormData) => {
         try {
-            const newPassword = generatePassword();
-            updates.append('password', newPassword);
+            // Check if we want to reset password here too
+            // updates.append('password', generatePassword()); 
             await api.patch(`/users/${id}/`, updates);
-            toast.success("Utilisateur mis à jour");
+            toast.success(t('userManagement.toasts.updated'));
             setEditingUser(null);
-            fetchUsers();
-            setGeneratedPassword(newPassword);
+            fetchUsers(currentPage);
         } catch (error) {
             console.error(error);
-            toast.error("Erreur lors de la mise à jour");
+            toast.error(t('userManagement.toasts.updateError'));
         }
     };
 
+    const HeaderActions = isAdmin && (
+        <button
+            onClick={() => setIsAddUserOpen(true)}
+            className="group flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-8 py-4 rounded-[2rem] transition-all shadow-xl shadow-blue-900/10 active:scale-95 font-bold text-[11px] tracking-wide uppercase"
+        >
+            <UserPlus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            {t('userManagement.addUser')}
+        </button>
+    );
+
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-            <Header />
-            <div className="flex">
-                <Sidebar />
-                <main className={`flex-1 p-6 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
-                    <div className="max-w-7xl mx-auto">
-                        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div>
-                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 font-heading tracking-tight">Gestion des Utilisateurs</h1>
-                                <p className="text-slate-500 dark:text-slate-400 text-sm">Gérez les accès et les rôles des membres de l'équipe</p>
-                            </div>
-                            {isAdmin && (
-                                <button
-                                    onClick={() => setIsAddUserOpen(true)}
-                                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20 hover:scale-105 font-medium"
+        <PageLayout
+            title={t('userManagement.title')}
+            subtitle="USER DIRECTORY"
+            actions={HeaderActions}
+        >
+            <div className="space-y-10">
+                {/* Stats Summary */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <StatCard
+                        title={t('userManagement.stats.total')}
+                        value={userStats.total}
+                        icon={Users}
+                        variant="blue"
+                        description={t('userManagement.stats.totalDesc')}
+                        isLoading={loading}
+                    />
+                    <StatCard
+                        title={t('userManagement.stats.admins')}
+                        value={userStats.admins}
+                        icon={UserCog}
+                        variant="purple"
+                        description={t('userManagement.stats.adminsDesc')}
+                        isLoading={loading}
+                    />
+                    <StatCard
+                        title={t('userManagement.stats.managers')}
+                        value={userStats.managers}
+                        icon={UserCheck}
+                        variant="yellow"
+                        description={t('userManagement.stats.managersDesc')}
+                        isLoading={loading}
+                    />
+                    <StatCard
+                        title={t('userManagement.stats.testers')}
+                        value={userStats.testers}
+                        icon={UserPlus}
+                        variant="green"
+                        description={t('userManagement.stats.testersDesc')}
+                        isLoading={loading}
+                    />
+                </div>
+
+                {/* Filters & Table Card */}
+                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl shadow-black/20">
+                    {/* Filters Bar - Refined to match screenshot */}
+                    <div className="p-10 border-b border-white/5 flex flex-col xl:flex-row items-center gap-6">
+                        <div className="relative flex-1 group w-full">
+                            <Search className="absolute left-8 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                            <input
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Rechercher un utilisateur..."
+                                className="w-full bg-white/5 border border-white/10 rounded-[2rem] pl-20 pr-10 py-5 text-base text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-medium placeholder-slate-500"
+                            />
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
+                            <div className="relative bg-white/5 rounded-[1.5rem] border border-white/5 overflow-hidden min-w-[200px] hover:bg-white/10 transition-all">
+                                <select
+                                    className="w-full bg-transparent text-white text-[10px] font-bold uppercase tracking-[0.2em] pl-8 pr-12 py-5 outline-none cursor-pointer appearance-none relative z-10"
+                                    value={roleFilter}
+                                    onChange={(e) => setRoleFilter(e.target.value)}
                                 >
-                                    <Plus className="w-4 h-4" />
-                                    Ajouter un utilisateur
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Summary Stats Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                            <StatCard
-                                title="Utilisateurs Totaux"
-                                value={stats.total}
-                                icon={Users}
-                                variant="blue"
-                                description="Base de données active"
-                            />
-                            <StatCard
-                                title="Administrateurs"
-                                value={stats.admins}
-                                icon={UserCog}
-                                variant="purple"
-                                description="Accès complet au système"
-                            />
-                            <StatCard
-                                title="Managers"
-                                value={stats.managers}
-                                icon={UserCheck}
-                                variant="yellow"
-                                description="Gestion d'équipes et projets"
-                            />
-                            <StatCard
-                                title="Testeurs"
-                                value={stats.testers}
-                                icon={UserPlus}
-                                variant="green"
-                                description="Exécution des tests QA"
-                                changeType="positive"
-                            />
-                        </div>
-
-                        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm dark:shadow-none transition-colors">
-                            <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row items-center gap-4 transition-colors">
-                                <div className="relative flex-1 w-full md:max-w-md">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input
-                                        type="text"
-                                        placeholder="Rechercher un utilisateur..."
-                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder-slate-400"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
-                                </div>
-                                <div className="flex items-center gap-2 w-full md:w-auto md:ml-auto overflow-x-auto no-scrollbar">
-                                    <select
-                                        className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-700 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
-                                        value={roleFilter}
-                                        onChange={(e) => setRoleFilter(e.target.value)}
-                                    >
-                                        <option value="ALL">Tous les rôles</option>
-                                        <option value="Admin">Admin</option>
-                                        <option value="Manager">Manager</option>
-                                        <option value="Tester">Tester</option>
-                                    </select>
-                                    <select
-                                        className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-700 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer"
-                                        value={statusFilter}
-                                        onChange={(e) => setStatusFilter(e.target.value)}
-                                    >
-                                        <option value="ALL">Tous les statuts</option>
-                                        <option value="active">Actif</option>
-                                        <option value="inactive">Désactivé</option>
-                                    </select>
-                                </div>
+                                    <option value="ALL" className="bg-slate-900">TOUS LES RÔLES</option>
+                                    <option value="Admin" className="bg-slate-900">ADMIN</option>
+                                    <option value="Manager" className="bg-slate-900">MANAGER</option>
+                                    <option value="Tester" className="bg-slate-900">TESTER</option>
+                                </select>
+                                <Filter className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                             </div>
 
-                            <div className="table-container overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 text-xs uppercase font-medium">
-                                        <tr>
-                                            <th className="px-6 py-4">Utilisateur</th>
-                                            <th className="px-6 py-4">Rôle</th>
-                                            <th className="px-6 py-4">Statut</th>
-                                            {isAdmin && <th className="px-6 py-4 text-right">Actions</th>}
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700 transition-colors">
-                                        {users.map((user) => (
-                                            <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 font-medium transition-colors">
-                                                            {user.name.charAt(0).toUpperCase()}
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-slate-900 dark:text-white font-medium transition-colors">{user.name}</div>
-                                                            <div className="text-slate-500 dark:text-slate-400 text-xs flex items-center gap-1 transition-colors">
-                                                                <Mail className="w-3 h-3" />
-                                                                {user.email}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 transition-colors">
-                                                        <Shield className="w-4 h-4 text-slate-400 dark:text-slate-500 transition-colors" />
-                                                        {user.role}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${user.status === 'active'
-                                                        ? 'bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/20'
-                                                        : 'bg-slate-100 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-500/20'
-                                                        }`}>
-                                                        {user.status === 'active' ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                                                        {user.status === 'active' ? 'Actif' : 'Inactif'}
-                                                    </span>
-                                                </td>
-                                                {isAdmin && (
-                                                    <td className="px-6 py-4 text-right relative">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setOpenMenuId(openMenuId === user.id ? null : user.id);
-                                                            }}
-                                                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-                                                        >
-                                                            <MoreVertical className="w-4 h-4" />
-                                                        </button>
+                            <div className="relative bg-white/5 rounded-[1.5rem] border border-white/5 overflow-hidden min-w-[200px] hover:bg-white/10 transition-all">
+                                <select
+                                    className="w-full bg-transparent text-white text-[10px] font-bold uppercase tracking-[0.2em] pl-8 pr-12 py-5 outline-none cursor-pointer appearance-none relative z-10"
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                >
+                                    <option value="ALL" className="bg-slate-900">TOUS LES STATUTS</option>
+                                    <option value="active" className="bg-slate-900">ACTIF</option>
+                                    <option value="inactive" className="bg-slate-900">INACTIF</option>
+                                </select>
+                                <Filter className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                            </div>
+                        </div>
+                    </div>
 
-                                                        {openMenuId === user.id && (
-                                                            <div className="absolute right-8 top-12 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100 transition-colors">
+                    <div className="overflow-x-auto h-full">
+                        <table className="w-full text-left border-collapse min-w-[800px]">
+                            <thead>
+                                <tr className="border-b border-white/5 bg-white/[0.01]">
+                                    <th className="px-10 py-8 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">UTILISATEUR</th>
+                                    <th className="px-10 py-8 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">RÔLE</th>
+                                    <th className="px-10 py-8 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">STATUT</th>
+                                    {isAdmin && <th className="px-10 py-8 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] text-right">ACTIONS</th>}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {loading && users.length === 0 ? (
+                                    [1, 2, 3].map(i => (
+                                        <tr key={i} className="animate-pulse">
+                                            <td colSpan={4} className="px-10 py-10">
+                                                <div className="h-12 bg-white/5 rounded-2xl w-full" />
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : users.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={4} className="px-10 py-32 text-center">
+                                            <div className="max-w-xs mx-auto opacity-30">
+                                                <Users className="w-16 h-16 mx-auto mb-4 text-slate-500" />
+                                                <p className="font-black uppercase tracking-widest text-[10px]">{t('userManagement.filters.noResults') || "No users found"}</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : users.map((u) => (
+                                    <tr key={u.id} className="group hover:bg-white/5 transition-all duration-300">
+                                        <td className="px-10 py-6">
+                                            <div className="flex items-center gap-5">
+                                                <div className="w-12 h-12 rounded-2xl bg-blue-600/20 flex items-center justify-center text-blue-400 font-bold text-lg border border-blue-600/20 group-hover:scale-105 transition-all duration-500">
+                                                    {u.name.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <div className="text-base font-bold text-white group-hover:text-blue-400 transition-colors tracking-tight">{u.name}</div>
+                                                    <div className="text-slate-500 text-[11px] flex items-center gap-2 mt-0.5 font-medium opacity-70">
+                                                        <Mail className="w-3.5 h-3.5 opacity-50" />
+                                                        {u.email}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-10 py-8">
+                                            <div className="inline-flex items-center gap-3 px-6 py-2 border border-white/10 rounded-2xl bg-white/5 group-hover:bg-blue-600/5 group-hover:border-blue-500/30 transition-all">
+                                                <Shield className="w-3.5 h-3.5 text-blue-500/70" />
+                                                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{u.role}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-10 py-8">
+                                            <span className={`inline-flex items-center gap-3 px-6 py-2 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${u.status === 'active'
+                                                ? 'bg-emerald-500/5 text-emerald-400 border border-emerald-500/10'
+                                                : 'bg-rose-500/5 text-rose-400 border border-rose-500/10'
+                                                }`}>
+                                                <div className={`w-1.5 h-1.5 rounded-full ${u.status === 'active' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-rose-500'}`} />
+                                                {u.status === 'active' ? 'ACTIF' : 'INACTIF'}
+                                            </span>
+                                        </td>
+                                        {isAdmin && (
+                                            <td className="px-10 py-6 text-right relative">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setOpenMenuId(openMenuId === u.id ? null : u.id);
+                                                    }}
+                                                    className={`p-3 rounded-2xl transition-all ${openMenuId === u.id ? 'bg-blue-600 text-white shadow-lg' : 'bg-white/5 text-slate-500 hover:text-white hover:bg-white/10 border border-white/5'}`}
+                                                >
+                                                    <MoreVertical className="w-5 h-5" />
+                                                </button>
+
+                                                <AnimatePresence>
+                                                    {openMenuId === u.id && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, scale: 0.95, x: 20 }}
+                                                            animate={{ opacity: 1, scale: 1, x: 0 }}
+                                                            exit={{ opacity: 0, scale: 0.95, x: 20 }}
+                                                            className="absolute right-24 top-6 w-56 bg-[#0f172a] border border-white/10 rounded-[2rem] shadow-2xl z-50 overflow-hidden"
+                                                        >
+                                                            <div className="p-3 space-y-1">
                                                                 <button
-                                                                    className="w-full flex items-center gap-2 px-4 py-3 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white transition-colors"
+                                                                    className="w-full flex items-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 rounded-2xl transition-all"
                                                                     onClick={() => {
-                                                                        const selectedUser = users.find(u => u.id === user.id);
+                                                                        const selectedUser = users.find(usr => usr.id === u.id);
                                                                         if (selectedUser) {
                                                                             setEditingUser({
                                                                                 ...selectedUser,
@@ -377,53 +411,201 @@ const UserManagement = () => {
                                                                         setOpenMenuId(null);
                                                                     }}
                                                                 >
-                                                                    <Edit className="w-4 h-4" />
-                                                                    Modifier
+                                                                    <Edit className="w-4 h-4 text-blue-500/70" />
+                                                                    {t('userManagement.menu.edit')}
                                                                 </button>
                                                                 <button
                                                                     onClick={() => {
-                                                                        handleToggleStatus(user.id, user.status);
+                                                                        handleToggleStatus(u.id, u.status);
                                                                         setOpenMenuId(null);
                                                                     }}
-                                                                    className="w-full flex items-center gap-2 px-4 py-3 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white transition-colors"
+                                                                    className="w-full flex items-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 rounded-2xl transition-all"
                                                                 >
-                                                                    {user.status === 'active' ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-                                                                    {user.status === 'active' ? 'Désactiver' : 'Activer'}
+                                                                    {u.status === 'active' ? <Lock className="w-4 h-4 text-amber-500/70" /> : <Unlock className="w-4 h-4 text-emerald-500/70" />}
+                                                                    {u.status === 'active' ? t('userManagement.menu.deactivate') : t('userManagement.menu.activate')}
                                                                 </button>
-                                                                <div className="h-px bg-slate-100 dark:bg-slate-700 my-1 transition-colors" />
+                                                                <div className="h-px bg-white/5 mx-4 my-2" />
                                                                 <button
                                                                     onClick={() => {
-                                                                        handleDelete(user.id);
+                                                                        handleDelete(u.id);
                                                                         setOpenMenuId(null);
                                                                     }}
-                                                                    className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                                                                    className="w-full flex items-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all"
                                                                 >
                                                                     <Trash2 className="w-4 h-4" />
-                                                                    Supprimer
+                                                                    {t('userManagement.menu.delete')}
                                                                 </button>
                                                             </div>
-                                                        )}
-                                                    </td>
-                                                )}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <Pagination
-                            currentPage={currentPage}
-                            totalItems={totalItems}
-                            pageSize={pageSize}
-                            onPageChange={handlePageChange}
-                            loading={loading}
-                        />
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </td>
+                                        )}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
-                </main>
+                </div>
+
+                <div className="pt-6">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalItems={totalItems}
+                        pageSize={pageSize}
+                        onPageChange={handlePageChange}
+                        loading={loading}
+                    />
+                </div>
             </div>
 
             {/* Modals */}
+            <AnimatePresence>
+                {isAddUserOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-xl bg-black/60">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-xl bg-[#0f172a] border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl"
+                        >
+                            <div className="p-8 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-blue-600/10 to-transparent">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white tracking-tight">{t('userManagement.modal.addTitle')}</h2>
+                                    <p className="text-[10px] font-semibold text-slate-500 mt-1 uppercase tracking-widest">Enregistrer un nouveau collaborateur</p>
+                                </div>
+                                <button
+                                    onClick={() => setIsAddUserOpen(false)}
+                                    className="p-3 bg-white/5 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-all border border-white/5"
+                                >
+                                    <XCircle className="w-6 h-6" />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleAddUser} className="p-8 space-y-6">
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('userManagement.modal.firstName')}</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
+                                            value={newUser.first_name}
+                                            onChange={e => setNewUser({ ...newUser, first_name: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('userManagement.modal.lastName')}</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
+                                            value={newUser.last_name}
+                                            onChange={e => setNewUser({ ...newUser, last_name: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('userManagement.modal.professionalEmail')}</label>
+                                    <div className="relative group">
+                                        <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                        <input
+                                            type="email"
+                                            required
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-16 pr-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
+                                            placeholder="nom.prenom@compagnie.com"
+                                            value={newUser.email}
+                                            onChange={e => setNewUser({ ...newUser, email: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('userManagement.modal.username')}</label>
+                                        <input
+                                            type="text"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
+                                            value={newUser.username}
+                                            onChange={e => setNewUser({ ...newUser, username: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('userManagement.modal.role')}</label>
+                                        <div className="relative bg-white/5 border border-white/10 rounded-2xl overflow-hidden group">
+                                            <Shield className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                            <select
+                                                className="w-full bg-transparent pl-16 pr-6 py-4 text-white font-bold outline-none cursor-pointer appearance-none"
+                                                value={newUser.role}
+                                                onChange={e => setNewUser({ ...newUser, role: e.target.value })}
+                                            >
+                                                <option value="Tester" className="bg-slate-900">{t('userManagement.roles.tester')}</option>
+                                                <option value="Manager" className="bg-slate-900">{t('userManagement.roles.manager')}</option>
+                                                <option value="Admin" className="bg-slate-900">{t('userManagement.roles.admin')}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-end gap-5 pt-6 border-t border-white/5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsAddUserOpen(false)}
+                                        className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all"
+                                    >
+                                        {t('userManagement.modal.cancel')}
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hove:to-indigo-500 text-white px-10 py-4 rounded-3xl font-black text-[10px] tracking-widest uppercase transition-all shadow-xl shadow-blue-900/40 active:scale-95 flex items-center gap-3"
+                                    >
+                                        <UserCheck className="w-5 h-5" />
+                                        {t('userManagement.modal.create')}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+
+                {generatedPassword && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 backdrop-blur-2xl bg-black/80">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="bg-[#0f172a] border border-white/10 rounded-[3rem] w-full max-w-md shadow-3xl overflow-hidden"
+                        >
+                            <div className="p-10 text-center space-y-8">
+                                <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto border border-emerald-500/30">
+                                    <Key className="w-10 h-10 text-emerald-400" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white tracking-tight mb-2">{t('userManagement.modal.accessGenerated')}</h2>
+                                    <p className="text-slate-500 font-bold text-xs uppercase tracking-widest leading-relaxed">{t('userManagement.modal.accessDesc')}</p>
+                                </div>
+                                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col items-center gap-4 relative group">
+                                    <code className="text-3xl font-black text-blue-400 tracking-[0.2em] font-mono">{generatedPassword}</code>
+                                    <button
+                                        onClick={handleCopyPassword}
+                                        className="flex items-center gap-3 px-6 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-[10px] font-black uppercase tracking-widest text-blue-400 rounded-full border border-blue-500/20 transition-all"
+                                    >
+                                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                        {copied ? "Copied" : "Copy Password"}
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={() => setGeneratedPassword(null)}
+                                    className="w-full bg-white text-black hover:bg-slate-200 font-black py-5 rounded-[2rem] text-xs tracking-[0.3em] uppercase transition-all shadow-xl shadow-white/5"
+                                >
+                                    {t('userManagement.modal.finish')}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             {editingUser && (
                 <EditUserModal
                     user={editingUser}
@@ -432,126 +614,16 @@ const UserManagement = () => {
                 />
             )}
 
-            {isAddUserOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-900/80 backdrop-blur-sm p-4 transition-colors">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 transition-colors">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700 transition-colors">
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white transition-colors">Ajouter un utilisateur</h2>
-                            <button onClick={() => setIsAddUserOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
-                                <XCircle className="w-6 h-6" />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleAddUser} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 transition-colors">Nom complet (Prénom / Nom)</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        className="w-1/2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                                        placeholder="Prénom"
-                                        value={newUser.first_name}
-                                        onChange={e => setNewUser({ ...newUser, first_name: e.target.value })}
-                                    />
-                                    <input
-                                        type="text"
-                                        className="w-1/2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                                        placeholder="Nom"
-                                        value={newUser.last_name}
-                                        onChange={e => setNewUser({ ...newUser, last_name: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 transition-colors">Email professionnel</label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input
-                                        type="email"
-                                        required
-                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                                        placeholder="jean.dupont@company.com"
-                                        value={newUser.email}
-                                        onChange={e => setNewUser({ ...newUser, email: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 transition-colors">Nom d'utilisateur</label>
-                                <div className="relative">
-                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input
-                                        type="text"
-                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                                        placeholder="jdupont"
-                                        value={newUser.username}
-                                        onChange={e => setNewUser({ ...newUser, username: e.target.value })}
-                                    />
-                                </div>
-                                <p className="text-xs text-slate-500 mt-1 transition-colors">Si laissé vide, sera généré depuis l'email.</p>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 transition-colors">Rôle</label>
-                                <div className="relative">
-                                    <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <select
-                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none transition-all"
-                                        value={newUser.role}
-                                        onChange={e => setNewUser({ ...newUser, role: e.target.value })}
-                                    >
-                                        <option value="Tester">Tester</option>
-                                        <option value="Manager">Manager</option>
-                                        <option value="Admin">Admin</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-end gap-3 pt-4">
-                                <button type="button" onClick={() => setIsAddUserOpen(false)} className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">Annuler</button>
-                                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20">
-                                    <Plus className="w-4 h-4" />
-                                    Créer l'utilisateur
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {generatedPassword && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 dark:bg-slate-900/80 backdrop-blur-sm p-4 transition-colors">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 w-full max-w-sm shadow-2xl animate-in fade-in zoom-in duration-200 transition-colors">
-                        <div className="p-6 text-center space-y-4">
-                            <div className="w-12 h-12 bg-green-100 dark:bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-2 transition-colors">
-                                <Key className="w-6 h-6 text-green-600 dark:text-green-500 transition-colors" />
-                            </div>
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white transition-colors">Accès généré !</h2>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">Mot de passe temporaire généré. Copiez-le avant de fermer.</p>
-                            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-4 flex items-center justify-between gap-2 mt-4 transition-colors">
-                                <code className="text-blue-600 dark:text-blue-400 font-mono text-lg font-bold tracking-wider transition-colors">{generatedPassword}</code>
-                                <button onClick={handleCopyPassword} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-                                    {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
-                                </button>
-                            </div>
-                            <button onClick={() => setGeneratedPassword(null)} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition-colors mt-4 shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20">Terminer</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <ConfirmModal
                 isOpen={isDeleteModalOpen}
-                title="Supprimer l'utilisateur"
-                message="Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible."
+                title={t('userManagement.modal.deleteTitle')}
+                message={t('userManagement.modal.deleteMessage')}
                 onConfirm={confirmDeleteUser}
                 onCancel={() => setIsDeleteModalOpen(false)}
-                confirmText="Supprimer"
+                confirmText={t('userManagement.modal.deleteConfirm')}
                 type="danger"
             />
-        </div>
+        </PageLayout>
     );
 };
 

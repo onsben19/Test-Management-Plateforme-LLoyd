@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   BarChart3, AlertTriangle, Brain, Settings,
   Users, LogOut, MessageSquare, List, Mail, Layers,
-  ChevronLeft, ChevronRight, TestTube, Sparkles
+  ChevronLeft, ChevronRight, TestTube, Sparkles, Layout
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -21,6 +21,7 @@ const Sidebar = () => {
     {
       title: 'PRINCIPAL',
       items: [
+        { name: 'Tableau de bord', href: isAdmin ? '/admin/dashboard' : '/manager/dashboard', icon: Layout, roles: ['ADMIN', 'MANAGER'] },
         { name: 'Gestion des utilisateurs', href: '/users', icon: Users, roles: ['ADMIN'] },
         { name: 'Gestions des emails', href: '/management/messages', icon: Mail, roles: ['ADMIN'] },
       ]
@@ -54,13 +55,13 @@ const Sidebar = () => {
     if (filteredItems.length === 0) return null;
 
     return (
-      <div key={group.title} className="py-2">
+      <div key={group.title} className="py-4">
         {isOpen && (
-          <h3 className="px-6 mb-3 text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-[0.25em] uppercase font-heading">
+          <h3 className="px-6 mb-4 text-[10px] font-bold text-slate-500 dark:text-slate-500 tracking-[0.2em] uppercase opacity-70">
             {group.title}
           </h3>
         )}
-        <div className="space-y-1">
+        <div className="space-y-1.5 px-3">
           {filteredItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.href;
@@ -69,21 +70,33 @@ const Sidebar = () => {
                 key={item.name}
                 to={item.href}
                 title={!isOpen ? item.name : undefined}
-                className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${isOpen ? 'mx-2' : 'justify-center mx-1'
+                className={`relative group flex items-center h-11 px-3 rounded-xl transition-all duration-300 ease-out ${isOpen ? '' : 'justify-center mx-auto'
                   } ${isActive
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                    ? 'bg-blue-600/15 text-blue-500 shadow-[inset_0_1px_rgba(255,255,255,0.05),0_10px_20px_-10px_rgba(37,99,235,0.3)]'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 active:scale-95'
                   }`}
               >
-                <Icon
-                  className={`w-5 h-5 shrink-0 ${isActive
-                    ? 'text-white'
-                    : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'
-                    } ${isOpen ? 'mr-3' : ''}`}
-                />
-                {isOpen && (
-                  <span className="truncate">{item.name}</span>
+                {/* Active Indicator Bar */}
+                {isActive && (
+                  <div className="absolute left-0 w-1 h-5 bg-blue-500 rounded-r-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
                 )}
+
+                <Icon
+                  className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${isActive
+                    ? 'text-blue-500 filter drop-shadow-[0_0_8px_rgba(59,130,246,0.4)]'
+                    : 'text-slate-500 dark:text-slate-400'
+                    } ${isOpen ? 'mr-3.5' : ''}`}
+                />
+
+                {isOpen && (
+                  <span className={`truncate text-sm font-semibold tracking-tight transition-all duration-200 ${isActive ? 'text-blue-600 dark:text-blue-400' : ''
+                    }`}>
+                    {item.name}
+                  </span>
+                )}
+
+                {/* Subtle Hover Glow Line (Bottom) */}
+                <div className={`absolute bottom-0 left-1 right-1 h-[1px] bg-gradient-to-r from-transparent via-blue-500/0 to-transparent transition-opacity duration-300 opacity-0 group-hover:via-blue-500/20 group-hover:opacity-100`} />
               </Link>
             );
           })}
@@ -94,66 +107,98 @@ const Sidebar = () => {
 
   return (
     <aside
-      className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:pt-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 transition-all duration-500 z-40 ${isOpen ? 'lg:w-64' : 'lg:w-16'
+      className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 bg-white dark:bg-[#0a0f1d] border-r border-slate-200 dark:border-white/5 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] z-40 ${isOpen ? 'lg:w-[280px]' : 'lg:w-20'
         }`}
-      style={{ '--sidebar-width': isOpen ? '16rem' : '4rem' } as React.CSSProperties}
     >
-      {/* Toggle tab on the right edge */}
+      {/* Branding Section - Top */}
+      <div className={`h-16 flex items-center border-b border-slate-100 dark:border-white/5 ${isOpen ? 'px-6' : 'justify-center'}`}>
+        <div className="flex items-center gap-3 overflow-hidden">
+          <div className="relative flex-shrink-0 group">
+            <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-900 flex items-center justify-center overflow-hidden shadow-lg transition-transform duration-300 group-hover:scale-110">
+              <img
+                src={theme === 'dark' ? '/logo-lloyd-dark.webp' : '/logo-lloyd-light.webp'}
+                alt="Logo"
+                onError={(e) => { (e.target as HTMLImageElement).src = '/logo-lloyd.webp'; }}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+
+          {isOpen && (
+            <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-500">
+              <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tighter leading-none">
+                Insure<span className="text-blue-600 dark:text-blue-400">TM</span>
+              </h1>
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Toggle Button - Redesigned */}
       <button
         onClick={toggle}
-        className="absolute -right-3 top-20 w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full flex items-center justify-center shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors z-50"
+        className="absolute -right-3.5 top-20 w-7 h-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl flex items-center justify-center shadow-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-300 hover:scale-110 active:scale-90 z-50 text-slate-500"
         title={isOpen ? 'Réduire le menu' : 'Agrandir le menu'}
       >
         {isOpen
-          ? <ChevronLeft className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-          : <ChevronRight className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+          ? <ChevronLeft className="w-4 h-4" />
+          : <ChevronRight className="w-4 h-4" />
         }
       </button>
 
-      {/* Nav items */}
       <div className="flex-1 flex flex-col min-h-0 pt-4 overflow-hidden">
-        <nav className="flex-1 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 overflow-y-auto px-1 custom-scrollbar">
           {groups.map(renderNavGroup)}
         </nav>
       </div>
 
-      {/* User / Logout */}
-      <div className="border-t border-slate-200/50 dark:border-slate-700/50 p-3">
-        <div className={`flex items-center ${isOpen ? '' : 'justify-center'} w-full p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors`}>
-          <div className="flex-shrink-0">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium text-sm shadow-lg shadow-blue-500/20">
+      <div className="p-4 bg-slate-50/50 dark:bg-white/[0.02] border-t border-slate-100 dark:border-white/5">
+        <div className={`group/user flex items-center ${isOpen ? 'px-3 py-3' : 'justify-center p-2'} rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200/50 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300`}>
+          <div className="relative">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/20 ring-2 ring-white dark:ring-slate-900">
               {user?.username?.charAt(0).toUpperCase() || 'U'}
             </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full shadow-sm" />
           </div>
+
           {isOpen && (
             <div className="ml-3 min-w-0 flex-1">
-              <p className="text-sm font-bold text-slate-900 dark:text-white truncate font-heading tracking-tight">
+              <p className="text-sm font-bold text-slate-900 dark:text-white truncate tracking-tight">
                 {user?.username || 'Utilisateur'}
               </p>
-              <p className="text-[9px] text-slate-500 dark:text-slate-400 font-extrabold tracking-[0.1em] uppercase truncate font-heading">
+              <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider opacity-80">
                 {user?.role || ''}
               </p>
             </div>
           )}
-          <button
-            onClick={logout}
-            className={`${isOpen ? 'ml-auto' : 'mt-0'} p-1.5 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md transition-colors`}
-            title="Déconnexion"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+
+          {isOpen && (
+            <button
+              onClick={logout}
+              className="ml-2 p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all duration-200 group-hover/user:opacity-100"
+              title="Déconnexion"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
+
       {/* Brand Footer */}
       {isOpen && (
-        <div className="px-6 py-4 flex items-center gap-2 opacity-40 hover:opacity-100 transition-opacity duration-300">
-          <img
-            src={theme === 'dark' ? '/logo-lloyd-dark.webp' : '/logo-lloyd-light.webp'}
-            alt="Lloyd"
-            onError={(e) => { (e.target as HTMLImageElement).src = '/logo-lloyd.webp'; }}
-            className={`w-4 h-4 ${theme === 'dark' ? '' : 'grayscale'}`}
-          />
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter transition-colors">Lloyd Assurances</span>
+        <div className="px-8 py-6 flex items-center justify-between opacity-30 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-5 h-5 rounded-md bg-slate-950 dark:bg-slate-900 flex items-center justify-center overflow-hidden">
+              <img
+                src={theme === 'dark' ? '/logo-lloyd-dark.webp' : '/logo-lloyd-light.webp'}
+                alt="Lloyd"
+                onError={(e) => { (e.target as HTMLImageElement).src = '/logo-lloyd.webp'; }}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <span className="text-[9px] font-black text-slate-900 dark:text-white uppercase tracking-[0.2em]">Lloyd Assurances</span>
+          </div>
+          <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
         </div>
       )}
     </aside>

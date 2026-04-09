@@ -1,19 +1,20 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import Header from '../../components/Header';
-import Sidebar from '../../components/Sidebar';
+import PageLayout from '../../components/PageLayout';
 import AdminTable from '../../components/AdminTable';
 import { campaignService } from '../../services/api';
 import { toast } from 'react-toastify';
-import { Trash2, BookOpen, Edit } from 'lucide-react';
+import { Trash2, BookOpen, Edit, Briefcase, Calendar, Layers, Rocket, Search, Filter, Plus, XCircle, Save, ChevronRight, LayoutGrid } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-import { useSidebar } from '../../context/SidebarContext';
+import { useTranslation } from 'react-i18next';
 import StatCard from '../../components/StatCard';
-import { Briefcase, Layers, Calendar, Rocket } from 'lucide-react';
 import Pagination from '../../components/Pagination';
+import { motion, AnimatePresence } from 'framer-motion';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const AdminCampaigns = () => {
-    const { isOpen } = useSidebar();
+    const { t } = useTranslation();
     const location = useLocation();
+
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState(() => {
@@ -23,22 +24,24 @@ const AdminCampaigns = () => {
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
     const [currentPage, setCurrentPage] = useState(1);
-    const pageSize = 8;
-    const [deleteModal, setDeleteModal] = useState({ isOpen: false, campaignId: null });
+    const pageSize = 12;
 
-    // Edit modal state
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
+
     const [editingCampaign, setEditingCampaign] = useState<any>(null);
     const [editForm, setEditForm] = useState({ title: '', description: '' });
     const [isSaving, setIsSaving] = useState(false);
 
     const fetchCampaigns = async () => {
         try {
+            setLoading(true);
             const response = await campaignService.getCampaigns();
             const data = response.data.results || response.data;
             setCampaigns(data);
         } catch (error) {
             console.error("Failed to fetch campaigns", error);
-            toast.error("Erreur lors du chargement des campagnes");
+            toast.error(t('adminCampaigns.toasts.fetchError'));
         } finally {
             setLoading(false);
         }
@@ -50,7 +53,7 @@ const AdminCampaigns = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery]);
+    }, [searchQuery, statusFilter]);
 
     const filteredCampaigns = useMemo(() => {
         return campaigns.filter(campaign => {
@@ -74,7 +77,7 @@ const AdminCampaigns = () => {
         const total = campaigns.length;
         const recent = campaigns.filter(c => {
             const diff = new Date().getTime() - new Date(c.created_at).getTime();
-            return diff < (7 * 24 * 60 * 60 * 1000); // 7 days
+            return diff < (7 * 24 * 60 * 60 * 1000);
         }).length;
         const uniqueProjects = new Set(campaigns.map(c => c.project)).size;
 
@@ -82,18 +85,21 @@ const AdminCampaigns = () => {
     }, [campaigns]);
 
     const handleDeleteClick = (id: any) => {
-        setDeleteModal({ isOpen: true, campaignId: id });
+        setCampaignToDelete(id);
+        setIsDeleteModalOpen(true);
     };
 
     const confirmDelete = async () => {
-        if (!deleteModal.campaignId) return;
+        if (!campaignToDelete) return;
         try {
-            await campaignService.deleteCampaign(deleteModal.campaignId);
-            toast.success("Campagne supprimée");
+            await campaignService.deleteCampaign(campaignToDelete);
+            toast.success(t('adminCampaigns.toasts.deleteSuccess'));
             fetchCampaigns();
-            setDeleteModal({ isOpen: false, campaignId: null });
         } catch (error) {
-            toast.error("Erreur lors de la suppression");
+            toast.error(t('adminCampaigns.toasts.deleteError'));
+        } finally {
+            setIsDeleteModalOpen(false);
+            setCampaignToDelete(null);
         }
     };
 
@@ -110,11 +116,11 @@ const AdminCampaigns = () => {
                 title: editForm.title,
                 description: editForm.description,
             });
-            toast.success("Campagne modifiée avec succès");
+            toast.success(t('adminCampaigns.toasts.updateSuccess'));
             setEditingCampaign(null);
             fetchCampaigns();
         } catch (error) {
-            toast.error("Erreur lors de la modification");
+            toast.error(t('adminCampaigns.toasts.updateError'));
         } finally {
             setIsSaving(false);
         }
@@ -122,232 +128,231 @@ const AdminCampaigns = () => {
 
     const columns = [
         {
-            header: 'Titre',
+            header: t('adminCampaigns.table.title'),
             accessor: (item: any) => (
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded bg-purple-500/10 flex items-center justify-center text-purple-400">
-                        <BookOpen className="w-4 h-4" />
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/20 group-hover:scale-110 transition-transform">
+                        <BookOpen className="w-5 h-5" />
                     </div>
-                    <span className="font-medium text-white">{item.title}</span>
+                    <div className="flex flex-col gap-0.5">
+                        <span className="font-bold text-white group-hover:text-purple-400 transition-colors tracking-tight text-base">{item.title}</span>
+                        <span className="text-[10px] text-slate-500 font-medium tracking-widest">REF: #{String(item.id).substring(0, 8)}</span>
+                    </div>
                 </div>
             )
         },
         {
-            header: 'Description',
+            header: t('adminCampaigns.table.description'),
             accessor: (item: any) => (
-                <span className="truncate max-w-xs block text-slate-400" title={item.description}>
-                    {item.description || '-'}
+                <span className="text-slate-500 text-xs italic line-clamp-1 max-w-xs" title={item.description}>
+                    {item.description || t('common.noDescription')}
                 </span>
             )
         },
         {
-            header: 'Projet',
+            header: t('adminCampaigns.table.project'),
             accessor: (item: any) => (
                 item.project_name ? (
                     <Link
                         to={`/admin/releases?search=${encodeURIComponent(item.project_name)}`}
-                        className="text-blue-400 hover:underline cursor-pointer"
+                        className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full text-[9px] font-bold uppercase tracking-widest hover:bg-blue-500/20 transition-all"
                     >
+                        <Rocket className="w-2.5 h-2.5" />
                         {item.project_name}
                     </Link>
-                ) : <span className="text-slate-500">N/A</span>
+                ) : <span className="text-slate-600 font-bold text-[9px] uppercase tracking-widest italic opacity-50">Aucun projet</span>
             )
         },
         {
-            header: 'Date de création',
-            accessor: (item: any) => new Date(item.created_at).toLocaleDateString('fr-FR')
+            header: t('adminCampaigns.table.createdAt'),
+            accessor: (item: any) => (
+                <div className="flex flex-col gap-0.5">
+                    <span className="text-slate-300 text-[11px] font-bold tracking-tight">{new Date(item.created_at).toLocaleDateString(t('common.dateLocale'))}</span>
+                    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest italic opacity-60">Enregistré</span>
+                </div>
+            )
         }
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
-            <Header />
-            <div className="flex relative">
-                <Sidebar />
-                <main className={`flex-1 p-8 transition-all duration-300 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
-                    <div className="max-w-7xl mx-auto">
-                        <div className="mb-8">
-                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2 font-heading tracking-tight">Administration des Campagnes</h1>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm">Gestion et suivi des campagnes de tests importées</p>
-                        </div>
+        <PageLayout
+            title={t('adminCampaigns.title')}
+            subtitle="CAMPAIGN REPOSITORY"
+        >
+            <div className="space-y-10">
+                {/* Stats Summary */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <StatCard
+                        title={t('adminCampaigns.stats.total')}
+                        value={stats.total}
+                        icon={Briefcase}
+                        variant="blue"
+                        description={t('adminCampaigns.stats.totalDesc')}
+                        isLoading={loading}
+                    />
+                    <StatCard
+                        title={t('adminCampaigns.stats.recent')}
+                        value={stats.recent}
+                        icon={Calendar}
+                        variant="green"
+                        description={t('adminCampaigns.stats.recentDesc')}
+                        change={stats.recent > 0 ? `+${stats.recent}` : undefined}
+                        changeType="positive"
+                        isLoading={loading}
+                    />
+                    <StatCard
+                        title={t('adminCampaigns.stats.projects')}
+                        value={stats.uniqueProjects}
+                        icon={Layers}
+                        variant="purple"
+                        description={t('adminCampaigns.stats.projectsDesc')}
+                        isLoading={loading}
+                    />
+                    <StatCard
+                        title={t('adminCampaigns.stats.status')}
+                        value="LIVE"
+                        icon={Rocket}
+                        variant="blue"
+                        description={t('adminCampaigns.stats.statusDesc')}
+                        isLoading={loading}
+                    />
+                </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                            <StatCard
-                                title="Total Campagnes"
-                                value={stats.total}
-                                icon={Briefcase}
-                                variant="blue"
-                                description="Base de données complète"
-                            />
-                            <StatCard
-                                title="Récentes (7j)"
-                                value={stats.recent}
-                                icon={Calendar}
-                                variant="green"
-                                description="Nouveaux imports Excel"
-                                change={stats.recent > 0 ? `+${stats.recent}` : undefined}
-                                changeType="positive"
-                            />
-                            <StatCard
-                                title="Projets Rattachés"
-                                value={stats.uniqueProjects}
-                                icon={Layers}
-                                variant="purple"
-                                description="Releases actives et passées"
-                            />
-                            <StatCard
-                                title="Statut Système"
-                                value="OK"
-                                icon={Rocket}
-                                variant="slate"
-                                description="Service Analytics opérationnel"
-                            />
+                {/* Filters & Table Card */}
+                <AdminTable
+                    columns={columns}
+                    data={paginatedCampaigns}
+                    isLoading={loading}
+                    searchable
+                    onSearch={setSearchQuery}
+                    filters={
+                        <div className="flex items-center gap-4">
+                            <select
+                                className="bg-transparent text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-white/5 transition-all rounded-xl"
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                            >
+                                <option value="ALL" className="bg-slate-900">{t('adminCampaigns.filters.all')}</option>
+                                <option value="active" className="bg-slate-900">{t('adminCampaigns.filters.active')}</option>
+                                <option value="inactive" className="bg-slate-900">{t('adminCampaigns.filters.inactive')}</option>
+                            </select>
+                            <select
+                                className="bg-transparent text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-white/5 transition-all rounded-xl"
+                                value={sortOrder}
+                                onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                            >
+                                <option value="newest" className="bg-slate-900">Plus récent</option>
+                                <option value="oldest" className="bg-slate-900">Plus ancien</option>
+                            </select>
                         </div>
-
-                        <AdminTable
-                            columns={columns}
-                            data={paginatedCampaigns}
-                            isLoading={loading}
-                            searchable
-                            onSearch={setSearchQuery}
-                            filters={
-                                <div className="flex items-center gap-2">
-                                    <select
-                                        className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer"
-                                        value={statusFilter}
-                                        onChange={(e) => setStatusFilter(e.target.value)}
-                                    >
-                                        <option value="ALL">Tous les statuts</option>
-                                        <option value="active">Actif</option>
-                                        <option value="inactive">Désactivé</option>
-                                    </select>
-                                    <select
-                                        className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer"
-                                        value={sortOrder}
-                                        onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                                    >
-                                        <option value="newest">Actif</option>
-                                        <option value="oldest">Désactivé</option>
-                                    </select>
-                                </div>
-                            }
-                            actions={(item) => (
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => handleEditClick(item)}
-                                        className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
-                                        title="Modifier"
-                                    >
-                                        <Edit className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteClick(item.id)}
-                                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                        title="Supprimer"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            )}
-                        />
-
-                        <div className="mt-6">
-                            <Pagination
-                                currentPage={currentPage}
-                                totalItems={filteredCampaigns.length}
-                                pageSize={pageSize}
-                                onPageChange={setCurrentPage}
-                                loading={loading}
-                            />
+                    }
+                    actions={(item) => (
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => handleEditClick(item)}
+                                className="p-2.5 bg-white/5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all"
+                                title={t('adminCampaigns.actions.edit')}
+                            >
+                                <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={() => handleDeleteClick(item.id)}
+                                className="p-2.5 bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
+                                title={t('adminCampaigns.actions.delete')}
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
                         </div>
-                    </div>
-                </main>
+                    )}
+                />
+                <div className="pt-6">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalItems={filteredCampaigns.length}
+                        pageSize={pageSize}
+                        onPageChange={setCurrentPage}
+                        loading={loading}
+                    />
+                </div>
             </div>
 
-            {/* Edit Campaign Modal */}
-            {editingCampaign && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-200">
-                        <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                            <Edit className="w-5 h-5 text-blue-400" />
-                            Modifier la Campagne
-                        </h2>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-1">
-                                    Titre de la campagne
-                                </label>
-                                <input
-                                    type="text"
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                                    value={editForm.title}
-                                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-1">
-                                    Description
-                                </label>
-                                <textarea
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all h-28 resize-none"
-                                    value={editForm.description}
-                                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex justify-end gap-3 mt-8">
-                            <button
-                                onClick={() => setEditingCampaign(null)}
-                                className="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
-                            >
-                                Annuler
-                            </button>
-                            <button
-                                onClick={handleSaveEdit}
-                                disabled={!editForm.title.trim() || isSaving}
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all shadow-lg shadow-blue-900/20"
-                            >
-                                {isSaving ? 'Enregistrement...' : 'Enregistrer'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Delete Confirmation Modal */}
-            {deleteModal.isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
-                                <Trash2 className="w-6 h-6 text-red-500" />
-                            </div>
-                            <h3 className="text-lg font-bold text-white mb-2">Supprimer la campagne</h3>
-                            <p className="text-slate-400 mb-6">
-                                Êtes-vous sûr de vouloir supprimer cette campagne ?
-                            </p>
-                            <div className="flex gap-3 w-full">
+            {/* Edit Modal */}
+            <AnimatePresence>
+                {editingCampaign && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-xl bg-black/60">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-xl bg-[#0f172a] border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl"
+                        >
+                            <div className="p-8 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-blue-600/10 to-transparent">
+                                <div>
+                                    <h2 className="text-2xl font-black text-white tracking-widest uppercase">{t('adminCampaigns.modal.editTitle')}</h2>
+                                    <p className="text-[10px] font-black text-slate-500 mt-1 uppercase tracking-[0.2em]">Modifier les détails de la campagne</p>
+                                </div>
                                 <button
-                                    onClick={() => setDeleteModal({ isOpen: false, campaignId: null })}
-                                    className="flex-1 px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+                                    onClick={() => setEditingCampaign(null)}
+                                    className="p-3 bg-white/5 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-all border border-white/5"
                                 >
-                                    Annuler
-                                </button>
-                                <button
-                                    onClick={confirmDelete}
-                                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
-                                >
-                                    Supprimer
+                                    <XCircle className="w-6 h-6" />
                                 </button>
                             </div>
-                        </div>
+
+                            <div className="p-8 space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('adminCampaigns.modal.fieldTitle')}</label>
+                                    <div className="relative group">
+                                        <BookOpen className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                        <input
+                                            type="text"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-16 pr-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
+                                            value={editForm.title}
+                                            onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('adminCampaigns.modal.fieldDescription')}</label>
+                                    <textarea
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold h-32 resize-none"
+                                        value={editForm.description}
+                                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="flex items-center justify-end gap-5 pt-6 border-t border-white/5">
+                                    <button
+                                        onClick={() => setEditingCampaign(null)}
+                                        className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all"
+                                    >
+                                        {t('adminCampaigns.modal.cancel')}
+                                    </button>
+                                    <button
+                                        onClick={handleSaveEdit}
+                                        disabled={!editForm.title.trim() || isSaving}
+                                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-10 py-4 rounded-3xl font-black text-[10px] tracking-widest uppercase transition-all shadow-xl shadow-blue-900/40 active:scale-95 disabled:opacity-30"
+                                    >
+                                        {isSaving ? t('adminCampaigns.modal.saving') : t('adminCampaigns.modal.save')}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </AnimatePresence>
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                title={t('adminCampaigns.modal.deleteTitle')}
+                message={t('adminCampaigns.modal.deleteConfirm')}
+                onConfirm={confirmDelete}
+                onCancel={() => setIsDeleteModalOpen(false)}
+                confirmText={t('adminCampaigns.modal.delete')}
+                type="danger"
+            />
+        </PageLayout >
     );
 };
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Save, Upload, FileText, Trash2 } from 'lucide-react';
 import type { TestItem } from './ExecutionTestList';
 
@@ -9,6 +10,7 @@ interface EditExecutionModalProps {
 }
 
 const EditExecutionModal: React.FC<EditExecutionModalProps> = ({ test, onClose, onSave }) => {
+    const { t } = useTranslation();
     const [status, setStatus] = useState<TestItem['status']>(test.status);
     const [file, setFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,7 +50,7 @@ const EditExecutionModal: React.FC<EditExecutionModalProps> = ({ test, onClose, 
             <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                        Modifier l'exécution
+                        {t('execution.modal.editTitle')}
                     </h2>
                     <button
                         onClick={onClose}
@@ -62,14 +64,14 @@ const EditExecutionModal: React.FC<EditExecutionModalProps> = ({ test, onClose, 
                     {/* Test Name Input */}
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                            Nom du test
+                            {t('execution.modal.nameLabel')}
                         </label>
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                            placeholder="Entrez le nom du test"
+                            placeholder={t('execution.modal.namePlaceholder')}
                         />
                         <div className="text-xs text-slate-500 dark:text-slate-400">
                             {test.module} • {test.release}
@@ -79,7 +81,7 @@ const EditExecutionModal: React.FC<EditExecutionModalProps> = ({ test, onClose, 
                     {/* Status Selection */}
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                            Statut
+                            {t('execution.modal.statusLabel')}
                         </label>
                         <div className="grid grid-cols-2 gap-3">
                             {(['passed', 'failed'] as const).map((s) => (
@@ -92,7 +94,7 @@ const EditExecutionModal: React.FC<EditExecutionModalProps> = ({ test, onClose, 
                                         : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-blue-300 dark:hover:border-blue-700'
                                         }`}
                                 >
-                                    {s}
+                                    {t(`status.${s}`)}
                                 </button>
                             ))}
                         </div>
@@ -101,7 +103,7 @@ const EditExecutionModal: React.FC<EditExecutionModalProps> = ({ test, onClose, 
                     {/* Proof File */}
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                            Preuve / Capture (Optionnel)
+                            {t('execution.modal.proofLabel')}
                         </label>
                         <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-6 hover:border-blue-500 dark:hover:border-blue-500 transition-colors bg-slate-50 dark:bg-slate-800/30 text-center">
                             <input
@@ -117,7 +119,7 @@ const EditExecutionModal: React.FC<EditExecutionModalProps> = ({ test, onClose, 
                                     <Upload className="w-5 h-5" />
                                 </div>
                                 <div className="text-sm text-slate-600 dark:text-slate-400">
-                                    <span className="font-medium text-blue-600 dark:text-blue-400 hover:underline">Cliquez pour ajouter</span> ou glisser-déposer
+                                    <span className="font-medium text-blue-600 dark:text-blue-400 hover:underline">{t('execution.modal.clickToAdd')}</span>{t('execution.modal.orDrag')}
                                 </div>
                                 {file && (
                                     <div className="flex items-center justify-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/20 py-1 px-2 rounded-full inline-block mt-2">
@@ -139,8 +141,8 @@ const EditExecutionModal: React.FC<EditExecutionModalProps> = ({ test, onClose, 
                         {/* Show existing captures if any? */}
                         {test.captures && test.captures.length > 0 && !file && (
                             <div className="text-xs text-slate-500 mt-2">
-                                Capture actuelle: <a href={test.captures[0]} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">Voir le fichier</a>
-                                <p className="italic">Uploader un nouveau fichier remplacera l'existant.</p>
+                                {t('execution.modal.currentCapture')}: <a href={test.captures[0]} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">{t('execution.modal.viewFile')}</a>
+                                <p className="italic">{t('execution.modal.replaceWarning')}</p>
                             </div>
                         )}
                     </div>
@@ -152,7 +154,7 @@ const EditExecutionModal: React.FC<EditExecutionModalProps> = ({ test, onClose, 
                             onClick={onClose}
                             className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                         >
-                            Annuler
+                            {t('common.cancel')}
                         </button>
                         <button
                             type="submit"
@@ -160,7 +162,7 @@ const EditExecutionModal: React.FC<EditExecutionModalProps> = ({ test, onClose, 
                             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
                         >
                             <Save className="w-4 h-4" />
-                            {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                            {isSubmitting ? t('common.saving') : t('common.save')}
                         </button>
                     </div>
                 </form>
