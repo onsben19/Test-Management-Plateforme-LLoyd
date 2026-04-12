@@ -6,7 +6,8 @@ import { useSidebar } from '../context/SidebarContext';
 import {
     Upload, FileSpreadsheet, Calendar, Eye, Trash2, Edit, Search, Filter,
     Layers, X, CheckCircle, ShieldAlert, ShieldCheck, ShieldQuestion,
-    Zap, TrendingUp, Clock, AlertTriangle, ArrowRight, LayoutGrid
+    Zap, TrendingUp, Clock, AlertTriangle, ArrowRight, LayoutGrid,
+    Sparkles, ChevronRight, History, XCircle
 } from 'lucide-react';
 
 import { campaignService, userService, aiService } from '../services/api';
@@ -15,7 +16,9 @@ import StarBorder from '../components/bits/StarBorder';
 import StatCard from '../components/StatCard';
 import ReadinessGauge from '../components/ReadinessGauge';
 import ReadinessDetailModal from '../components/ReadinessDetailModal';
+import AIInsightModal from '../components/AIInsightModal';
 import { Briefcase, Activity, Target, ShieldAlert as ShieldAlertIcon, Award, Info } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import PageLayout from '../components/PageLayout';
 
 interface TimelineGuardData {
@@ -67,8 +70,10 @@ const DataDrivenManager = () => {
     const [readinessScores, setReadinessScores] = useState<Record<string, any>>({});
     const [loading, setLoading] = useState(true);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [isAIModalOpen, setIsAIModalOpen] = useState(false);
     const [selectedReadinessData, setSelectedReadinessData] = useState<any>(null);
     const [selectedEntityName, setSelectedEntityName] = useState("");
+    const [selectedAIInsight, setSelectedAIInsight] = useState<string | undefined>(undefined);
 
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
@@ -107,6 +112,31 @@ const DataDrivenManager = () => {
             setLoading(false);
         }
     }, [activeReleaseId, searchQuery, testerFilter]);
+
+    const handleOpenReadinessDetails = (campaignId: string, name: string) => {
+        const readiness = readinessScores[campaignId];
+        const guard = timelineGuards[campaignId];
+        setSelectedAIInsight(guard?.message);
+
+        if (readiness) {
+            setSelectedReadinessData(readiness);
+            setSelectedEntityName(name);
+            setIsDetailModalOpen(true);
+        } else {
+            aiService.getReadinessScore(campaignId).then(res => {
+                setSelectedReadinessData(res.data);
+                setSelectedEntityName(name);
+                setIsDetailModalOpen(true);
+            });
+        }
+    };
+
+    const handleOpenAIInsight = (campaignId: string, name: string) => {
+        const guard = timelineGuards[campaignId];
+        setSelectedAIInsight(guard?.message || "Analyse en attente...");
+        setSelectedEntityName(name);
+        setIsAIModalOpen(true);
+    };
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
@@ -319,124 +349,73 @@ const DataDrivenManager = () => {
 
         const getStatusStyles = () => {
             switch (guard.status) {
-                case 'OPTIMAL': return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
-                case 'WARNING': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
-                case 'CRITICAL': return 'bg-rose-500/10 text-rose-500 border-rose-500/20';
-                case 'WAITING': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-                default: return 'bg-white/5 text-slate-400 border-white/10';
+                case 'OPTIMAL': return 'text-emerald-500';
+                case 'WARNING': return 'text-amber-500';
+                case 'CRITICAL': return 'text-rose-500';
+                default: return 'text-slate-400';
             }
         };
 
-        const getStatusIcon = () => {
-            switch (guard.status) {
-                case 'OPTIMAL': return <ShieldCheck className="w-4 h-4" />;
-                case 'WARNING': return <AlertTriangle className="w-4 h-4" />;
-                case 'CRITICAL': return <ShieldAlert className="w-4 h-4" />;
-                case 'WAITING': return <Clock className="w-4 h-4" />;
-                default: return <ShieldQuestion className="w-4 h-4" />;
-            }
-        };
-
-        const getStatusLabel = () => {
-            switch (guard.status) {
-                case 'OPTIMAL': return 'Santé Optimale';
-                case 'WARNING': return 'Risque de Dérive';
-                case 'CRITICAL': return 'Retard Critique';
-                case 'WAITING': return 'Calcul en cours';
-                default: return 'Analyse...';
-            }
-        };
-
-        const content = (
-            <div className={`p-5 rounded-[2rem] border backdrop-blur-3xl shadow-2xl transition-all ${guard.status === 'CRITICAL' ? 'bg-rose-500/5 border-rose-500/20' : 'bg-white/5 border-white/10'}`}>
-                <div className="flex items-center justify-between mb-5">
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-widest ${getStatusStyles()}`}>
-                        {getStatusIcon()}
-                        {getStatusLabel()}
-                    </div>
-                    {guard.delay_days > 0 && (
-                        <div className="flex items-center gap-1.5 text-rose-500 font-bold text-[10px] uppercase tracking-widest animate-pulse">
-                            <AlertTriangle className="w-3.5 h-3.5" />
-                            +{guard.delay_days}J RETARD
+        return (
+            <div className="space-y-4">
+                {/* AI Insights and Stats Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
+                        <div className="flex items-center gap-2 text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">
+                            <History size={10} />
+                            Cadence IA
                         </div>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-5">
-                    <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
-                        <div className="flex items-center gap-1.5 text-[9px] text-slate-500 font-bold mb-1.5 uppercase tracking-widest">
-                            <TrendingUp className="w-3 h-3 text-blue-500" />
-                            CADENCE (IA)
-                        </div>
-                        <div className="text-sm font-bold text-white">
-                            {guard.velocity} <span className="text-[9px] font-medium opacity-50">tests/jour</span>
+                        <div className="text-sm font-black text-white">
+                            {guard.velocity} <span className="text-[9px] text-slate-500">tests/j</span>
                         </div>
                     </div>
-                    <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
-                        <div className="flex items-center gap-1.5 text-[9px] text-slate-500 font-bold mb-1.5 uppercase tracking-widest">
-                            <Calendar className="w-3 h-3 text-indigo-500" />
-                            FIN ESTIMÉE
+                    <div className={`border rounded-xl p-3 ${guard.status === 'CRITICAL' ? 'bg-rose-500/5 border-rose-500/10' : 'bg-white/[0.02] border-white/5'}`}>
+                        <div className={`flex items-center gap-2 text-[8px] font-black uppercase tracking-widest mb-1 ${guard.status === 'CRITICAL' ? 'text-rose-500/50' : 'text-slate-600'}`}>
+                            <Clock size={10} />
+                            Fin Estimée
                         </div>
-                        <div className="text-sm font-bold text-white">
-                            {guard.projected_end_date ? new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : '--'}
+                        <div className={`text-sm font-black ${guard.status === 'CRITICAL' ? 'text-rose-500' : 'text-white'}`}>
+                            {guard.projected_end_date ? new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
                         </div>
                     </div>
                 </div>
 
+                {/* AI Insight Box */}
                 {guard.message && (
-                    <div className="relative group mb-5">
-                        <div className={`absolute -inset-0.5 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 ${guard.progress.percentage === 100 ? 'bg-emerald-500' : 'bg-blue-500'}`}></div>
-                        <div className="relative flex gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
-                            <div className="mt-0.5">
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center ${guard.progress.percentage === 100 ? 'bg-emerald-500/20' : 'bg-blue-500/20'}`}>
-                                    {guard.progress.percentage === 100 ? <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> : <Zap className="w-3.5 h-3.5 text-blue-500" />}
-                                </div>
-                            </div>
-                            <div className="flex-1">
-                                <div className={`text-[9px] font-bold uppercase tracking-[0.2em] mb-1.5 ${guard.progress.percentage === 100 ? 'text-emerald-400' : 'text-blue-400'}`}>
-                                    {guard.progress.percentage === 100 ? 'OBJECTIF ATTEINT' : 'INSIGHT IA'}
-                                </div>
-                                <p className="text-[11px] leading-relaxed font-medium text-slate-300 italic">
-                                    "{guard.message}"
-                                </p>
-                            </div>
+                    <div className="bg-blue-600/5 border border-blue-600/10 rounded-2xl p-4 border-l-2 border-l-blue-500/50">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Sparkles size={12} className="text-blue-400" />
+                            <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">Insight IA</span>
                         </div>
+                        <p className="text-[10px] text-slate-400 leading-relaxed italic line-clamp-2">
+                            "{guard.message}"
+                        </p>
                     </div>
                 )}
 
-                <div className="space-y-2 pt-3 border-t border-white/10">
-                    <div className="flex justify-between items-end mb-1">
-                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">PROGRESSION</span>
+                {/* Progress Bar Area */}
+                <div className="space-y-2 pt-2">
+                    <div className="flex justify-between items-end">
+                        <div className="flex items-center gap-2">
+                            <div className={`w-1.5 h-1.5 rounded-full animate-pulse transition-colors ${guard.status === 'CRITICAL' ? 'bg-rose-500' : guard.status === 'WARNING' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">ML Guard Tracking</span>
+                        </div>
                         <span className="text-[11px] font-black text-white">{guard.progress.percentage}%</span>
                     </div>
-                    <div className="relative w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                        <div
-                            className={`h-full transition-all duration-1000 ease-out flex items-center justify-end pr-1 ${guard.status === 'CRITICAL' ? 'bg-gradient-to-r from-rose-600 to-rose-400' :
-                                guard.status === 'WARNING' ? 'bg-gradient-to-r from-amber-600 to-amber-400' :
-                                    'bg-gradient-to-r from-blue-600 to-blue-400'
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                        <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${guard.progress.percentage}%` }}
+                            transition={{ duration: 1, ease: 'easeOut' }}
+                            className={`h-full rounded-full ${guard.status === 'CRITICAL' ? 'bg-rose-500' :
+                                guard.status === 'WARNING' ? 'bg-amber-500' :
+                                    'bg-blue-500'
                                 }`}
-                            style={{ width: `${guard.progress.percentage}%` }}
-                        >
-                            <div className="w-1.5 h-full bg-white/30 animate-pulse"></div>
-                        </div>
-                    </div>
-                    <div className="flex justify-between text-[8px] font-bold text-slate-600 tracking-widest uppercase">
-                        <span>{guard.progress.finished} TESTS VALIDÉS</span>
-                        <span>CIBLE: {guard.progress.total}</span>
+                        />
                     </div>
                 </div>
             </div>
         );
-
-        if (guard.status === 'CRITICAL') {
-            return (
-                <StarBorder color="#f43f5e" speed="3s" thickness={1} className="mt-8 w-full" innerClassName="w-full">
-                    {content}
-                </StarBorder>
-            );
-        }
-
-        return <div className="mt-8">{content}</div>;
     };
 
     return (
@@ -520,116 +499,220 @@ const DataDrivenManager = () => {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {importedFiles.map((file, index) => (
-                            <div
-                                key={file.id}
-                                style={{ animationDelay: `${index * 100}ms` }}
-                                className="group bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden animate-slide-up hover:shadow-2xl hover:shadow-blue-900/20 transition-all hover:border-blue-500/30 flex flex-col h-full shadow-lg"
-                            >
-                                <div className="space-y-4 mb-6">
-                                    <div className="flex items-center justify-between">
-                                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 flex items-center justify-center border border-white/10 shrink-0 shadow-lg">
-                                            <FileSpreadsheet className="w-7 h-7 text-blue-500" />
-                                        </div>
+                        {importedFiles.map((file, index) => {
+                            const guard = timelineGuards[file.id];
+                            const readiness = readinessScores[file.id];
+                            const total = file.rowCount || 0;
+                            const passed = guard?.progress?.finished || 0;
+                            const failed = total - passed;
+                            const rate = guard?.progress?.percentage || 0;
 
-                                        <div className="flex items-center gap-4 shrink-0">
-                                            {/* Campaign Readiness Score */}
-                                            {readinessScores[file.id] && (
-                                                <div
-                                                    className="cursor-pointer hover:scale-110 transition-transform bg-white/5 p-1 rounded-full border border-white/5"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setSelectedReadinessData(readinessScores[file.id]);
-                                                        setSelectedEntityName(file.name);
-                                                        setIsDetailModalOpen(true);
-                                                    }}
-                                                >
-                                                    <ReadinessGauge score={readinessScores[file.id].score} size={42} label="" />
+                            return (
+                                <div
+                                    key={file.id}
+                                    style={{ animationDelay: `${index * 100}ms` }}
+                                    className="group bg-[#0b0e14] border border-white/5 rounded-[2.5rem] p-6 relative overflow-hidden animate-slide-up hover:shadow-2xl hover:shadow-blue-500/10 transition-all hover:border-blue-500/20 flex flex-col h-full"
+                                >
+                                    {/* Top Right Area (Badges + Actions) */}
+                                    <div className="absolute top-6 right-6 flex items-center gap-3 z-20">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleOpenReadinessDetails(file.id, file.name); }}
+                                            className="px-4 py-2 bg-white/[0.03] hover:bg-blue-500/10 border border-white/10 hover:border-blue-500/30 rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer group/readiness relative overflow-hidden shrink-0"
+                                        >
+                                            <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover/readiness:opacity-100 transition-opacity" />
+                                            <span className="text-sm font-black text-white leading-none relative z-10">
+                                                {readiness?.score || 0}<span className="text-[9px] opacity-40 ml-0.5">%</span>
+                                            </span>
+                                            <div className="mt-1 flex items-center gap-1 relative z-10">
+                                                <div className={`w-1 h-1 rounded-full animate-pulse ${readiness?.score >= 80 ? 'bg-emerald-500' : readiness?.score >= 40 ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                                                <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest group-hover/readiness:text-blue-400 transition-colors">READY</span>
+                                            </div>
+                                        </button>
+
+                                        {/* Hover Actions */}
+                                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                            <button onClick={(e) => openEditModal(file, e)} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 text-slate-500 hover:text-white transition-all">
+                                                <Edit size={14} />
+                                            </button>
+                                            <button onClick={(e) => handleDeleteFile(file.id, e)} className="p-2.5 bg-white/5 hover:bg-red-500/10 rounded-xl border border-white/5 text-slate-500 hover:text-red-400 transition-all">
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Top Left Icon & Status */}
+                                    <div className="flex items-start justify-between mb-6">
+                                        <div className="flex flex-col gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                                                <FileSpreadsheet size={22} />
+                                            </div>
+                                            {guard?.status === 'CRITICAL' && (
+                                                <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center gap-1.5 text-[8px] font-black text-amber-500 uppercase tracking-widest w-fit">
+                                                    <AlertTriangle size={10} />
+                                                    DÉRIVE
                                                 </div>
                                             )}
+                                        </div>
+                                    </div>
 
-                                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                                                <button
-                                                    onClick={(e) => openEditModal(file, e)}
-                                                    className="p-2.5 bg-white/5 hover:bg-blue-600/20 text-slate-400 hover:text-blue-400 rounded-xl border border-white/10 transition-all"
-                                                    title="Modifier"
-                                                >
-                                                    <Edit className="w-3.5 h-3.5" />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => handleDeleteFile(file.id, e)}
-                                                    className="p-2.5 bg-white/5 hover:bg-red-600/20 text-slate-400 hover:text-red-400 rounded-xl border border-white/10 transition-all"
-                                                    title="Supprimer"
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </button>
+                                    {/* Title & Metas */}
+                                    <div className="mb-6">
+                                        <h3 className="text-xl font-black text-white leading-tight tracking-tight mb-2 line-clamp-2 min-h-[3rem]">
+                                            {file.name}
+                                        </h3>
+                                        {file.description && (
+                                            <p className="text-[11px] text-slate-300 leading-relaxed line-clamp-3 mb-5">
+                                                {file.description}
+                                            </p>
+                                        )}
+                                        <div className="flex items-center gap-3">
+                                            <div className="px-3 py-1.5 bg-white/5 border border-white/5 rounded-lg flex items-center gap-2">
+                                                <Calendar size={12} className="text-slate-500" />
+                                                <span className="text-[10px] font-bold text-slate-300">{file.date}</span>
+                                            </div>
+                                            <div className="px-3 py-1.5 bg-white/5 border border-white/5 rounded-lg flex items-center gap-2">
+                                                <Clock size={12} className="text-slate-500" />
+                                                <span className="text-[10px] font-bold text-slate-300">
+                                                    Deadline {guard?.projected_end_date ? new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-3">
-                                        <h3 className="text-xl font-black text-white group-hover:text-blue-400 transition-colors leading-tight tracking-tight">
-                                            {file.name}
-                                        </h3>
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <span className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-full border border-white/5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                                <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                                                {file.date}
-                                            </span>
-                                            {file.scheduled_at && new Date(file.scheduled_at) > new Date() && (
-                                                <span className="flex items-center gap-1.5 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20 text-[9px] font-black text-amber-500 uppercase tracking-widest animate-pulse">
-                                                    <Clock className="w-3.5 h-3.5" />
-                                                    DIFFÉRÉ
-                                                </span>
-                                            )}
+                                    {/* Progression Section */}
+                                    <div className="bg-[#151921] border border-white/5 rounded-2xl p-5 mb-4">
+                                        <div className="flex items-center gap-2 text-[8px] font-black text-slate-600 uppercase tracking-widest mb-6">
+                                            <TrendingUp size={12} />
+                                            PROGRESSION & CADENCE
+                                        </div>
+
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <div className="relative w-16 h-16 flex-shrink-0">
+                                                <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                                                    <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="10" />
+                                                    <motion.circle
+                                                        cx="50" cy="50" r="42" fill="none"
+                                                        stroke={rate >= 80 ? '#10b981' : rate >= 40 ? '#f59e0b' : '#ef4444'}
+                                                        strokeWidth="10"
+                                                        strokeDasharray={2 * Math.PI * 42}
+                                                        initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
+                                                        animate={{ strokeDashoffset: (2 * Math.PI * 42) * (1 - rate / 100) }}
+                                                        transition={{ duration: 1.5, ease: 'easeOut' }}
+                                                        strokeLinecap="round"
+                                                    />
+                                                </svg>
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <span className="text-sm font-black text-white">{Math.round(rate)}%</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex flex-col gap-2 mb-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <CheckCircle size={12} className="text-emerald-500" />
+                                                        <span className="text-[10px] font-black text-emerald-400">{passed} validés</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <XCircle size={12} className="text-orange-500" />
+                                                        <span className="text-[10px] font-black text-orange-400">{failed} restants</span>
+                                                    </div>
+                                                </div>
+                                                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden mb-2">
+                                                    <motion.div
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${rate}%` }}
+                                                        className="h-full bg-orange-500 rounded-full"
+                                                    />
+                                                </div>
+                                                <div className="flex justify-between text-[7px] font-black text-slate-600 uppercase tracking-widest">
+                                                    <span>{passed} TESTS VALIDÉS</span>
+                                                    <span>CIBLE : {total}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
+                                                <div className="flex items-center gap-2 text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">
+                                                    <History size={10} />
+                                                    CADENCE IA
+                                                </div>
+                                                <div className="text-sm font-black text-white">{guard?.velocity || 0} <span className="text-[10px] text-slate-500">tests/j</span></div>
+                                            </div>
+                                            <div className={`border rounded-xl p-3 ${guard?.status === 'CRITICAL' ? 'bg-rose-500/5 border-rose-500/10' : 'bg-white/[0.02] border-white/5'}`}>
+                                                <div className={`flex items-center gap-2 text-[8px] font-black uppercase tracking-widest mb-1 ${guard?.status === 'CRITICAL' ? 'text-rose-500/50' : 'text-slate-600'}`}>
+                                                    <Clock size={10} />
+                                                    FIN ESTIMÉE
+                                                </div>
+                                                <div className={`text-sm font-black ${guard?.status === 'CRITICAL' ? 'text-rose-500' : 'text-white'}`}>
+                                                    {guard?.projected_end_date ? new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                {file.description && (
-                                    <p className="text-slate-400 text-sm mb-4 line-clamp-2 leading-relaxed min-h-[3rem]">
-                                        {file.description}
-                                    </p>
-                                )}
+                                    {/* Insight IA Area */}
+                                    <div className="bg-blue-600/5 border border-blue-600/10 rounded-2xl p-5 border-l-2 border-l-blue-500/50 mb-4 flex-1">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="w-6 h-6 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
+                                                <Zap size={14} />
+                                            </div>
+                                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">INSIGHT IA</span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-400 leading-relaxed mb-4 line-clamp-2 italic">
+                                            {guard?.message || "Il est essentiel d'accélérer le rythme des tests pour respecter la date limite."}
+                                        </p>
+                                        <button
+                                            onClick={() => handleOpenAIInsight(file.id, file.name)}
+                                            className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-black uppercase tracking-widest text-white transition-all flex items-center gap-2 group/btn"
+                                        >
+                                            Lire la suite
+                                            <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                                        </button>
+                                    </div>
 
-                                {renderTimelineGuard(file.id)}
-
-                                <div className="mt-8 pt-6 border-t border-white/10 flex flex-col gap-6">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex -space-x-3">
-                                            {file.assigned_testers_names && file.assigned_testers_names.length > 0 ? (
-                                                <>
-                                                    {file.assigned_testers_names.slice(0, 3).map((name, i) => (
-                                                        <div key={i} className="w-10 h-10 rounded-full bg-slate-800 border-2 border-white/10 flex items-center justify-center text-xs font-bold text-white ring-2 ring-transparent group-hover:ring-blue-500/30 transition-all shadow-xl" title={name}>
+                                    {/* Footer */}
+                                    <div className="pt-4 border-t border-white/5 space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex -space-x-2">
+                                                    {(file.assigned_testers_names || []).slice(0, 2).map((name, i) => (
+                                                        <div key={i} className="w-8 h-8 rounded-full bg-slate-800 border-2 border-[#0b0e14] flex items-center justify-center text-[10px] font-black text-white" title={name}>
                                                             {name.charAt(0).toUpperCase()}
                                                         </div>
                                                     ))}
-                                                    {file.assigned_testers_names.length > 3 && (
-                                                        <div className="w-10 h-10 rounded-full bg-slate-900 border-2 border-white/10 flex items-center justify-center text-xs font-black text-slate-500 shadow-xl">
-                                                            +{file.assigned_testers_names.length - 3}
+                                                    {(file.assigned_testers_names || []).length > 2 && (
+                                                        <div className="w-8 h-8 rounded-full bg-slate-900 border-2 border-[#0b0e14] flex items-center justify-center text-[8px] font-black text-slate-500">
+                                                            +{(file.assigned_testers_names || []).length - 2}
                                                         </div>
                                                     )}
-                                                </>
-                                            ) : (
-                                                <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">NON ASSIGNÉ</span>
-                                            )}
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-black text-white">{(file.assigned_testers_names || []).length}</span>
+                                                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">TESTEURS</span>
+                                                </div>
+                                            </div>
+                                            <div className="px-5 py-3 bg-white/5 border border-white/5 rounded-xl flex flex-col items-center">
+                                                <span className="text-lg font-black text-white">{total}</span>
+                                                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">CAS TEST</span>
+                                            </div>
                                         </div>
-                                        <div className="bg-white/5 px-4 py-2 rounded-2xl border border-white/5 text-center min-w-[80px]">
-                                            <div className="text-lg font-black text-white leading-none">{file.rowCount}</div>
-                                            <div className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1.5">CAS TEST</div>
-                                        </div>
-                                    </div>
 
-                                    <button
-                                        onClick={() => handleOpenPreview(file)}
-                                        className="w-full py-4 rounded-[1.5rem] bg-white/5 hover:bg-blue-600 border border-white/10 hover:border-blue-500 text-slate-300 hover:text-white text-[10px] font-bold uppercase tracking-[0.2em] transition-all shadow-xl flex items-center justify-center gap-3 active:scale-95"
-                                    >
-                                        <Eye className="w-4 h-4" />
-                                        VOIR LE CAHIER DE TESTS
-                                    </button>
+                                        <button
+                                            onClick={() => handleOpenPreview(file)}
+                                            className="w-full py-4 bg-[#0b0e14] hover:bg-white/[0.02] border border-white/10 rounded-2xl flex items-center justify-center gap-4 text-xs font-black uppercase tracking-widest text-white transition-all group/footer shadow-lg"
+                                        >
+                                            <div className="flex flex-col gap-1 group-hover/footer:scale-110 transition-transform">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                                            </div>
+                                            VOIR LE CAHIER DE TESTS
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                         {importedFiles.length === 0 && (
                             <div className="col-span-full py-24 text-center bg-white/5 rounded-[3rem] border-2 border-dashed border-white/10">
                                 <FileSpreadsheet className="w-16 h-16 text-slate-700 mx-auto mb-6" />
@@ -826,6 +909,13 @@ const DataDrivenManager = () => {
                 onClose={() => setIsDetailModalOpen(false)}
                 data={selectedReadinessData}
                 title={selectedEntityName}
+                aiInsight={selectedAIInsight}
+            />
+            <AIInsightModal
+                isOpen={isAIModalOpen}
+                onClose={() => setIsAIModalOpen(false)}
+                title={selectedEntityName}
+                insight={selectedAIInsight || ""}
             />
         </PageLayout>
     );

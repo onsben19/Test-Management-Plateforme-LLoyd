@@ -136,6 +136,16 @@
             "distributionSubtitle": "SEVERITY",
             "activity": "Recent Activity",
             "activitySubtitle": "MONITORING"
+        },
+        "tabs": {
+            "overview": "Overview",
+            "projects": "Projects Analysis",
+            "aiInsights": "AI Insights",
+            "activity": "Activity"
+        },
+        "projectFilter": {
+            "label": "Project:",
+            "all": "All Projects"
         }
     },
     "adminAnomalies": {
@@ -430,6 +440,7 @@
             "refresh": "Refresh",
             "exportCsv": "CSV",
             "exportPdf": "PDF",
+            "report": "Report Anomaly",
             "edit": "Edit",
             "delete": "Delete"
         },
@@ -476,7 +487,13 @@
     },
     "testerDashboard": {
         "title": "My Tester Space",
-        "subtitle": "Find campaigns assigned to you and validate your tests.",
+        "subtitle": "Track your assignments and report results with AI assistance",
+        "stats": {
+            "assignedCampaigns": "Assigned Campaigns",
+            "testsPlanned": "Tests to Execute",
+            "avgReadiness": "Global Readiness",
+            "openAnomalies": "Active Anomalies"
+        },
         "searchPlaceholder": "Search for a campaign...",
         "controls": {
             "groupByRelease": "Grouped by Release",
@@ -1013,5 +1030,11 @@
             "deleteTitle": "Delete conversation",
             "deleteMessage": "Are you sure you want to delete this conversation? All history will be lost."
         }
+    },
+    "status": {
+        "passed": "Passed",
+        "failed": "Failed",
+        "pending": "Pending",
+        "running": "Running"
     }
 }

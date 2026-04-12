@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { X, Save, Upload, FileText, Trash2, AlertTriangle, Bug } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Save, Upload, FileText, Trash2, AlertTriangle, Bug, Loader2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { executionService } from '../services/api';
 
 export interface AnomalyItem {
     id: string;
@@ -19,18 +21,39 @@ interface EditAnomalyModalProps {
 
 const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, onSave }) => {
     const isEditing = !!anomaly;
+    const { user } = useAuth();
 
     // Initial States
     const [title, setTitle] = useState(anomaly?.title || '');
     const [description, setDescription] = useState(anomaly?.description || '');
     const [severity, setSeverity] = useState<AnomalyItem['severity']>(anomaly?.severity || 'Critique');
-    const [relatedTest, setRelatedTest] = useState(anomaly?.relatedTest || '');
-
-    // Status only for editing (creation defaults to OUVERTE)
+    const [selectedTestCaseId, setSelectedTestCaseId] = useState<string>('');
     const [status, setStatus] = useState<AnomalyItem['status']>(anomaly?.status || 'OUVERTE');
-
     const [file, setFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [testCases, setTestCases] = useState<any[]>([]);
+    const [loadingTests, setLoadingTests] = useState(false);
+
+    useEffect(() => {
+        if (!isEditing && user) {
+            fetchUserTestCases();
+        }
+    }, [isEditing, user]);
+
+    const fetchUserTestCases = async () => {
+        setLoadingTests(true);
+        try {
+            const response = await executionService.getExecutions();
+            const data = response.data.results || response.data;
+            // Filter by current user
+            const userTests = data.filter((tc: any) => tc.tester === user?.id || tc.tester_id === user?.id);
+            setTestCases(userTests);
+        } catch (error) {
+            console.error("Failed to fetch test cases", error);
+        } finally {
+            setLoadingTests(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -39,31 +62,17 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
             const formData = new FormData();
             formData.append('titre', title);
             formData.append('criticite', severity.toUpperCase());
-            formData.append('statut', status); // New field
+            formData.append('statut', status);
+            formData.append('description', description);
 
-            // If we have a related test reference but it's not a real test_case ID (it's just a string from UI)
-            // we prepend it to the description to maintain traceability in the dashboard.
-            let finalDescription = description;
-            if (!isEditing && relatedTest) {
-                finalDescription = `[Référence Test: ${relatedTest}]\n\n${description}`;
-            }
-            formData.append('description', finalDescription);
-
-            // Only append relatedTest if creating (or if we allow editing it)
-            // Backend might expect 'test_case' ID, but we only have string reference here.
-            // If creating from Anomalies page, user might just type text reference.
-            // Backend needs to handle this or we need a real Test selection.
-            // For now, let's assume we pass it as 'test_case_ref' if supported, or just in description?
-            // Anomalies created without test case might be "General".
-            if (!isEditing && relatedTest) {
-                // formData.append('test_case_ref', relatedTest);
+            if (!isEditing && selectedTestCaseId) {
+                formData.append('test_case', selectedTestCaseId);
             }
 
             if (file) {
                 formData.append('preuve_image', file);
             }
 
-            // Pass null id for creation
             await onSave(anomaly?.id || null, formData);
             onClose();
         } catch (error) {
@@ -96,7 +105,6 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto">
-                    {/* Title */}
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                             Titre
@@ -111,7 +119,6 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
                         />
                     </div>
 
-                    {/* Description */}
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                             Description
@@ -124,12 +131,11 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
                         />
                     </div>
 
-                    {/* Severity */}
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                             Gravité / Criticité
                         </label>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-3 gap-3">
                             {(['Critique', 'Moyenne', 'Faible'] as const).map((s) => (
                                 <button
                                     key={s}
@@ -146,7 +152,6 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
                         </div>
                     </div>
 
-                    {/* Status (Only when editing) */}
                     {isEditing && (
                         <div className="space-y-2">
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 transition-colors">
@@ -164,23 +169,33 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
                         </div>
                     )}
 
-                    {/* Related Test (Creation Only or Display) */}
                     {!isEditing && (
                         <div className="space-y-2">
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Test Lié (Optionnel)
+                                Test Lié (Précédemment validé)
                             </label>
-                            <input
-                                type="text"
-                                value={relatedTest}
-                                onChange={(e) => setRelatedTest(e.target.value)}
-                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                                placeholder="Référence du Cas de Test (Ex: TC-001)"
-                            />
+                            {loadingTests ? (
+                                <div className="flex items-center gap-2 text-slate-500 text-sm py-2">
+                                    <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                                    Chargement de vos tests...
+                                </div>
+                            ) : (
+                                <select
+                                    value={selectedTestCaseId}
+                                    onChange={(e) => setSelectedTestCaseId(e.target.value)}
+                                    className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                                >
+                                    <option value="">-- Sélectionner un test (Optionnel) --</option>
+                                    {testCases.map((tc) => (
+                                        <option key={tc.id} value={tc.id}>
+                                            [{tc.test_case_ref}] {tc.data_json?.titre || tc.data_json?.Title || 'Sans titre'}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
                         </div>
                     )}
 
-                    {/* Proof Image */}
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                             Preuve / Capture (Optionnel)
@@ -228,8 +243,6 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
                             </div>
                         )}
                     </div>
-
-
                 </form>
 
                 <div className="p-6 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3 bg-slate-50/50 dark:bg-slate-800/50">
@@ -243,7 +256,7 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
                     <button
                         onClick={handleSubmit}
                         disabled={isSubmitting}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 shadow-lg shadow-blue-500/20"
                     >
                         <Save className="w-4 h-4" />
                         {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}

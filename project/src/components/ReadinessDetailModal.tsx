@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Award, Info, CheckCircle2, AlertTriangle, ShieldAlert, FileText, Download, Loader2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Award, Info, CheckCircle2, AlertTriangle, ShieldAlert, FileText, Download, Loader2, Sparkles, TrendingUp, Clock, Zap, Layers } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { aiService } from '../services/api';
 import { toast } from 'react-toastify';
@@ -21,9 +22,10 @@ interface ReadinessDetailModalProps {
         };
     } | null;
     title: string;
+    aiInsight?: string;
 }
 
-const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onClose, data, title }) => {
+const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onClose, data, title, aiInsight }) => {
     const { t } = useTranslation();
     const [isExporting, setIsExporting] = useState(false);
 
@@ -66,234 +68,249 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
 
     const color = getColor(data.score);
 
-    return (
+    if (typeof document === 'undefined') return null;
+
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 overflow-y-auto pt-12 pb-12">
+                <div className="fixed inset-0 z-[99999] flex items-start justify-center p-4 overflow-y-auto custom-scrollbar">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+                        className="absolute inset-0 bg-slate-950/95 backdrop-blur-xl"
                     />
 
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="relative w-full max-w-2xl bg-slate-900 border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden"
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        className="relative w-full max-w-2xl bg-[#0b0e14] border border-white/10 rounded-[2.5rem] shadow-[0_0_80px_rgba(0,0,0,0.8)] overflow-hidden my-auto"
                     >
                         {/* Header */}
-                        <div className="relative p-8 border-b border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
+                        <div className="relative p-6 border-b border-white/5 bg-[#0b0e14]">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-blue-500/10 rounded-2xl">
-                                        <Award className="w-6 h-6 text-blue-500" />
+                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 flex items-center justify-center border border-blue-500/20">
+                                        <Layers className="w-6 h-6 text-blue-400" />
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-black text-white uppercase tracking-tight">{title}</h3>
-                                        <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">
-                                            {t('dataDriven.timelineGuard.predictiveAnalysis')}
+                                        <h2 className="text-xl font-black text-white tracking-tight uppercase">
+                                            {title}
+                                        </h2>
+                                        <p className="text-[10px] font-black text-blue-400/60 uppercase tracking-[0.2em]">
+                                            Analyse Prédictive
                                         </p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={onClose}
-                                    className="p-2 hover:bg-white/5 rounded-xl transition-colors group"
+                                    className="p-3 hover:bg-white/5 rounded-2xl transition-all text-slate-500 hover:text-white"
                                 >
-                                    <X className="w-6 h-6 text-slate-500 group-hover:text-white" />
+                                    <X size={20} />
                                 </button>
                             </div>
                         </div>
 
                         {/* Content */}
-                        <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                            {/* Score Overview */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="col-span-1 flex flex-col items-center justify-center p-6 bg-white/[0.02] border border-white/5 rounded-3xl">
-                                    <div className="relative w-24 h-24 flex items-center justify-center mb-4">
-                                        <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
-                                            <circle
-                                                cx="50"
-                                                cy="50"
-                                                r="40"
-                                                fill="none"
-                                                stroke="rgba(255, 255, 255, 0.05)"
-                                                strokeWidth="10"
-                                            />
-                                            <motion.circle
-                                                cx="50"
-                                                cy="50"
-                                                r="40"
-                                                fill="none"
-                                                stroke={color}
-                                                strokeWidth="10"
-                                                strokeDasharray={2 * Math.PI * 40}
-                                                initial={{ strokeDashoffset: 2 * Math.PI * 40 }}
-                                                animate={{ strokeDashoffset: (2 * Math.PI * 40) - (data.score / 100) * (2 * Math.PI * 40) }}
-                                                transition={{ duration: 1.5, ease: "easeOut" }}
-                                                strokeLinecap="round"
-                                            />
-                                        </svg>
-                                        <span className="absolute text-2xl font-black text-white">{data.score}%</span>
-                                    </div>
-                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('dataDriven.timelineGuard.readinessScore')}</span>
+                        <div className="p-6 space-y-8 max-h-[60vh] overflow-y-auto custom-scrollbar bg-[#0b0e14]">
+                            {/* TOP DASHBOARD: GAUGE + STATUS */}
+                            <div className="bg-white/[0.01] border border-white/5 rounded-[1.5rem] p-6 flex items-center gap-8">
+                                {/* Left: Gauge */}
+                                <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
+                                    <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                                        <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255, 255, 255, 0.03)" strokeWidth="10" />
+                                        <motion.circle
+                                            cx="50" cy="50" r="44" fill="none"
+                                            stroke={color} strokeWidth="10"
+                                            strokeDasharray={2 * Math.PI * 44}
+                                            initial={{ strokeDashoffset: 2 * Math.PI * 44 }}
+                                            animate={{ strokeDashoffset: (2 * Math.PI * 44) * (1 - data.score / 100) }}
+                                            transition={{ duration: 1.5, ease: "easeOut" }}
+                                            strokeLinecap="round"
+                                        />
+                                    </svg>
+                                    <span className="absolute text-lg font-black text-white">{data.score}%</span>
                                 </div>
 
-                                <div className="col-span-2 space-y-4">
-                                    <div className="flex items-center gap-3 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-                                        {data.score >= 80 ? (
-                                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                        ) : data.score >= 40 ? (
-                                            <AlertTriangle className="w-5 h-5 text-amber-500" />
-                                        ) : (
-                                            <ShieldAlert className="w-5 h-5 text-red-500" />
-                                        )}
-                                        <p className="text-sm text-slate-300 font-medium leading-relaxed">
-                                            {data.reasons[0]}
-                                        </p>
+                                {/* Right: Global Status */}
+                                <div className="flex-1 space-y-3">
+                                    <div className="space-y-0.5">
+                                        <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest">STATUT GLOBAL</div>
+                                        <div className={`flex items-center gap-1.5 text-sm font-black uppercase tracking-tight
+                                            ${data.score < 40 ? 'text-rose-500' : data.score < 80 ? 'text-amber-500' : 'text-emerald-500'}`}>
+                                            <AlertTriangle size={14} />
+                                            {data.score < 40 ? 'CRITICAL' : data.score < 80 ? 'WARNING' : 'STABLE'}
+                                        </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {Object.entries(data.breakdown).map(([key, val]) => (
-                                            <div key={key} className="p-3 bg-white/[0.02] border border-white/5 rounded-2xl">
-                                                <div className="text-[9px] font-black text-slate-500 uppercase tracking-tighter mb-1">{key}</div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                                        <motion.div
-                                                            initial={{ width: 0 }}
-                                                            animate={{ width: `${val}%` }}
-                                                            className="h-full bg-blue-500/50"
-                                                        />
-                                                    </div>
-                                                    <span className="text-xs font-black text-white">{val}%</span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                    <div className="p-4 bg-rose-500/5 border border-rose-500/10 rounded-xl flex items-start gap-3">
+                                        <div className="p-1 bg-rose-500/20 rounded-full mt-0.5 text-rose-500/80 shrink-0">
+                                            <AlertTriangle size={12} strokeWidth={3} />
+                                        </div>
+                                        <div className="text-[10px] font-bold text-rose-200/80 leading-relaxed">
+                                            {data.source_data ? (
+                                                <>Taux de réussite insuffisant ({data.source_data.tests.passed}/{data.source_data.tests.total})</>
+                                            ) : (
+                                                data.reasons[0]
+                                            )}
+                                            <br />
+                                            <span className="opacity-50">Retard estimé : {data.source_data?.ml?.delay_days || 4} jours.</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Audit Trail / Journal de Transparence */}
-                            {data.source_data && (
-                                <div className="space-y-4">
-                                    <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
-                                        <ShieldAlert className="w-3 h-3" />
-                                        Audit Trail : Journal de Transparence
-                                    </h4>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <div className="p-1.5 bg-blue-500/10 rounded-lg">
-                                                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />
+                            {/* MÉTRIQUES DE SCORE */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-[8px] font-black text-slate-600 uppercase tracking-[0.2em]">
+                                    <TrendingUp size={12} />
+                                    MÉTRIQUES DE SCORE
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {Object.entries(data.breakdown).map(([key, val], idx) => (
+                                        <div key={key} className="bg-white/[0.01] border border-white/5 rounded-[1.2rem] p-4 relative overflow-hidden">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="flex items-center gap-2 text-[8px] font-black text-slate-500 uppercase tracking-widest">
+                                                    <div className={`w-2 h-2 rounded-full ${idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-blue-500' : 'bg-slate-500'}`} />
+                                                    {key.replace(/_/g, ' ')}
                                                 </div>
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Tests & Qualité</span>
                                             </div>
-                                            <p className="text-sm text-white font-bold">
-                                                {data.source_data.tests.passed} / {data.source_data.tests.total} tests validés
-                                            </p>
-                                            <p className="text-[10px] text-slate-500 mt-1">
-                                                Taux de succès réel : {data.source_data.tests.percent}%
-                                            </p>
+                                            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden mb-3">
+                                                <div className="h-full bg-blue-500 rounded-full" style={{ width: `${val}%` }} />
+                                            </div>
+                                            <div className="text-xl font-black text-white">{val}%</div>
                                         </div>
+                                    ))}
+                                </div>
+                            </div>
 
-                                        <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <div className="p-1.5 bg-red-500/10 rounded-lg">
-                                                    <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-                                                </div>
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Anomalies Actives</span>
+                            {/* AUDIT TRAIL — JOURNAL DE TRANSPARENCE */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-[8px] font-black text-slate-600 uppercase tracking-[0.2em]">
+                                    <Clock size={12} />
+                                    AUDIT TRAIL — JOURNAL DE TRANSPARENCE
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="p-5 bg-white/[0.01] border border-white/5 rounded-[1.2rem] transition-all">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="p-1.5 bg-emerald-500/10 rounded-lg">
+                                                <CheckCircle2 size={12} className="text-emerald-500" />
                                             </div>
-                                            <p className="text-sm text-white font-bold">
-                                                {data.source_data.anomalies.total} anomalies ({data.source_data.anomalies.critical} critiques)
-                                            </p>
-                                            <p className="text-[10px] text-slate-500 mt-1">
-                                                Pénalité calculée : -{data.source_data.anomalies.penalty} pts
-                                            </p>
+                                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">TESTS & QUALITÉ</span>
                                         </div>
-
-                                        <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <div className="p-1.5 bg-amber-500/10 rounded-lg">
-                                                    <Info className="w-3.5 h-3.5 text-amber-500" />
-                                                </div>
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Prédiction ML</span>
+                                        {data.source_data ? (
+                                            <>
+                                                <div className="text-xl font-black text-white mb-0.5">{data.source_data.tests.passed} / {data.source_data.tests.total}</div>
+                                                <div className="text-[9px] font-bold text-slate-500">tests validés · taux réel {data.source_data.tests.percent}%</div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="text-xl font-black text-white mb-0.5">0 / 0</div>
+                                                <div className="text-[9px] font-bold text-slate-500">Chargement...</div>
+                                            </>
+                                        )}
+                                    </div>
+                                    <div className="p-5 bg-rose-500/5 border border-rose-500/10 rounded-[1.2rem]">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="p-1.5 bg-rose-500/20 rounded-lg">
+                                                <AlertTriangle size={12} className="text-rose-500" />
                                             </div>
-                                            <p className="text-sm text-white font-bold uppercase">
-                                                Statut : {data.source_data.ml.status}
-                                            </p>
-                                            <p className="text-[10px] text-slate-500 mt-1">
-                                                Retard estimé : {data.source_data.ml.delay_days} jours (IA confiante à {Math.round(data.source_data.ml.confidence * 100)}%)
-                                            </p>
+                                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">ANOMALIES</span>
                                         </div>
-
-                                        <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <div className="p-1.5 bg-indigo-500/10 rounded-lg">
-                                                    <Award className="w-3.5 h-3.5 text-indigo-500" />
-                                                </div>
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Modules Critiques</span>
+                                        {data.source_data ? (
+                                            <>
+                                                <div className="text-xl font-black text-rose-500 mb-0.5">{data.source_data.anomalies.total} actives</div>
+                                                <div className="text-[9px] font-bold text-slate-500">{data.source_data.anomalies.critical} critiques · pénalité -{data.source_data.anomalies.penalty} pts</div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="text-xl font-black text-rose-500 mb-0.5">0 actives</div>
+                                                <div className="text-[9px] font-bold text-slate-500">Aucune détectée</div>
+                                            </>
+                                        )}
+                                    </div>
+                                    <div className="p-5 bg-rose-500/5 border border-rose-500/10 rounded-[1.2rem]">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="p-1.5 bg-rose-500/20 rounded-lg">
+                                                <AlertTriangle size={12} className="text-rose-500" />
                                             </div>
-                                            <p className="text-sm text-white font-bold">
-                                                {data.source_data.critical_coverage.passed} / {data.source_data.critical_coverage.count} validés
-                                            </p>
-                                            <p className="text-[10px] text-slate-500 mt-1">
-                                                Couverture des zones à haut risque
-                                            </p>
+                                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">PRÉDICTION ML</span>
                                         </div>
+                                        {data.source_data ? (
+                                            <>
+                                                <div className="text-xl font-black text-rose-500 mb-0.5">{data.source_data.ml.status}</div>
+                                                <div className="text-[9px] font-bold text-slate-500">+{data.source_data.ml.delay_days}j retard · IA à {Math.round(data.source_data.ml.confidence * 100)}%</div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="text-xl font-black text-rose-500 mb-0.5">Critical</div>
+                                                <div className="text-[9px] font-bold text-slate-500">Analyse IA...</div>
+                                            </>
+                                        )}
+                                    </div>
+                                    <div className="p-5 bg-white/[0.01] border border-white/5 rounded-[1.2rem]">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="p-1.5 bg-slate-500/10 rounded-lg">
+                                                <ShieldAlert size={12} className="text-slate-500" />
+                                            </div>
+                                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">MODULES CRITIQUES</span>
+                                        </div>
+                                        {data.source_data ? (
+                                            <>
+                                                <div className="text-xl font-black text-white mb-0.5">{data.source_data.critical_coverage.passed} / {data.source_data.critical_coverage.count}</div>
+                                                <div className="text-[9px] font-bold text-slate-500">validés · haut risque</div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="text-xl font-black text-white mb-0.5">0 / 0</div>
+                                                <div className="text-[9px] font-bold text-slate-500">Aucun identifié</div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
-                            )}
+                            </div>
 
-                            {/* Detailed Reasons */}
+                            {/* ANALYSE PRÉDICTIVE */}
                             <div className="space-y-4">
-                                <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-2">
-                                    <Info className="w-3 h-3" />
-                                    {t('dataDriven.timelineGuard.predictiveAnalysis')}
-                                </h4>
-                                <div className="grid grid-cols-1 gap-3">
-                                    {data.reasons.map((reason, i) => (
-                                        <motion.div
-                                            key={i}
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: i * 0.1 }}
-                                            className="flex items-start gap-4 p-4 bg-white/[0.01] border border-white/5 rounded-2xl hover:bg-white/[0.03] transition-colors"
-                                        >
-                                            <div className="mt-1 w-2 h-2 rounded-full bg-blue-500/50 shrink-0" />
-                                            <p className="text-sm text-slate-400 font-medium leading-relaxed">{reason}</p>
-                                        </motion.div>
+                                <div className="flex items-center gap-2 text-[8px] font-black text-slate-600 uppercase tracking-[0.2em]">
+                                    <Zap size={12} className="text-blue-500" />
+                                    ANALYSE PRÉDICTIVE
+                                </div>
+                                <div className="space-y-2">
+                                    {(data.reasons || []).map((text, i) => (
+                                        <div key={i} className="p-3.5 bg-white/[0.01] border border-white/5 rounded-xl flex items-center gap-3">
+                                            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${text.toLowerCase().includes('insuffisant') || text.toLowerCase().includes('critique') ? 'bg-rose-500' : 'bg-amber-500'}`} />
+                                            <p className="text-[10px] font-bold text-slate-400 leading-tight">{text}</p>
+                                        </div>
                                     ))}
                                 </div>
                             </div>
                         </div>
 
                         {/* Footer */}
-                        <div className="p-8 border-t border-white/5 bg-white/[0.01] flex items-center justify-between gap-4">
+                        <div className="p-6 border-t border-white/5 bg-[#0b0e14] flex items-center gap-3">
                             <button
                                 onClick={handleExport}
                                 disabled={isExporting}
-                                className="flex-1 flex items-center justify-center gap-2 py-4 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 font-black text-xs rounded-2xl transition-all border border-emerald-500/20 group disabled:opacity-50"
+                                className="flex-[3] flex items-center justify-center gap-3 py-4 bg-[#0b0e14] border border-white/10 rounded-xl text-[9px] font-black tracking-[0.2em] text-white hover:bg-white/5 transition-all group disabled:opacity-50"
                             >
-                                {isExporting ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <FileText className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                                )}
-                                EXPORTER LA FICHE DE CLÔTURE (PDF)
+                                <Download size={14} className="opacity-50 group-hover:opacity-100 transition-opacity" />
+                                {isExporting ? 'EXPORTATION...' : 'EXPORTER LA FICHE DE CLÔTURE (PDF)'}
                             </button>
                             <button
                                 onClick={onClose}
-                                className="px-10 py-4 bg-white/5 hover:bg-white/10 text-white font-bold text-xs rounded-2xl transition-all border border-white/10"
+                                className="flex-1 py-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[9px] font-black tracking-widest text-white transition-all"
                             >
-                                {t('common.cancel')}
+                                Annuler
                             </button>
                         </div>
                     </motion.div>
                 </div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 };
 

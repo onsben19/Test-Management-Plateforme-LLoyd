@@ -18,8 +18,8 @@ class TestCase(models.Model):
     # État actuel du test pour le testeur
     status = models.CharField(
         max_length=20, 
-        choices=[('PENDING', 'En attente'), ('PASSED', 'Succès'), ('FAILED', 'Échec')],
-        default='PENDING'
+        choices=[('PASSED', 'Succès'), ('FAILED', 'Échec')],
+        default='PASSED'
     )
     
     tester = models.ForeignKey(

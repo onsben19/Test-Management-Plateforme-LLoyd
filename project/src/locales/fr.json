@@ -136,6 +136,16 @@
             "distributionSubtitle": "SÉVÉRITÉ",
             "activity": "Dernières Actions",
             "activitySubtitle": "MONITORING"
+        },
+        "tabs": {
+            "overview": "Vue d'ensemble",
+            "projects": "Analyse Projets",
+            "aiInsights": "IA Insights",
+            "activity": "Activité"
+        },
+        "projectFilter": {
+            "label": "Projet :",
+            "all": "Tous les projets"
         }
     },
     "adminAnomalies": {
@@ -430,6 +440,7 @@
             "refresh": "Rafraîchir",
             "exportCsv": "CSV",
             "exportPdf": "PDF",
+            "report": "Signaler une anomalie",
             "edit": "Modifier",
             "delete": "Supprimer"
         },
@@ -476,7 +487,13 @@
     },
     "testerDashboard": {
         "title": "Mon Espace Testeur",
-        "subtitle": "Retrouvez les campagnes qui vous sont assignées et validez vos tests.",
+        "subtitle": "Suivez vos assignations et rapportez vos résultats avec l'assistance de l'IA",
+        "stats": {
+            "assignedCampaigns": "Campagnes Assignées",
+            "testsPlanned": "Tests à Exécuter",
+            "avgReadiness": "Préparation Globale",
+            "openAnomalies": "Anomalies Actives"
+        },
         "searchPlaceholder": "Rechercher une campagne...",
         "controls": {
             "groupByRelease": "Groupé par Release",
@@ -1013,5 +1030,11 @@
             "deleteTitle": "Supprimer la conversation",
             "deleteMessage": "Êtes-vous sûr de vouloir supprimer cette conversation ? Tout l'historique sera perdu."
         }
+    },
+    "status": {
+        "passed": "Succès",
+        "failed": "Échec",
+        "pending": "En attente",
+        "running": "En cours"
     }
 }

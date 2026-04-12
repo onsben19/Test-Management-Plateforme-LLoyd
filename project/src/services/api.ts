@@ -131,6 +131,8 @@ export const aiService = {
         api.get(`/analytics/readiness-score/project/${projectId}/`),
     exportClosureReport: (campaignId: string | number) =>
         api.get(`/analytics/closure-report/${campaignId}/`, { responseType: 'blob' }),
+    getDashboardBrief: (stats: Record<string, unknown>) =>
+        api.post('/analytics/dashboard-brief/', { stats }),
 };
 
 export default api;

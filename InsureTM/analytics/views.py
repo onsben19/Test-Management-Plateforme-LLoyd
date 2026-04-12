@@ -298,3 +298,46 @@ class CampaignClosureReportView(APIView):
         except Exception as e:
             logger.exception("FATAL ERROR in closure report")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+class DashboardBriefView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """
+        Expects current stats from frontend to generate a brief.
+        Alternatively, can compute them here. Let's compute some key ones for safety.
+        """
+        stats = request.data.get('stats', {})
+        
+        # Enrich stats with deep data
+        from testCases.models import TestCase
+        
+        if not stats.get('total_campaigns'):
+            stats['total_campaigns'] = Campaign.objects.count()
+        if not stats.get('open_anomalies'):
+            stats['open_anomalies'] = Anomalie.objects.exclude(statut='RESOLUE').count()
+        
+        stats['critical_anomalies'] = Anomalie.objects.filter(criticite='CRITIQUE').exclude(statut='RESOLUE').count()
+        stats['total_passed'] = TestCase.objects.filter(status='PASSED').count()
+        stats['total_failed'] = TestCase.objects.filter(status='FAILED').count()
+        stats['total_executions'] = stats['total_passed'] + stats['total_failed']
+        
+        # Calculate an average readiness score for active campaigns
+        active_campaigns = Campaign.objects.all().order_by('-created_at')[:5]
+        readiness_manager = ReleaseReadinessManager()
+        scores = []
+        for c in active_campaigns:
+             res = readiness_manager.calculate_readiness_score(campaign_id=c.id)
+             if 'score' in res:
+                 scores.append(res['score'])
+        
+        stats['readiness_score'] = int(sum(scores) / len(scores)) if scores else 0
+        
+        try:
+            res = GroqService().generate_dashboard_brief(stats)
+            return Response({
+                'brief': res['brief'], 
+                'target_id': res['target_id'],
+                'readiness_score': stats['readiness_score']
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

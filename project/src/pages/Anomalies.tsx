@@ -276,26 +276,17 @@ const Anomalies: React.FC = () => {
         title={t('anomalies.title')}
         subtitle={t('anomalies.subtitle')}
         actions={
-          <button
-            onClick={() => setIsCreating(true)}
-            className="flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-[1.5rem] transition-all font-bold text-[11px] uppercase tracking-wide shadow-xl shadow-blue-600/10 active:scale-95 group"
-          >
-            <AlertTriangle className="w-5 h-5 transition-transform group-hover:rotate-12" />
-            {t('anomalies.actions.report')}
-          </button>
+          user?.role?.toLowerCase() !== 'manager' && (
+            <button
+              onClick={() => setIsCreating(true)}
+              className="flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-[1.5rem] transition-all font-bold text-[11px] uppercase tracking-wide shadow-xl shadow-blue-600/10 active:scale-95 group"
+            >
+              <AlertTriangle className="w-5 h-5 transition-transform group-hover:rotate-12" />
+              {t('anomalies.actions.report')}
+            </button>
+          )
         }
       >
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-black text-white uppercase tracking-tighter leading-none mb-3">
-              {t('anomalies.title')}
-            </h1>
-            <p className="text-slate-400 text-sm font-medium uppercase tracking-widest opacity-70">
-              {t('anomalies.subtitle')}
-            </p>
-          </div>
-        </div>
-
         <div className="space-y-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard

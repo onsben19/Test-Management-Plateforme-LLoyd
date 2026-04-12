@@ -11,17 +11,62 @@ class ReleaseReadinessManager:
 
     def calculate_readiness_score(self, campaign_id=None, project_id=None):
         try:
+            campaigns = []
             if project_id:
-                campaign = Campaign.objects.filter(project_id=project_id).order_by('-created_at').first()
-                if not campaign:
+                campaigns = list(Campaign.objects.filter(project_id=project_id))
+                if not campaigns:
                     return {"score": 0, "reasons": ["Aucune campagne trouvée pour ce projet."], "breakdown": {}}
             else:
                 campaign = Campaign.objects.get(id=campaign_id)
+                campaigns = [campaign]
             
-            campaign_id = campaign.id
-            test_cases = TestCase.objects.filter(campaign=campaign)
-            total_tests = test_cases.count()
+            total_tests = 0
+            passed_tests = 0
+            failed_tests = 0
+            all_test_cases = TestCase.objects.none()
+            worst_ml_status = "INITIAL"
+            highest_delay = 0
+            highest_confidence = 0
             
+            # Aggregate stats across all targeted campaigns
+            all_test_cases = TestCase.objects.filter(campaign__in=campaigns)
+            total_executed = all_test_cases.filter(status__in=['PASSED', 'FAILED']).count()
+
+            for camp in campaigns:
+                # 1. Tests counts
+                c_test_cases = all_test_cases.filter(campaign=camp)
+                
+                c_db_total = c_test_cases.count()
+                c_db_passed = c_test_cases.filter(status='PASSED').count()
+                c_db_failed = c_test_cases.filter(status='FAILED').count()
+                
+                c_total = camp.nb_test_cases if camp.nb_test_cases and camp.nb_test_cases > 0 else c_db_total
+                total_tests += c_total
+                passed_tests += c_db_passed
+                failed_tests += c_db_failed
+                
+                # 2. ML status (worst-case for project)
+                try:
+                    c_ml = self.ml_guard.get_campaign_status(camp.id)
+                    c_status = c_ml.get('status', 'INITIAL')
+                    
+                    # Order of severity: CRITICAL > WARNING > INITIAL/WAITING > OPTIMAL
+                    if c_status == 'CRITICAL' or worst_ml_status == 'INITIAL':
+                        worst_ml_status = 'CRITICAL'
+                    elif c_status == 'WARNING' and worst_ml_status not in ['CRITICAL']:
+                        worst_ml_status = 'WARNING'
+                    elif c_status in ['INITIAL', 'WAITING'] and worst_ml_status not in ['CRITICAL', 'WARNING']:
+                         worst_ml_status = 'WAITING'
+                    elif c_status == 'OPTIMAL' and worst_ml_status not in ['CRITICAL', 'WARNING', 'WAITING']:
+                        worst_ml_status = 'OPTIMAL'
+                    
+                    highest_delay = max(highest_delay, c_ml.get('delay_days', 0))
+                    highest_confidence = max(highest_confidence, c_ml.get('confidence_score', 0))
+                except Exception:
+                    # Fallback if ML service fails for one campaign
+                    if worst_ml_status == 'INITIAL':
+                        worst_ml_status = 'WARNING'
+
             if total_tests == 0:
                 return {
                     "score": 0,
@@ -31,17 +76,15 @@ class ReleaseReadinessManager:
                         "ml_confidence": 0,
                         "critical_coverage": 0
                     },
-                    "reasons": ["Aucun cas de test défini pour cette campagne."],
+                    "reasons": ["Aucun cas de test défini."],
                     "ml_details": {}
                 }
 
             # 1. Test Pass Rate (40%)
-            passed_tests = test_cases.filter(status='PASSED').count()
-            pass_rate_score = (passed_tests / total_tests) * 40
+            pass_rate_score = (passed_tests / total_tests) * 40 if total_tests > 0 else 0
             
             # 2. Anomaly Penalty (30%)
-            # We start with 30 and subtract based on open anomalies
-            open_anomalies = Anomalie.objects.filter(test_case__campaign=campaign).exclude(statut='RESOLUE')
+            open_anomalies = Anomalie.objects.filter(test_case__campaign__in=campaigns).exclude(statut='RESOLUE')
             penalty = 0
             for anomaly in open_anomalies:
                 if anomaly.criticite == 'CRITIQUE':
@@ -51,62 +94,69 @@ class ReleaseReadinessManager:
                 else: # FAIBLE
                     penalty += 2
             
-            anomaly_score = max(0, 30 - penalty)
+            if total_executed > 0:
+                anomaly_score = max(0, 30 - penalty)
+            else:
+                # If 0 tests executed, quality is unknown, score is 0
+                anomaly_score = 0
             
             # 3. ML Confidence (20%)
-            ml_status = self.ml_guard.get_campaign_status(campaign_id)
             ml_confidence_score = 0
-            risk_status = ml_status.get('status', 'INITIAL')
-            
-            if risk_status == 'OPTIMAL':
-                ml_confidence_score = 20
-            elif risk_status == 'WARNING':
-                ml_confidence_score = 10
-            elif risk_status == 'CRITICAL':
+            if total_executed > 0:
+                if worst_ml_status == 'OPTIMAL':
+                    ml_confidence_score = 20
+                elif worst_ml_status == 'WARNING':
+                    ml_confidence_score = 10
+                elif worst_ml_status == 'WAITING' or worst_ml_status == 'INITIAL':
+                    ml_confidence_score = 5
+                elif worst_ml_status == 'CRITICAL':
+                    ml_confidence_score = 0
+            else:
+                # If 0 tests executed, ML cannot provide confidence
                 ml_confidence_score = 0
             
             # 4. Critical Module Coverage (10%)
-            # Identify critical keywords
             critical_keywords = ['paiement', 'contrat', 'sinistre', 'auth', 'login', 'paiements', 'contrats', 'sinistres', 'billing', 'payment']
             critical_tests = []
             
-            # Convert to list to avoid multiple queries if possible, or use a complex filter
-            # For simplicity and robustness with small datasets, we'll iterate
-            for tc in test_cases:
+            for tc in all_test_cases:
                 ref = tc.test_case_ref.lower()
-                # Safely get data_json content
                 data_str = str(tc.data_json).lower() if tc.data_json else ""
                 if any(kw in ref or kw in data_str for kw in critical_keywords):
                     critical_tests.append(tc)
             
-            if not critical_tests:
-                # If no critical modules identified, we give the benefit of the doubt or standard score
-                coverage_score = 10
+            if not critical_tests or total_executed == 0:
+                # If no critical tests OR no executions yet, score is 0
+                coverage_score = 0
             else:
                 passed_critical = len([tc for tc in critical_tests if tc.status == 'PASSED'])
                 coverage_score = (passed_critical / len(critical_tests)) * 10
 
             total_score = round(pass_rate_score + anomaly_score + ml_confidence_score + coverage_score)
             
-            # Reasons for the score
             reasons = []
-            if pass_rate_score < 30:
-                reasons.append(f"Taux de réussite des tests insuffisant ({passed_tests}/{total_tests}).")
+            if total_executed == 0:
+                reasons.append("La campagne n'a pas encore démarré (0 exécutions).")
+
+            if pass_rate_score < 30 and total_executed > 0:
+                reasons.append(f"Taux de réussite insuffisant ({passed_tests}/{total_tests}).")
             
             if penalty > 0:
                 critique_count = open_anomalies.filter(criticite='CRITIQUE').count()
                 if critique_count > 0:
                     reasons.append(f"{critique_count} anomalie(s) critique(s) non résolue(s).")
                 else:
-                    reasons.append(f"Présence d'anomalies en cours de résolution.")
+                    reasons.append(f"Anomalies ouvertes impactant la release.")
             
-            if risk_status == 'CRITICAL':
-                reasons.append(f"Risque de retard important prédit par le ML ({ml_status.get('delay_days', 0)} jours de retard).")
-            elif risk_status == 'WARNING':
-                reasons.append("Léger retard prévu sur la completion de la campagne.")
+            if worst_ml_status == 'CRITICAL':
+                reasons.append(f"Risque de retard critique ({highest_delay} jours prévus).")
+            elif worst_ml_status == 'WARNING':
+                reasons.append("Léger retard global détecté sur les campagnes.")
+            elif worst_ml_status in ['WAITING', 'INITIAL'] and total_tests > 0:
+                 reasons.append("En attente de données d'exécution pour l'analyse prédictive.")
                 
             if coverage_score < 7 and critical_tests:
-                 reasons.append(f"La couverture des modules critiques ({', '.join(critical_keywords[:3])}...) est incomplète.")
+                 reasons.append(f"Couverture critique incomplète ({len(critical_tests)} tests identifiés).")
 
             return {
                 "score": total_score,
@@ -117,9 +167,12 @@ class ReleaseReadinessManager:
                     "critical_coverage": round(coverage_score, 1)
                 },
                 "source_data": {
-                    "campaign_id": campaign.id,
+                    "project_id": project_id,
+                    "campaign_id": campaigns[0].id if campaigns else None,
+                    "campaign_count": len(campaigns),
                     "tests": {
                         "passed": passed_tests,
+                        "failed": failed_tests,
                         "total": total_tests,
                         "percent": round((passed_tests / total_tests) * 100 if total_tests > 0 else 0, 1)
                     },
@@ -129,17 +182,16 @@ class ReleaseReadinessManager:
                         "penalty": round(penalty, 1)
                     },
                     "ml": {
-                        "status": risk_status,
-                        "delay_days": ml_status.get('delay_days', 0),
-                        "confidence": ml_status.get('confidence_score', 0)
+                        "status": worst_ml_status,
+                        "delay_days": highest_delay,
+                        "confidence": highest_confidence
                     },
                     "critical_coverage": {
                         "count": len(critical_tests),
-                        "passed": len([tc for tc in critical_tests if tc.status == 'PASSED']) if critical_tests else 0
+                        "passed": passed_critical if 'passed_critical' in locals() else 0
                     }
                 },
-                "reasons": reasons,
-                "ml_details": ml_status
+                "reasons": reasons
             }
 
         except Campaign.DoesNotExist:

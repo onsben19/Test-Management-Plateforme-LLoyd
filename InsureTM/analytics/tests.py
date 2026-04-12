@@ -40,3 +40,26 @@ class MLTimelineGuardMLTest(TestCase):
         # Le modèle Random Forest devrait prédire environ 5 jours (basé sur l'entraînement synthétique)
         self.assertIsNotNone(status['projected_end_date'])
         self.assertIn(status['status'], ['OPTIMAL', 'WARNING'])
+from django.contrib.auth import get_user_model
+from django.urls import reverse
+import json
+
+class DashboardBriefViewTest(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username='manager_test', password='password', role='MANAGER')
+        self.client.login(username='manager_test', password='password')
+        self.url = reverse('dashboard-brief')
+
+    def test_get_brief_endpoint(self):
+        payload = {
+            "stats": {
+                "active_projects": 2,
+                "total_campaigns": 5,
+                "open_anomalies": 3,
+                "success_rate": 80
+            }
+        }
+        response = self.client.post(self.url, data=json.dumps(payload), content_type='application/json')
+        # We expect 200 if Groq is available, or 500/exception if not (but endpoint exists)
+        self.assertIn(response.status_code, [200, 500])

@@ -238,3 +238,66 @@ class GroqService:
                 result = result.replace("**", "").replace("\n", " ").replace("\r", " ").strip()
             return result
         except Exception: return text
+    def generate_dashboard_brief(self, stats):
+        """Generate a contextual AI brief for the manager dashboard with 5-min time-based rotation and deep data."""
+        import time
+        
+        themes = [
+            {"name": "Gestion des Risques", "focus": "les anomalies critiques, les échecs de tests et les retards potentiels.", "target_id": "recent-activity"},
+            {"name": "Performance & Vélocité", "focus": "le volume d'exécutions, le taux de succès et la rapidité d'avancement des campagnes.", "target_id": "weekly-activity"},
+            {"name": "Qualité logicielle", "focus": "la répartition des anomalies, la robustesse des tests passés et la couverture critique.", "target_id": "manager-anomaly-dist"},
+            {"name": "Vision Stratégique", "focus": "l'équilibre entre volume d'exécution, bugs ouverts et état de préparation global (Readiness).", "target_id": "ml-timeline-guard"},
+        ]
+        
+        # Consistent rotation every 5 minutes (300 seconds)
+        theme_index = int(time.time() / 300) % len(themes)
+        theme = themes[theme_index]
+        
+        # Format stats for prompt
+        active_projects = stats.get('active_projects', 0)
+        total_campaigns = stats.get('total_campaigns', 0)
+        open_anomalies = stats.get('open_anomalies', 0)
+        critical_anomalies = stats.get('critical_anomalies', 0)
+        total_passed = stats.get('total_passed', 0)
+        total_failed = stats.get('total_failed', 0)
+        total_executions = stats.get('total_executions', 0)
+        success_rate = stats.get('success_rate', 0)
+        readiness_score = stats.get('readiness_score', 0)
+        
+        prompt = f"""
+        En tant qu'expert QA Platform Analyser, génère un brief exécutif complet pour un Manager.
+        
+        ANGLE D'ANALYSE PRIORITAIRE : {theme['name']} (Ton analyse doit se concentrer particulièrement sur {theme['focus']})
+        
+        DONNÉES TEMPS RÉEL DU DASHBOARD :
+        - État global : {total_executions} exécutions ({total_passed} passés, {total_failed} échoués).
+        - Santé : {open_anomalies} anomalies ouvertes (DONT {critical_anomalies} CRITIQUES).
+        - Volume : {total_campaigns} campagnes sur {active_projects} projets.
+        - Performance : {success_rate}% de succès / Readiness Score : {readiness_score}%.
+        
+        Règles :
+        1. Réponds en Français de manière extrêmement professionnelle, concise et percutante (max 3-4 courtes phrases).
+        2. Adopte la perspective du thème : {theme['name']}.
+        3. FAIS LE LIEN entre les exécutions (succès/échecs) et les anomalies (surtout les critiques).
+        4. Identifie immédiatement si la situation globale est 'Critique', 'Stable' ou 'Optimale' sous cet angle.
+        5. Donne une recommandation stratégique directe.
+        
+        Format de réponse attendu : "Analyse {theme['name']} : [Statut]. [Analyse transversale liant exécutions et anomalies]. [Action prioritaire]."
+        """
+        try:
+            completion = self.client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model="llama-3.3-70b-versatile",
+                temperature=0.7,
+            )
+            return {
+                "brief": completion.choices[0].message.content.strip(),
+                "target_id": theme['target_id'],
+                "theme_name": theme['name']
+            }
+        except Exception as e:
+            return {
+                "brief": f"Analyse indisponible : {str(e)}",
+                "target_id": None,
+                "theme_name": "Inconnu"
+            }

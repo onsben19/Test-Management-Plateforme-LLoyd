@@ -89,10 +89,9 @@ const AdminReleases = () => {
     const stats = useMemo(() => {
         const total = releases.length;
         const active = releases.filter(r => r.status === 'ACTIVE').length;
-        const planning = releases.filter(r => r.status === 'PLANNING').length;
         const completed = releases.filter(r => r.status === 'COMPLETED').length;
 
-        return { total, active, planning, completed };
+        return { total, active, completed };
     }, [releases]);
 
     const resetForm = () => {
@@ -142,7 +141,6 @@ const AdminReleases = () => {
     const getStatusLabel = (status: string) => {
         switch (status) {
             case 'ACTIVE': return 'Actif';
-            case 'PLANNING': return 'Planifié';
             case 'COMPLETED': return 'Terminé';
             default: return status;
         }
@@ -176,8 +174,7 @@ const AdminReleases = () => {
             accessor: (item: any) => {
                 const colors: Record<string, string> = {
                     'ACTIVE': 'bg-emerald-500',
-                    'COMPLETED': 'bg-blue-500',
-                    'PLANNING': 'bg-amber-500'
+                    'COMPLETED': 'bg-blue-500'
                 };
                 const color = colors[item.status] || 'bg-slate-500';
                 return (
@@ -247,13 +244,6 @@ const AdminReleases = () => {
                             changeType="positive"
                         />
                         <StatCard
-                            title="En Planification"
-                            value={stats.planning}
-                            icon={Calendar}
-                            variant="purple"
-                            description="Prochaines versions"
-                        />
-                        <StatCard
                             title="Terminées"
                             value={stats.completed}
                             icon={CheckCircle2}
@@ -277,7 +267,6 @@ const AdminReleases = () => {
                                 >
                                     <option value="ALL" className="bg-slate-900">Tous les statuts</option>
                                     <option value="ACTIVE" className="bg-slate-900">Actif</option>
-                                    <option value="PLANNING" className="bg-slate-900">Planifié</option>
                                     <option value="COMPLETED" className="bg-slate-900">Terminé</option>
                                 </select>
                                 <select
@@ -359,7 +348,6 @@ const AdminReleases = () => {
                                         onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                                     >
                                         <option value="ACTIVE">Actif</option>
-                                        <option value="PLANNING">Planifié</option>
                                         <option value="COMPLETED">Terminé</option>
                                     </select>
                                 </div>

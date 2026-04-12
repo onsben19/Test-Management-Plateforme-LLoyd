@@ -38,7 +38,7 @@ class MLTimelineGuard:
             # 1. Calculer les tests terminés
             executed_tests = TestCase.objects.filter(
                 campaign=campaign
-            ).exclude(status='PENDING')
+            )
             
             finished_count = executed_tests.count()
             

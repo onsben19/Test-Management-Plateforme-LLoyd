@@ -13,19 +13,22 @@ interface AIBriefCardProps {
     loading?: boolean;
     onViewAnalysis?: () => void;
     anchorId?: string;
+    customBrief?: string;
 }
 
 const AIBriefCard: React.FC<AIBriefCardProps> = ({
     stats,
     loading = false,
     onViewAnalysis,
-    anchorId = 'anomaly-distribution'
+    anchorId = 'anomaly-distribution',
+    customBrief
 }) => {
     const { t, i18n } = useTranslation();
     const [displayText, setDisplayText] = useState('');
     const [isTyping, setIsTyping] = useState(true);
 
     const fullText = useMemo(() => {
+        if (customBrief) return customBrief;
         const isFR = i18n.language.startsWith('fr');
 
         if (loading || (stats.totalUsers === 0 && stats.activeProjects === 0)) {
@@ -73,7 +76,7 @@ const AIBriefCard: React.FC<AIBriefCardProps> = ({
 
     const scrollToAnomalies = () => {
         if (onViewAnalysis) {
-            onViewAnalysis();
+            onViewAnalysis(); // We'll keep it simple for now as the parent already has the ID in state, but usually passing it is better.
             return;
         }
         const element = document.getElementById(anchorId);

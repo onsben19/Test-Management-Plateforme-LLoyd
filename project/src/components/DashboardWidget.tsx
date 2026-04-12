@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { motion, useMotionTemplate, useMotionValue } from 'framer-motion';
-import { Settings, Maximize2, MoreHorizontal } from 'lucide-react';
+import { RefreshCw, Maximize2, MoreHorizontal } from 'lucide-react';
 
 interface DashboardWidgetProps {
     id?: string;
@@ -11,6 +11,7 @@ interface DashboardWidgetProps {
     isLoading?: boolean;
     className?: string;
     onSettingsClick?: () => void;
+    onMoreClick?: () => void;
 }
 
 const DashboardWidget: React.FC<DashboardWidgetProps> = ({
@@ -21,7 +22,8 @@ const DashboardWidget: React.FC<DashboardWidgetProps> = ({
     icon: Icon,
     isLoading,
     className = '',
-    onSettingsClick
+    onSettingsClick,
+    onMoreClick
 }) => {
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
@@ -82,15 +84,24 @@ const DashboardWidget: React.FC<DashboardWidgetProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-                    <button
-                        onClick={onSettingsClick}
-                        className="p-2.5 text-slate-400 hover:text-blue-600 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all"
-                    >
-                        <Settings className="w-5 h-5" />
-                    </button>
-                    <button className="p-2.5 text-slate-400 hover:text-blue-600 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all">
-                        <MoreHorizontal className="w-5 h-5" />
-                    </button>
+                    {onSettingsClick && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onSettingsClick(); }}
+                            className="p-2.5 text-slate-400 hover:text-blue-600 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all"
+                            title="Actualiser"
+                        >
+                            <RefreshCw className="w-5 h-5" />
+                        </button>
+                    )}
+                    {onMoreClick && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onMoreClick(); }}
+                            className="p-2.5 text-slate-400 hover:text-blue-600 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all"
+                            title="Plus d'options"
+                        >
+                            <MoreHorizontal className="w-5 h-5" />
+                        </button>
+                    )}
                 </div>
             </div>
 

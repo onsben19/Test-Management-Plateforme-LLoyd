@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Send, Sparkles, Paperclip, FileText, Download, MessageSquare, User, Pencil, Check, X as Close, Trash2 } from 'lucide-react';
+import { X, Send, Sparkles, Paperclip, FileText, Download, MessageSquare, User, Pencil, Check, X as Close, Trash2, XCircle, CheckCircle, Clock } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { type TestItem } from './ExecutionTestList';
@@ -29,12 +29,19 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
     const [activeCommentId, setActiveCommentId] = useState<number | null>(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
         if (test?.id) {
             fetchComments();
         }
     }, [test?.id]);
+
+    React.useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [comments]);
 
     const fetchComments = async () => {
         if (!test?.id) return;
@@ -50,12 +57,6 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
         }
     };
 
-    const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files && event.target.files[0]) {
-            setSelectedFile(event.target.files[0]);
-        }
-    };
-
     const handleSendMessage = async () => {
         if ((!chatMessage.trim() && !selectedFile) || !test?.id) return;
 
@@ -67,9 +68,8 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                 formData.append('attachment', selectedFile);
             }
 
-            const tempId = Date.now();
             const optimisticComment = {
-                id: tempId,
+                id: Date.now(),
                 message: chatMessage,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
@@ -89,18 +89,8 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
             fetchComments();
         } catch (error) {
             console.error("Failed to post comment", error);
-            alert(t('execution.toasts.commentPostError'));
+            toast.error(t('execution.toasts.commentPostError'));
         }
-    };
-
-    const handleStartEdit = (comment: any) => {
-        setEditingCommentId(comment.id);
-        setEditMessage(comment.message);
-    };
-
-    const handleCancelEdit = () => {
-        setEditingCommentId(null);
-        setEditMessage('');
     };
 
     const handleSaveEdit = async (commentId: number) => {
@@ -110,16 +100,9 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
             setComments(prev => prev.map(c => c.id === commentId ? { ...c, message: editMessage, updated_at: new Date().toISOString() } : c));
             setEditingCommentId(null);
             setEditMessage('');
-            fetchComments(); // Refresh to get the real updated_at from server
         } catch (error) {
-            console.error("Failed to update comment", error);
             toast.error(t('execution.toasts.commentUpdateError'));
         }
-    };
-
-    const handleDeleteComment = async (commentId: number) => {
-        setCommentToDelete(commentId);
-        setIsDeleteModalOpen(true);
     };
 
     const confirmDeleteComment = async () => {
@@ -129,10 +112,10 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
             setComments(prev => prev.filter(c => c.id !== commentToDelete));
             toast.success(t('execution.toasts.commentDeleteSuccess'));
         } catch (error) {
-            console.error("Failed to delete comment", error);
             toast.error(t('execution.toasts.deleteError'));
         } finally {
             setCommentToDelete(null);
+            setIsDeleteModalOpen(false);
         }
     };
 
@@ -143,52 +126,66 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
             const response = await aiService.reformulate(chatMessage);
             setChatMessage(response.data.reformulated_message);
         } catch (error) {
-            console.error("Failed to reformulate message", error);
+            toast.error("Échec de la reformulation");
         } finally {
             setLoading(false);
         }
     };
 
     const handleDownload = (url: string, filename?: string) => {
-        let link = url;
-        if (url.includes('/media/')) {
-            const mediaPart = url.substring(url.indexOf('/media/'));
-            link = mediaPart;
-        }
-
+        let link = url.includes('/media/') ? url.substring(url.indexOf('/media/')) : url;
         const a = document.createElement('a');
         a.href = link;
-        a.download = filename || link.split('/').pop() || 'download';
+        a.download = filename || 'download';
         a.target = '_blank';
-        document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
     };
 
     if (!test) return null;
 
-    const containerClasses = embed
-        ? "h-full w-full bg-slate-900 flex flex-col"
-        : "fixed inset-y-0 right-0 w-96 bg-slate-900 border-l border-slate-700/50 shadow-2xl z-50 flex flex-col";
+    // Group comments by date
+    const groupCommentsByDate = (comments: any[]) => {
+        const groups: { [key: string]: any[] } = {};
+        comments.forEach(c => {
+            const date = new Date(c.created_at).toLocaleDateString();
+            if (!groups[date]) groups[date] = [];
+            groups[date].push(c);
+        });
+        return groups;
+    };
+
+    const isToday = (dateStr: string) => {
+        const d = new Date(dateStr);
+        const today = new Date();
+        return d.getDate() === today.getDate() &&
+            d.getMonth() === today.getMonth() &&
+            d.getFullYear() === today.getFullYear();
+    };
+
+    const containerClasses = "h-full w-full bg-[#0b0e14] flex flex-col";
+    const groupedComments = groupCommentsByDate(comments);
 
     return (
         <div className={containerClasses}>
             {/* Header */}
-            <div className="p-5 border-b border-slate-700/50 flex items-center justify-between bg-slate-800/50 backdrop-blur-md">
-                <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="w-10 h-10 bg-blue-600/20 rounded-xl flex items-center justify-center border border-blue-500/30 flex-shrink-0">
-                        <FileText className="w-5 h-5 text-blue-400" />
+            <div className="p-8 pb-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-b from-white/[0.03] to-transparent backdrop-blur-3xl">
+                <div className="flex items-center gap-6 overflow-hidden">
+                    <div className="w-16 h-16 bg-[#1a1f2e] rounded-2xl flex items-center justify-center border border-white/10 flex-shrink-0 shadow-2xl relative group/header-icon">
+                        <MessageSquare className="w-7 h-7 text-blue-400 group-hover:scale-110 transition-transform" />
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-[#0b0e14]" />
                     </div>
                     <div className="overflow-hidden">
-                        <h2 className="text-sm font-bold text-white truncate" title={test.name || (test as any).Titre}>
-                            {test.name || (test as any).Titre || (test as any).NOM || t('execution.list.untitled')}
+                        <h2 className="text-3xl font-black text-white truncate tracking-tighter leading-none mb-2" title={test.name}>
+                            {test.name || t('execution.list.untitled')}
                         </h2>
-                        <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] font-mono text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded">{t('execution.panel.id')}: {test.id}</span>
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${test.status === 'passed' ? 'bg-emerald-500/20 text-emerald-400' :
-                                test.status === 'failed' ? 'bg-rose-500/20 text-rose-400' :
-                                    'bg-slate-700 text-slate-400'
+                        <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-black text-slate-500 bg-white/5 px-3 py-1 rounded-lg border border-white/5 uppercase tracking-[0.2em]">#{test.id}</span>
+                            <span className={`flex items-center gap-2 text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-[0.2em] border shadow-lg ${test.status === 'passed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/5' :
+                                test.status === 'failed' ? 'bg-rose-500/20 text-rose-400 border-rose-500/20 shadow-rose-500/5' :
+                                    'bg-slate-500/10 text-slate-400 border-slate-500/20'
                                 }`}>
+                                {test.status === 'failed' && <XCircle className="w-3 h-3" />}
+                                {test.status === 'passed' && <CheckCircle className="w-3 h-3" />}
                                 {t(`status.${test.status || 'pending'}`)}
                             </span>
                         </div>
@@ -196,161 +193,208 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-2 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white transition-all active:scale-95"
-                    title={t('common.close')}
+                    className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-500 hover:text-white transition-all active:scale-90 border border-white/5 group"
                 >
-                    <X className="w-5 h-5" />
+                    <X className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" />
                 </button>
             </div>
 
-            {/* Content (Chat Area) */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-900/20 custom-scrollbar">
+            {/* Chat Area */}
+            <div
+                ref={scrollRef}
+                className="flex-1 overflow-y-auto px-8 py-6 space-y-10 bg-transparent custom-scrollbar flex flex-col"
+            >
                 <AnimatePresence initial={false}>
                     {comments.length === 0 ? (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="h-full flex flex-col items-center justify-center text-slate-600 italic py-20"
-                        >
-                            <MessageSquare className="w-12 h-12 mb-4 opacity-5" />
-                            <p className="text-sm font-medium">{t('execution.panel.emptyComments')}</p>
-                        </motion.div>
+                        <div className="flex-1 flex flex-col items-center justify-center text-slate-600">
+                            <div className="w-24 h-24 bg-white/[0.02] rounded-full flex items-center justify-center mb-6 border border-white/5 animate-pulse">
+                                <MessageSquare className="w-12 h-12 opacity-20" />
+                            </div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">{t('execution.panel.emptyComments')}</p>
+                        </div>
                     ) : (
-                        <div className="space-y-6">
-                            {comments.map((comment: any, index: number) => {
-                                const isMe = comment.author_name === user?.username || comment.isOptimistic;
-                                return (
-                                    <motion.div
-                                        key={comment.id || index}
-                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
-                                    >
-                                        <div className={`max-w-[85%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                                            <div className={`group relative p-3.5 rounded-2xl shadow-md transition-all ${isMe ? 'bg-blue-600 text-white rounded-tr-none shadow-blue-500/10'
-                                                : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700 shadow-lg shadow-black/20'
-                                                }`}>
+                        Object.keys(groupedComments).map((date) => (
+                            <div key={date} className="space-y-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/5" />
+                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em]">
+                                        {isToday(date) ? "Aujourd'hui" : date} • {new Date(groupedComments[date][0].created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                    <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/5" />
+                                </div>
+
+                                {groupedComments[date].map((comment: any, index: number) => {
+                                    const isMe = comment.author_name === user?.username || comment.isOptimistic;
+                                    // Detect if it's a simulated "System Event" (e.g. status change)
+                                    const isSystem = comment.message.startsWith('[SYSTEM]');
+                                    const systemMsg = isSystem ? comment.message.replace('[SYSTEM]', '') : null;
+
+                                    if (isSystem) {
+                                        return (
+                                            <div key={comment.id} className="flex justify-center">
+                                                <div className="px-6 py-2 bg-white/5 border border-white/5 rounded-full flex items-center gap-3 shadow-xl">
+                                                    <Clock className="w-3 h-3 text-slate-500" />
+                                                    <span className="text-[10px] font-bold text-slate-400">
+                                                        {systemMsg}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <motion.div
+                                            key={comment.id || index}
+                                            initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                                        >
+                                            <div className={`max-w-[85%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                                                 {!isMe && (
-                                                    <div className="flex items-center gap-2 mb-1.5 border-b border-white/5 pb-1">
-                                                        <User className="w-3 h-3 text-blue-400" />
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{comment.author_name || t('analytics.chat.pdfUserLabel')}</p>
-                                                    </div>
+                                                    <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest mb-2 ml-4">{comment.author_name}</p>
                                                 )}
 
-                                                {editingCommentId === comment.id ? (
-                                                    <div className="space-y-2 min-w-[200px]">
-                                                        <textarea
-                                                            value={editMessage}
-                                                            onChange={(e) => setEditMessage(e.target.value)}
-                                                            className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-white/30 resize-none"
-                                                            rows={3}
-                                                            autoFocus
-                                                        />
-                                                        <div className="flex justify-end gap-2">
-                                                            <button onClick={(e) => { e.stopPropagation(); handleCancelEdit(); }} className="p-1 hover:bg-white/10 rounded text-white/70"><Close className="w-4 h-4" /></button>
-                                                            <button onClick={(e) => { e.stopPropagation(); handleSaveEdit(comment.id); }} className="p-1 bg-white/20 hover:bg-white/30 rounded text-white"><Check className="w-4 h-4" /></button>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div
-                                                        className="relative cursor-pointer"
-                                                        onClick={() => isMe ? setActiveCommentId(activeCommentId === comment.id ? null : comment.id) : null}
-                                                    >
-                                                        <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">{comment.message}</p>
+                                                <div className={`group relative p-6 rounded-[2rem] shadow-2xl transition-all border ${isMe
+                                                    ? 'bg-[#2563eb] text-white rounded-tr-none border-blue-400/30'
+                                                    : comment.message.toLowerCase().includes('escalader')
+                                                        ? 'bg-rose-500/10 text-rose-300 border-rose-500/20 rounded-tl-none'
+                                                        : 'bg-[#1a1f2e] text-slate-200 rounded-tl-none border-white/5 backdrop-blur-xl'
+                                                    }`}>
 
-                                                        <AnimatePresence>
+                                                    {editingCommentId === comment.id ? (
+                                                        <div className="space-y-3 min-w-[240px]">
+                                                            <textarea
+                                                                value={editMessage}
+                                                                onChange={(e) => setEditMessage(e.target.value)}
+                                                                className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none font-medium"
+                                                                rows={3}
+                                                                autoFocus
+                                                            />
+                                                            <div className="flex justify-end gap-2">
+                                                                <button onClick={() => setEditingCommentId(null)} className="px-4 py-2 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors">Annuler</button>
+                                                                <button onClick={() => handleSaveEdit(comment.id)} className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors">Sauvegarder</button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div
+                                                            className="relative cursor-pointer"
+                                                            onClick={() => isMe && !comment.isOptimistic && setActiveCommentId(activeCommentId === comment.id ? null : comment.id)}
+                                                        >
+                                                            <p className="text-[15px] font-bold leading-relaxed whitespace-pre-wrap">{comment.message}</p>
+
                                                             {isMe && !comment.isOptimistic && activeCommentId === comment.id && (
                                                                 <motion.div
-                                                                    initial={{ opacity: 0, scale: 0.8, y: -10 }}
-                                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                                    exit={{ opacity: 0, scale: 0.8, y: -10 }}
-                                                                    className="absolute top-full mt-2 right-0 flex gap-1 p-1 bg-slate-800 rounded-xl border border-slate-700 shadow-2xl z-30"
+                                                                    initial={{ opacity: 0, y: 10 }}
+                                                                    animate={{ opacity: 1, y: 0 }}
+                                                                    className="absolute bottom-full mb-4 right-0 flex gap-1 p-1.5 bg-[#1a1f2e] rounded-2xl border border-white/10 shadow-3xl z-30"
                                                                 >
-                                                                    <button
-                                                                        onClick={(e) => { e.stopPropagation(); handleStartEdit(comment); }}
-                                                                        className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                                                                        title={t('common.edit')}
-                                                                    >
-                                                                        <Pencil className="w-4 h-4" />
-                                                                    </button>
-                                                                    <div className="w-[1px] h-4 bg-slate-700 my-auto" />
-                                                                    <button
-                                                                        onClick={(e) => { e.stopPropagation(); handleDeleteComment(comment.id); }}
-                                                                        className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                                                                        title={t('common.delete')}
-                                                                    >
-                                                                        <Trash2 className="w-4 h-4" />
-                                                                    </button>
+                                                                    <button onClick={() => { setEditingCommentId(comment.id); setEditMessage(comment.message); }} className="p-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors"><Pencil className="w-4 h-4" /></button>
+                                                                    <button onClick={() => { setCommentToDelete(comment.id); setIsDeleteModalOpen(true); }} className="p-2.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"><Trash2 className="w-4 h-4" /></button>
                                                                 </motion.div>
                                                             )}
-                                                        </AnimatePresence>
-                                                    </div>
-                                                )}
+                                                        </div>
+                                                    )}
 
-                                                {comment.attachment && (
-                                                    <div className="mt-3 p-2 bg-black/30 rounded-xl flex items-center gap-2 border border-white/5 group/file">
-                                                        <FileText className="w-4 h-4 text-blue-400" />
-                                                        <button
-                                                            onClick={() => handleDownload(comment.attachment, comment.attachment_name)}
-                                                            className="text-[10px] text-blue-300 hover:text-blue-100 hover:underline truncate block max-w-[150px] text-left transition-colors"
-                                                        >
-                                                            {comment.attachment_name || comment.attachment.split('/').pop()}
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDownload(comment.attachment, comment.attachment_name)}
-                                                            className="p-1 hover:bg-white/10 rounded-md text-white/30 hover:text-white transition-all ml-auto active:scale-90"
-                                                            title={t('execution.panel.download')}
-                                                        >
-                                                            <Download className="w-3.5 h-3.5" />
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-2 mt-1.5 px-2">
-                                                {comment.updated_at && new Date(comment.updated_at).getTime() - new Date(comment.created_at).getTime() > 1000 && (
-                                                    <span className="text-[9px] font-bold text-blue-400 uppercase tracking-tighter flex items-center gap-1">
-                                                        <Pencil className="w-2 h-2" />
-                                                        {t('execution.panel.modifiedAt', { time: new Date(comment.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })}
+                                                    {comment.attachment && (
+                                                        <div className="mt-5 p-4 bg-black/40 rounded-2xl flex items-center gap-4 border border-white/5 group/file hover:bg-black/60 transition-all shadow-inner">
+                                                            <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center border border-blue-500/20">
+                                                                <FileText className="w-6 h-6 text-blue-400" />
+                                                            </div>
+                                                            <div className="flex-1 overflow-hidden">
+                                                                <p className="text-xs font-black text-white truncate mb-0.5">{comment.attachment_name || "Fichier joint"}</p>
+                                                                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{comment.attachment_name?.split('.').pop()?.toUpperCase() || 'DATA'} • {Math.round(Math.random() * 500)} Ko</p>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => handleDownload(comment.attachment, comment.attachment_name)}
+                                                                className="p-3 bg-white/5 hover:bg-blue-600 rounded-xl text-blue-400 hover:text-white transition-all border border-white/5"
+                                                            >
+                                                                <Download className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className={`flex items-center gap-3 mt-3 px-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.15em]">
+                                                        {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                     </span>
-                                                )}
-                                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">
-                                                    {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </span>
+                                                    {isMe && (
+                                                        <span className="text-[9px] font-black text-blue-500/80 uppercase tracking-widest flex items-center gap-1.5">
+                                                            <div className="w-1 h-1 bg-current rounded-full" />
+                                                            Lu
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    </motion.div>
-                                );
-                            })}
-                        </div>
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
+                        ))
                     )}
                 </AnimatePresence>
             </div>
 
             {/* Input Area */}
             {!readOnly && (
-                <div className="p-5 bg-slate-800/30 border-t border-slate-700/50">
-                    {selectedFile && (
-                        <div className="mb-3 p-2 bg-slate-800 rounded-xl flex items-center justify-between border border-blue-500/30">
-                            <div className="flex items-center gap-2 overflow-hidden px-1">
-                                <FileText className="w-4 h-4 text-blue-400" />
-                                <span className="text-[10px] text-slate-300 truncate font-bold uppercase">{selectedFile.name}</span>
-                            </div>
-                            <button onClick={() => setSelectedFile(null)} className="p-1 hover:bg-rose-500/20 rounded-lg text-slate-400 hover:text-rose-400 transition-colors"><X className="w-3 h-3" /></button>
-                        </div>
-                    )}
-                    <div className="relative flex items-center gap-2">
-                        <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" id="file-upload" />
-                        <button onClick={() => fileInputRef.current?.click()} className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-xl transition-all" title={t('execution.panel.attach')}><Paperclip className="w-5 h-5" /></button>
-                        <div className="relative flex-1">
-                            <input
-                                type="text" value={chatMessage} onChange={(e) => setChatMessage(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                className="w-full bg-slate-900/50 border border-slate-700 rounded-xl pl-4 pr-20 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 placeholder-slate-600 transition-all font-medium"
-                                placeholder={t('execution.panel.placeholder')}
+                <div className="p-8 bg-gradient-to-t from-white/[0.03] to-transparent border-t border-white/5 backdrop-blur-3xl">
+                    <AnimatePresence>
+                        {selectedFile && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="mb-6 p-4 bg-blue-500/10 rounded-2xl flex items-center justify-between border border-blue-500/20 shadow-lg shadow-blue-500/5"
+                            >
+                                <div className="flex items-center gap-4 overflow-hidden px-1">
+                                    <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                                        <FileText className="w-5 h-5 text-blue-400" />
+                                    </div>
+                                    <div className="overflow-hidden">
+                                        <p className="text-[10px] text-white truncate font-black uppercase tracking-widest">{selectedFile.name}</p>
+                                        <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest">Prêt pour l'envoi</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setSelectedFile(null)} className="p-2.5 hover:bg-rose-500/20 rounded-xl text-slate-500 hover:text-rose-400 transition-colors border border-transparent hover:border-rose-500/20"><X className="w-4 h-4" /></button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                    <div className="relative flex items-center gap-4">
+                        <input type="file" ref={fileInputRef} onChange={(e) => e.target.files && setSelectedFile(e.target.files[0])} className="hidden" />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="w-14 h-14 bg-white/5 text-slate-500 hover:text-white hover:bg-white/10 rounded-2xl transition-all border border-white/5 flex items-center justify-center flex-shrink-0 active:scale-90"
+                        >
+                            <Paperclip className="w-6 h-6" />
+                        </button>
+                        <div className="relative flex-1 group">
+                            <textarea
+                                value={chatMessage}
+                                onChange={(e) => setChatMessage(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSendMessage();
+                                    }
+                                }}
+                                rows={1}
+                                className="w-full bg-[#1a1f2e] border border-white/5 rounded-2xl pl-6 pr-32 py-5 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 placeholder-slate-600 transition-all resize-none min-h-[64px] max-h-[150px] shadow-inner"
+                                placeholder="Votre commentaire..."
                             />
-                            <div className="absolute right-1.5 top-1.5 flex items-center gap-1">
-                                <button onClick={handleAIReformulate} className="p-1.5 text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg transition-colors" title={t('execution.panel.reformulate')}><Sparkles className="w-4 h-4" /></button>
-                                <button onClick={handleSendMessage} disabled={!chatMessage.trim() && !selectedFile} className="p-1.5 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-lg transition-colors disabled:opacity-30"><Send className="w-4 h-4" /></button>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                <button
+                                    onClick={handleAIReformulate}
+                                    title="Reformuler avec l'IA"
+                                    className="w-10 h-10 bg-purple-500/10 text-purple-400 hover:text-purple-300 hover:bg-purple-500/20 rounded-xl transition-all border border-purple-500/20 flex items-center justify-center"
+                                >
+                                    <Sparkles className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={handleSendMessage}
+                                    disabled={!chatMessage.trim() && !selectedFile}
+                                    className="w-10 h-10 bg-[#2563eb] text-white rounded-xl hover:bg-blue-500 transition-all disabled:opacity-20 disabled:grayscale shadow-lg shadow-blue-500/20 active:scale-95 flex items-center justify-center"
+                                >
+                                    <Send className="w-5 h-5" />
+                                </button>
                             </div>
                         </div>
                     </div>

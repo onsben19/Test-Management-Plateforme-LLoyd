@@ -12,6 +12,8 @@ import { useSidebar } from '../context/SidebarContext';
 import StatCard from '../components/StatCard';
 import PageLayout from '../components/PageLayout';
 import { PlayCircle, CheckCircle, XCircle, BarChart3, Clock, List, X, Search, Filter, SortAsc, LayoutGrid } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import Pagination from '../components/Pagination';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -210,9 +212,10 @@ const ExecutionTracking = () => {
                 </div>
             }
         >
-            <div className="flex flex-col lg:flex-row gap-8 min-h-[calc(100vh-280px)]">
+            <div className="flex flex-col lg:flex-row gap-8 min-h-[calc(100vh-280px)] relative">
                 {/* Left List Panel */}
                 <div className="flex-1 space-y-8">
+                    {/* ... (stats and list remain same) */}
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                         <StatCard
                             title="Total Exécutions"
@@ -314,31 +317,51 @@ const ExecutionTracking = () => {
                     />
                 </div>
 
-                {/* Right Details Panel */}
-                {selectedTest && (
-                    <div className="w-full lg:w-[480px] border border-white/10 bg-white/5 backdrop-blur-3xl h-[calc(100vh-280px)] sticky top-0 rounded-[3.5rem] overflow-hidden flex-shrink-0 animate-in slide-in-from-right duration-500 shadow-2xl shadow-blue-900/20">
-                        <ReviewPanel
-                            test={selectedTest}
-                            onClose={() => setSelectedTest(null)}
-                            onUpdate={(updates) => handleTestUpdate(selectedTest.id, updates)}
-                            embed={true}
-                            readOnly={!canManage}
-                        />
-                    </div>
+                {typeof document !== 'undefined' && createPortal(
+                    <AnimatePresence>
+                        {selectedTest && (
+                            <>
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    onClick={() => setSelectedTest(null)}
+                                    className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm"
+                                />
+                                <motion.div
+                                    initial={{ x: '100%' }}
+                                    animate={{ x: 0 }}
+                                    exit={{ x: '100%' }}
+                                    transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                    className="fixed right-0 top-0 bottom-0 z-[1010] w-full max-w-[500px] bg-[#0b0e14] border-l border-white/5 flex flex-col shadow-2xl"
+                                >
+                                    <ReviewPanel
+                                        test={selectedTest}
+                                        onClose={() => setSelectedTest(null)}
+                                        onUpdate={(updates) => handleTestUpdate(selectedTest.id, updates)}
+                                        embed={true}
+                                        readOnly={!canManage}
+                                    />
+                                </motion.div>
+                            </>
+                        )}
+                    </AnimatePresence>,
+                    document.body
                 )}
             </div>
 
-            {editingTest && (
+            {typeof document !== 'undefined' && editingTest && createPortal(
                 <EditExecutionModal
                     test={editingTest}
                     onClose={() => setEditingTest(null)}
                     onSave={handleTestUpdate}
-                />
+                />,
+                document.body
             )}
 
             {/* Image Viewer Lightbox */}
-            {viewingCaptures && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl" onClick={() => setViewingCaptures(null)}>
+            {typeof document !== 'undefined' && viewingCaptures && createPortal(
+                <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl" onClick={() => setViewingCaptures(null)}>
                     <div className="relative max-w-7xl max-h-screen w-full p-8 flex flex-col items-center" onClick={e => e.stopPropagation()}>
                         <button
                             className="absolute top-8 right-8 text-white/50 hover:text-white transition-all transform hover:rotate-90 hover:scale-110"
@@ -351,11 +374,11 @@ const ExecutionTracking = () => {
                         <div className="flex overflow-x-auto gap-8 p-8 w-full justify-center snap-x custom-scrollbar">
                             {(viewingCaptures.captures || []).map((cap, idx) => (
                                 <div key={idx} className="snap-center shrink-0 max-w-[85vw] max-h-[75vh] flex flex-col items-center group">
-                                    <div className="relative">
+                                    <div className="relative border-2 border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
                                         {cap.startsWith('data:') ? (
-                                            <img src={cap} alt={`Capture ${idx}`} className="rounded-[2.5rem] shadow-[0_0_100px_rgba(37,99,235,0.15)] border border-white/10 max-h-[75vh] object-contain transition-transform duration-500 group-hover:scale-[1.02]" />
+                                            <img src={cap} alt={`Capture ${idx}`} className="max-h-[70vh] object-contain transition-transform duration-500 group-hover:scale-[1.02]" />
                                         ) : (
-                                            <div className="w-96 h-64 bg-white/5 flex items-center justify-center rounded-[2.5rem] border border-white/10">
+                                            <div className="w-96 h-64 bg-white/5 flex items-center justify-center rounded-[2.5rem]">
                                                 <span className="text-slate-500 font-bold uppercase tracking-widest text-xs opacity-50">{cap}</span>
                                             </div>
                                         )}
@@ -363,19 +386,16 @@ const ExecutionTracking = () => {
                                             <p className="text-white/70 font-bold uppercase tracking-[0.2em] text-[8px]">CAPTURE {idx + 1} / {(viewingCaptures?.captures || []).length}</p>
                                         </div>
                                     </div>
+                                    <div className="mt-6 flex flex-col items-center gap-1">
+                                        <h4 className="text-white font-black text-lg tracking-tight">{viewingCaptures.name}</h4>
+                                        <p className="text-blue-400 text-[10px] font-black uppercase tracking-widest">{viewingCaptures.module}</p>
+                                    </div>
                                 </div>
                             ))}
                         </div>
-                        <div className="text-center mt-12 space-y-3">
-                            <h3 className="text-3xl font-black text-white tracking-tight uppercase leading-none">{viewingCaptures.name}</h3>
-                            <div className="flex items-center justify-center gap-3">
-                                <div className="h-px w-6 bg-blue-500/50" />
-                                <p className="text-blue-500 font-bold tracking-[0.3em] text-[10px] uppercase">EXÉCUTION #{viewingCaptures.id}</p>
-                                <div className="h-px w-6 bg-blue-500/50" />
-                            </div>
-                        </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </PageLayout>
     );

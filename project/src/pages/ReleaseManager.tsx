@@ -160,7 +160,6 @@ const ReleaseManager = () => {
         switch (status) {
             case 'ACTIVE': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
             case 'COMPLETED': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-            case 'PLANNING': return 'bg-violet-500/10 text-violet-400 border-violet-500/20';
             default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
         }
     };
@@ -168,7 +167,6 @@ const ReleaseManager = () => {
     const getStatusLabel = (status: string) => {
         switch (status) {
             case 'ACTIVE': return t('releaseManager.status.active');
-            case 'PLANNING': return t('releaseManager.status.planning');
             case 'COMPLETED': return t('releaseManager.status.completed');
             default: return status;
         }
@@ -198,7 +196,7 @@ const ReleaseManager = () => {
         >
             <div className="space-y-10">
                 {/* Search & Sort Toolbar */}
-                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 flex flex-col md:flex-row items-center gap-6 shadow-2xl">
+                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-4 flex flex-col md:flex-row items-center gap-4 shadow-2xl">
                     <div className="relative flex-1 w-full group">
                         <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                         <input
@@ -206,18 +204,18 @@ const ReleaseManager = () => {
                             placeholder={t('releaseManager.searchPlaceholder')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] pl-16 pr-8 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder-slate-500"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-6 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder-slate-500"
                         />
                     </div>
                     <div className="flex items-center gap-4 w-full md:w-auto">
-                        <div className="flex items-center gap-3 bg-white/5 p-2 rounded-[1.5rem] border border-white/5 pr-6 w-full md:w-auto">
+                        <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/5 pr-4 w-full md:w-auto">
                             <div className="p-2 bg-blue-500/10 rounded-full border border-blue-500/20">
-                                <Filter className="w-4 h-4 text-blue-500" />
+                                <Filter className="w-3.5 h-3.5 text-blue-500" />
                             </div>
                             <select
                                 value={sortOrder}
                                 onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                                className="bg-transparent text-white text-xs font-bold outline-none cursor-pointer appearance-none"
+                                className="bg-transparent text-white text-[10px] font-bold outline-none cursor-pointer appearance-none uppercase tracking-widest"
                             >
                                 <option value="newest" className="bg-slate-900">{t('releaseManager.sort.newest')}</option>
                                 <option value="oldest" className="bg-slate-900">{t('releaseManager.sort.oldest')}</option>
@@ -227,7 +225,7 @@ const ReleaseManager = () => {
                 </div>
 
                 {/* Grid of Releases */}
-                <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
                     <AnimatePresence mode="popLayout">
                         {loading && releases.length === 0 ? (
                             [1, 2, 3, 4].map(i => (
@@ -245,28 +243,13 @@ const ReleaseManager = () => {
                                     initial={{ opacity: 0, y: 30 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.5, delay: idx * 0.05 }}
-                                    className="group relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-[3rem] p-8 hover:bg-white/10 transition-all duration-500 shadow-xl hover:shadow-2xl hover:shadow-blue-900/20"
+                                    className="group relative bg-[#131722]/80 backdrop-blur-xl border border-white/5 rounded-[2rem] p-8 hover:bg-[#131722] transition-all duration-500 shadow-2xl"
                                 >
-                                    <div className="absolute top-8 right-8 flex items-center gap-4">
-                                        {/* Readiness Score for the Release */}
-                                        {readinessScores[release.id] && (
-                                            <div
-                                                className="cursor-pointer hover:scale-105 transition-transform"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedReadinessData(readinessScores[release.id]);
-                                                    setSelectedEntityName(release.name);
-                                                    setIsDetailModalOpen(true);
-                                                }}
-                                            >
-                                                <ReadinessGauge score={readinessScores[release.id].score} size={45} label="" />
-                                            </div>
-                                        )}
-
+                                    <div className="absolute top-8 right-8">
                                         <div className="relative">
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === release.id ? null : release.id); }}
-                                                className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-400 hover:text-white transition-all border border-white/5"
+                                                className="p-3 hover:bg-white/5 rounded-2xl transition-all text-slate-500 hover:text-white border border-transparent hover:border-white/10 bg-white/5"
                                             >
                                                 <MoreVertical className="w-5 h-5" />
                                             </button>
@@ -289,7 +272,7 @@ const ReleaseManager = () => {
                                                             </button>
                                                             <div className="h-px bg-white/5 mx-4 my-2" />
                                                             <p className="px-6 py-2 text-[8px] font-black text-slate-600 uppercase tracking-widest">{t('releaseManager.status.label')}</p>
-                                                            {['ACTIVE', 'PLANNING', 'COMPLETED'].map(status => (
+                                                            {['ACTIVE', 'COMPLETED'].map(status => (
                                                                 <button
                                                                     key={status}
                                                                     onClick={() => handleStatusChange(release, status)}
@@ -315,52 +298,84 @@ const ReleaseManager = () => {
                                     </div>
 
                                     <div className="flex flex-col h-full">
-                                        <div className="flex items-center gap-5 mb-8">
-                                            <div className="w-16 h-16 rounded-[1.5rem] bg-indigo-600/20 border border-indigo-600/30 flex items-center justify-center text-indigo-400 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-                                                <Layers className="w-8 h-8" />
+                                        {/* Header: Icon + Status */}
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-600/30 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-all duration-500 shrink-0 shadow-lg shadow-indigo-500/10">
+                                                <Layers className="w-7 h-7" />
                                             </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-3 mb-1">
-                                                    <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors tracking-tight">{release.name}</h3>
-                                                </div>
-                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold border ${getStatusStyles(release.status)}`}>
-                                                    <div className={`w-1 h-1 rounded-full ${release.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : 'bg-current'}`} />
-                                                    {getStatusLabel(release.status)}
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black border ${getStatusStyles(release.status)}`}>
+                                                <div className={`w-1 h-1 rounded-full ${release.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : 'bg-current'}`} />
+                                                {getStatusLabel(release.status)}
+                                            </span>
+                                        </div>
+
+                                        {/* Title & Description */}
+                                        <div className="mb-8">
+                                            <h3 className="text-xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors tracking-tight truncate">
+                                                {release.name}
+                                            </h3>
+                                            <p className="text-slate-500 text-sm font-medium leading-relaxed line-clamp-2 h-10">
+                                                {release.description}
+                                            </p>
+                                        </div>
+
+                                        {/* Horizontal Progression */}
+                                        <div className="mb-10">
+                                            <div
+                                                className="flex items-center justify-between mb-3 cursor-pointer group/audit"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (readinessScores[release.id]) {
+                                                        setSelectedReadinessData(readinessScores[release.id]);
+                                                        setSelectedEntityName(release.name);
+                                                        setIsDetailModalOpen(true);
+                                                    }
+                                                }}
+                                            >
+                                                <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.15em] group-hover/audit:text-blue-400 transition-colors">
+                                                    Progression
+                                                </span>
+                                                <span className="text-xs font-black text-orange-500 tracking-wider group-hover/audit:scale-110 transition-transform">
+                                                    {readinessScores[release.id]?.score || 0}%
                                                 </span>
                                             </div>
+                                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                                <motion.div
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${readinessScores[release.id]?.score || 0}%` }}
+                                                    transition={{ duration: 1, ease: 'easeOut' }}
+                                                    className="h-full bg-gradient-to-r from-orange-600 to-orange-500 rounded-full"
+                                                />
+                                            </div>
                                         </div>
-
-                                        <p className="text-slate-400 text-sm font-medium leading-relaxed mb-10 line-clamp-2 h-10 group-hover:text-slate-300 transition-colors">
-                                            {release.description}
-                                        </p>
 
                                         <div className="grid grid-cols-2 gap-4 mb-10">
-                                            <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-1">
-                                                <div className="flex items-center gap-2 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                                            <div className="p-4 bg-white/[0.03] border border-white/5 rounded-2xl space-y-2">
+                                                <div className="flex items-center gap-2 text-[9px] font-bold text-slate-600 uppercase tracking-widest">
                                                     <Calendar className="w-3.5 h-3.5" />
-                                                    {t('releaseManager.card.createdAt')}
+                                                    Créé le
                                                 </div>
-                                                <div className="text-white text-xs font-bold">{formatDate(release.created_at)}</div>
+                                                <div className="text-white text-sm font-bold">{formatDate(release.created_at)}</div>
                                             </div>
-                                            <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-1">
-                                                <div className="flex items-center gap-2 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                                            <div className="p-4 bg-white/[0.03] border border-white/5 rounded-2xl space-y-2">
+                                                <div className="flex items-center gap-2 text-[9px] font-bold text-slate-600 uppercase tracking-widest">
                                                     <BookOpen className="w-3.5 h-3.5" />
-                                                    Campaigns
+                                                    Campagnes
                                                 </div>
-                                                <div className="text-white text-xs font-bold">{release.campaign_count || 0} Sets</div>
+                                                <div className="text-white text-sm font-bold">{release.campaign_count || 1} Set{release.campaign_count > 1 ? 's' : ''}</div>
                                             </div>
                                         </div>
 
-                                        <div className="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-[10px] font-black text-blue-400">
-                                                    {release.created_by_username?.[0]?.toUpperCase() || 'U'}
+                                        <div className="mt-auto pt-6 border-t border-white/5 flex flex-wrap items-center justify-between gap-4">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="w-9 h-9 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-[11px] font-black text-blue-500 shrink-0">
+                                                    M
                                                 </div>
-                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-tight">{release.created_by_username || 'System'}</span>
+                                                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{release.created_by_username || 'MANAGER'}</span>
                                             </div>
                                             <button
                                                 onClick={() => navigate('/manager', { state: { releaseName: release.name, releaseId: release.id } })}
-                                                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-all group/btn"
+                                                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#3b82f6] hover:text-blue-300 transition-all group/btn whitespace-nowrap"
                                             >
                                                 {t('releaseManager.card.viewTests')}
                                                 <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
@@ -440,7 +455,6 @@ const ReleaseManager = () => {
                                             onChange={(e) => setNewRelease({ ...newRelease, status: e.target.value })}
                                         >
                                             <option value="ACTIVE" className="bg-slate-900">{t('releaseManager.status.active')}</option>
-                                            <option value="PLANNING" className="bg-slate-900">{t('releaseManager.status.planning')}</option>
                                             <option value="COMPLETED" className="bg-slate-900">{t('releaseManager.status.completed')}</option>
                                         </select>
                                     </div>
