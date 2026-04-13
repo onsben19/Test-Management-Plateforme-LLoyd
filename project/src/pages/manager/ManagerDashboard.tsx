@@ -24,7 +24,8 @@ import {
     Target,
     FolderOpen,
     FileText,
-    Award
+    Award,
+    X
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -33,6 +34,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import DashboardTabs from './components/DashboardTabs';
 import CampaignDrawer from './components/CampaignDrawer';
+import CatchupPlanIA from '../../components/CatchupPlanIA';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -72,6 +74,8 @@ const ManagerDashboard = () => {
     const [aiBrief, setAiBrief] = useState<string | undefined>();
     const [aiBriefTargetId, setAiBriefTargetId] = useState<string | undefined>();
     const [readinessScore, setReadinessScore] = useState<number>(0);
+    const [isCatchupPlanOpen, setIsCatchupPlanOpen] = useState(false);
+    const [catchupCampaignId, setCatchupCampaignId] = useState<number | null>(null);
 
     const [rawData, setRawData] = useState<RawData>({
         projects: [],
@@ -682,6 +686,18 @@ const ManagerDashboard = () => {
                                                         </span>
                                                     </div>
 
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setCatchupCampaignId(risk.id);
+                                                            setIsCatchupPlanOpen(true);
+                                                        }}
+                                                        className="w-full mb-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-xl text-indigo-400 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 group-hover:scale-[1.02]"
+                                                    >
+                                                        <Sparkles className="w-3 h-3 fill-indigo-400" />
+                                                        Optimiser avec l'IA
+                                                    </button>
+
                                                     {/* Message */}
                                                     <p className="text-xs text-slate-500 dark:text-slate-400 mb-5 leading-relaxed line-clamp-3">
                                                         {risk.message}
@@ -823,6 +839,35 @@ const ManagerDashboard = () => {
                 isOpen={isDrawerOpen}
                 onClose={() => { setIsDrawerOpen(false); setSelectedCampaign(null); }}
             />
+            {/* AI Catchup Plan Modal */}
+            <AnimatePresence>
+                {isCatchupPlanOpen && catchupCampaignId && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-2xl my-8"
+                        >
+                            <button
+                                onClick={() => setIsCatchupPlanOpen(false)}
+                                className="absolute -top-12 right-0 text-white/50 hover:text-white transition-colors"
+                            >
+                                <X className="w-8 h-8" />
+                            </button>
+                            <CatchupPlanIA
+                                campaignId={catchupCampaignId}
+                                onClose={() => setIsCatchupPlanOpen(false)}
+                            />
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </PageLayout>
     );
 };

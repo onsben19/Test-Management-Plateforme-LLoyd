@@ -7,11 +7,33 @@ import TeamPerformance from '../components/TeamPerformance';
 import ReviewPanel from '../components/ReviewPanel';
 import EditExecutionModal from '../components/EditExecutionModal';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { executionService, projectService, campaignService } from '../services/api';
+import {
+    executionService,
+    projectService,
+    campaignService,
+    aiService
+} from '../services/api';
 import { useSidebar } from '../context/SidebarContext';
 import StatCard from '../components/StatCard';
 import PageLayout from '../components/PageLayout';
-import { PlayCircle, CheckCircle, XCircle, BarChart3, Clock, List, X, Search, Filter, SortAsc, LayoutGrid } from 'lucide-react';
+import {
+    PlayCircle,
+    CheckCircle,
+    XCircle,
+    BarChart3,
+    Clock,
+    List,
+    X,
+    Search,
+    Filter,
+    SortAsc,
+    LayoutGrid,
+    Sparkles,
+    Target,
+    Zap,
+    ArrowRight
+} from 'lucide-react';
+import CatchupPlanIA from '../components/CatchupPlanIA';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import Pagination from '../components/Pagination';
@@ -37,6 +59,8 @@ const ExecutionTracking = () => {
     const [tests, setTests] = useState<TestItem[]>([]);
     const [viewingCaptures, setViewingCaptures] = useState<TestItem | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isCatchupPlanOpen, setIsCatchupPlanOpen] = useState(false);
+    const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
@@ -126,6 +150,11 @@ const ExecutionTracking = () => {
             ]);
             setProjects(projRes.data.results || projRes.data);
             setCampaigns(campRes.data.results || campRes.data);
+            if (campRes.data.results?.[0]?.id) {
+                setSelectedCampaignId(campRes.data.results[0].id);
+            } else if (campRes.data?.[0]?.id) {
+                setSelectedCampaignId(campRes.data[0].id);
+            }
         } catch {
             // Filter dropdowns are optional
         }
@@ -209,6 +238,15 @@ const ExecutionTracking = () => {
                         <BarChart3 className="w-4 h-4" />
                         PERFORMANCE
                     </button>
+                    {(isAdmin || isManager) && (
+                        <button
+                            onClick={() => setIsCatchupPlanOpen(true)}
+                            className="flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-600 hover:text-white"
+                        >
+                            <Sparkles className="w-4 h-4 fill-indigo-400 group-hover:fill-white" />
+                            OPTIMISER IA
+                        </button>
+                    )}
                 </div>
             }
         >
@@ -393,6 +431,24 @@ const ExecutionTracking = () => {
                                 </div>
                             ))}
                         </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+            {/* Catch-up Plan Modal */}
+            {typeof document !== 'undefined' && isCatchupPlanOpen && selectedCampaignId && createPortal(
+                <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto">
+                    <div className="relative w-full max-w-2xl my-8">
+                        <button
+                            onClick={() => setIsCatchupPlanOpen(false)}
+                            className="absolute -top-12 right-0 text-white/50 hover:text-white transition-colors"
+                        >
+                            <X className="w-8 h-8" />
+                        </button>
+                        <CatchupPlanIA
+                            campaignId={selectedCampaignId}
+                            onClose={() => setIsCatchupPlanOpen(false)}
+                        />
                     </div>
                 </div>,
                 document.body

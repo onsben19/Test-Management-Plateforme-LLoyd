@@ -133,6 +133,10 @@ export const aiService = {
         api.get(`/analytics/closure-report/${campaignId}/`, { responseType: 'blob' }),
     getDashboardBrief: (stats: Record<string, unknown>) =>
         api.post('/analytics/dashboard-brief/', { stats }),
+    getCatchupPlan: (campaignId: string | number) =>
+        api.get(`/analytics/catchup-plan/${campaignId}/`),
+    applyRecommendation: (campaignId: string | number, actionId: string) =>
+        api.post('/analytics/apply-recommendation/', { campaign_id: campaignId, action_id: actionId }),
 };
 
 export default api;

@@ -17,9 +17,11 @@ import StatCard from '../components/StatCard';
 import ReadinessGauge from '../components/ReadinessGauge';
 import ReadinessDetailModal from '../components/ReadinessDetailModal';
 import AIInsightModal from '../components/AIInsightModal';
+import CatchupPlanIA from '../components/CatchupPlanIA';
 import { Briefcase, Activity, Target, ShieldAlert as ShieldAlertIcon, Award, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageLayout from '../components/PageLayout';
+import { createPortal } from 'react-dom';
 
 interface TimelineGuardData {
     status: 'OPTIMAL' | 'WARNING' | 'CRITICAL' | 'INITIAL' | 'WAITING';
@@ -74,6 +76,8 @@ const DataDrivenManager = () => {
     const [selectedReadinessData, setSelectedReadinessData] = useState<any>(null);
     const [selectedEntityName, setSelectedEntityName] = useState("");
     const [selectedAIInsight, setSelectedAIInsight] = useState<string | undefined>(undefined);
+    const [isCatchupPlanOpen, setIsCatchupPlanOpen] = useState(false);
+    const [activeCampaignId, setActiveCampaignId] = useState<number | null>(null);
 
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
@@ -135,6 +139,7 @@ const DataDrivenManager = () => {
         const guard = timelineGuards[campaignId];
         setSelectedAIInsight(guard?.message || "Analyse en attente...");
         setSelectedEntityName(name);
+        setActiveCampaignId(parseInt(campaignId)); // Track current campaign for potential optimization
         setIsAIModalOpen(true);
     };
 
@@ -341,81 +346,6 @@ const DataDrivenManager = () => {
         } else {
             toast.warning("Fichier introuvable");
         }
-    };
-
-    const renderTimelineGuard = (campaignId: string) => {
-        const guard = timelineGuards[campaignId];
-        if (!guard) return null;
-
-        const getStatusStyles = () => {
-            switch (guard.status) {
-                case 'OPTIMAL': return 'text-emerald-500';
-                case 'WARNING': return 'text-amber-500';
-                case 'CRITICAL': return 'text-rose-500';
-                default: return 'text-slate-400';
-            }
-        };
-
-        return (
-            <div className="space-y-4">
-                {/* AI Insights and Stats Grid */}
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
-                        <div className="flex items-center gap-2 text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">
-                            <History size={10} />
-                            Cadence IA
-                        </div>
-                        <div className="text-sm font-black text-white">
-                            {guard.velocity} <span className="text-[9px] text-slate-500">tests/j</span>
-                        </div>
-                    </div>
-                    <div className={`border rounded-xl p-3 ${guard.status === 'CRITICAL' ? 'bg-rose-500/5 border-rose-500/10' : 'bg-white/[0.02] border-white/5'}`}>
-                        <div className={`flex items-center gap-2 text-[8px] font-black uppercase tracking-widest mb-1 ${guard.status === 'CRITICAL' ? 'text-rose-500/50' : 'text-slate-600'}`}>
-                            <Clock size={10} />
-                            Fin Estimée
-                        </div>
-                        <div className={`text-sm font-black ${guard.status === 'CRITICAL' ? 'text-rose-500' : 'text-white'}`}>
-                            {guard.projected_end_date ? new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
-                        </div>
-                    </div>
-                </div>
-
-                {/* AI Insight Box */}
-                {guard.message && (
-                    <div className="bg-blue-600/5 border border-blue-600/10 rounded-2xl p-4 border-l-2 border-l-blue-500/50">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Sparkles size={12} className="text-blue-400" />
-                            <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">Insight IA</span>
-                        </div>
-                        <p className="text-[10px] text-slate-400 leading-relaxed italic line-clamp-2">
-                            "{guard.message}"
-                        </p>
-                    </div>
-                )}
-
-                {/* Progress Bar Area */}
-                <div className="space-y-2 pt-2">
-                    <div className="flex justify-between items-end">
-                        <div className="flex items-center gap-2">
-                            <div className={`w-1.5 h-1.5 rounded-full animate-pulse transition-colors ${guard.status === 'CRITICAL' ? 'bg-rose-500' : guard.status === 'WARNING' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">ML Guard Tracking</span>
-                        </div>
-                        <span className="text-[11px] font-black text-white">{guard.progress.percentage}%</span>
-                    </div>
-                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                        <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${guard.progress.percentage}%` }}
-                            transition={{ duration: 1, ease: 'easeOut' }}
-                            className={`h-full rounded-full ${guard.status === 'CRITICAL' ? 'bg-rose-500' :
-                                guard.status === 'WARNING' ? 'bg-amber-500' :
-                                    'bg-blue-500'
-                                }`}
-                        />
-                    </div>
-                </div>
-            </div>
-        );
     };
 
     return (
@@ -651,11 +581,11 @@ const DataDrivenManager = () => {
                                         </div>
                                     </div>
 
-                                    {/* Insight IA Area */}
-                                    <div className="bg-blue-600/5 border border-blue-600/10 rounded-2xl p-5 border-l-2 border-l-blue-500/50 mb-4 flex-1">
+                                    {/* Insight IA Area - Intelligent Integration */}
+                                    <div className="bg-blue-600/5 border border-blue-600/10 rounded-2xl p-5 border-l-2 border-l-blue-500/50 mb-4 flex-1 shadow-lg shadow-blue-900/5 group/insight">
                                         <div className="flex items-center gap-3 mb-3">
                                             <div className="w-6 h-6 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
-                                                <Zap size={14} />
+                                                <Zap size={14} className="fill-blue-400/20" />
                                             </div>
                                             <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">INSIGHT IA</span>
                                         </div>
@@ -664,10 +594,10 @@ const DataDrivenManager = () => {
                                         </p>
                                         <button
                                             onClick={() => handleOpenAIInsight(file.id, file.name)}
-                                            className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-black uppercase tracking-widest text-white transition-all flex items-center gap-2 group/btn"
+                                            className="px-4 py-2 bg-white/5 hover:bg-white hover:text-black border border-white/10 rounded-lg text-[9px] font-black uppercase tracking-widest text-white transition-all flex items-center gap-2 group/btn"
                                         >
                                             Lire la suite
-                                            <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                                            <ArrowRight size={12} className="group-hover/btn:translate-x-1 transition-transform" />
                                         </button>
                                     </div>
 
@@ -730,6 +660,42 @@ const DataDrivenManager = () => {
                     onPageChange={handlePageChange}
                     loading={loading}
                 />
+
+                <ReadinessDetailModal
+                    isOpen={isDetailModalOpen}
+                    onClose={() => setIsDetailModalOpen(false)}
+                    data={selectedReadinessData}
+                    title={selectedEntityName}
+                    aiInsight={selectedAIInsight}
+                />
+
+                <AIInsightModal
+                    isOpen={isAIModalOpen}
+                    onClose={() => setIsAIModalOpen(false)}
+                    title={selectedEntityName}
+                    insight={selectedAIInsight || "Analyse en attente..."}
+                    onOptimize={() => setIsCatchupPlanOpen(true)}
+                    showOptimizeButton={activeCampaignId ? timelineGuards[activeCampaignId.toString()]?.status === 'CRITICAL' : false}
+                />
+
+                {/* AI Catchup Plan Modal via Portal */}
+                {isCatchupPlanOpen && activeCampaignId && createPortal(
+                    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto">
+                        <div className="relative w-full max-w-2xl my-8">
+                            <button
+                                onClick={() => setIsCatchupPlanOpen(false)}
+                                className="absolute -top-12 right-0 text-white/50 hover:text-white transition-colors"
+                            >
+                                <X className="w-8 h-8" />
+                            </button>
+                            <CatchupPlanIA
+                                campaignId={activeCampaignId}
+                                onClose={() => setIsCatchupPlanOpen(false)}
+                            />
+                        </div>
+                    </div>,
+                    document.body
+                )}
             </div>
 
             {/* Campaign Modal */}
@@ -916,6 +882,8 @@ const DataDrivenManager = () => {
                 onClose={() => setIsAIModalOpen(false)}
                 title={selectedEntityName}
                 insight={selectedAIInsight || ""}
+                onOptimize={() => setIsCatchupPlanOpen(true)}
+                showOptimizeButton={activeCampaignId ? timelineGuards[activeCampaignId.toString()]?.status === 'CRITICAL' : false}
             />
         </PageLayout>
     );

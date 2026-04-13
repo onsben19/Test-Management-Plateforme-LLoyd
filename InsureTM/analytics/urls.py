@@ -7,7 +7,9 @@ from .views import (
     CampaignTimelineGuardView,
     ReleaseReadinessView,
     CampaignClosureReportView,
-    DashboardBriefView
+    DashboardBriefView,
+    CatchupPlanView,
+    ApplyRecommendationActionView
 )
 
 router = DefaultRouter()
@@ -22,4 +24,6 @@ urlpatterns = [
     path('readiness-score/project/<int:project_id>/', ReleaseReadinessView.as_view(), name='readiness-score-project'),
     path('closure-report/<int:campaign_id>/', CampaignClosureReportView.as_view(), name='closure-report'),
     path('dashboard-brief/', DashboardBriefView.as_view(), name='dashboard-brief'),
+    path('catchup-plan/<int:campaign_id>/', CatchupPlanView.as_view(), name='catchup-plan'),
+    path('apply-recommendation/', ApplyRecommendationActionView.as_view(), name='apply-recommendation'),
 ]

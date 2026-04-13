@@ -9,7 +9,9 @@ import { aiService, anomalyService } from '../../../services/api';
 import ReadinessGauge from '../../../components/ReadinessGauge';
 import ReadinessDetailModal from '../../../components/ReadinessDetailModal';
 import AIInsightModal from '../../../components/AIInsightModal';
+import CatchupPlanIA from '../../../components/CatchupPlanIA';
 import { useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 
 interface Campaign {
     id: number;
@@ -61,6 +63,8 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [isAIModalOpen, setIsAIModalOpen] = useState(false);
     const [aiInsight, setAiInsight] = useState<string | undefined>(undefined);
+    const [catchupData, setCatchupData] = useState<any | null>(null);
+    const [isCatchupPlanOpen, setIsCatchupPlanOpen] = useState(false);
 
     useEffect(() => {
         if (!campaign || !isOpen) return;
@@ -83,6 +87,10 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                 if (guardRes.status === 'fulfilled') {
                     setAiInsight(guardRes.value.data.message);
                 }
+
+                // Fetch catchup plan for detailed insight
+                const catchupRes = await aiService.getCatchupPlan(campaign.id);
+                setCatchupData(catchupRes.data);
             } catch {
                 // Silently fail
             } finally {
@@ -233,7 +241,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                                 Cadence IA
                                             </div>
                                             <div className="text-xl font-black text-white">
-                                                {velocity} <span className="text-xs text-slate-500">tests/j</span>
+                                                {catchupData?.current_velocity || 0} <span className="text-xs text-slate-500">tests/j</span>
                                             </div>
                                         </div>
                                         <div className="bg-white/[0.02] border border-rose-500/30 rounded-2xl p-4 relative overflow-hidden">
@@ -244,32 +252,42 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                                     Fin estimée
                                                 </div>
                                                 <div className="text-xl font-black text-rose-500">
-                                                    18 avr.
+                                                    {catchupData ? new Date(catchupData.deadline).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '...'}
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* INSIGHT IA Section */}
-                                <div className="bg-blue-600/5 border border-blue-600/10 rounded-3xl p-6 relative overflow-hidden mb-10">
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
-                                            <Zap size={16} />
-                                        </div>
-                                        <span className="text-xs font-black text-blue-400 uppercase tracking-widest">Insight IA</span>
-                                    </div>
-                                    <p className="text-sm text-slate-400 leading-relaxed mb-6 italic">
-                                        {aiInsight || "Analyse en cours par ML Guard..."}
-                                    </p>
-                                    <button
-                                        onClick={() => setIsAIModalOpen(true)}
-                                        className="px-6 py-3 bg-[#131722]/80 border border-white/10 rounded-[1.2rem] text-sm font-black text-white transition-all hover:bg-[#1a1f2e] flex items-center gap-3 group/btn"
-                                    >
-                                        Lire la suite
-                                        <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
-                                    </button>
-                                </div>
+                                {/* INSIGHT IA Section - Functional & Intelligent */}
+                                <AnimatePresence>
+                                    {catchupData && catchupData.delay_days > 0 && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="bg-blue-600/5 border border-blue-600/10 rounded-3xl p-6 relative overflow-hidden mb-10 shadow-lg shadow-blue-900/10"
+                                        >
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-[60px] -mr-16 -mt-16 rounded-full pointer-events-none" />
+
+                                            <div className="flex items-center gap-3 mb-6">
+                                                <div className="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
+                                                    <Zap size={16} className="fill-blue-400/20" />
+                                                </div>
+                                                <span className="text-xs font-black text-blue-400 uppercase tracking-widest">Insight IA</span>
+                                            </div>
+                                            <p className="text-sm text-slate-400 leading-relaxed mb-6 italic">
+                                                Il est essentiel d'accélérer le rythme des tests pour atteindre l'objectif, car le délai du {new Date(catchupData.deadline).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} ne sera pas respecté sans intervention.
+                                            </p>
+                                            <button
+                                                onClick={() => setIsAIModalOpen(true)}
+                                                className="px-6 py-3 bg-[#131722]/80 border border-white/10 rounded-[1.2rem] text-[10px] font-black uppercase tracking-[widest] text-white transition-all hover:bg-white hover:text-black flex items-center gap-3 group/btn shadow-xl"
+                                            >
+                                                Lire la suite
+                                                <ArrowRight size={14} className="group-hover/btn:translate-x-1.5 transition-transform" />
+                                            </button>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
 
                                 {/* Footer content */}
                                 <div className="pt-10 border-t border-white/5 flex items-center justify-between mb-8">
@@ -328,7 +346,28 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                 onClose={() => setIsAIModalOpen(false)}
                 title={campaign.title}
                 insight={aiInsight || "Analyse en attente..."}
+                onOptimize={() => setIsCatchupPlanOpen(true)}
+                showOptimizeButton={catchupData && catchupData.delay_days > 0}
             />
+
+            {/* AI Catchup Plan Modal */}
+            {isCatchupPlanOpen && createPortal(
+                <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto">
+                    <div className="relative w-full max-w-2xl my-8">
+                        <button
+                            onClick={() => setIsCatchupPlanOpen(false)}
+                            className="absolute -top-12 right-0 text-white/50 hover:text-white transition-colors"
+                        >
+                            <X className="w-8 h-8" />
+                        </button>
+                        <CatchupPlanIA
+                            campaignId={campaign.id}
+                            onClose={() => setIsCatchupPlanOpen(false)}
+                        />
+                    </div>
+                </div>,
+                document.body
+            )}
         </>
     );
 };

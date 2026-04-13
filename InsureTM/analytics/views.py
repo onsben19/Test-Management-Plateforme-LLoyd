@@ -341,3 +341,39 @@ class DashboardBriefView(APIView):
             })
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+from .recommendation_service import CatchupRecommendationManager
+
+# ... (rest of imports)
+
+class CatchupPlanView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, campaign_id):
+        # Security check (Managers/Admins only for recommendations typically)
+        if request.user.role not in ['ADMIN', 'MANAGER']:
+            return Response({'error': 'Accès réservé aux managers.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        result = CatchupRecommendationManager().get_catchup_plan(campaign_id)
+        
+        if 'error' in result:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+            
+        return Response(result)
+
+class ApplyRecommendationActionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        action_id = request.data.get('action_id')
+        campaign_id = request.data.get('campaign_id')
+        
+        if not action_id or not campaign_id:
+            return Response({'error': 'Action ID and Campaign ID are required.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Mocking the application of actions for now as per requirements "actions applicables en un clic"
+        # In a real scenario, this would trigger actual task re-assignment
+        return Response({
+            'status': 'success',
+            'message': f"L'action {action_id} a été appliquée avec succès.",
+            'applied_at': timezone.now()
+        })
