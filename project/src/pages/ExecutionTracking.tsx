@@ -220,35 +220,8 @@ const ExecutionTracking = () => {
 
     return (
         <PageLayout
-            title={t('executionTracking.title')}
+            title="Liste des cas de tests exécutés"
             subtitle="AUDIT & PERFORMANCE"
-            actions={
-                <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
-                    <button
-                        onClick={() => setActiveTab('list')}
-                        className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'list' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-                    >
-                        <List className="w-4 h-4" />
-                        LISTE
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('performance')}
-                        className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${activeTab === 'performance' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-                    >
-                        <BarChart3 className="w-4 h-4" />
-                        PERFORMANCE
-                    </button>
-                    {(isAdmin || isManager) && (
-                        <button
-                            onClick={() => setIsCatchupPlanOpen(true)}
-                            className="flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-600 hover:text-white"
-                        >
-                            <Sparkles className="w-4 h-4 fill-indigo-400 group-hover:fill-white" />
-                            OPTIMISER IA
-                        </button>
-                    )}
-                </div>
-            }
         >
             <div className="flex flex-col lg:flex-row gap-8 min-h-[calc(100vh-280px)] relative">
                 {/* Left List Panel */}

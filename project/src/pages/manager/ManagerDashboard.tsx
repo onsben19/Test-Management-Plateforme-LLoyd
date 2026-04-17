@@ -35,6 +35,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import DashboardTabs from './components/DashboardTabs';
 import CampaignDrawer from './components/CampaignDrawer';
 import CatchupPlanIA from '../../components/CatchupPlanIA';
+import ManagerRealtimeDashboard from './components/ManagerRealtimeDashboard';
+import HistoricalAnalyticsDashboard from './components/HistoricalAnalyticsDashboard';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -45,16 +47,6 @@ interface RawData {
     anomalies: any[];
 }
 
-interface TimelineRisk {
-    id: number;
-    title: string;
-    status: string;
-    message: string;
-    velocity: number;
-    projected_end_date: string | null;
-    delay_days: number;
-    progress?: { finished: number; total: number; percentage: number };
-}
 
 // ---------------------------------------------------------------------------
 // ManagerDashboard
@@ -70,12 +62,11 @@ const ManagerDashboard = () => {
     const [selectedRelease, setSelectedRelease] = useState<string | 'all'>('all');
     const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-    const [timelineRisks, setTimelineRisks] = useState<TimelineRisk[]>([]);
     const [aiBrief, setAiBrief] = useState<string | undefined>();
     const [aiBriefTargetId, setAiBriefTargetId] = useState<string | undefined>();
-    const [readinessScore, setReadinessScore] = useState<number>(0);
     const [isCatchupPlanOpen, setIsCatchupPlanOpen] = useState(false);
     const [catchupCampaignId, setCatchupCampaignId] = useState<number | null>(null);
+    const [realtimeCampaignId, setRealtimeCampaignId] = useState<number | null>(null);
 
     const [rawData, setRawData] = useState<RawData>({
         projects: [],
@@ -101,23 +92,6 @@ const ManagerDashboard = () => {
 
             setRawData({ projects: projData, campaigns: campData, anomalies: anomData });
 
-            // ML Timeline Guard for ALL campaigns (throttled: max 8 concurrent)
-            const guardsToFetch = campData.slice(0, 8);
-            const guardResults = await Promise.allSettled(
-                guardsToFetch.map((c: any) => aiService.getTimelineGuard(c.id))
-            );
-
-            const risks: TimelineRisk[] = guardResults
-                .map((res, i) => {
-                    if (res.status !== 'fulfilled') return null;
-                    const d = res.value.data;
-                    // Only show non-OPTIMAL or WAITING statuses in the risks list
-                    if (d.status === 'OPTIMAL' || d.status === 'INITIAL') return null;
-                    return { id: guardsToFetch[i].id, title: guardsToFetch[i].title, ...d };
-                })
-                .filter(Boolean) as TimelineRisk[];
-
-            setTimelineRisks(risks);
 
             // Fetch dynamic AI brief
             const briefRes = await aiService.getDashboardBrief({
@@ -128,7 +102,11 @@ const ManagerDashboard = () => {
             });
             setAiBrief(briefRes.data.brief);
             setAiBriefTargetId(briefRes.data.target_id);
-            setReadinessScore(briefRes.data.readiness_score || 0);
+
+            // Set default realtime campaign if not set
+            if (!realtimeCampaignId && campData.length > 0) {
+                setRealtimeCampaignId(campData[0].id);
+            }
         } catch (err) {
             console.error('Manager dashboard fetch error', err);
         } finally {
@@ -140,24 +118,18 @@ const ManagerDashboard = () => {
     const handleViewAIBrief = () => {
         if (!aiBriefTargetId) return;
 
-        // Map target to tab
-        let targetTab = 'overview';
-        if (aiBriefTargetId === 'ml-timeline-guard') targetTab = 'aiInsights';
-        if (aiBriefTargetId === 'recent-activity') targetTab = 'activity';
-
         const scrollToTarget = () => {
             const el = document.getElementById(aiBriefTargetId);
             if (el) {
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                // Add a temporary highlight effect
                 el.classList.add('ring-2', 'ring-blue-500', 'ring-offset-4', 'ring-offset-slate-900', 'transition-all');
                 setTimeout(() => el.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-4', 'ring-offset-slate-900'), 3000);
             }
         };
 
-        if (activeTab !== targetTab) {
-            setActiveTab(targetTab);
-            setTimeout(scrollToTarget, 400); // Wait for tab transition
+        if (activeTab !== 'activity' && aiBriefTargetId === 'recent-activity') {
+            setActiveTab('activity');
+            setTimeout(scrollToTarget, 400);
         } else {
             scrollToTarget();
         }
@@ -262,13 +234,11 @@ const ManagerDashboard = () => {
     // -------------------------------------------------------------------------
     // Tabs configuration
     // -------------------------------------------------------------------------
-    const criticalRisks = timelineRisks.filter(r => r.status === 'CRITICAL').length;
 
     const dashboardTabs = [
         { id: 'overview', label: t('managerDashboard.tabs.overview') || 'Vue d\'ensemble', icon: LayoutDashboard },
         { id: 'projects', label: t('managerDashboard.tabs.projects') || 'Campagnes', icon: Layers, badge: filteredData.stats.totalCampaigns },
 
-        { id: 'aiInsights', label: t('managerDashboard.tabs.aiInsights') || 'IA & ML', icon: Sparkles, badge: criticalRisks },
         { id: 'activity', label: t('managerDashboard.tabs.activity') || 'Activité', icon: Activity },
     ];
 
@@ -280,11 +250,6 @@ const ManagerDashboard = () => {
         setIsDrawerOpen(true);
     };
 
-    const getStatusColor = (status: string) => {
-        if (status === 'CRITICAL') return { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' };
-        if (status === 'WARNING') return { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' };
-        return { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' };
-    };
 
     // -------------------------------------------------------------------------
     // Render helpers
@@ -476,14 +441,6 @@ const ManagerDashboard = () => {
                                     isLoading={loading}
                                 />
                                 <StatCard
-                                    title="État Readiness"
-                                    value={`${readinessScore}%`}
-                                    icon={Award}
-                                    variant={readinessScore >= 80 ? 'green' : readinessScore >= 40 ? 'yellow' : 'red'}
-                                    description="Score de préparation global"
-                                    isLoading={loading}
-                                />
-                                <StatCard
                                     title="Tests total"
                                     value={filteredData.stats.totalTestCases}
                                     icon={Target}
@@ -493,70 +450,76 @@ const ManagerDashboard = () => {
                                 />
                             </div>
 
-                            {/* Charts row */}
-                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                                {/* Weekly bar chart */}
-                                <div className="lg:col-span-8">
-                                    <DashboardWidget
-                                        id="weekly-activity"
-                                        title="Activité hebdomadaire"
-                                        subtitle="7 derniers jours — tests passés vs échoués"
-                                        icon={Activity}
-                                        isLoading={loading}
-                                        onSettingsClick={() => { setIsRefreshing(true); fetchData(); }}
-                                    >
-                                        <div className="h-[300px] w-full">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <BarChart data={filteredData.weeklyChart} barSize={22} barCategoryGap="30%">
-                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.15} />
-                                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 700 }} dy={8} />
-                                                    <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 700 }} />
-                                                    <Tooltip
-                                                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', color: '#fff', fontSize: 12, fontWeight: 700 }}
-                                                        cursor={{ fill: 'rgba(255,255,255,0.03)' }}
-                                                    />
-                                                    <Bar dataKey="passed" name="Passés" fill="#10b981" radius={[6, 6, 0, 0]} />
-                                                    <Bar dataKey="failed" name="Échoués" fill="#f43f5e" radius={[6, 6, 0, 0]} />
-                                                    <Legend formatter={(v) => <span className="text-xs font-bold text-slate-400">{v}</span>} />
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                    </DashboardWidget>
-                                </div>
-
-                                {/* Anomaly pie */}
-                                <div className="lg:col-span-4">
-                                    <DashboardWidget
-                                        id="manager-anomaly-dist"
-                                        title="Anomalies"
-                                        subtitle="Répartition par criticité"
-                                        icon={PieChartIcon}
-                                        isLoading={loading}
-                                        onSettingsClick={() => { setIsRefreshing(true); fetchData(); }}
-                                    >
-                                        <div className="h-[260px] w-full">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <PieChart>
-                                                    <Pie
-                                                        data={filteredData.distribution}
-                                                        cx="50%" cy="45%"
-                                                        innerRadius={52} outerRadius={80}
-                                                        paddingAngle={6} dataKey="value"
-                                                    >
-                                                        {filteredData.distribution.map((entry, i) => (
-                                                            <Cell key={i} fill={entry.color} />
-                                                        ))}
-                                                    </Pie>
-                                                    <Tooltip
-                                                        contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px', color: '#fff', fontSize: 12 }}
-                                                    />
-                                                    <Legend iconSize={8} formatter={(v) => <span className="text-xs font-bold text-slate-400">{v}</span>} />
-                                                </PieChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                    </DashboardWidget>
-                                </div>
+                            {/* Analytics Panel (Historical/Global) */}
+                            <div className="mb-12">
+                                <HistoricalAnalyticsDashboard projectId={selectedProjectId} />
                             </div>
+
+                            {selectedProjectId === 'all' && (
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                    {/* Weekly bar chart */}
+                                    <div className="lg:col-span-8">
+                                        <DashboardWidget
+                                            id="weekly-activity"
+                                            title="Activité hebdomadaire"
+                                            subtitle="7 derniers jours — tests passés vs échoués"
+                                            icon={Activity}
+                                            isLoading={loading}
+                                            onSettingsClick={() => { setIsRefreshing(true); fetchData(); }}
+                                        >
+                                            <div className="h-[300px] w-full">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <BarChart data={filteredData.weeklyChart} barSize={22} barCategoryGap="30%">
+                                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.15} />
+                                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 700 }} dy={8} />
+                                                        <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 700 }} />
+                                                        <Tooltip
+                                                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '16px', color: '#fff', fontSize: 12, fontWeight: 700 }}
+                                                            cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                                                        />
+                                                        <Bar dataKey="passed" name="Passés" fill="#10b981" radius={[6, 6, 0, 0]} />
+                                                        <Bar dataKey="failed" name="Échoués" fill="#f43f5e" radius={[6, 6, 0, 0]} />
+                                                        <Legend formatter={(v) => <span className="text-xs font-bold text-slate-400">{v}</span>} />
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </DashboardWidget>
+                                    </div>
+
+                                    {/* Anomaly pie */}
+                                    <div className="lg:col-span-4">
+                                        <DashboardWidget
+                                            id="manager-anomaly-dist"
+                                            title="Anomalies"
+                                            subtitle="Répartition par criticité"
+                                            icon={PieChartIcon}
+                                            isLoading={loading}
+                                            onSettingsClick={() => { setIsRefreshing(true); fetchData(); }}
+                                        >
+                                            <div className="h-[260px] w-full">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <PieChart>
+                                                        <Pie
+                                                            data={filteredData.distribution}
+                                                            cx="50%" cy="45%"
+                                                            innerRadius={52} outerRadius={80}
+                                                            paddingAngle={6} dataKey="value"
+                                                        >
+                                                            {filteredData.distribution.map((entry, i) => (
+                                                                <Cell key={i} fill={entry.color} />
+                                                            ))}
+                                                        </Pie>
+                                                        <Tooltip
+                                                            contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px', color: '#fff', fontSize: 12 }}
+                                                        />
+                                                        <Legend iconSize={8} formatter={(v) => <span className="text-xs font-bold text-slate-400">{v}</span>} />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </DashboardWidget>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -643,191 +606,38 @@ const ManagerDashboard = () => {
                         </div>
                     )}
 
-                    {/* ================================================================
-                        TAB 3 — AI INSIGHTS / ML
-                    ================================================================ */}
-                    {activeTab === 'aiInsights' && (
-                        <div className="space-y-6">
-                            <DashboardWidget
-                                id="ml-timeline-guard"
-                                title="ML Timeline Guard"
-                                subtitle="Prédiction de risque de retard par campagne"
-                                icon={Sparkles}
-                                isLoading={loading}
-                                onSettingsClick={() => { setIsRefreshing(true); fetchData(); }}
-                            >
-                                {timelineRisks.length === 0 ? (
-                                    <div className="py-20 flex flex-col items-center gap-4">
-                                        <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 flex items-center justify-center">
-                                            <CheckCircle2 className="w-8 h-8 text-emerald-500" />
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="font-black text-slate-900 dark:text-white mb-1">Toutes les campagnes sont dans les délais</p>
-                                            <p className="text-sm text-slate-400">Aucun risque de retard détecté par le ML.</p>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                                        {timelineRisks.map((risk, i) => {
-                                            const colors = getStatusColor(risk.status);
-                                            return (
-                                                <motion.div
-                                                    key={risk.id}
-                                                    initial={{ opacity: 0, y: 10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: i * 0.06 }}
-                                                    className={`p-6 rounded-[2.5rem] bg-white dark:bg-white/[0.03] border ${colors.border} dark:border-white/5 hover:shadow-lg transition-all`}
-                                                >
-                                                    {/* Head */}
-                                                    <div className="flex justify-between items-start mb-4 gap-3">
-                                                        <h4 className="text-sm font-black text-slate-900 dark:text-white leading-snug truncate">{risk.title}</h4>
-                                                        <span className={`shrink-0 text-[9px] px-3 py-1 rounded-full font-black uppercase tracking-widest ${colors.bg} ${colors.text}`}>
-                                                            {risk.status}
-                                                        </span>
-                                                    </div>
-
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setCatchupCampaignId(risk.id);
-                                                            setIsCatchupPlanOpen(true);
-                                                        }}
-                                                        className="w-full mb-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-xl text-indigo-400 text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 group-hover:scale-[1.02]"
-                                                    >
-                                                        <Sparkles className="w-3 h-3 fill-indigo-400" />
-                                                        Optimiser avec l'IA
-                                                    </button>
-
-                                                    {/* Message */}
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-5 leading-relaxed line-clamp-3">
-                                                        {risk.message}
-                                                    </p>
-
-                                                    {/* Progress bar */}
-                                                    {risk.progress && (
-                                                        <div className="space-y-2 mb-4">
-                                                            <div className="flex justify-between text-[10px] font-black uppercase tracking-wider text-slate-400">
-                                                                <span>Progression</span>
-                                                                <span>{risk.progress.percentage}%</span>
-                                                            </div>
-                                                            <div className="h-1.5 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
-                                                                <motion.div
-                                                                    initial={{ width: 0 }}
-                                                                    animate={{ width: `${risk.progress.percentage}%` }}
-                                                                    transition={{ duration: 0.8 }}
-                                                                    className="h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
-                                                                />
-                                                            </div>
-                                                            <p className="text-[10px] text-slate-500 font-bold">
-                                                                {risk.progress.finished} / {risk.progress.total} tests
-                                                            </p>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Footer meta */}
-                                                    <div className="flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-widest">
-                                                        {risk.delay_days > 0 && (
-                                                            <span className="px-2 py-1 bg-red-500/10 text-red-400 rounded-lg">
-                                                                +{risk.delay_days}j retard
-                                                            </span>
-                                                        )}
-                                                        {risk.velocity > 0 && (
-                                                            <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-lg">
-                                                                {risk.velocity} tests/j
-                                                            </span>
-                                                        )}
-                                                        {risk.projected_end_date && (
-                                                            <span className="px-2 py-1 bg-slate-500/10 text-slate-400 rounded-lg">
-                                                                Fin : {new Date(risk.projected_end_date).toLocaleDateString('fr-FR')}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </motion.div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </DashboardWidget>
-                        </div>
-                    )}
 
                     {/* ================================================================
-                        TAB 4 — ACTIVITÉ
+                        TAB 4 — ACTIVITÉ (REAL-TIME)
                     ================================================================ */}
                     {activeTab === 'activity' && (
-                        <div className="max-w-3xl mx-auto">
-                            <DashboardWidget
-                                id="recent-activity"
-                                title={t('managerDashboard.widgets.activity') || 'Activité récente'}
-                                subtitle="Anomalies signalées — les plus récentes en premier"
-                                icon={Activity}
-                                isLoading={loading}
-                                onSettingsClick={() => { setIsRefreshing(true); fetchData(); }}
-                                onMoreClick={() => { }} // Placeholder for now
-                            >
-                                <div className="space-y-1 py-2">
-                                    {filteredData.recentActivity.length === 0 ? (
-                                        <div className="py-20 text-center">
-                                            <Activity className="w-10 h-10 text-slate-200 dark:text-white/10 mx-auto mb-3" />
-                                            <p className="text-slate-400 font-bold text-sm">Aucune activité récente</p>
-                                        </div>
-                                    ) : (
-                                        filteredData.recentActivity.map((a: any, i: number) => {
-                                            const critColor = a.criticite === 'CRITIQUE'
-                                                ? 'bg-red-500 shadow-red-500/50'
-                                                : a.criticite === 'MOYENNE'
-                                                    ? 'bg-amber-500 shadow-amber-500/50'
-                                                    : 'bg-blue-500 shadow-blue-500/50';
-                                            const bg = a.criticite === 'CRITIQUE'
-                                                ? 'bg-red-500/5 border-red-500/10'
-                                                : a.criticite === 'MOYENNE'
-                                                    ? 'bg-amber-500/5 border-amber-500/10'
-                                                    : 'bg-blue-500/5 border-blue-500/10';
-
-                                            return (
-                                                <motion.div
-                                                    key={a.id || i}
-                                                    initial={{ opacity: 0, x: -10 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    transition={{ delay: i * 0.05 }}
-                                                    className="flex gap-5 items-start group py-2"
-                                                >
-                                                    {/* Timeline dot */}
-                                                    <div className="relative pt-1 shrink-0">
-                                                        <div className={`w-2.5 h-2.5 rounded-full shadow-lg ${critColor}`} />
-                                                        {i !== filteredData.recentActivity.length - 1 && (
-                                                            <div className="absolute top-4 left-1/2 -translate-x-1/2 w-px h-10 bg-slate-100 dark:bg-white/5" />
-                                                        )}
-                                                    </div>
-                                                    {/* Card */}
-                                                    <div className={`flex-1 min-w-0 p-4 rounded-2xl border transition-all ${bg}`}>
-                                                        <div className="flex items-start justify-between gap-3 flex-wrap">
-                                                            <p className="text-sm font-black text-slate-900 dark:text-white leading-tight">{a.titre || a.title}</p>
-                                                            <span className={`shrink-0 text-[9px] px-2 py-0.5 rounded-full font-black uppercase ${a.criticite === 'CRITIQUE' ? 'bg-red-500/10 text-red-400' : a.criticite === 'MOYENNE' ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'}`}>
-                                                                {a.criticite}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex gap-3 mt-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-tight flex-wrap">
-                                                            {(a.cree_par_name || a.cree_par) && (
-                                                                <span>{a.cree_par_name || `User #${a.cree_par}`}</span>
-                                                            )}
-                                                            {(a.cree_le || a.date_signalement) && (
-                                                                <>
-                                                                    <span>•</span>
-                                                                    <span>{new Date(a.cree_le || a.date_signalement).toLocaleDateString('fr-FR')}</span>
-                                                                </>
-                                                            )}
-                                                            <span className={`ml-auto px-2 py-0.5 rounded-full ${a.statut === 'RESOLUE' ? 'bg-emerald-500/10 text-emerald-400' : a.statut === 'EN_INVESTIGATION' ? 'bg-blue-500/10 text-blue-400' : 'bg-red-500/10 text-red-400'}`}>
-                                                                {a.statut === 'RESOLUE' ? 'Résolue' : a.statut === 'EN_INVESTIGATION' ? 'En investigation' : 'Ouverte'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </motion.div>
-                                            );
-                                        })
-                                    )}
+                        <div className="space-y-8">
+                            {/* Campaign Selector for Real-time */}
+                            {filteredData.filteredCamps.length > 1 && (
+                                <div className="flex items-center gap-4 bg-white/5 border border-white/5 p-4 rounded-3xl max-w-md">
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-2">Superviser :</span>
+                                    <select
+                                        value={realtimeCampaignId || ''}
+                                        onChange={(e) => setRealtimeCampaignId(Number(e.target.value))}
+                                        className="bg-transparent text-sm font-black text-white focus:outline-none flex-1 cursor-pointer"
+                                    >
+                                        {filteredData.filteredCamps.map((c: any) => (
+                                            <option key={c.id} value={c.id} className="bg-slate-900 text-white">
+                                                {c.title}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
-                            </DashboardWidget>
+                            )}
+
+                            {realtimeCampaignId ? (
+                                <ManagerRealtimeDashboard campaignId={realtimeCampaignId} />
+                            ) : (
+                                <div className="py-20 text-center">
+                                    <Activity className="w-10 h-10 text-slate-200 dark:text-white/10 mx-auto mb-3" />
+                                    <p className="text-slate-400 font-bold text-sm">Veuillez sélectionner une campagne pour voir le live</p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </motion.div>

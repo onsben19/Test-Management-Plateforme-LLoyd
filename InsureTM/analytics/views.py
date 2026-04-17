@@ -1,4 +1,6 @@
 import logging
+from django.db.models import Q, Count, Avg, F
+from django.utils import timezone
 
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
@@ -377,3 +379,189 @@ class ApplyRecommendationActionView(APIView):
             'message': f"L'action {action_id} a été appliquée avec succès.",
             'applied_at': timezone.now()
         })
+
+class HistoricalReleasesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            project_id = request.query_params.get('project_id')
+            if project_id and project_id != 'all':
+                campaigns = Campaign.objects.filter(project_id=project_id).order_by('created_at')
+            else:
+                campaigns = Campaign.objects.all().order_by('-created_at')[:10] # Top 10 récentes globalement
+            
+            data = []
+            for camp in campaigns:
+                tcs = TestCase.objects.filter(campaign=camp)
+                # On utilise nb_test_cases défini dans le modèle ou le count réel
+                total = camp.nb_test_cases or tcs.count()
+                passed = tcs.filter(status='PASSED').count()
+                
+                anomalies = Anomalie.objects.filter(test_case__campaign=camp).count()
+                
+                exec_dates = tcs.filter(execution_date__isnull=False).values_list('execution_date', flat=True)
+                velocity = 0
+                duration = 0
+                if exec_dates:
+                    start = min(exec_dates)
+                    end = max(exec_dates)
+                    duration = (end - start).days or 1
+                    velocity = len(exec_dates) / duration
+                
+                if project_id and project_id != 'all':
+                    version = camp.title or "N/A"
+                else:
+                    # En vue globale, on préfixe par l'initiale du projet pour plus de clarté
+                    p_name = camp.project.name if camp.project else "PR"
+                    version = f"{p_name[:3].upper()} - {camp.title or 'N/A'}"
+                
+                data.append({
+                    "release_id": camp.id,
+                    "version": version,
+                    "pass_rate": round((passed / total * 100), 1) if total > 0 else 0,
+                    "total_tests": total,
+                    "avg_velocity": round(velocity, 1),
+                    "anomaly_count": anomalies,
+                    "duration_days": duration,
+                    "completed_at": camp.estimated_end_date.isoformat() if camp.estimated_end_date else camp.created_at.isoformat()
+                })
+            return Response(data)
+        except Exception as e:
+            logger.exception("Error in HistoricalReleasesView")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class HistoricalTestersView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            project_id = request.query_params.get('project_id')
+            
+            # Identification des testeurs ayant participé
+            if project_id and project_id != 'all':
+                testers = TestCase.objects.filter(campaign__project_id=project_id).values('tester').distinct()
+            else:
+                testers = TestCase.objects.all().values('tester').distinct()
+            
+            data = []
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            
+            for t_dict in testers:
+                tester_id = t_dict['tester']
+                if not tester_id: continue
+                try:
+                    user = User.objects.get(id=tester_id)
+                except User.DoesNotExist:
+                    continue
+                
+                if project_id and project_id != 'all':
+                    campaigns = Campaign.objects.filter(project_id=project_id).order_by('created_at')
+                else:
+                    campaigns = Campaign.objects.all().order_by('created_at')
+                releases_perf = []
+                for camp in campaigns:
+                    tc_set = TestCase.objects.filter(campaign=camp, tester=user)
+                    if not tc_set.exists(): continue
+                    
+                    passed = tc_set.filter(status='PASSED').count()
+                    total = tc_set.count()
+                    
+                    exec_dates = tc_set.filter(execution_date__isnull=False).values_list('execution_date', flat=True)
+                    velocity = 0
+                    if exec_dates:
+                        start = min(exec_dates)
+                        end = max(exec_dates)
+                        dur = (end - start).days or 1
+                        velocity = len(exec_dates) / dur
+                    
+                    version = camp.title.split()[-1] if camp.title and camp.title.split() else (camp.title or "N/A")
+                    
+                    releases_perf.append({
+                        "version": version,
+                        "pass_rate": round((passed / total * 100), 1) if total > 0 else 0,
+                        "velocity": round(velocity, 1)
+                    })
+                
+                if not releases_perf: continue
+                
+                latest = releases_perf[-1]['pass_rate']
+                first = releases_perf[0]['pass_rate']
+                delta = latest - first
+                
+                trend = 'stable'
+                if delta > 5: trend = 'improving'
+                elif delta < -5: trend = 'declining'
+                
+                data.append({
+                    "tester": {
+                        "id": user.id, 
+                        "name": user.get_full_name() or user.username, 
+                        "initials": "".join([n[0] for n in user.username[:2].upper()])
+                    },
+                    "releases": releases_perf,
+                    "trend": trend,
+                    "latest_pass_rate": latest,
+                    "delta_vs_first": round(delta, 1)
+                })
+            return Response(data)
+        except Exception as e:
+            logger.exception("Error in HistoricalTestersView")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class HistoricalModulesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            project_id = request.query_params.get('project_id')
+            
+            if project_id and project_id != 'all':
+                tcs = TestCase.objects.filter(campaign__project_id=project_id)
+            else:
+                tcs = TestCase.objects.all()
+            
+            modules = {}
+            for tc in tcs:
+                # Extraction du nom du module depuis le JSON
+                data = tc.data_json or {}
+                mod_name = "Core"
+                if isinstance(data, dict):
+                    mod_name = data.get('Module') or data.get('Domaine') or "Core"
+                elif isinstance(data, list):
+                    for item in data:
+                        if isinstance(item, dict):
+                            found = item.get('Module') or item.get('Domaine')
+                            if found:
+                                mod_name = found
+                                break
+                
+                if mod_name not in modules:
+                    modules[mod_name] = {"fails": 0, "total": 0, "releases": set()}
+                
+                modules[mod_name]["total"] += 1
+                if tc.status == 'FAILED':
+                    modules[mod_name]["fails"] += 1
+                modules[mod_name]["releases"].add(tc.campaign_id)
+                
+            data = []
+            for name, stats in modules.items():
+                total = stats["total"]
+                fail_rate = round((stats["fails"] / total * 100), 1) if total > 0 else 0
+                status_val = 'healthy'
+                if fail_rate > 30: status_val = 'critical'
+                elif fail_rate > 15: status_val = 'warning'
+                
+                data.append({
+                    "module_name": name,
+                    "tc_range": f"{total} tests",
+                    "fail_rates": [fail_rate],
+                    "avg_fail_rate": fail_rate,
+                    "status": status_val,
+                    "releases_affected": len(stats["releases"])
+                })
+            return Response(data)
+        except Exception as e:
+            logger.exception("Error in HistoricalModulesView")
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

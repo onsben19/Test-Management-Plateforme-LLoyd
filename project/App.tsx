@@ -32,6 +32,7 @@ import AdminAnalytics from './src/pages/admin/AdminAnalytics';
 import AdminDashboard from './src/pages/admin/AdminDashboard';
 import ManagerDashboard from './src/pages/manager/ManagerDashboard';
 import EmailDashboard from './src/pages/EmailDashboard';
+import ChatCenter from './src/pages/ChatCenter';
 
 
 import { AuthProvider } from './src/context/AuthContext';
@@ -118,6 +119,12 @@ const App: React.FC = () => {
                   <Route path="/messages" element={
                     <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
                       <EmailDashboard />
+                    </RoleGuard>
+                  } />
+
+                  <Route path="/chat" element={
+                    <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
+                      <ChatCenter />
                     </RoleGuard>
                   } />
 

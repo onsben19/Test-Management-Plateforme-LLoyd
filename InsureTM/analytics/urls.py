@@ -9,7 +9,10 @@ from .views import (
     CampaignClosureReportView,
     DashboardBriefView,
     CatchupPlanView,
-    ApplyRecommendationActionView
+    ApplyRecommendationActionView,
+    HistoricalReleasesView,
+    HistoricalTestersView,
+    HistoricalModulesView
 )
 
 router = DefaultRouter()
@@ -26,4 +29,7 @@ urlpatterns = [
     path('dashboard-brief/', DashboardBriefView.as_view(), name='dashboard-brief'),
     path('catchup-plan/<int:campaign_id>/', CatchupPlanView.as_view(), name='catchup-plan'),
     path('apply-recommendation/', ApplyRecommendationActionView.as_view(), name='apply-recommendation'),
+    path('releases/', HistoricalReleasesView.as_view(), name='historical-releases'),
+    path('testers/', HistoricalTestersView.as_view(), name='historical-testers'),
+    path('modules/', HistoricalModulesView.as_view(), name='historical-modules'),
 ]

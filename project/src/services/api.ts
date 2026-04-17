@@ -72,6 +72,7 @@ export const campaignService = {
     updateCampaign: (id: string, data: FormData | Record<string, unknown>) =>
         api.patch(`/campaigns/${id}/`, data, { headers: multipartHeaders(data) }),
     deleteCampaign: (id: string) => api.delete(`/campaigns/${id}/`),
+    getCampaignDashboard: (id: string | number) => api.get(`/campaigns/${id}/dashboard/`),
 };
 
 export const executionService = {
@@ -102,6 +103,18 @@ export const commentService = {
     updateComment: (id: string, data: Record<string, unknown>) =>
         api.patch(`/comments/${id}/`, data),
     deleteComment: (id: string) => api.delete(`/comments/${id}/`),
+};
+
+export const chatService = {
+    getConversations: () => api.get('/chat/conversations/'),
+    createConversation: (data: any) => api.post('/chat/conversations/', data),
+    getMessages: (params?: Record<string, unknown>) => api.get('/chat/messages/', { params }),
+    sendMessage: (data: any) => api.post('/chat/messages/', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    updateMessage: (id: string, data: any) => api.patch(`/chat/messages/${id}/`, data),
+    deleteMessage: (id: string) => api.delete(`/chat/messages/${id}/`),
+    forwardMessage: (id: string, targetConvId: string) => api.post(`/chat/messages/${id}/forward/`, { target_conversation: targetConvId }),
 };
 
 export const emailService = {
@@ -137,6 +150,12 @@ export const aiService = {
         api.get(`/analytics/catchup-plan/${campaignId}/`),
     applyRecommendation: (campaignId: string | number, actionId: string) =>
         api.post('/analytics/apply-recommendation/', { campaign_id: campaignId, action_id: actionId }),
+};
+
+export const analyticsService = {
+    getHistoricalReleases: (projectId: string | number) => api.get('/analytics/releases/', { params: { project_id: projectId } }),
+    getHistoricalTesters: (projectId: string | number) => api.get('/analytics/testers/', { params: { project_id: projectId, period: '6_releases' } }),
+    getHistoricalModules: (projectId: string | number) => api.get('/analytics/modules/', { params: { project_id: projectId } }),
 };
 
 export default api;

@@ -24,6 +24,14 @@ class CommentViewSet(viewsets.ModelViewSet):
         queryset = Comment.objects.all()
         search = self.request.query_params.get('search')
         test_case_id = self.request.query_params.get('test_case')
+        recipient_id = self.request.query_params.get('recipient')
+        chat_with_id = self.request.query_params.get('chat_with')
+
+        if chat_with_id:
+            queryset = queryset.filter(
+                (Q(author_id=self.request.user.id) & Q(recipient_id=chat_with_id)) |
+                (Q(author_id=chat_with_id) & Q(recipient_id=self.request.user.id))
+            ).filter(test_case__isnull=True)
 
         if search:
             queryset = queryset.filter(
@@ -32,12 +40,26 @@ class CommentViewSet(viewsets.ModelViewSet):
 
         if test_case_id:
             queryset = queryset.filter(test_case_id=test_case_id)
+            
+        if recipient_id:
+            queryset = queryset.filter(recipient_id=recipient_id)
 
-        return queryset
+        return queryset.order_by('created_at')
 
     def perform_create(self, serializer):
         instance = serializer.save(author=self.request.user)
+        
+        # Handle Direct Messages Notifications
+        if instance.recipient:
+            Notification.objects.create(
+                recipient=instance.recipient,
+                title="Nouveau message direct",
+                message=f"{self.request.user.username} vous a envoyé un message.",
+                type='comment_posted', # Reuse type or add new one
+            )
+            return
 
+        # Handle TestCase Comment Notifications
         test_case = instance.test_case
         if not (test_case and test_case.campaign):
             return
@@ -60,4 +82,7 @@ class CommentViewSet(viewsets.ModelViewSet):
             )
             # Send SMTP email
             if recipient.email:
-                send_comment_posted_email(recipient, self.request.user, instance, test_case)
+                try:
+                    send_comment_posted_email(recipient, self.request.user, instance, test_case)
+                except Exception as e:
+                    logger.error(f"Failed to send email: {e}")

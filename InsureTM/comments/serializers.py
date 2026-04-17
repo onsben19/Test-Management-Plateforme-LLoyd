@@ -3,12 +3,13 @@ from .models import Comment
 
 class CommentSerializer(serializers.ModelSerializer):
     author_name = serializers.ReadOnlyField(source='author.username')
+    recipient_name = serializers.ReadOnlyField(source='recipient.username')
     attachment_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ['id', 'test_case', 'author', 'author_name', 'message', 'attachment', 'attachment_name', 'created_at', 'updated_at']
-        read_only_fields = ['author', 'author_name', 'created_at', 'updated_at']
+        fields = ['id', 'test_case', 'recipient', 'recipient_name', 'author', 'author_name', 'message', 'attachment', 'attachment_name', 'created_at', 'updated_at']
+        read_only_fields = ['author', 'author_name', 'recipient_name', 'created_at', 'updated_at']
 
     def get_attachment_name(self, obj):
         if obj.attachment:

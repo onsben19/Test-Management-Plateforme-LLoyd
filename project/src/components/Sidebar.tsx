@@ -40,7 +40,8 @@ const Sidebar = () => {
       title: 'COMMUNICATION & IA',
       items: [
         { name: 'Commentaires', href: '/admin/comments', icon: MessageSquare, roles: ['ADMIN'] },
-        { name: 'Messagerie', href: '/messages', icon: Mail, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+        { name: 'Emails', href: '/messages', icon: Mail, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+        { name: 'Chat Center', href: '/chat', icon: MessageSquare, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
         { name: 'Gestion des discussions AI', href: '/management/analytics', icon: MessageSquare, roles: ['ADMIN'] },
         { name: 'Analytics IA', href: '/analytics', icon: Sparkles, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
       ]
