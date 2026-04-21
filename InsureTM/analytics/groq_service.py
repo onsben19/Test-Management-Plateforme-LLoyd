@@ -22,12 +22,12 @@ class GroqService:
             base_schema += "\n1. users_user (id, username, email, role, is_active, first_name, last_name)"
         
         base_schema += """
-        2. campaigns_campaign (id, title, description, start_date, estimated_end_date, created_at, scheduled_at, is_processed, nb_test_cases, project_id, imported_by_id)
+        2. campaigns_campaign (id, title, description, start_date, estimated_end_date, created_at, scheduled_at, nb_test_cases, project_id, imported_by_id)
         3. "testCases_testcase" (id, test_case_ref, data_json, status, campaign_id, tester_id, execution_date)
            - status values: 'PENDING', 'PASSED', 'FAILED'
-        4. "Project_project" (id, name, description, status, created_at, problem_statement, technologies, features)
-        5. anomalies_anomalie (id, titre, description, criticite, cree_le, test_case_id, cree_par_id)
-           - criticite values: 'FAIBLE', 'MOYENNE', 'CRITIQUE'
+        4. "Project_project" (id, name, description, status, created_at)
+        5. anomalies_anomalie (id, titre, description, impact, priorite, visibilite, cree_le, test_case_id, cree_par_id)
+           - impact values: 'BLOQUANTES', 'CRITIQUE', 'MAJEUR', 'MINEURS', 'COSMETIQUE', 'TEXTE', 'SIMPLE', 'FONCTIONNALITE'
         
         Rules:
         - Return ONLY the SQL query.
@@ -257,7 +257,7 @@ class GroqService:
         active_projects = stats.get('active_projects', 0)
         total_campaigns = stats.get('total_campaigns', 0)
         open_anomalies = stats.get('open_anomalies', 0)
-        critical_anomalies = stats.get('critical_anomalies', 0)
+        critical_anomalies = stats.get('critical_impact_count', 0)
         total_passed = stats.get('total_passed', 0)
         total_failed = stats.get('total_failed', 0)
         total_executions = stats.get('total_executions', 0)
@@ -271,7 +271,7 @@ class GroqService:
         
         DONNÉES TEMPS RÉEL DU DASHBOARD :
         - État global : {total_executions} exécutions ({total_passed} passés, {total_failed} échoués).
-        - Santé : {open_anomalies} anomalies ouvertes (DONT {critical_anomalies} CRITIQUES).
+        - Santé : {open_anomalies} anomalies ouvertes (DONT {critical_anomalies} à impact Critique/Bloquant).
         - Volume : {total_campaigns} campagnes sur {active_projects} projets.
         - Performance : {success_rate}% de succès / Readiness Score : {readiness_score}%.
         

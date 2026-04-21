@@ -1,16 +1,17 @@
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from rest_framework_simplejwt.views import TokenBlacklistView
+from users.views import LoginView, Verify2FAView
+from rest_framework_simplejwt.views import TokenRefreshView, TokenBlacklistView
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 urlpatterns = [
-path('admin/', admin.site.urls), 
-
-path('api/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-path('api/logout/', TokenBlacklistView.as_view(), name='token_blacklist'),
+    path('admin/', admin.site.urls), 
+    path('api/login/', LoginView.as_view(), name='token_obtain_pair'),
+    path('api/verify-2fa/', Verify2FAView.as_view(), name='verify_2fa'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/logout/', TokenBlacklistView.as_view(), name='token_blacklist'),
     path('api/', include('users.urls')), 
+    path('api/business-projects/', include('business_projects.urls')),
     path('api/projects/', include('Project.urls')),
     path('api/campaigns/', include('campaigns.urls')),
     path('api/testcases/', include('testCases.urls')),

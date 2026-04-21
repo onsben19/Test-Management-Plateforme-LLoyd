@@ -9,8 +9,16 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
+# Set to True to allow outgoing emails
+EMAILS_ENABLED = True
+
+
 def _send(subject: str, message: str, recipient_email: str):
     """Low-level helper — logs failures silently."""
+    if not EMAILS_ENABLED:
+        logger.info("[EMAILS BLOCKED] Attempted to send email to %s: %s", recipient_email, subject)
+        return
+
     if not recipient_email:
         logger.warning("Attempted to send email but recipient_email is empty.")
         return
@@ -50,15 +58,13 @@ L'équipe InsureTM
 # Anomaly Reported
 # ---------------------------------------------------------------------------
 def send_anomaly_reported_email(recipient, reporter, anomalie, test_case):
-    criticite_map = {'FAIBLE': 'Faible ⚪', 'MOYENNE': 'Moyenne 🟡', 'CRITIQUE': 'Critique 🔴'}
-    label = criticite_map.get(anomalie.criticite, anomalie.criticite)
-    subject = f"[InsureTM] Anomalie signalée sur {test_case.test_case_ref} ({label})"
+    subject = f"[InsureTM] Anomalie signalée sur {test_case.test_case_ref} ({anomalie.impact})"
     message = f"""Bonjour {recipient.first_name or recipient.username},
 
 Une nouvelle anomalie vient d'être signalée sur votre campagne.
 
   Titre      : {anomalie.titre}
-  Criticité  : {label}
+  Impact     : {anomalie.impact}
   Cas de test: {test_case.test_case_ref}
   Signalée par : {reporter.get_full_name() or reporter.username}
   Date       : {anomalie.cree_le.strftime('%d/%m/%Y à %H:%M') if anomalie.cree_le else '—'}
@@ -162,7 +168,6 @@ Cordialement,
 L'équipe InsureTM
 """
     _send(subject, message, new_user.email)
-    _send(subject, message, recipient.email)
 
 
 # ---------------------------------------------------------------------------
@@ -177,7 +182,7 @@ L'anomalie suivante a été mise à jour par {updater.username} :
   ID         : #{anomalie.id}
   Titre      : {anomalie.titre}
   Nouveau Statut : {anomalie.statut}
-  Criticité  : {anomalie.criticite}
+  Impact     : {anomalie.impact}
 
 Connectez-vous à InsureTM pour consulter les détails ou le fil de discussion.
 
@@ -185,3 +190,41 @@ Cordialement,
 L'équipe InsureTM
 """
     _send(subject, message, recipient.email)
+
+
+# ---------------------------------------------------------------------------
+# 2FA OTP
+# ---------------------------------------------------------------------------
+def send_otp_email(user, otp):
+    subject = f"[InsureTM] Votre code de sécurité : {otp}"
+    message = f"""Bonjour {user.first_name or user.username},
+
+Pour finaliser votre connexion à InsureTM, veuillez saisir le code de sécurité suivant :
+
+  Code : {otp}
+
+Ce code expirera dans 5 minutes. Si vous n'êtes pas à l'origine de cette demande, veuillez ignorer cet email.
+
+Cordialement,
+L'équipe InsureTM
+"""
+    _send(subject, message, user.email)
+    
+# ---------------------------------------------------------------------------
+# Password Reset
+# ---------------------------------------------------------------------------
+def send_password_reset_email(user, new_password):
+    subject = "[InsureTM] Votre nouveau mot de passe"
+    message = f"""Bonjour {user.first_name or user.username},
+
+À votre demande, un nouveau mot de passe a été généré pour votre compte InsureTM.
+
+  Identifiant : {user.username}
+  Nouveau mot de passe de sécurité : {new_password}
+
+Veuillez vous connecter avec ce nouveau mot de passe et le changer immédiatement dans vos paramètres.
+
+Cordialement,
+L'équipe InsureTM
+"""
+    _send(subject, message, user.email)

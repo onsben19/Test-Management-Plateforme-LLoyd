@@ -29,7 +29,7 @@ const Sidebar = () => {
     {
       title: 'GESTION DES TESTS',
       items: [
-        { name: 'Gestion des Releases', href: isAdmin ? '/admin/releases' : '/releases', icon: Layers, roles: ['ADMIN', 'MANAGER', 'manager'] },
+        { name: 'Projets Disponibles', href: '/portfolio', icon: Layout, roles: ['ADMIN', 'MANAGER', 'manager'] },
         { name: 'Campagne de Tests', href: isAdmin ? '/admin/campaigns' : '/manager', icon: Brain, roles: ['ADMIN'] },
         { name: 'Campagne des tests', href: '/tester-dashboard', icon: List, roles: ['tester', 'TESTER'] },
         { name: "Suivi d'Exécution", href: isAdmin ? '/admin/executions' : '/execution', icon: BarChart3, roles: ['ADMIN', 'tester', 'TESTER', 'MANAGER', 'manager'] },

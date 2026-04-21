@@ -18,7 +18,9 @@ interface DecodedToken {
 
 interface AuthContextType {
     user: User | null;
-    login: (username: string, pass: string) => Promise<void>;
+    login: (username: string, pass: string) => Promise<{ requires_2fa?: boolean; username?: string }>;
+    verify2FA: (username: string, otp: string) => Promise<void>;
+    forgotPassword: (identifier: string) => Promise<void>;
     logout: () => void;
     loading: boolean;
     isAuthenticated: boolean;
@@ -64,6 +66,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const login = async (username: string, pass: string) => {
         const response = await api.post('/login/', { username, password: pass });
+
+        if (response.data.requires_2fa) {
+            return { requires_2fa: true, username: response.data.username };
+        }
+
+        const { access, refresh } = response.data;
+        localStorage.setItem('access_token', access);
+        localStorage.setItem('refresh_token', refresh);
+
+        const decoded = jwtDecode<DecodedToken>(access);
+        await fetchUser(decoded.user_id);
+        return {};
+    };
+
+    const verify2FA = async (username: string, otp: string) => {
+        const response = await api.post('/verify-2fa/', { username, otp });
         const { access, refresh } = response.data;
 
         localStorage.setItem('access_token', access);
@@ -73,8 +91,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await fetchUser(decoded.user_id);
     };
 
+    const forgotPassword = async (identifier: string) => {
+        await api.post('/forgot-password/', { identifier });
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading, isAuthenticated: !!user }}>
+        <AuthContext.Provider value={{ user, login, verify2FA, forgotPassword, logout, loading, isAuthenticated: !!user }}>
             {children}
         </AuthContext.Provider>
     );

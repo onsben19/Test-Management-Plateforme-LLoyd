@@ -1,90 +1,76 @@
 @startuml
+skinparam actorStyle awesome
 left to right direction
-skinparam packageStyle rectangle
 
-actor "Utilisateur (Abstrait)" as User
-actor "Administrateur" as Admin
-actor "Manager QA" as Manager
-actor "Testeur" as Tester
+title Diagramme de cas d'utilisation - Plateforme InsureTM
+
+actor "Testeur" as T
+actor "Manager" as M
+actor "Admin" as A
+
+package "Plateforme InsureTM" {
+    
+    usecase "S'authentifier" as Auth
+    
+    ' Cas pour le Testeur
+    usecase "Valider cas de test" as UC1
+    usecase "Signaler Anomalie" as UC2
+    usecase "Exporter files PDF/CSV" as UC_Export
+    usecase "Gérer tickets (Mailing)" as UC3
+    usecase "Communiquer via Chat" as UC4
+    usecase "Utiliser Assistant IA Personnalisé" as UC5
+    usecase "Visualiser Dashboard Score IA" as UC6
+    usecase "Explication détaillée IA" as UC_Expl
+    
+    ' Cas pour le Manager
+    usecase "Publier Projets" as UC7
+    usecase "Gérer Releases" as UC8
+    usecase "Gérer les cahiers de charge" as UC9
+    usecase "Assigner des Testeurs" as UC10
+    
+    ' Cas pour l'Admin
+    usecase "Gérer les utilisateurs et comptes" as UC11
+    
+    ' Relations d'extension (Pointillés vers le cas de base)
+    UC_Export .up.> UC2 : <<extend>>
+    UC_Expl .up.> UC6 : <<extend>>
+    
+    ' Relations d'inclusion (Vers S'authentifier)
+    UC3 ..> Auth : <<include>>
+    UC4 ..> Auth : <<include>>
+    UC5 ..> Auth : <<include>>
+    UC6 ..> Auth : <<include>>
+    UC7 ..> Auth : <<include>>
+    UC8 ..> Auth : <<include>>
+    UC9 ..> Auth : <<include>>
+    UC10 ..> Auth : <<include>>
+    UC11 ..> Auth : <<include>>
+}
 
 ' Systèmes Externes
-actor "Serveur SMTP" as SMTP <<System>>
-actor "API Groq (LLM)" as AI <<System>>
+entity "<<system>>\nModèle IA Groq" as Groq
+entity "<<system>>\nServeur SMTP" as SMTP
 
-' Héritage
-User <|-- Admin
-User <|-- Manager
-User <|-- Tester
+' Associations Acteurs -> Cas
+T -- UC1
+T -- UC2
+T -- UC3
+T -- UC4
+T -- UC5
+T -- UC6
 
-rectangle "InsureTM - Plateforme d'Orchestration de Tests" {
+M -- UC7
+M -- UC8
+M -- UC9
+M -- UC10
+M -- UC4
+M -- UC6
 
-  ' --- Authentification ---
-  package "Authentification" {
-      usecase "S'authentifier (Login SSO/JWT)" as Login
-      usecase "Gérer son Profil" as Profile
-  }
-  User --> Login
-  User --> Profile
+A -- UC11
 
-  ' --- Administration ---
-  package "Administration" {
-      usecase "Gérer les Utilisateurs (RBAC)" as UC1
-      usecase "Gérer les Projets & Config" as UC2
-  }
-  Admin --> UC1
-  Admin --> UC2
+' Liaisons Systèmes secondaires
+UC3 -- SMTP
+UC5 -- Groq
+UC6 -- Groq
 
-  ' --- Gestion des Tests ---
-  package "Gestion des Tests" {
-      usecase "Gérer le Référentiel de Tests" as UC3
-      usecase "Planifier des Campagnes" as UC4
-      usecase "Assigner des Testeurs" as UC5
-      UC4 ..> UC5 : <<include>>
-      UC4 ..> Login : <<include>>
-  }
-  Manager --> UC3
-  Manager --> UC4
-  UC3 ..> Login : <<include>>
-
-  ' --- Exécution ---
-  package "Exécution & Qualité" {
-      usecase "Exécuter les Tests (Runner)" as UC6
-      usecase "Signaler une Anomalie" as UC7
-      UC7 .> UC6 : <<extend>>
-  }
-  Tester --> UC6
-  Tester --> UC7
-  UC6 ..> Login : <<include>>
-  UC7 ..> Login : <<include>>
-
-  ' --- Reporting & IA ---
-  package "Reporting & IA" {
-      usecase "Suivre l'Avancement (Dashboard)" as UC8
-      usecase "Interroger Assistant IA (NL-to-SQL)" as UC9
-      usecase "Reformuler Message (IA)" as UC10
-      usecase "Suivre Risques usecase "Reformuler Message (IA)" as UC10 Prédictions ML" as UC12
-      usecase "Recevoir Notifications" as UC11
-  }
-  
-  ' Liens Transverses
-  Admin --> UC8
-  Manager --> UC8
-  Manager --> UC9
-  Tester --> UC8
-  Tester --> UC10
-  Manager --> UC12
-
-  UC8 ..> Login : <<include>>
-  UC9 ..> Login : <<include>>
-  UC10 .> UC7 : <<extend>>
-
-  ' Systèmes Externes
-  UC11 -- SMTP
-  UC9 -- AI
-  UC10 -- AI
-  UC12 -- AI
-  UC4 ..> UC11 : <<include>>
-  UC7 ..> UC11 : <<include>>
-
-}
 @enduml

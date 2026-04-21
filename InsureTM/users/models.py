@@ -15,6 +15,11 @@ class User(AbstractUser):
         ('TESTER', 'Testeur'),
     )
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='TESTER')
+    email = models.EmailField(unique=True)
+
+    # 2FA Fields
+    otp_code = models.CharField(max_length=6, blank=True, null=True)
+    otp_expiry = models.DateTimeField(blank=True, null=True)
 
     @staticmethod
     def generate_random_password(length=12):

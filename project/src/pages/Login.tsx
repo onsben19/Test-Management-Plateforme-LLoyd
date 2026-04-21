@@ -14,8 +14,13 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [is2FAMode, setIs2FAMode] = useState(false);
+  const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
+  const [resetIdentifier, setResetIdentifier] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [verifiedUsername, setVerifiedUsername] = useState('');
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, verify2FA, forgotPassword } = useAuth();
   const { theme } = useTheme();
   const { t } = useTranslation();
 
@@ -23,12 +28,48 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await login(username, password);
-      toast.success(t('login.success'));
-      navigate('/');
+      const result = await login(username, password);
+      if (result?.requires_2fa) {
+        setIs2FAMode(true);
+        setVerifiedUsername(result.username || username);
+        toast.info(t('login.otpSubtitle'));
+      } else {
+        toast.success(t('login.success'));
+        navigate('/');
+      }
     } catch (error) {
       console.error(error);
       toast.error(t('login.failure'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      await forgotPassword(resetIdentifier);
+      toast.success(t('login.forgotPasswordSuccess'));
+      setIsForgotPasswordMode(false);
+    } catch (error) {
+      console.error(error);
+      toast.error(t('login.forgotPasswordError'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerify2FA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      await verify2FA(verifiedUsername, otpCode);
+      toast.success(t('login.otpSuccess'));
+      navigate('/');
+    } catch (error) {
+      console.error(error);
+      toast.error(t('login.otpError'));
     } finally {
       setIsLoading(false);
     }
@@ -62,75 +103,196 @@ const Login = () => {
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight transition-colors">
               <span className="text-gradient">{t('login.title')}</span>
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">
-              {t('login.subtitle')}
-            </p>
+            {!is2FAMode && (
+              <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">
+                {t('login.subtitle')}
+              </p>
+            )}
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1.5 ml-1 transition-colors">
-                  {t('login.username')}
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder={t('login.placeholderUsername')}
-                />
+          {is2FAMode ? (
+            <form onSubmit={handleVerify2FA} className="space-y-6">
+              <div className="text-center space-y-2">
+                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+                  {t('login.otpTitle')}
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {t('login.otpSubtitle')}
+                </p>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1.5 ml-1 transition-colors">
-                  {t('login.password')}
-                </label>
-                <div className="relative">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1.5 ml-1 transition-colors">
+                    {t('login.otpLabel')}
+                  </label>
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    type="text"
                     required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all pr-12"
-                    placeholder={t('login.placeholderPassword')}
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-center text-2xl tracking-[0.5em] font-mono text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder={t('login.otpPlaceholder')}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                <div className="flex justify-end mt-2">
-                  <a href="#" className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
-                    {t('login.forgotPassword')}
-                  </a>
                 </div>
               </div>
-            </div>
 
-            <StarBorder
-              as="button"
-              className="w-full text-white font-medium shadow-lg shadow-blue-500/30 dark:shadow-blue-900/40 hover:shadow-blue-500/50 transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
-              color="magenta"
-              speed="5s"
-              type="submit"
-              disabled={isLoading}
-              innerClassName="relative z-1 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 dark:hover:from-blue-500 dark:hover:to-blue-400 border border-blue-500/50 text-white text-center text-[16px] py-3 px-6 rounded-[20px] transition-all"
-            >
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  {t('login.submit')}
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
-            </StarBorder>
-          </form>
+              <div className="space-y-3">
+                <StarBorder
+                  as="button"
+                  className="w-full text-white font-medium shadow-lg shadow-blue-500/30 dark:shadow-blue-900/40 hover:shadow-blue-500/50 transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
+                  color="magenta"
+                  speed="5s"
+                  type="submit"
+                  disabled={isLoading || otpCode.length < 6}
+                  innerClassName="relative z-1 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 dark:hover:from-blue-500 dark:hover:to-blue-400 border border-blue-500/50 text-white text-center text-[16px] py-3 px-6 rounded-[20px] transition-all"
+                >
+                  {isLoading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      {t('login.otpSubmit')}
+                      <Shield className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                    </>
+                  )}
+                </StarBorder>
+
+                <button
+                  type="button"
+                  onClick={() => setIs2FAMode(false)}
+                  className="w-full text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 text-sm font-medium py-2 transition-colors"
+                >
+                  {t('login.otpBack')}
+                </button>
+              </div>
+            </form>
+          ) : isForgotPasswordMode ? (
+            <form onSubmit={handleForgotPassword} className="space-y-6">
+              <div className="text-center space-y-2">
+                <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+                  {t('login.forgotPasswordTitle')}
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {t('login.forgotPasswordSubtitle')}
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1.5 ml-1 transition-colors">
+                    {t('login.forgotPasswordLabel')}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={resetIdentifier}
+                    onChange={(e) => setResetIdentifier(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder={t('login.forgotPasswordPlaceholder')}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <StarBorder
+                  as="button"
+                  className="w-full text-white font-medium shadow-lg shadow-blue-500/30 dark:shadow-blue-900/40 hover:shadow-blue-500/50 transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
+                  color="magenta"
+                  speed="5s"
+                  type="submit"
+                  disabled={isLoading || !resetIdentifier}
+                  innerClassName="relative z-1 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 dark:hover:from-blue-500 dark:hover:to-blue-400 border border-blue-500/50 text-white text-center text-[16px] py-3 px-6 rounded-[20px] transition-all"
+                >
+                  {isLoading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      {t('login.forgotPasswordSubmit')}
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
+                </StarBorder>
+
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPasswordMode(false)}
+                  className="w-full text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 text-sm font-medium py-2 transition-colors"
+                >
+                  {t('login.forgotPasswordBack')}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1.5 ml-1 transition-colors">
+                    {t('login.username')}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    placeholder={t('login.placeholderUsername')}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider mb-1.5 ml-1 transition-colors">
+                    {t('login.password')}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all pr-12"
+                      placeholder={t('login.placeholderPassword')}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <div className="flex justify-end mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsForgotPasswordMode(true)}
+                      className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                    >
+                      {t('login.forgotPassword')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <StarBorder
+                as="button"
+                className="w-full text-white font-medium shadow-lg shadow-blue-500/30 dark:shadow-blue-900/40 hover:shadow-blue-500/50 transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
+                color="magenta"
+                speed="5s"
+                type="submit"
+                disabled={isLoading}
+                innerClassName="relative z-1 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 dark:hover:from-blue-500 dark:hover:to-blue-400 border border-blue-500/50 text-white text-center text-[16px] py-3 px-6 rounded-[20px] transition-all"
+              >
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    {t('login.submit')}
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </StarBorder>
+            </form>
+          )}
 
 
         </div>

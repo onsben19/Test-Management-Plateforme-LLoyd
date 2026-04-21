@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'chat',
     'drf_spectacular',
     'channels',
+    'business_projects',
 ]
 
 MIDDLEWARE = [

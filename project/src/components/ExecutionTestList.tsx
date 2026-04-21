@@ -13,6 +13,8 @@ export interface TestItem {
     lastRun: string;
     captures?: string[];
     release?: string;
+    businessProject?: string;
+    releaseType?: string;
     rawDate?: string;
 }
 
@@ -137,9 +139,19 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                     </div>
                 </td>
                 <td className="px-8 py-6">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/5 rounded-xl border border-white/10 group-hover:border-blue-500/30 transition-all">
-                        <Layers className="w-3 h-3 text-blue-500/70" />
-                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{test.release || 'V1.0'}</span>
+                    <div className="flex flex-col gap-1.5">
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/5 rounded-xl border border-white/10 group-hover:border-blue-500/30 transition-all w-fit">
+                            <Layers className="w-3 h-3 text-blue-500/70" />
+                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{test.release || 'V1.0'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-2">
+                            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">{test.businessProject || 'Global'}</span>
+                            {test.releaseType && (
+                                <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-widest ${test.releaseType === 'PREPROD' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                                    {test.releaseType}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </td>
 
@@ -173,7 +185,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                             }}
                             className="p-3 bg-white/5 hover:bg-blue-500/10 text-slate-500 hover:text-blue-400 rounded-xl transition-all border border-white/5"
                         >
-                            <Camera className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                         </button>
                     ) : (
                         <span className="text-slate-600 font-bold uppercase tracking-widest text-[9px] opacity-40">AUCUNE</span>

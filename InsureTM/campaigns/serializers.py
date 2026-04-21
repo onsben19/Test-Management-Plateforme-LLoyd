@@ -10,6 +10,8 @@ class CampaignSerializer(serializers.ModelSerializer):
     # On peut inclure les tâches pour voir l'avancement
     tasks = TaskAssignmentSerializer(many=True, read_only=True)
     project_name = serializers.ReadOnlyField(source='project.name')
+    business_project_name = serializers.ReadOnlyField(source='project.business_project.name')
+    release_type = serializers.ReadOnlyField(source='project.release_type')
     manager_name = serializers.SerializerMethodField()
     assigned_testers_names = serializers.SerializerMethodField()
     excel_file = serializers.FileField(required=False, allow_null=True)
@@ -42,9 +44,10 @@ class CampaignSerializer(serializers.ModelSerializer):
     class Meta:
         model = Campaign
         fields = [
-            'id', 'project', 'project_name', 'title', 'created_at', 
+            'id', 'project', 'project_name', 'business_project_name', 'release_type', 
+            'title', 'created_at', 
             'start_date', 'estimated_end_date', 'excel_file', 
-            'is_processed', 'scheduled_at', 'assigned_testers', 'assigned_testers_names', 
+            'scheduled_at', 'assigned_testers', 'assigned_testers_names', 
             'tasks', 'description', 'nb_test_cases', 'imported_by', 'manager_name',
             'passed_count', 'failed_count', 'anomalies_count'
         ]

@@ -60,6 +60,13 @@ export const projectService = {
     deleteProject: (id: string | number) => api.delete(`/projects/${id}/`),
 };
 
+export const businessProjectService = {
+    getBusinessProjects: (params?: Record<string, unknown>) => api.get('/business-projects/', { params }),
+    createBusinessProject: (data: unknown) => api.post('/business-projects/', data),
+    updateBusinessProject: (id: string | number, data: unknown) => api.patch(`/business-projects/${id}/`, data),
+    deleteBusinessProject: (id: string | number) => api.delete(`/business-projects/${id}/`),
+};
+
 export const campaignService = {
     getCampaigns: (params?: Record<string, unknown> | string) => {
         const config = typeof params === 'string'

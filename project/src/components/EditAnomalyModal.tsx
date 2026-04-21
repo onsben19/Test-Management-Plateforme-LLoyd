@@ -7,7 +7,9 @@ export interface AnomalyItem {
     id: string;
     title: string;
     description?: string;
-    severity: 'Critique' | 'Moyenne' | 'Faible';
+    impact: string;
+    priority: string;
+    visibility: string;
     status: 'OUVERTE' | 'EN_INVESTIGATION' | 'RESOLUE';
     proofImage?: string;
     relatedTest?: string;
@@ -26,7 +28,9 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
     // Initial States
     const [title, setTitle] = useState(anomaly?.title || '');
     const [description, setDescription] = useState(anomaly?.description || '');
-    const [severity, setSeverity] = useState<AnomalyItem['severity']>(anomaly?.severity || 'Critique');
+    const [impact, setImpact] = useState<string>(anomaly?.impact || 'MINEURS');
+    const [priority, setPriority] = useState<string>(anomaly?.priority || 'NORMALE');
+    const [visibility, setVisibility] = useState<string>(anomaly?.visibility || 'PUBLIQUE');
     const [selectedTestCaseId, setSelectedTestCaseId] = useState<string>('');
     const [status, setStatus] = useState<AnomalyItem['status']>(anomaly?.status || 'OUVERTE');
     const [file, setFile] = useState<File | null>(null);
@@ -61,7 +65,9 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
         try {
             const formData = new FormData();
             formData.append('titre', title);
-            formData.append('criticite', severity.toUpperCase());
+            formData.append('impact', impact);
+            formData.append('priorite', priority);
+            formData.append('visibilite', visibility);
             formData.append('statut', status);
             formData.append('description', description);
 
@@ -82,11 +88,24 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
         }
     };
 
-    const severityColors = {
-        'Critique': 'text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400',
-        'Moyenne': 'text-yellow-600 bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-400',
-        'Faible': 'text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400',
-    };
+    const impactOptions = [
+        { label: 'Fonctionnalité', value: 'FONCTIONNALITE' },
+        { label: 'Simple', value: 'SIMPLE' },
+        { label: 'Texte', value: 'TEXTE' },
+        { label: 'Cosmétique', value: 'COSMETIQUE' },
+        { label: 'Mineurs', value: 'MINEURS' },
+        { label: 'Majeur', value: 'MAJEUR' },
+        { label: 'Critique', value: 'CRITIQUE' },
+        { label: 'Bloquantes', value: 'BLOQUANTES' },
+    ];
+
+    const priorityOptions = [
+        { label: 'Basse', value: 'BASSE' },
+        { label: 'Normale', value: 'NORMALE' },
+        { label: 'Elevée', value: 'ELEVEE' },
+        { label: 'Urgente', value: 'URGENTE' },
+        { label: 'Immédiate', value: 'IMMEDIATE' },
+    ];
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
@@ -131,22 +150,50 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
                         />
                     </div>
 
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                Impact
+                            </label>
+                            <select
+                                value={impact}
+                                onChange={(e) => setImpact(e.target.value)}
+                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                            >
+                                {impactOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                            </select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                Priorité
+                            </label>
+                            <select
+                                value={priority}
+                                onChange={(e) => setPriority(e.target.value)}
+                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                            >
+                                {priorityOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                            </select>
+                        </div>
+                    </div>
+
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                            Gravité / Criticité
+                            Visibilité
                         </label>
-                        <div className="grid grid-cols-3 gap-3">
-                            {(['Critique', 'Moyenne', 'Faible'] as const).map((s) => (
+                        <div className="flex gap-4">
+                            {(['PUBLIQUE', 'PRIVEE'] as const).map((v) => (
                                 <button
-                                    key={s}
+                                    key={v}
                                     type="button"
-                                    onClick={() => setSeverity(s)}
-                                    className={`p-3 rounded-lg border text-sm font-medium transition-all flex items-center justify-center gap-2 ${severity === s
-                                        ? `ring-1 ring-offset-1 dark:ring-offset-slate-900 ${severityColors[s]}`
-                                        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+                                    onClick={() => setVisibility(v)}
+                                    className={`flex-1 p-3 rounded-lg border text-sm font-medium transition-all ${visibility === v
+                                        ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20'
+                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'
                                         }`}
                                 >
-                                    {s}
+                                    {v === 'PUBLIQUE' ? 'Publique' : 'Privée'}
                                 </button>
                             ))}
                         </div>

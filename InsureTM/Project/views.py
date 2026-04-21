@@ -28,12 +28,20 @@ class ProjectViewSet(viewsets.ModelViewSet):
         queryset = Project.objects.all()
         search = self.request.query_params.get('search', None)
         status = self.request.query_params.get('status', None)
+        business_project = self.request.query_params.get('business_project', None)
+        release_type = self.request.query_params.get('release_type', None)
 
         if search:
             queryset = queryset.filter(Q(name__icontains=search) | Q(description__icontains=search))
         
         if status and status != 'ALL':
             queryset = queryset.filter(status=status)
+            
+        if business_project:
+            queryset = queryset.filter(business_project_id=business_project)
+
+        if release_type and release_type != 'ALL':
+            queryset = queryset.filter(release_type=release_type)
             
         return queryset
 

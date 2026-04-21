@@ -1,56 +1,24 @@
 @startuml
+autonumber
 skinparam style strictuml
 skinparam sequenceMessageAlign center
-title CRUD Gestion des Cas de Test (TestCase)
 
-actor ":Testeur" as User
-participant "Interface Run" as UI <<IHM>>
-participant "Test Manager" as Manager <<Gestionnaire>>
-participant "TestCase" as Entity <<Entité>>
+actor "Testeur" as T
+participant "Interface (React)" as F
+participant "API (Django)" as B
+database "Base de Données" as DB
 
-== READ : Consulter ses Tests ==
-User -> UI : openMyTasks()
-activate UI
-    UI -> Manager : getAssignedTests(userId)
-    activate Manager
-        Manager -> Entity : findByUser(userId)
-        activate Entity
-        Entity --> Manager : list<TestCase>
-        deactivate Entity
-        Manager --> UI : listData
-    deactivate Manager
-    UI --> User : Affiche Tableau des Tests
-deactivate UI
+title CRUD : Exécution d'un Cas de Test
 
-== UPDATE : Exécuter (Changer Statut) ==
-User -> UI : setStatus(id, "PASSED")
-activate UI
-    UI -> Manager : updateStatus(id, "PASSED")
-    activate Manager
-        Manager -> Entity : find(id)
-        activate Entity
-        Entity --> Manager : instance
-        deactivate Entity
-        Manager -> Entity : setStatus("PASSED")
-        activate Entity
-        Entity --> Manager : updated
-        deactivate Entity
-        Manager --> UI : confirmation
-    deactivate Manager
-    UI --> User : Ligne passe au vert
-deactivate UI
-
-== UPDATE : Ajouter un Commentaire ==
-User -> UI : addComment(id, "RAS")
-activate UI
-    UI -> Manager : postComment(id, "RAS")
-    activate Manager
-        Manager -> Entity : addComment("RAS")
-        activate Entity
-        Entity --> Manager : ok
-        deactivate Entity
-        Manager --> UI : ok
-    deactivate Manager
-    UI --> User : Commentaire ajouté
-deactivate UI
+T -> F : Sélectionner un Cas de Test dans la liste
+F -> B : GET /api/testcases/{id}/
+B --> F : Détails JSON (Étapes, Résultats attendus)
+T -> F : Sélectionner Statut (SUCCES/ECHEC)
+T -> F : Joindre Capture d'Écran (Preuve)
+F -> B : PATCH /api/testcases/{id}/ (Multipart)
+B -> B : Stockage du fichier & Horodatage
+B -> DB : Mise à jour de l'enregistrement TestCase
+B -> B : Broadcast Temps Réel (WebSocket)
+B --> F : 200 OK
+F --> T : Mise à jour visuelle (Badge Statut)
 @enduml

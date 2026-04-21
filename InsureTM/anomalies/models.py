@@ -17,11 +17,48 @@ class Anomalie(models.Model):
     # Champs correspondant à ton interface visuelle
     titre = models.CharField(max_length=255)
     description = models.TextField()
-    criticite = models.CharField(
+    # Impact (anciennement criticité) avec choix étendus
+    IMPACT_CHOICES = [
+        ('FONCTIONNALITE', 'Fonctionnalité'),
+        ('SIMPLE', 'Simple'),
+        ('TEXTE', 'Texte'),
+        ('COSMETIQUE', 'Cosmétique'),
+        ('MINEURS', 'Mineurs'),
+        ('MAJEUR', 'Majeur'),
+        ('CRITIQUE', 'Critique'),
+        ('BLOQUANTES', 'Bloquantes'),
+    ]
+    impact = models.CharField(
         max_length=20, 
-        choices=[('FAIBLE', 'Faible'), ('MOYENNE', 'Moyenne'), ('CRITIQUE', 'Critique')],
-        default='FAIBLE'
+        choices=IMPACT_CHOICES,
+        default='MINEURS'
     )
+    
+    # Priorité
+    PRIORITE_CHOICES = [
+        ('NORMALE', 'Normale'),
+        ('BASSE', 'Basse'),
+        ('ELEVEE', 'Élevée'),
+        ('URGENTE', 'Urgente'),
+        ('IMMEDIATE', 'Immédiate'),
+    ]
+    priorite = models.CharField(
+        max_length=20, 
+        choices=PRIORITE_CHOICES,
+        default='NORMALE'
+    )
+    
+    # Visibilité
+    VISIBILITE_CHOICES = [
+        ('PUBLIQUE', 'Publique'),
+        ('PRIVEE', 'Privée'),
+    ]
+    visibilite = models.CharField(
+        max_length=20, 
+        choices=VISIBILITE_CHOICES,
+        default='PUBLIQUE'
+    )
+
     statut = models.CharField(
         max_length=20, 
         choices=[('OUVERTE', 'Ouverte'), ('EN_INVESTIGATION', 'En investigation'), ('RESOLUE', 'Résolue')],

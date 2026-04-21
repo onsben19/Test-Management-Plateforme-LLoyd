@@ -186,6 +186,8 @@ const ExecutionTracking = () => {
                 rawDate: t.execution_date,
                 captures: t.proof_file ? [t.proof_file] : [],
                 release: t.project_name || 'Release A',
+                businessProject: t.business_project_name || 'Global',
+                releaseType: t.release_type
             }));
             setTests(mappedTests);
         } catch (error) {

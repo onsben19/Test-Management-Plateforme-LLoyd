@@ -1,188 +1,261 @@
 @startuml
+' --- Configuration Globale ---
 skinparam classAttributeIconSize 0
 skinparam style strictuml
+skinparam linetype ortho
 hide empty members
 
-' Theme and Styling
 skinparam class {
-    BackgroundColor White
-    ArrowColor #2C3E50
-    BorderColor #2C3E50
-}
-skinparam package {
-    BackgroundColor #ECF0F1
-    BorderColor #BDC3C7
+  BackgroundColor #FBFBFF
+  BorderColor #2F2F4F
+  HeaderBackgroundColor #E2E1F5
+  FontSize 12
+  AttributeFontSize 11
 }
 
-title Diagramme de Classes Complet et Lié - InsureTM
+title Diagramme de Classes Complet — Plateforme InsureTM (Standard PFE)
 
-' --- Enumerations ---
+' --- Configuration Layout ---
+skinparam nodesep 80
+skinparam ranksep 80
 
-enum Role {
-    ADMIN
+' --- Analytics AI Agent ---
+class AIConversation {
+    - id : UUID
+    - title : String
+    - created_at : DateTime
+}
+
+class AIMessage {
+    - id : Integer
+    - sender : Choice {USER, AGENT}
+    - text : Text
+    - type : String
+    - sql : Text
+    - data : JSON
+    - image : File
+}
+
+' --- Énumérations (Types) ---
+
+enum RoleType <<enumeration>> {
+    ADMINISTRATEUR
     MANAGER
-    TESTER
+    TESTEUR
 }
 
-enum TestCaseStatus {
-    PENDING
-    PASSED
-    FAILED
+enum StatutRelease <<enumeration>> {
+    EN_PLANIFICATION
+    ACTIF
+    TERMINE
 }
 
-enum BugSeverity {
-    FAIBLE
-    MOYENNE
+enum TypeRelease <<enumeration>> {
+    PREPROD
+    RECETTE
+}
+
+enum StatutTest <<enumeration>> {
+    EN_ATTENTE
+    SUCCES
+    ECHEC
+    BLOQUE
+}
+
+enum ImpactAnomalie <<enumeration>> {
+    FONCTIONNALITE
+    SIMPLE
+    TEXTE
+    COSMETIQUE
+    MINEUR
+    MAJEUR
     CRITIQUE
+    BLOQUANTE
 }
 
-' --- Classes ---
-
-package "Gestion des Utilisateurs" {
-    class User {
-        - id : Integer
-        - username : String
-        - email : String
-        - role : Role {default=TESTER}
-        - is_active : Boolean
-        + __str__() : String
-        + generate_random_password() : String
-        + save() : void
-    }
+enum PrioriteAnomalie <<enumeration>> {
+    BASSE
+    NORMALE
+    ELEVEE
+    URGENTE
+    IMMEDIATE
 }
 
-package "Cœur de Métier (Core & Campaigns)" {
-    class Project {
-        - id : Integer
-        - name : String
-        - description : Text
-        - created_at : DateTime
-        + __str__() : String
-    }
-
-    class Campaign {
-        - id : Integer
-        - title : String
-        - description : Text
-        - start_date : Date
-        - estimated_end_date : Date
-        - excel_file : File
-        - is_processed : Boolean
-        - nb_test_cases : Integer
-        - created_at : DateTime
-        + __str__() : String
-    }
-
-    class TaskAssignment {
-        - id : Integer
-        - test_case_ref : String
-        - assigned_at : DateTime
-        - is_completed : Boolean
-    }
+enum StatutAnomalie <<enumeration>> {
+    OUVERTE
+    EN_INVESTIGATION
+    RESOLUE
+    FERMEE
 }
 
-package "Exécution des Tests (TestCases)" {
-    class TestCase {
-        - id : Integer
-        - test_case_ref : String
-        - data_json : JSON
-        - status : TestCaseStatus {default=PENDING}
-        - execution_date : DateTime
-        - proof_file : File
-        + __str__() : String
-    }
+enum TypeConversation <<enumeration>> {
+    DIRECTE
+    GROUPE
 }
 
-package "Gestion des Anomalies" {
-    class Anomalie {
-        - id : Integer
-        - titre : String
-        - description : Text
-        - criticite : BugSeverity {default=FAIBLE}
-        - preuve_image : File
-        - cree_le : DateTime
-        + __str__() : String
-    }
+' --- Classes Identity & Access ---
+
+class User {
+    - id : Integer
+    - username : String
+    - email : String
+    - password : String
+    - role : RoleType
+    - is_active : Boolean
+    - date_joined : DateTime
+    + save()
+    + generate_random_password()
 }
 
-package "Intelligence Artificielle" {
-    class Conversation {
-        - id : UUID
-        - title : String
-        - created_at : DateTime
-        + __str__() : String
-    }
-    class Message {
-        - id : Integer
-        - sender : String (user/agent)
-        - text : Text
-        - sql : Text
-        - data : JSON
-        - type : String
-        + __str__() : String
-    }
-}package "Collaboration" {
-    class Comment {
-        - id : Integer
-        - content : Text
-        - attachment : File
-        - created_at : DateTime
-    }
+' --- Héritage des Rôles ---
+User <|-- Administrateur
+User <|-- ManagerQA
+User <|-- Testeur
 
-    class Email {
-        - id : Integer
-        - subject : String
-        - body : Text
-        - attachment : File
-        - is_read : Boolean
-        - created_at : DateTime
-    }
+' --- Core Business ---
 
-    class Notification {
-        - id : Integer
-        - title : String
-        - message : Text
-        - type : String
-        - is_read : Boolean
-        - related_object_id : Integer
-        - created_at : DateTime
-    }
+class Projets {
+    - id : Integer
+    - name : String
+    - description : Text
+    - created_at : DateTime
+    - created_by : User
 }
 
-' --- Relations ---
+class Release {
+    - id : Integer
+    - name : String
+    - description : Text
+    - status : StatutRelease
+    - release_type : TypeRelease
+    - created_at : DateTime
+    - business_project : Projets
+    - created_by : User
+    + campaign_count : Integer
+}
 
-' Enum Links (Dependencies)
-User ..> Role : uses
-TestCase ..> TestCaseStatus : uses
-Anomalie ..> BugSeverity : uses
+' --- Exécution & Campagnes ---
 
-' User Roles
-User "1" -- "0..*" Project : imported_by >
-User "1" -- "0..*" Campaign : imported_by >
-User "0..*" -- "0..*" Campaign : assigned_testers (M2M)
+class Campaign {
+    - id : Integer
+    - title : String
+    - description : Text
+    - start_date : Date
+    - estimated_end_date : Date
+    - nb_test_cases : Integer
+    - excel_file : File
+    - created_at : DateTime
+    - scheduled_at : DateTime
+}
 
-' Task Assignment (Association Class logic)
-Campaign "1" -- "0..*" TaskAssignment : contains >
-User "1" -- "0..*" TaskAssignment : assigned to >
+class CasDeTest {
+    - id : Integer
+    - reference_tc : String
+    - donnees_json : JSON
+    - statut : StatutTest
+    - date_execution : DateTime
+    - fichier_preuve : File
+}
 
-' Project Hierarchy
-Project "1" *-- "0..*" Campaign : belongs to <
+' --- Qualité & Anomalies ---
 
-' Test Cases
-Campaign "1" *-- "0..*" TestCase : contains >
-User "0..1" -- "0..*" TestCase : executed by >
-TestCase "1" -- "0..*" Anomalie : causes >
-User "1" -- "0..*" Anomalie : cree_par >
+class Anomalie {
+    - id : Integer
+    - titre : String
+    - description : Text
+    - impact : ImpactAnomalie
+    - priorite : PrioriteAnomalie
+    - visibilite : Choice {PUBLIQUE, PRIVEE}
+    - statut : StatutAnomalie
+    - preuve_image : File
+    - date_creation : DateTime
+    - auteur : User
+    - assigne_a : User
+    - cas_de_test : CasDeTest
+}
 
-' Communication
-User "1" -- "0..*" Email : sender >
-User "1" -- "0..*" Email : recipient >
-User "1" -- "0..*" Notification : recipient >
-User "1" -- "0..*" Comment : author >
-User "1" -- "0..*" Conversation : owner >
-Conversation "1" *-- "0..*" Message : contains >
-' Polymorphic / Generic Relations
-Comment ..> TestCase : attached to
-Comment ..> Anomalie : attached to
+' --- Analytics ---
+
+class RapportReadiness {
+    - id : Integer
+    - score_total : Float
+    - score_tests : Float
+    - score_anomalies : Float
+    - score_stabilite : Float
+    - score_securite : Float
+    - recommandations : List<String>
+    - date_generation : DateTime
+    - niveau_risque : String
+    + genererPDF() : File
+}
+
+' --- Communication ---
+
+class Conversation {
+    - id : Integer
+    - titre : String
+    - type : TypeConversation
+    - date_creation : DateTime
+}
+
+class Message {
+    - id : Integer
+    - contenu : Text
+    - piece_jointe : File
+    - est_modifie : Boolean
+    - date_envoi : DateTime
+}
+
+class Mail {
+    - id : Integer
+    - texte : Text
+    - piece_jointe : File
+    - date_creation : DateTime
+    - date_modification : DateTime
+    - auteur : User
+    - destinataire : User
+}
+
+' --- Relations Structurelles ---
+
+Projets "1" *-- "0..*" Release : contenir >
+Release "1" *-- "0..*" Campaign : planifier >
+Campaign "1" *-- "0..*" CasDeTest : composer >
+CasDeTest "1" *-- "0..*" Anomalie : générer >
+
+Release "1" -- "0..1" RapportReadiness : évaluer >
+
+' --- Relations User ---
+
+' --- Relations User ---
+
+User "1" -right- "0..*" Projets : être propriétaire de >
+ManagerQA "1" -right- "0..*" Release : gérer >
+Testeur "0..*" -down-> "0..*" Campaign : être assigné à >
+Testeur "1" -down-> "0..*" CasDeTest : exécuter >
+User "1" -right-> "0..*" Anomalie : signaler >
+
+' --- Communication Relations ---
+
+User "1" -left-> "0..*" Message : créer >
+User "1" -up-> "0..*" Mail : envoyer / recevoir >
+User "2..*" -left-> "0..*" Conversation : participer à >
+Conversation "1" *-- "0..*" Message : contenir >
+
+User "1" -right-> "0..*" AIConversation : consulter >
+AIConversation "1" *-- "0..*" AIMessage : contenir >
+
+' --- Liens Énumérations ---
+Release ..> StatutRelease : uses
+Release ..> TypeRelease : uses
+CasDeTest ..> StatutTest : uses
+Anomalie ..> ImpactAnomalie : uses
+Anomalie ..> PrioriteAnomalie : uses
+Anomalie ..> StatutAnomalie : uses
+Conversation ..> TypeConversation : uses
+User ..> RoleType : uses
 
 @enduml
+
+
+

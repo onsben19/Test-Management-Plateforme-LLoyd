@@ -4,7 +4,7 @@ import PageLayout from '../components/PageLayout';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
 import { campaignService, executionService, anomalyService, aiService } from '../services/api';
-import { CheckCircle, XCircle, AlertTriangle, Eye, List, Calendar, Layers, LayoutGrid, Search, Filter, User, Sparkles, TrendingUp, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Eye, List, Calendar, Layers, LayoutGrid, Search, Filter, User, Sparkles, TrendingUp, Clock, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Pagination from '../components/Pagination';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,7 +21,7 @@ const TesterDashboard = () => {
     const [totalItems, setTotalItems] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-    const [isGrouped, setIsGrouped] = useState(true);
+    const [groupMode, setGroupMode] = useState<'none' | 'release' | 'project'>('release');
     const pageSize = 12;
 
     const [validationModal, setValidationModal] = useState<{ isOpen: boolean; campaign: any | null }>({
@@ -43,7 +43,9 @@ const TesterDashboard = () => {
         status: 'PASSED',
         anomaly_title: '',
         anomaly_description: '',
-        anomaly_criticite: 'FAIBLE',
+        anomaly_impact: 'MINEURS',
+        anomaly_priority: 'NORMALE',
+        anomaly_visibility: 'PUBLIQUE',
         anomaly_file: null as File | null
     });
 
@@ -117,9 +119,19 @@ const TesterDashboard = () => {
     };
 
     const groupedCampaigns = (campaigns || []).reduce((acc, camp) => {
-        const releaseName = camp.project_name || t('common.noRelease');
-        if (!acc[releaseName]) acc[releaseName] = [];
-        acc[releaseName].push(camp);
+        if (groupMode === 'none') return acc;
+
+        let key = '';
+        if (groupMode === 'project') {
+            key = camp.business_project_name || t('common.globalProject');
+        } else {
+            const businessProject = camp.business_project_name || t('common.globalProject');
+            const releaseName = camp.project_name || t('common.noRelease');
+            key = `${businessProject} > ${releaseName}`;
+        }
+
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(camp);
         return acc;
     }, {} as Record<string, any[]>);
 
@@ -130,7 +142,9 @@ const TesterDashboard = () => {
             status: 'PASSED',
             anomaly_title: '',
             anomaly_description: '',
-            anomaly_criticite: 'FAIBLE',
+            anomaly_impact: 'MINEURS',
+            anomaly_priority: 'NORMALE',
+            anomaly_visibility: 'PUBLIQUE',
             anomaly_file: null
         });
     };
@@ -158,7 +172,9 @@ const TesterDashboard = () => {
                 anomalyData.append('test_case', execResponse.data.id);
                 anomalyData.append('titre', testCaseForm.anomaly_title);
                 anomalyData.append('description', testCaseForm.anomaly_description);
-                anomalyData.append('criticite', testCaseForm.anomaly_criticite);
+                anomalyData.append('impact', testCaseForm.anomaly_impact);
+                anomalyData.append('priorite', testCaseForm.anomaly_priority);
+                anomalyData.append('visibilite', testCaseForm.anomaly_visibility);
                 anomalyData.append('cree_par', user.id.toString());
                 if (testCaseForm.anomaly_file) {
                     anomalyData.append('preuve_image', testCaseForm.anomaly_file);
@@ -271,11 +287,18 @@ const TesterDashboard = () => {
                         <div className="px-4 py-2 bg-white/5 rounded-2xl text-[10px] font-black text-slate-400 tracking-widest uppercase border border-white/5">
                             {t('testerDashboard.card.testsPlanned', { count: camp.nb_test_cases })}
                         </div>
-                        {ml && (
-                            <div className={`px-3 py-1 rounded-full border text-[8px] font-black tracking-[0.2em] uppercase ${getMLStatusStyle(ml.status)}`}>
-                                AI: {ml.status}
-                            </div>
-                        )}
+                        <div className="flex gap-2">
+                            {camp.release_type && (
+                                <div className={`px-3 py-1 rounded-full border text-[8px] font-black tracking-[0.2em] uppercase ${camp.release_type === 'PREPROD' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+                                    {camp.release_type}
+                                </div>
+                            )}
+                            {ml && (
+                                <div className={`px-3 py-1 rounded-full border text-[8px] font-black tracking-[0.2em] uppercase ${getMLStatusStyle(ml.status)}`}>
+                                    AI: {ml.status}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -382,15 +405,22 @@ const TesterDashboard = () => {
 
                         <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/10">
                             <button
-                                onClick={() => setIsGrouped(true)}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black tracking-widest uppercase transition-all ${isGrouped ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-white'}`}
+                                onClick={() => setGroupMode('project')}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black tracking-widest uppercase transition-all ${groupMode === 'project' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:text-white'}`}
+                            >
+                                <Target className="w-4 h-4" />
+                                {t('testerDashboard.controls.groupByProject') || 'GROUPÉ PAR PROJET'}
+                            </button>
+                            <button
+                                onClick={() => setGroupMode('release')}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black tracking-widest uppercase transition-all ${groupMode === 'release' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-white'}`}
                             >
                                 <Layers className="w-4 h-4" />
                                 {t('testerDashboard.controls.groupByRelease')}
                             </button>
                             <button
-                                onClick={() => setIsGrouped(false)}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black tracking-widest uppercase transition-all ${!isGrouped ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-white'}`}
+                                onClick={() => setGroupMode('none')}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black tracking-widest uppercase transition-all ${groupMode === 'none' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-white'}`}
                             >
                                 <LayoutGrid className="w-4 h-4" />
                                 {t('testerDashboard.controls.simpleGrid')}
@@ -423,7 +453,7 @@ const TesterDashboard = () => {
                                 {(campaigns || []).length === 0 ? t('testerDashboard.state.emptyAssigned') : t('testerDashboard.state.emptySearch')}
                             </p>
                         </div>
-                    ) : isGrouped ? (
+                    ) : groupMode !== 'none' ? (
                         <div className="space-y-12">
                             {Object.keys(groupedCampaigns).map(releaseName => (
                                 <div key={releaseName} className="space-y-6">
@@ -432,7 +462,15 @@ const TesterDashboard = () => {
                                             <Layers className="w-5 h-5 text-blue-400" />
                                         </div>
                                         <h2 className="text-xl font-black text-white tracking-widest uppercase">
-                                            {t('testerDashboard.group.release')} <span className="text-blue-500 ml-2">{releaseName}</span>
+                                            {groupMode === 'project' ? (
+                                                <span className="text-blue-500">{releaseName}</span>
+                                            ) : (
+                                                <>
+                                                    <span className="text-slate-500">{releaseName.split(' > ')[0]}</span>
+                                                    <ChevronRight className="w-4 h-4 inline-block mx-2 text-slate-700" />
+                                                    <span className="text-blue-500">{releaseName.split(' > ')[1]}</span>
+                                                </>
+                                            )}
                                         </h2>
                                         <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
                                         <span className="text-[10px] font-black text-slate-500 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 uppercase tracking-widest">
@@ -597,15 +635,43 @@ const TesterDashboard = () => {
 
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     <div className="space-y-2">
-                                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('testerDashboard.modal.anomalyCritLabel')}</label>
+                                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Impact</label>
                                                         <select
-                                                            value={testCaseForm.anomaly_criticite}
-                                                            onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_criticite: e.target.value })}
+                                                            value={testCaseForm.anomaly_impact}
+                                                            onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_impact: e.target.value })}
                                                             className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-rose-500/50 outline-none transition-all font-bold appearance-none cursor-pointer"
                                                         >
-                                                            <option value="FAIBLE" className="bg-slate-900">{t('anomalies.severity.low')}</option>
-                                                            <option value="MOYENNE" className="bg-slate-900">{t('anomalies.severity.medium')}</option>
-                                                            <option value="CRITIQUE" className="bg-slate-900">{t('anomalies.severity.critical')}</option>
+                                                            <option value="BLOQUANTES" className="bg-slate-900">BLOQUANTES</option>
+                                                            <option value="CRITIQUE" className="bg-slate-900">CRITIQUE</option>
+                                                            <option value="MAJEUR" className="bg-slate-900">MAJEUR</option>
+                                                            <option value="MINEURS" className="bg-slate-900">MINEURS</option>
+                                                            <option value="SIMPLE" className="bg-slate-900">SIMPLE</option>
+                                                            <option value="FONCTIONNALITE" className="bg-slate-900">FONCTIONNALITÉ</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Priorité</label>
+                                                        <select
+                                                            value={testCaseForm.anomaly_priority}
+                                                            onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_priority: e.target.value })}
+                                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-rose-500/50 outline-none transition-all font-bold appearance-none cursor-pointer"
+                                                        >
+                                                            <option value="IMMEDIATE" className="bg-slate-900">IMMÉDIATE</option>
+                                                            <option value="URGENTE" className="bg-slate-900">URGENTE</option>
+                                                            <option value="ELEVEE" className="bg-slate-900">ÉLEVÉE</option>
+                                                            <option value="NORMALE" className="bg-slate-900">NORMALE</option>
+                                                            <option value="BASSE" className="bg-slate-900">BASSE</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Visibilité</label>
+                                                        <select
+                                                            value={testCaseForm.anomaly_visibility}
+                                                            onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_visibility: e.target.value })}
+                                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-rose-500/50 outline-none transition-all font-bold appearance-none cursor-pointer"
+                                                        >
+                                                            <option value="PUBLIQUE" className="bg-slate-900">PUBLIQUE</option>
+                                                            <option value="PRIVEE" className="bg-slate-900">PRIVÉE</option>
                                                         </select>
                                                     </div>
                                                     <div className="space-y-2">

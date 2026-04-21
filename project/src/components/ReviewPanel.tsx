@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, MessageSquare, CheckCircle, XCircle, Clock, ArrowRight, User, Hash, Calendar } from 'lucide-react';
+import { X, MessageSquare, CheckCircle, XCircle, Clock, ArrowRight, User, Hash, Calendar, Layers } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { type TestItem } from './ExecutionTestList';
 import { useNavigate } from 'react-router-dom';
@@ -75,6 +75,23 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                             <div className="flex-1">
                                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Dernière Run</p>
                                 <p className="text-sm font-bold text-white">{test.lastRun}</p>
+                            </div>
+                        </div>
+
+                        <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 flex items-center gap-6">
+                            <div className="w-12 h-12 bg-emerald-600/10 rounded-2xl flex items-center justify-center text-emerald-400 border border-emerald-500/10">
+                                <Layers size={20} />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Contexte Release</p>
+                                <div className="flex items-center gap-2">
+                                    <p className="text-sm font-bold text-white">{test.businessProject} &gt; {test.release}</p>
+                                    {test.releaseType && (
+                                        <span className={`text-[8px] px-2 py-0.5 rounded-md font-black uppercase tracking-widest ${test.releaseType === 'PREPROD' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                                            {test.releaseType}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>

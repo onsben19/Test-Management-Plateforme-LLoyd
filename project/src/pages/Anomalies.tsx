@@ -20,7 +20,8 @@ import {
   ShieldAlert,
   User,
   Info,
-  Edit
+  Edit,
+  Eye
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
@@ -43,7 +44,9 @@ import { AnimatePresence } from 'framer-motion';
 interface Anomaly {
   id: string;
   title: string;
-  severity: 'Critique' | 'Moyenne' | 'Faible';
+  impact: 'FONCTIONNALITE' | 'SIMPLE' | 'TEXTE' | 'COSMETIQUE' | 'MINEURS' | 'MAJEUR' | 'CRITIQUE' | 'BLOQUANTES';
+  priority: 'NORMALE' | 'BASSE' | 'ELEVEE' | 'URGENTE' | 'IMMEDIATE';
+  visibility: 'PUBLIQUE' | 'PRIVEE';
   status: 'OUVERTE' | 'EN_INVESTIGATION' | 'RESOLUE';
   relatedTest?: string;
   assignedTo?: string;
@@ -58,12 +61,31 @@ interface Anomaly {
   created_at: string;
 }
 
-const severityToBadgeColor = (s: Anomaly['severity']) => {
-  switch (s) {
-    case 'Critique':
+const impactToBadgeColor = (i: Anomaly['impact']) => {
+  switch (i) {
+    case 'BLOQUANTES':
+    case 'CRITIQUE':
       return 'red';
-    case 'Moyenne':
+    case 'MAJEUR':
+      return 'orange';
+    case 'MINEURS':
       return 'yellow';
+    case 'FONCTIONNALITE':
+      return 'blue';
+    default:
+      return 'gray';
+  }
+};
+
+const priorityToBadgeColor = (p: Anomaly['priority']) => {
+  switch (p) {
+    case 'IMMEDIATE':
+    case 'URGENTE':
+      return 'red';
+    case 'ELEVEE':
+      return 'orange';
+    case 'NORMALE':
+      return 'blue';
     default:
       return 'gray';
   }
@@ -82,7 +104,7 @@ const Anomalies: React.FC = () => {
   const highlightId = queryParams.get('highlight');
 
   const [query, setQuery] = useState(highlightId || relatedTestFilter || '');
-  const [severityFilter, setSeverityFilter] = useState<'Tout' | Anomaly['severity']>('Tout');
+  const [impactFilter, setImpactFilter] = useState<'Tout' | Anomaly['impact']>('Tout');
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest'>('recent');
   const [data, setData] = useState<Anomaly[]>([]);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -102,7 +124,7 @@ const Anomalies: React.FC = () => {
   React.useEffect(() => {
     fetchAnomalies(1);
     setCurrentPage(1);
-  }, [query, severityFilter, sortOrder]);
+  }, [query, impactFilter, sortOrder]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -115,7 +137,7 @@ const Anomalies: React.FC = () => {
       const response = await anomalyService.getAnomalies({
         page,
         search: query,
-        criticite: severityFilter !== 'Tout' ? severityFilter.toUpperCase() : undefined,
+        impact: impactFilter !== 'Tout' ? impactFilter : undefined,
         ordering: sortOrder === 'recent' ? '-cree_le' : 'cree_le'
       });
       const data = response.data.results || response.data;
@@ -126,9 +148,11 @@ const Anomalies: React.FC = () => {
       const mappedAnomalies: Anomaly[] = data.map((a: any) => ({
         id: a.id.toString(),
         title: a.titre,
-        severity: a.criticite === 'CRITIQUE' ? 'Critique' : a.criticite === 'MOYENNE' ? 'Moyenne' : 'Faible',
+        impact: a.impact,
+        priority: a.priorite,
+        visibility: a.visibilite,
         status: a.statut || 'OUVERTE',
-        relatedTest: a.test_case_ref || `Test #${a.test_case}`,
+        relatedTest: a.test_case_ref || (a.test_case ? `Test #${a.test_case}` : undefined),
         assignedTo: a.cree_par_nom || 'Non assigné',
         createdAt: a.cree_le,
         description: a.description,
@@ -191,15 +215,15 @@ const Anomalies: React.FC = () => {
     const total = data.length;
     const items = {
       total: data.length,
-      critical: data.filter(a => a.severity === 'Critique').length,
-      medium: data.filter(a => a.severity === 'Moyenne').length,
-      low: data.filter(a => a.severity === 'Faible').length,
+      critical: data.filter(a => a.impact === 'CRITIQUE' || a.impact === 'BLOQUANTES').length,
+      medium: data.filter(a => a.impact === 'MAJEUR' || a.impact === 'MINEURS').length,
+      low: data.filter(a => ['FONCTIONNALITE', 'SIMPLE', 'TEXTE', 'COSMETIQUE'].includes(a.impact)).length,
       resolved: data.filter(a => a.status === 'RESOLUE').length,
     };
     const distribution = [
-      { name: 'Critique', value: items.critical, color: '#ef4444' },
-      { name: 'Moyenne', value: items.medium, color: '#eab308' },
-      { name: 'Faible', value: items.low, color: '#3b82f6' },
+      { name: 'Critique/Bloquant', value: items.critical, color: '#ef4444' },
+      { name: 'Majeur/Mineur', value: items.medium, color: '#eab308' },
+      { name: 'Secondaire', value: items.low, color: '#3b82f6' },
     ].filter(d => d.value > 0);
 
     if (distribution.length === 0) {
@@ -216,7 +240,8 @@ const Anomalies: React.FC = () => {
       const rows = data.map((r) => [
         r.id,
         r.title,
-        r.severity,
+        r.impact,
+        r.priority,
         r.status,
         r.relatedTest || '',
         r.release || '',
@@ -249,7 +274,7 @@ const Anomalies: React.FC = () => {
     try {
       const response = await anomalyService.exportAnomaliesPdf({
         search: query,
-        criticite: severityFilter !== 'Tout' ? severityFilter.toUpperCase() : undefined,
+        impact: impactFilter !== 'Tout' ? impactFilter : undefined,
         ordering: sortOrder === 'recent' ? '-cree_le' : 'cree_le'
       });
 
@@ -345,14 +370,16 @@ const Anomalies: React.FC = () => {
                       <Filter className="w-4 h-4 text-rose-500" />
                     </div>
                     <select
-                      value={severityFilter}
-                      onChange={(e) => setSeverityFilter(e.target.value as any)}
-                      className="bg-transparent text-[10px] font-black uppercase tracking-widest text-white px-4 py-2 outline-none cursor-pointer appearance-none min-w-[100px]"
+                      value={impactFilter}
+                      onChange={(e) => setImpactFilter(e.target.value as any)}
+                      className="bg-transparent text-[10px] font-black uppercase tracking-widest text-white px-4 py-2 outline-none cursor-pointer appearance-none min-w-[120px]"
                     >
-                      <option value="Tout" className="bg-slate-900">{t('anomalies.filters.all')}</option>
-                      <option value="Critique" className="bg-slate-900">{t('anomalies.severity.critical')}</option>
-                      <option value="Moyenne" className="bg-slate-900">{t('anomalies.severity.medium')}</option>
-                      <option value="Faible" className="bg-slate-900">{t('anomalies.severity.low')}</option>
+                      <option value="Tout" className="bg-slate-900">TOUT IMPACT</option>
+                      <option value="BLOQUANTES" className="bg-slate-900">BLOQUANTES</option>
+                      <option value="CRITIQUE" className="bg-slate-900">CRITIQUE</option>
+                      <option value="MAJEUR" className="bg-slate-900">MAJEUR</option>
+                      <option value="MINEURS" className="bg-slate-900">MINEURS</option>
+                      <option value="FONCTIONNALITE" className="bg-slate-900">FONCTIONNALITÉ</option>
                     </select>
                   </div>
 
@@ -386,11 +413,11 @@ const Anomalies: React.FC = () => {
                 <table className="w-full text-left border-collapse table-fixed min-w-[1000px]">
                   <thead>
                     <tr className="border-b border-white/5 bg-white/[0.01]">
-                      <th className="w-[35%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('anomalies.table.anomaly')}</th>
-                      <th className="w-[12%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('anomalies.table.severity')}</th>
-                      <th className="w-[20%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('anomalies.table.context')}</th>
-                      <th className="w-[20%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('anomalies.table.reported')}</th>
-                      <th className="w-[13%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">{t('anomalies.table.actions')}</th>
+                      <th className="w-[30%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('anomalies.table.anomaly')}</th>
+                      <th className="w-[12%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Impact</th>
+                      <th className="w-[12%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Priorité</th>
+                      <th className="w-[10%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Capture</th>
+                      <th className="w-[18%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">{t('anomalies.table.actions')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -414,41 +441,49 @@ const Anomalies: React.FC = () => {
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-4">
-                            <div className={`p-2.5 rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform ${severityToBadgeColor(an.severity) === 'red' ? 'text-rose-400' : severityToBadgeColor(an.severity) === 'yellow' ? 'text-amber-400' : 'text-blue-400'}`}>
+                            <div className={`p-2.5 rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform ${impactToBadgeColor(an.impact) === 'red' ? 'text-rose-400' : 'text-blue-400'}`}>
                               <ShieldAlert className="w-5 h-5" />
                             </div>
                             <div className="flex flex-col gap-0.5 min-w-0">
-                              <span className="text-[15px] font-bold text-white tracking-tight group-hover:text-blue-400 transition-colors truncate">
+                              <span className="text-[14px] font-bold text-white tracking-tight group-hover:text-blue-400 transition-colors truncate">
                                 {an.title}
                               </span>
-                              <span className="text-[11px] text-slate-500 font-medium line-clamp-1 opacity-70">
-                                {an.description || t('common.noDescription')}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">{an.release}</span>
+                                <span className="w-1 h-1 rounded-full bg-slate-700" />
+                                <span className="text-[9px] font-medium text-slate-600 truncate">{an.author_name}</span>
+                              </div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10 group-hover:border-blue-500/30 transition-all">
-                            <div className={`w-1.5 h-1.5 rounded-full ${severityToBadgeColor(an.severity) === 'red' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' : severityToBadgeColor(an.severity) === 'yellow' ? 'bg-amber-500' : 'bg-blue-500'}`} />
-                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-none">{an.severity}</span>
+                          <div className={`inline-flex items-center gap-2 px-3 py-1 bg-${impactToBadgeColor(an.impact)}-500/10 rounded-full border border-${impactToBadgeColor(an.impact)}-500/20`}>
+                            <div className={`w-1.5 h-1.5 rounded-full bg-${impactToBadgeColor(an.impact)}-500`} />
+                            <span className={`text-[9px] font-black uppercase tracking-widest text-${impactToBadgeColor(an.impact)}-400`}>{an.impact}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex flex-col">
-                            <span className="text-[11px] font-bold text-slate-300 truncate max-w-[120px]">{an.release}</span>
-                            <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest truncate max-w-[120px] opacity-40">{an.campaign}</span>
+                          <div className={`inline-flex items-center gap-2 px-3 py-1 bg-${priorityToBadgeColor(an.priority)}-500/10 rounded-full border border-${priorityToBadgeColor(an.priority)}-500/20`}>
+                            <span className={`text-[9px] font-black uppercase tracking-widest text-${priorityToBadgeColor(an.priority)}-400`}>{an.priority}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-full bg-blue-600/10 flex items-center justify-center text-blue-400 border border-blue-600/10 group-hover:border-blue-500/30 transition-all">
-                              <User className="w-3.5 h-3.5" />
+                          {an.proofImage ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(an.proofImage, '_blank');
+                              }}
+                              className="p-3 bg-white/5 hover:bg-blue-500/10 text-slate-500 hover:text-blue-400 rounded-xl transition-all border border-white/5"
+                              title="Voir la capture"
+                            >
+                              <Eye className="w-5 h-5" />
+                            </button>
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-white/5 border border-dashed border-white/10 flex items-center justify-center">
+                              <Info className="w-4 h-4 text-slate-700" />
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-[11px] font-bold text-slate-300 truncate max-w-[100px]">{an.author_name || an.author_username || an.author}</span>
-                              <span className="text-[9px] text-slate-600 font-medium">{new Date(an.created_at).toLocaleDateString()}</span>
-                            </div>
-                          </div>
+                          )}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">

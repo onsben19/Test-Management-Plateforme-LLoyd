@@ -13,18 +13,35 @@ class Project(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE')
     created_at = models.DateTimeField(auto_now_add=True)
     
-    # Extended metadata from Conversation 922e2981
-    problem_statement = models.TextField(blank=True, null=True)
-    features = models.JSONField(blank=True, default=list)
-    technologies = models.JSONField(blank=True, default=list)
-    gantt_data = models.TextField(blank=True, null=True)
     
+    business_project = models.ForeignKey(
+        'business_projects.BusinessProject',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='releases',
+        verbose_name="Projet Parent"
+    )
+
+    # Type de Release
+    RELEASE_TYPE_CHOICES = [
+        ('PREPROD', 'Préproduction'),
+        ('RECETTE', 'Recette'),
+    ]
+    release_type = models.CharField(
+        max_length=20, 
+        choices=RELEASE_TYPE_CHOICES, 
+        default='RECETTE',
+        verbose_name="Type de Release"
+    )
+
     # Créé par qui (Manager)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.SET_NULL, 
         null=True,
-        related_name='releases'
+        related_name='managed_releases',
+        verbose_name="Créé par"
     )
 
     def __str__(self):

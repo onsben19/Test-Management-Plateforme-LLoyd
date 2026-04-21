@@ -26,13 +26,13 @@ class AnomalieViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Anomalie.objects.all()
         search = self.request.query_params.get('search')
-        criticite = self.request.query_params.get('criticite')
+        impact = self.request.query_params.get('impact')
 
         if search:
             queryset = queryset.filter(Q(titre__icontains=search) | Q(description__icontains=search))
 
-        if criticite and criticite != 'ALL' and criticite != 'Tout':
-            queryset = queryset.filter(criticite=criticite.upper())
+        if impact and impact != 'ALL' and impact != 'Tout':
+            queryset = queryset.filter(impact=impact.upper())
 
         ordering = self.request.query_params.get('ordering')
         if ordering:
@@ -71,8 +71,8 @@ class AnomalieViewSet(viewsets.ModelViewSet):
         old_status = old_instance.statut
         instance = serializer.save()
         
-        # Notify stakeholders if status or priority changed
-        if old_status != instance.statut or 'criticite' in serializer.validated_data:
+        # Notify stakeholders if status or impact changed
+        if old_status != instance.statut or 'impact' in serializer.validated_data:
             test_case = instance.test_case
             if test_case and test_case.campaign:
                 campaign = test_case.campaign
@@ -118,7 +118,7 @@ class AnomalieViewSet(viewsets.ModelViewSet):
         pdf.set_fill_color(248, 250, 252) # Slate-50
         pdf.set_text_color(71, 85, 105) # Slate-600
         
-        headers = [('ID', 15), ('Titre / Description', 100), ('Gravité', 30), ('Projet', 40), ('Test lié', 40), ('Date', 25)]
+        headers = [('ID', 15), ('Titre / Description', 100), ('Impact', 30), ('Projet', 40), ('Test lié', 40), ('Date', 25)]
         for h, w in headers:
             pdf.cell(w, 10, h, border=1, align='L', fill=True)
         pdf.ln()
@@ -137,13 +137,13 @@ class AnomalieViewSet(viewsets.ModelViewSet):
             desc = (an.description or "")[:120] + "..." if an.description and len(an.description) > 120 else (an.description or "")
             pdf.multi_cell(100, 6, f"{an.titre}\n{desc}", border='TB', align='L', fill=fill)
             pdf.set_xy(125, text_y)
-            if an.criticite == 'CRITIQUE':
+            if an.impact in ['CRITIQUE', 'BLOQUANTES']:
                 pdf.set_text_color(239, 68, 68)
-            elif an.criticite == 'MOYENNE':
+            elif an.impact in ['MAJEUR', 'MINEURS']:
                 pdf.set_text_color(234, 179, 8)
             else:
                 pdf.set_text_color(59, 130, 246)
-            pdf.cell(30, 12, an.criticite or "FAIBLE", border='TB', fill=fill)
+            pdf.cell(30, 12, an.impact or "MINEURS", border='TB', fill=fill)
             pdf.set_text_color(30, 41, 59)
             proj_name = "-"
             if an.test_case and an.test_case.campaign and an.test_case.campaign.project:

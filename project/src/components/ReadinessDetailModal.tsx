@@ -16,9 +16,8 @@ interface ReadinessDetailModalProps {
         source_data?: {
             campaign_id?: number;
             tests: { passed: number; total: number; percent: number };
-            anomalies: { total: number; critical: number; penalty: number };
+            anomalies: { total: number; critical: number; blocking: number; penalty: number };
             ml: { status: string; delay_days: number; confidence: number };
-            critical_coverage: { count: number; passed: number };
         };
     } | null;
     title: string;
@@ -173,7 +172,7 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                         <div key={key} className="bg-white/[0.01] border border-white/5 rounded-[1.2rem] p-4 relative overflow-hidden">
                                             <div className="flex justify-between items-start mb-4">
                                                 <div className="flex items-center gap-2 text-[8px] font-black text-slate-500 uppercase tracking-widest">
-                                                    <div className={`w-2 h-2 rounded-full ${idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-blue-500' : 'bg-slate-500'}`} />
+                                                    <div className={`w-2 h-2 rounded-full ${idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-blue-500' : idx === 2 ? 'bg-amber-500' : 'bg-rose-500'}`} />
                                                     {key.replace(/_/g, ' ')}
                                                 </div>
                                             </div>
@@ -252,19 +251,23 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                     </div>
                                     <div className="p-5 bg-white/[0.01] border border-white/5 rounded-[1.2rem]">
                                         <div className="flex items-center gap-2 mb-4">
-                                            <div className="p-1.5 bg-slate-500/10 rounded-lg">
-                                                <ShieldAlert size={12} className="text-slate-500" />
+                                            <div className="p-1.5 bg-rose-500/10 rounded-lg">
+                                                <ShieldAlert size={12} className={data.source_data?.anomalies.blocking ? "text-rose-500" : "text-emerald-500"} />
                                             </div>
-                                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">MODULES CRITIQUES</span>
+                                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">IMPACT BLOQUANT</span>
                                         </div>
                                         {data.source_data ? (
                                             <>
-                                                <div className="text-xl font-black text-white mb-0.5">{data.source_data.critical_coverage.passed} / {data.source_data.critical_coverage.count}</div>
-                                                <div className="text-[9px] font-bold text-slate-500">validés · haut risque</div>
+                                                <div className={`text-xl font-black mb-0.5 ${data.source_data.anomalies.blocking ? "text-rose-500" : "text-emerald-500"}`}>
+                                                    {data.source_data.anomalies.blocking} BLOQUANT
+                                                </div>
+                                                <div className="text-[9px] font-bold text-slate-500">
+                                                    {data.source_data.anomalies.blocking > 0 ? "⚠️ Arrêt immédiat requis" : "✅ Aucun point de blocage"}
+                                                </div>
                                             </>
                                         ) : (
                                             <>
-                                                <div className="text-xl font-black text-white mb-0.5">0 / 0</div>
+                                                <div className="text-xl font-black text-white mb-0.5">0</div>
                                                 <div className="text-[9px] font-bold text-slate-500">Aucun identifié</div>
                                             </>
                                         )}

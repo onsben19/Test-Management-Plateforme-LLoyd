@@ -9,7 +9,8 @@ import {
     projectService,
     campaignService,
     anomalyService,
-    aiService
+    aiService,
+    businessProjectService
 } from '../../services/api';
 import {
     Layers,
@@ -25,7 +26,15 @@ import {
     FolderOpen,
     FileText,
     Award,
-    X
+    X,
+    ChevronRight,
+    LayoutGrid,
+    Briefcase,
+    Calendar,
+    ArrowRight,
+    Pencil,
+    Trash,
+    Clock
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -58,6 +67,7 @@ const ManagerDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [activeTab, setActiveTab] = useState('overview');
+    const [groupMode, setGroupMode] = useState<'none' | 'release' | 'project'>('release');
     const [selectedProjectId, setSelectedProjectId] = useState<string | 'all'>('all');
     const [selectedRelease, setSelectedRelease] = useState<string | 'all'>('all');
     const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
@@ -68,10 +78,11 @@ const ManagerDashboard = () => {
     const [catchupCampaignId, setCatchupCampaignId] = useState<number | null>(null);
     const [realtimeCampaignId, setRealtimeCampaignId] = useState<number | null>(null);
 
-    const [rawData, setRawData] = useState<RawData>({
+    const [rawData, setRawData] = useState<RawData & { businessProjects: any[] }>({
         projects: [],
         campaigns: [],
         anomalies: [],
+        businessProjects: []
     });
 
     // -------------------------------------------------------------------------
@@ -80,17 +91,24 @@ const ManagerDashboard = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [projectsRes, campaignsRes, anomaliesRes] = await Promise.all([
+            const [projectsRes, campaignsRes, anomaliesRes, businessProjectsRes] = await Promise.all([
                 projectService.getProjects(),
                 campaignService.getCampaigns(),
                 anomalyService.getAnomalies(),
+                businessProjectService.getBusinessProjects()
             ]);
 
             const projData: any[] = projectsRes.data.results ?? projectsRes.data;
             const campData: any[] = campaignsRes.data.results ?? campaignsRes.data;
             const anomData: any[] = anomaliesRes.data.results ?? anomaliesRes.data;
+            const bProjData: any[] = businessProjectsRes.data.results ?? businessProjectsRes.data;
 
-            setRawData({ projects: projData, campaigns: campData, anomalies: anomData });
+            setRawData({
+                projects: projData,
+                campaigns: campData,
+                anomalies: anomData,
+                businessProjects: bProjData
+            });
 
 
             // Fetch dynamic AI brief
@@ -188,19 +206,25 @@ const ManagerDashboard = () => {
 
         // --- Anomaly distribution for pie chart ---
         const distribution = [
-            { name: 'Critique', value: filteredAnoms.filter((a: any) => a.criticite === 'CRITIQUE').length, color: '#f43f5e' },
-            { name: 'Moyenne', value: filteredAnoms.filter((a: any) => a.criticite === 'MOYENNE').length, color: '#f59e0b' },
-            { name: 'Faible', value: filteredAnoms.filter((a: any) => a.criticite === 'FAIBLE').length, color: '#3b82f6' },
+            { name: 'Critique / Bloquante', value: filteredAnoms.filter((a: any) => ['CRITIQUE', 'BLOQUANTES'].includes(a.impact)).length, color: '#f43f5e' },
+            { name: 'Majeure / Mineure', value: filteredAnoms.filter((a: any) => ['MAJEUR', 'MINEURS'].includes(a.impact)).length, color: '#f59e0b' },
+            { name: 'Autres (UX/Text)', value: filteredAnoms.filter((a: any) => ['COSMETIQUE', 'TEXTE', 'SIMPLE', 'FONCTIONNALITE'].includes(a.impact)).length, color: '#3b82f6' },
         ].filter(d => d.value > 0);
 
         // --- Release grouping ---
         const releaseNames: string[] = Array.from(
-            new Set(filteredCamps.map((c: any) => c.project_name).filter(Boolean))
+            new Set(filteredCamps.map((c: any) => {
+                if (groupMode === 'project') return c.business_project_name || 'Global';
+                return `${c.business_project_name || 'Global'} > ${c.project_name}`;
+            }).filter(Boolean))
         ) as string[];
 
         const campaignsByRelease: Record<string, any[]> = {};
         releaseNames.forEach(r => {
-            campaignsByRelease[r] = filteredCamps.filter((c: any) => c.project_name === r);
+            campaignsByRelease[r] = filteredCamps.filter((c: any) => {
+                const key = groupMode === 'project' ? (c.business_project_name || 'Global') : `${c.business_project_name || 'Global'} > ${c.project_name}`;
+                return key === r;
+            });
         });
         const noReleaseCamps = filteredCamps.filter((c: any) => !c.project_name);
         if (noReleaseCamps.length > 0) campaignsByRelease['__no_release__'] = noReleaseCamps;
@@ -228,8 +252,9 @@ const ManagerDashboard = () => {
             campaignsByRelease,
             filteredCamps,
             recentActivity,
+            groupMode
         };
-    }, [rawData, selectedProjectId]);
+    }, [rawData, selectedProjectId, groupMode]);
 
     // -------------------------------------------------------------------------
     // Tabs configuration
@@ -237,7 +262,8 @@ const ManagerDashboard = () => {
 
     const dashboardTabs = [
         { id: 'overview', label: t('managerDashboard.tabs.overview') || 'Vue d\'ensemble', icon: LayoutDashboard },
-        { id: 'projects', label: t('managerDashboard.tabs.projects') || 'Campagnes', icon: Layers, badge: filteredData.stats.totalCampaigns },
+        { id: 'projects', label: t('managerDashboard.tabs.projects') || 'Projets', icon: Briefcase, badge: rawData.businessProjects.length },
+        { id: 'campaigns', label: t('managerDashboard.tabs.campaigns') || 'Campagnes', icon: Layers, badge: filteredData.stats.totalCampaigns },
 
         { id: 'activity', label: t('managerDashboard.tabs.activity') || 'Activité', icon: Activity },
     ];
@@ -308,7 +334,14 @@ const ManagerDashboard = () => {
                 <div className="flex items-start justify-between mb-3 gap-2 pr-8">
                     <div className="flex-1 min-w-0">
                         <p className="font-black text-slate-900 dark:text-white truncate text-sm">{camp.title || camp.name}</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{camp.project_name || '—'}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{camp.project_name || '—'}</p>
+                            {camp.release_type && (
+                                <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-widest ${camp.release_type === 'PREPROD' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                                    {camp.release_type}
+                                </span>
+                            )}
+                        </div>
                     </div>
                     <span className={`shrink-0 text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-tight ${rateClass}`}>
                         {total === 0 ? 'Vide' : `${rate}%`}
@@ -409,6 +442,85 @@ const ManagerDashboard = () => {
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.18 }}
                 >
+                    {/* ================================================================
+                        TAB 0 — PROJECTS
+                    ================================================================ */}
+                    {activeTab === 'projects' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10">
+                            {rawData.businessProjects.map((project, idx) => (
+                                <motion.div
+                                    key={project.id}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: idx * 0.05 }}
+                                    className="group relative bg-[#0f172a]/40 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] p-9 hover:border-emerald-500/20 transition-all duration-500 shadow-2xl"
+                                >
+                                    <div className="flex items-start justify-between mb-10">
+                                        <div className="w-20 h-20 rounded-3xl bg-[#112121] border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                                            <div className="p-3 bg-emerald-500/5 rounded-2xl border border-emerald-500/10">
+                                                <Briefcase className="w-8 h-8" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4 mb-10">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                                            <span className="text-[11px] font-black text-emerald-500 uppercase tracking-widest">Actif</span>
+                                        </div>
+                                        <h3 className="text-3xl font-black text-white tracking-tight leading-none group-hover:text-emerald-400 transition-colors">{project.name}</h3>
+                                        <p className="text-slate-500 text-sm font-medium leading-relaxed line-clamp-2 min-h-[3rem] opacity-70">{project.description || 'Description du projet métier'}</p>
+                                    </div>
+
+                                    <div className="h-px w-full bg-white/5 mb-10" />
+
+                                    <div className="grid grid-cols-2 gap-5 mb-10">
+                                        <div className="p-7 bg-[#131b26]/60 border border-white/10 rounded-[2rem] space-y-4 relative overflow-hidden group/stat">
+                                            <div className="flex items-center gap-2.5">
+                                                <Layers className="w-4 h-4 text-slate-600" />
+                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Releases</p>
+                                            </div>
+                                            <p className="text-4xl font-black text-white">{project.releases_count || 0}</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {(project.recent_releases || []).slice(0, 2).map((rel: string, i: number) => (
+                                                    <span key={i} className={`text-[9px] px-3 py-1 rounded-lg font-black uppercase tracking-widest ${i === 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                                                        {rel}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="p-7 bg-[#131b26]/60 border border-white/10 rounded-[2rem] space-y-4">
+                                            <div className="flex items-center gap-2.5">
+                                                <Calendar className="w-4 h-4 text-slate-600" />
+                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Créé le</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-2xl font-black text-white leading-tight uppercase tracking-tighter">
+                                                    {new Date(project.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                                                </p>
+                                                <p className="text-sm text-slate-600 font-bold mt-1">{new Date(project.created_at).getFullYear()}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={() => {
+                                            setSelectedProjectId(String(project.id));
+                                            setActiveTab('campaigns');
+                                            setGroupMode('release');
+                                        }}
+                                        className="w-full flex items-center justify-between px-10 py-7 bg-[#112121] hover:bg-[#1a2f2b] border border-emerald-500/10 hover:border-emerald-500/30 text-[#10b981] rounded-[2rem] text-xs font-black uppercase tracking-[0.25em] transition-all group/btn shadow-xl"
+                                    >
+                                        Explorer les Releases
+                                        <div className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center group-hover/btn:bg-emerald-500 group-hover/btn:text-white transition-all">
+                                            <ArrowRight size={18} className="group-hover/btn:translate-x-0.5 transition-transform" />
+                                        </div>
+                                    </button>
+                                </motion.div>
+                            ))}
+                        </div>
+                    )}
+
                     {/* ================================================================
                         TAB 1 — OVERVIEW
                     ================================================================ */}
@@ -528,6 +640,31 @@ const ManagerDashboard = () => {
                     ================================================================ */}
                     {activeTab === 'projects' && (
                         <div className="space-y-8">
+                            {/* Group Mode Switcher */}
+                            <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/10 w-fit">
+                                <button
+                                    onClick={() => setGroupMode('project')}
+                                    className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all ${groupMode === 'project' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    <Target className="w-4 h-4" />
+                                    PROJET
+                                </button>
+                                <button
+                                    onClick={() => setGroupMode('release')}
+                                    className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all ${groupMode === 'release' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    <Layers className="w-4 h-4" />
+                                    RELEASE
+                                </button>
+                                <button
+                                    onClick={() => setGroupMode('none')}
+                                    className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all ${groupMode === 'none' ? 'bg-slate-700 text-white shadow-lg shadow-slate-600/20' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    <LayoutGrid className="w-4 h-4" />
+                                    GRILLE
+                                </button>
+                            </div>
+
                             {/* Release filter pills */}
                             <div className="flex flex-wrap gap-2">
                                 <button
@@ -588,7 +725,15 @@ const ManagerDashboard = () => {
                                             {selectedRelease === 'all' && (
                                                 <h3 className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
                                                     <span className="w-5 h-0.5 bg-blue-500 rounded-full" />
-                                                    {label}
+                                                    {groupMode === 'project' ? (
+                                                        <span className="text-blue-500">{label}</span>
+                                                    ) : (
+                                                        <>
+                                                            <span className="text-slate-600 dark:text-slate-500">{label.split(' > ')[0]}</span>
+                                                            <ChevronRight className="w-3 h-3 text-slate-700" />
+                                                            <span className="text-blue-500">{label.split(' > ')[1]}</span>
+                                                        </>
+                                                    )}
                                                     <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-full text-[10px]">
                                                         {camps.length}
                                                     </span>

@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import PageLayout from '../components/PageLayout';
 import { Layers, Calendar, User, BookOpen, Plus, MoreVertical, ArrowRight, Edit, Trash2, Activity, Search, Sparkles, Filter, ChevronRight, Save } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { projectService } from '../services/api';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { projectService, businessProjectService } from '../services/api';
 import { toast } from 'react-toastify';
 import Pagination from '../components/Pagination';
 import { useAuth } from '../context/AuthContext';
@@ -17,11 +17,15 @@ import { Award, Info, XCircle } from 'lucide-react';
 const ReleaseManager = () => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
+    const location = useLocation();
     const { user } = useAuth();
     const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(user?.role?.toUpperCase() || '');
+    const { businessProjectId, businessProjectName } = (location.state as any) || {};
 
     const [releases, setReleases] = useState<any[]>([]);
+    const [businessProjects, setBusinessProjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeReleaseType, setActiveReleaseType] = useState<'ALL' | 'RECETTE' | 'PREPROD'>('ALL');
     const [searchQuery, setSearchQuery] = useState('');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
     const [readinessScores, setReadinessScores] = useState<Record<string, any>>({});
@@ -38,21 +42,39 @@ const ReleaseManager = () => {
     const [newRelease, setNewRelease] = useState({
         name: '',
         description: '',
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        business_project: businessProjectId || '',
+        release_type: 'RECETTE'
     });
 
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [releaseToDelete, setReleaseToDelete] = useState<string | null>(null);
 
+    const fetchBusinessProjects = async () => {
+        try {
+            const res = await businessProjectService.getBusinessProjects();
+            setBusinessProjects(res.data.results || res.data);
+        } catch (e) {
+            console.error("Failed to fetch business projects", e);
+        }
+    };
+
     const fetchReleases = async (page = currentPage) => {
         try {
             setLoading(true);
-            const response = await projectService.getProjects({
+            const params: any = {
                 page,
                 search: searchQuery,
                 ordering: sortOrder === 'newest' ? '-created_at' : 'created_at'
-            });
+            };
+            if (businessProjectId) {
+                params.business_project = businessProjectId;
+            }
+            if (activeReleaseType !== 'ALL') {
+                params.release_type = activeReleaseType;
+            }
+            const response = await projectService.getProjects(params);
             if (response.data.results) {
                 setReleases(response.data.results);
                 setTotalItems(response.data.count);
@@ -88,9 +110,10 @@ const ReleaseManager = () => {
     };
 
     useEffect(() => {
+        fetchBusinessProjects();
         fetchReleases(1);
         setCurrentPage(1);
-    }, [searchQuery, sortOrder]);
+    }, [searchQuery, sortOrder, activeReleaseType]);
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
@@ -98,7 +121,13 @@ const ReleaseManager = () => {
     };
 
     const resetForm = () => {
-        setNewRelease({ name: '', description: '', status: 'ACTIVE' });
+        setNewRelease({
+            name: '',
+            description: '',
+            status: 'ACTIVE',
+            business_project: businessProjectId || '',
+            release_type: 'RECETTE'
+        });
         setEditingRelease(null);
         setIsModalOpen(false);
     };
@@ -125,7 +154,9 @@ const ReleaseManager = () => {
         setNewRelease({
             name: release.name,
             description: release.description,
-            status: release.status
+            status: release.status,
+            business_project: release.business_project || '',
+            release_type: release.release_type || 'RECETTE'
         });
         setIsModalOpen(true);
         setOpenMenuId(null);
@@ -190,8 +221,8 @@ const ReleaseManager = () => {
 
     return (
         <PageLayout
-            title={t('releaseManager.title')}
-            subtitle="RELEASE AUDIT"
+            title={businessProjectName ? `Releases: ${businessProjectName}` : t('releaseManager.title')}
+            subtitle={businessProjectName ? "PORTFOLIO VIEW" : "RELEASE AUDIT"}
             actions={HeaderActions}
         >
             <div className="space-y-10">
@@ -221,6 +252,26 @@ const ReleaseManager = () => {
                                 <option value="oldest" className="bg-slate-900">{t('releaseManager.sort.oldest')}</option>
                             </select>
                         </div>
+                    </div>
+
+                    {/* Release Type Tabs */}
+                    <div className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/10 rounded-2xl w-fit">
+                        {[
+                            { id: 'ALL', label: 'Toutes' },
+                            { id: 'RECETTE', label: 'Recette' },
+                            { id: 'PREPROD', label: 'Preprod' }
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveReleaseType(tab.id as any)}
+                                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeReleaseType === tab.id
+                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40'
+                                        : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                    }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
@@ -303,10 +354,17 @@ const ReleaseManager = () => {
                                             <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-600/30 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-all duration-500 shrink-0 shadow-lg shadow-indigo-500/10">
                                                 <Layers className="w-7 h-7" />
                                             </div>
-                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black border ${getStatusStyles(release.status)}`}>
-                                                <div className={`w-1 h-1 rounded-full ${release.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : 'bg-current'}`} />
-                                                {getStatusLabel(release.status)}
-                                            </span>
+                                            <div className="flex flex-col gap-2">
+                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black border ${getStatusStyles(release.status)}`}>
+                                                    <div className={`w-1 h-1 rounded-full ${release.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : 'bg-current'}`} />
+                                                    {getStatusLabel(release.status)}
+                                                </span>
+                                                {release.release_type && (
+                                                    <span className="inline-flex items-center px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                                                        {release.release_type}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
 
                                         {/* Title & Description */}
@@ -445,17 +503,51 @@ const ReleaseManager = () => {
                                     />
                                 </div>
 
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('releaseManager.modal.initialStatus')}</label>
+                                        <div className="relative bg-white/5 border border-white/10 rounded-2xl overflow-hidden group">
+                                            <Activity className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                            <select
+                                                className="w-full bg-transparent pl-16 pr-6 py-4 text-white font-bold outline-none cursor-pointer appearance-none"
+                                                value={newRelease.status}
+                                                onChange={(e) => setNewRelease({ ...newRelease, status: e.target.value })}
+                                            >
+                                                <option value="ACTIVE" className="bg-slate-900">{t('releaseManager.status.active')}</option>
+                                                <option value="COMPLETED" className="bg-slate-900">{t('releaseManager.status.completed')}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Type de Release</label>
+                                        <div className="relative bg-white/5 border border-white/10 rounded-2xl overflow-hidden group">
+                                            <Layers className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-emerald-500 transition-colors" />
+                                            <select
+                                                className="w-full bg-transparent pl-16 pr-6 py-4 text-white font-bold outline-none cursor-pointer appearance-none"
+                                                value={newRelease.release_type}
+                                                onChange={(e) => setNewRelease({ ...newRelease, release_type: e.target.value })}
+                                            >
+                                                <option value="RECETTE" className="bg-slate-900">RECETTE</option>
+                                                <option value="PREPROD" className="bg-slate-900">PREPROD</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('releaseManager.modal.initialStatus')}</label>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Projet Parent (Portefeuille)</label>
                                     <div className="relative bg-white/5 border border-white/10 rounded-2xl overflow-hidden group">
-                                        <Activity className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                        <BookOpen className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                                         <select
                                             className="w-full bg-transparent pl-16 pr-6 py-4 text-white font-bold outline-none cursor-pointer appearance-none"
-                                            value={newRelease.status}
-                                            onChange={(e) => setNewRelease({ ...newRelease, status: e.target.value })}
+                                            value={newRelease.business_project}
+                                            onChange={(e) => setNewRelease({ ...newRelease, business_project: e.target.value })}
                                         >
-                                            <option value="ACTIVE" className="bg-slate-900">{t('releaseManager.status.active')}</option>
-                                            <option value="COMPLETED" className="bg-slate-900">{t('releaseManager.status.completed')}</option>
+                                            <option value="" className="bg-slate-900">Aucun projet (Global)</option>
+                                            {businessProjects.map(bp => (
+                                                <option key={bp.id} value={bp.id} className="bg-slate-900">{bp.name}</option>
+                                            ))}
                                         </select>
                                     </div>
                                 </div>

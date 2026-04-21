@@ -13,6 +13,7 @@ import Settings from './src/pages/Settings';
 import ExecutionTracking from './src/pages/ExecutionTracking';
 import DataDrivenManager from './src/pages/DataDrivenManager';
 import ReleaseManager from './src/pages/ReleaseManager';
+import ProjectPortfolio from './src/pages/ProjectPortfolio';
 import TesterDashboard from './src/pages/TesterDashboard';
 import NotFound from './src/pages/NotFound';
 import Analytics from './src/pages/Analytics';
@@ -74,6 +75,12 @@ const App: React.FC = () => {
                   <Route path="/manager" element={
                     <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
                       <DataDrivenManager />
+                    </RoleGuard>
+                  } />
+
+                  <Route path="/portfolio" element={
+                    <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
+                      <ProjectPortfolio />
                     </RoleGuard>
                   } />
 

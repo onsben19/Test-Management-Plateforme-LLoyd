@@ -1,124 +1,112 @@
 @startuml
+
 autonumber
 skinparam style strictuml
 skinparam sequenceMessageAlign center
 
-actor "Utilisateur (Manager/Tester)" as User
-participant "Interface Web (React)" as UI <<IHM>>
-participant "API / Views (Django)" as API <<Service>>
-participant "Base de Données" as DB <<Entity>>
+' ===== DESIGN STYLE RÉFÉRENCE (CRUXHIRE) =====
+skinparam sequence {
+  ParticipantBackgroundColor #E5E7E9
+  ParticipantBorderColor #5D6D7E
+  LifeLineBorderColor #5D6D7E
+  ActorBorderColor #5D6D7E
+  ArrowColor #2C3E50
+  BoxBorderColor #AEB6BF
+}
 
-group #LightBlue Authentification
-    User -> UI: Saisir identifiants (username, password)
-    UI -> API: POST /api/login/
-    activate API
-    API -> DB: Vérifier credentials
-    activate DB
-    DB --> API: User validé
-    deactivate DB
-    API --> UI: Token JWT (Access + Refresh)
-    deactivate API
-    UI -> UI: Stocker Token (localStorage)
-end
+' ===== PARTICIPANTS (RÉPÉTÉS EN HAUT ET BAS) =====
+actor "Manager QA" as M
+actor "Testeur"    as T
+participant "<<IHM>>\nInterface React"      as UI
+participant "<<Gestionnaire>>\nContrôleur Backend" as BE
+participant "<<Entité>>\nBase de Données"    as DB
+participant "<<Système>>\nModèle Groq IA"    as IA
+participant "<<Système>>\nServeur SMTP"       as SMTP
 
-group #LightCyan Gestion des Projets (Manager)
-    User -> UI: Créer "Projet Assurance Auto 2026"
-    UI -> API: POST /api/projects/
-    activate API
-    API -> DB: create(Project)
-    activate DB
-    DB --> API: Project ID
-    deactivate DB
-    API --> UI: 201 Created
-    deactivate API
-end
+title Vue Runtime Détaillée - Plateforme InsureTM
 
-group #LightGreen Gestion des Campagnes (Manager)
-    User -> UI: Créer "Campagne Q1" + Upload Excel
-    UI -> API: POST /api/campaigns/ (multipart/form-data)
-    activate API
-    API -> API: Parser fichier Excel
-    API -> DB: create(Campaign)
-    activate DB
-    DB --> API: Campaign ID
-    deactivate DB
-    loop Pour chaque ligne Excel
-        API -> DB: create(TestCase)
-        activate DB
-        DB --> API: TestCase Created
-        deactivate DB
-    end
-    API --> UI: 201 Created (Campagne créée)
-    deactivate API
-    UI --> User: Notification "Campagne prête"
-end
+== 🔐 Déclenchement de l'Authentification (2FA) ==
 
-group #LightYellow Exécution des Tests (Tester)
-    User -> UI: Consulter "Mes Tâches"
-    UI -> API: GET /api/campaigns/tasks/
-    activate API
-    API -> DB: Select * from TaskAssignment where user=me
-    activate DB
-    DB --> API: Liste des tâches
-    deactivate DB
-    API --> UI: Affichage des Tests
-    deactivate API
-    
-    User -> UI: Marquer Test #123 comme "FAILED"
-    UI -> API: PATCH /api/testcases/123/
-    activate API
-    API -> DB: update(status='FAILED')
-    activate DB
-    DB --> API: Confirm Update
-    deactivate DB
-    API --> UI: 200 OK (Statut mis à jour)
-    deactivate API
-end
+M -> UI : Lancer connexion
+activate UI
+UI -> BE : messages synchrones\nloginRequest(credentials)
+activate BE
+BE -> DB : retours\nvaliderDroits()
+activate DB
+DB --> BE : focus of control\nprofileValide
+deactivate DB
 
-group #LightPink Signalement d'Anomalie (Tester)
-    User -> UI: Signaler Anomalie (Titre, Desc, Image)
-    UI -> API: POST /api/anomalies/
-    activate API
-    API -> DB: create(Anomalie linked to Test #123)
-    activate DB
-    DB --> API: Anomalie Created
-    deactivate DB
-    API --> UI: 201 Created
-    deactivate API
-    UI --> User: "Ticket Anomalie créé avec succès"
+BE -> SMTP : retours\nenvoyerOTP()
+activate SMTP
+SMTP --> M : ligne de vie\ncodeRecu
+deactivate SMTP
+
+BE --> UI : validation\nattenteChallenge2FA
+deactivate BE
+
+M -> UI : validation\nsaisirCode(OTP)
+UI -> BE : messages synchrones\nverify2FA(code)
+activate BE
+BE -> DB : retours\nvaliderCode()
+activate DB
+DB --> BE : focus of control\nsessionToken
+deactivate DB
+BE --> UI : résultat\nsessionActive
+deactivate BE
+UI --> M : résultat\naccèsAutorisé
+deactivate UI
+
+== 📋 Pilotage & Planification ==
+
+M -> UI : Charger Projet
+activate UI
+UI -> BE : messages synchrones\ngetProjectDetails()
+activate BE
+BE -> DB : retours\nfetchTree()
+activate DB
+DB --> BE : focus of control\ndonneesProjet
+deactivate DB
+BE --> UI : résultat\ndashboardCharge
+deactivate BE
+deactivate UI
+
+== ✅ Exécution des Tests ==
+
+T -> UI : Valider Cas de Test
+activate UI
+UI -> BE : messages synchrones\nupdateStatus(PASSED)
+activate BE
+BE -> DB : retours\nsaveResult()
+activate DB
+DB --> BE : focus of control\nstatusOK
+deactivate DB
+
+opt Si Anomalie détectée
+BE -> DB : retours\ncreateAnomaly()
+BE -> SMTP : retours\nenvoyerAlerte()
 end
 
-group #LightCyan Analyse Prédictive (ML Timeline Guard - Manager)
-    User -> UI: Clic sur "Timeline Guard" pour Campagne #42
-    UI -> API: GET /api/analytics/timeline-guard/42/
-    activate API
-    API -> DB: SELECT * from TestCase where campaign_id=42
-    activate DB
-    DB --> API: Liste des résultats (Status)
-    deactivate DB
-    API -> API: ML Model Inférence (Random Forest)
-    API -> AI: Post-Analyse Insight
-    AI --> API: Conseil Pro
-    API --> UI: JSON {projected_end, risk_status, message}
-    deactivate API
-    UI --> User: Affichage Radar/Gauge (Optimale/Avertissement)
-end
-group #LightGray Messagerie Interne
-    User -> UI: Clic sur "Messagerie" -> "Nouveau Message"
-    UI -> API: POST /api/emails/ (multipart/form-data)
-    activate API
-    API -> DB: create(Email)
-    activate DB
-    DB --> API: Email Created
-    deactivate DB
-    API -> API: send_mail() via SMTP
-    API -> DB: create(Notification)
-    activate DB
-    DB --> API: Notification Created
-    deactivate DB
-    API --> UI: 201 Created
-    deactivate API
-    UI --> User: "Email envoyé avec succès"
-end
+BE --> UI : validation\nstatusMaj
+deactivate BE
+deactivate UI
+
+== 📊 Analyse Prédictive IA ==
+
+M -> UI : Lancer Analyse Readiness
+activate UI
+UI -> BE : messages synchrones\ncalculateReadiness()
+activate BE
+BE -> IA : messages synchrones\ngenerateInsight()
+activate IA
+IA --> BE : retours\npredictionsIA
+deactivate IA
+BE -> DB : retours\nsaveReport()
+BE --> UI : résultat\nscoreReadiness
+deactivate BE
+deactivate UI
+
+note over M, SMTP #FFF9C4
+  Système de QA Management piloté par IA (InsureTM)
+end note
 
 @enduml

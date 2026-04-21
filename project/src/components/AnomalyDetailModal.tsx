@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShieldAlert, Clock, User, Tag, FileText, CheckCircle2, AlertOctagon, AlertCircle, ExternalLink, Calendar } from 'lucide-react';
+import { X, ShieldAlert, Clock, User, Tag, FileText, CheckCircle2, AlertOctagon, AlertCircle, ExternalLink, Calendar, Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
@@ -14,17 +14,24 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
 
     if (!anomaly) return null;
 
-    const getSeverityStyles = (severity: string) => {
-        switch (severity) {
-            case 'Critique': return { color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20', icon: AlertOctagon };
-            case 'Moyenne': return { color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: AlertCircle };
-            case 'Faible': return { color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: ShieldAlert };
-            default: return { color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: CheckCircle2 };
+    const getImpactStyles = (impact: string) => {
+        switch (impact) {
+            case 'BLOQUANTES':
+            case 'CRITIQUE':
+                return { color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20', icon: AlertOctagon };
+            case 'MAJEUR':
+                return { color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20', icon: AlertCircle };
+            case 'MINEURS':
+                return { color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: ShieldAlert };
+            case 'FONCTIONNALITE':
+                return { color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: Tag };
+            default:
+                return { color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20', icon: Info };
         }
     };
 
-    const styles = getSeverityStyles(anomaly.severity);
-    const SeverityIcon = styles.icon;
+    const styles = getImpactStyles(anomaly.impact);
+    const ImpactIcon = styles.icon;
 
     return (
         <div className="fixed inset-0 z-[60] flex items-start justify-center p-4 sm:p-6 overflow-y-auto backdrop-blur-2xl bg-black/80 custom-scrollbar pt-20 lg:pt-32">
@@ -46,10 +53,16 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                         <div className="space-y-3">
                             <div className="flex items-center gap-3">
                                 <div className={`p-2.5 ${styles.bg} ${styles.color} rounded-xl border ${styles.border}`}>
-                                    <SeverityIcon className="w-5 h-5" />
+                                    <ImpactIcon className="w-5 h-5" />
                                 </div>
                                 <div className={`px-4 py-1 rounded-full ${styles.bg} ${styles.color} border ${styles.border} text-[10px] font-black uppercase tracking-[0.2em]`}>
-                                    {anomaly.severity} Priority
+                                    {anomaly.impact}
+                                </div>
+                                <div className="px-4 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-black uppercase tracking-[0.2em]">
+                                    {anomaly.priority} Priority
+                                </div>
+                                <div className={`px-4 py-1 rounded-full bg-white/5 text-slate-400 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em]`}>
+                                    {anomaly.visibility}
                                 </div>
                             </div>
                             <h2 className="text-3xl font-black text-white tracking-tight leading-tight max-w-md">
@@ -98,6 +111,34 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                                 {anomaly.description || "Aucune description détaillée n'a été fournie pour cette anomalie."}
                             </div>
                         </div>
+
+                        {/* Evidence Section */}
+                        {anomaly.proofImage && (
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-slate-400">
+                                    <ShieldAlert className="w-4 h-4" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest">Preuve de l'Anomalie</h4>
+                                </div>
+                                <div className="relative rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl group/img">
+                                    <img
+                                        src={anomaly.proofImage}
+                                        alt="Preuve"
+                                        className="w-full h-auto object-cover max-h-[400px] group-hover/img:scale-105 transition-transform duration-700"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity flex items-end p-6">
+                                        <a
+                                            href={anomaly.proofImage}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="px-6 py-3 bg-white/10 backdrop-blur-md rounded-xl text-white text-[10px] font-black uppercase tracking-widest border border-white/20 hover:bg-white/20 transition-all flex items-center gap-2"
+                                        >
+                                            <ExternalLink size={14} />
+                                            Ouvrir en plein écran
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Context Section */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-4">

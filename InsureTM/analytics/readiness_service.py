@@ -83,57 +83,45 @@ class ReleaseReadinessManager:
             # 1. Test Pass Rate (40%)
             pass_rate_score = (passed_tests / total_tests) * 40 if total_tests > 0 else 0
             
-            # 2. Anomaly Penalty (30%)
+            # 2. ML Stability (30%)
+            ml_stability_score = 0
+            if total_executed > 0:
+                if worst_ml_status == 'OPTIMAL':
+                    ml_stability_score = 30
+                elif worst_ml_status == 'WARNING':
+                    ml_stability_score = 20
+                elif worst_ml_status in ['WAITING', 'INITIAL']:
+                    ml_stability_score = 10
+                elif worst_ml_status == 'CRITICAL':
+                    ml_stability_score = 0
+            
+            # 3. Existing Anomalies (20%) - General health
             open_anomalies = Anomalie.objects.filter(test_case__campaign__in=campaigns).exclude(statut='RESOLUE')
             penalty = 0
+            blocking_count = open_anomalies.filter(impact='BLOQUANTES').count()
+            
             for anomaly in open_anomalies:
-                if anomaly.criticite == 'CRITIQUE':
+                if anomaly.impact == 'BLOQUANTES':
+                    penalty += 30 # Heavy penalty
+                elif anomaly.impact == 'CRITIQUE':
                     penalty += 15
-                elif anomaly.criticite == 'MOYENNE':
+                elif anomaly.impact in ['MAJEUR', 'MINEURS']:
                     penalty += 5
-                else: # FAIBLE
+                else:
                     penalty += 2
             
             if total_executed > 0:
-                anomaly_score = max(0, 30 - penalty)
+                anomaly_score = max(0, 20 - (penalty / 2)) # Scaled penalty for the 20% pillar
             else:
-                # If 0 tests executed, quality is unknown, score is 0
                 anomaly_score = 0
             
-            # 3. ML Confidence (20%)
-            ml_confidence_score = 0
-            if total_executed > 0:
-                if worst_ml_status == 'OPTIMAL':
-                    ml_confidence_score = 20
-                elif worst_ml_status == 'WARNING':
-                    ml_confidence_score = 10
-                elif worst_ml_status == 'WAITING' or worst_ml_status == 'INITIAL':
-                    ml_confidence_score = 5
-                elif worst_ml_status == 'CRITICAL':
-                    ml_confidence_score = 0
-            else:
-                # If 0 tests executed, ML cannot provide confidence
-                ml_confidence_score = 0
-            
-            # 4. Critical Module Coverage (10%)
-            critical_keywords = ['paiement', 'contrat', 'sinistre', 'auth', 'login', 'paiements', 'contrats', 'sinistres', 'billing', 'payment']
-            critical_tests = []
-            
-            for tc in all_test_cases:
-                ref = tc.test_case_ref.lower()
-                data_str = str(tc.data_json).lower() if tc.data_json else ""
-                if any(kw in ref or kw in data_str for kw in critical_keywords):
-                    critical_tests.append(tc)
-            
-            if not critical_tests or total_executed == 0:
-                # If no critical tests OR no executions yet, score is 0
-                coverage_score = 0
-            else:
-                passed_critical = len([tc for tc in critical_tests if tc.status == 'PASSED'])
-                coverage_score = (passed_critical / len(critical_tests)) * 10
+            # 4. Blocking Anomaly Guard (10%) - Binary safety
+            blocking_score = 10 if (total_executed > 0 and blocking_count == 0) else 0
 
-            total_score = round(pass_rate_score + anomaly_score + ml_confidence_score + coverage_score)
+            # Global score calculation
+            total_score = round(pass_rate_score + ml_stability_score + anomaly_score + blocking_score)
             
+            # Reasons for transparency
             reasons = []
             if total_executed == 0:
                 reasons.append("La campagne n'a pas encore démarré (0 exécutions).")
@@ -141,30 +129,28 @@ class ReleaseReadinessManager:
             if pass_rate_score < 30 and total_executed > 0:
                 reasons.append(f"Taux de réussite insuffisant ({passed_tests}/{total_tests}).")
             
-            if penalty > 0:
-                critique_count = open_anomalies.filter(criticite='CRITIQUE').count()
+            if blocking_count > 0:
+                reasons.append(f"ALERTE : {blocking_count} anomalie(s) BLOQUANTE(S) détectée(s).")
+            
+            if penalty > 0 and blocking_count == 0:
+                critique_count = open_anomalies.filter(impact='CRITIQUE').count()
                 if critique_count > 0:
-                    reasons.append(f"{critique_count} anomalie(s) critique(s) non résolue(s).")
+                    reasons.append(f"{critique_count} anomalie(s) critique(s) impactent la stabilité.")
                 else:
-                    reasons.append(f"Anomalies ouvertes impactant la release.")
+                    reasons.append("Anomalies mineures détectées (impact modéré sur le score).")
             
             if worst_ml_status == 'CRITICAL':
-                reasons.append(f"Risque de retard critique ({highest_delay} jours prévus).")
+                reasons.append(f"Prédiction : Retard critique ({highest_delay} jours prévus).")
             elif worst_ml_status == 'WARNING':
-                reasons.append("Léger retard global détecté sur les campagnes.")
-            elif worst_ml_status in ['WAITING', 'INITIAL'] and total_tests > 0:
-                 reasons.append("En attente de données d'exécution pour l'analyse prédictive.")
-                
-            if coverage_score < 7 and critical_tests:
-                 reasons.append(f"Couverture critique incomplète ({len(critical_tests)} tests identifiés).")
+                reasons.append("Prédiction : Risque de retard modéré sur les objectifs.")
 
             return {
                 "score": total_score,
                 "breakdown": {
                     "test_pass_rate": round(pass_rate_score, 1),
-                    "anomaly_penalty": round(anomaly_score, 1),
-                    "ml_confidence": round(ml_confidence_score, 1),
-                    "critical_coverage": round(coverage_score, 1)
+                    "ml_stability": round(ml_stability_score, 1),
+                    "anomalies_health": round(anomaly_score, 1),
+                    "blocking_guard": round(blocking_score, 1)
                 },
                 "source_data": {
                     "project_id": project_id,
@@ -178,17 +164,14 @@ class ReleaseReadinessManager:
                     },
                     "anomalies": {
                         "total": open_anomalies.count(),
-                        "critical": open_anomalies.filter(criticite='CRITIQUE').count(),
+                        "critical": open_anomalies.filter(impact='CRITIQUE').count(),
+                        "blocking": blocking_count,
                         "penalty": round(penalty, 1)
                     },
                     "ml": {
                         "status": worst_ml_status,
                         "delay_days": highest_delay,
                         "confidence": highest_confidence
-                    },
-                    "critical_coverage": {
-                        "count": len(critical_tests),
-                        "passed": passed_critical if 'passed_critical' in locals() else 0
                     }
                 },
                 "reasons": reasons

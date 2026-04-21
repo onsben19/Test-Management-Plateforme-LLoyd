@@ -177,7 +177,7 @@ class CampaignClosureReportView(APIView):
             if not ml_status:
                 ml_status = {"status": "INCONNU", "progress": {"percentage": 0}, "delay_days": 0}
                 
-            critical_anomalies = Anomalie.objects.filter(test_case__campaign=campaign, criticite='CRITIQUE').exclude(statut='RESOLUE')
+            critical_anomalies = Anomalie.objects.filter(test_case__campaign=campaign, impact__in=['CRITIQUE', 'BLOQUANTES']).exclude(statut='RESOLUE')
             logger.info("Data gathered. Score: %s, Anomalies: %d", readiness_data.get('score'), critical_anomalies.count())
             
             # 2. Generate PDF
@@ -318,7 +318,7 @@ class DashboardBriefView(APIView):
         if not stats.get('open_anomalies'):
             stats['open_anomalies'] = Anomalie.objects.exclude(statut='RESOLUE').count()
         
-        stats['critical_anomalies'] = Anomalie.objects.filter(criticite='CRITIQUE').exclude(statut='RESOLUE').count()
+        stats['critical_impact_count'] = Anomalie.objects.filter(impact__in=['CRITIQUE', 'BLOQUANTES']).exclude(statut='RESOLUE').count()
         stats['total_passed'] = TestCase.objects.filter(status='PASSED').count()
         stats['total_failed'] = TestCase.objects.filter(status='FAILED').count()
         stats['total_executions'] = stats['total_passed'] + stats['total_failed']

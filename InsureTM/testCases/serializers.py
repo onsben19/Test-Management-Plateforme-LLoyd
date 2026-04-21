@@ -25,6 +25,8 @@ class TestCaseSerializer(serializers.ModelSerializer):
     tester_name = serializers.SerializerMethodField()
     campaign_title = serializers.SerializerMethodField()
     project_name = serializers.SerializerMethodField()
+    business_project_name = serializers.SerializerMethodField()
+    release_type = serializers.SerializerMethodField()
     assigned_tester_name = serializers.SerializerMethodField()
 
     def get_tester_name(self, obj):
@@ -37,10 +39,19 @@ class TestCaseSerializer(serializers.ModelSerializer):
         return obj.campaign.title if obj.campaign else "Inconnu"
 
     def get_project_name(self, obj):
+        return obj.campaign.project.name if obj.campaign and obj.campaign.project else "Inconnu"
+
+    def get_business_project_name(self, obj):
         try:
-            return obj.campaign.project.name if obj.campaign and obj.campaign.project else "Inconnu"
+            return obj.campaign.project.business_project.name if obj.campaign and obj.campaign.project and obj.campaign.project.business_project else "Inconnu"
         except AttributeError:
             return "Inconnu"
+
+    def get_release_type(self, obj):
+        try:
+            return obj.campaign.project.release_type if obj.campaign and obj.campaign.project else None
+        except AttributeError:
+            return None
 
     def get_assigned_tester_name(self, obj):
         from campaigns.models import TaskAssignment
@@ -86,6 +97,7 @@ class TestCaseSerializer(serializers.ModelSerializer):
         model = TestCase
         fields = [
             'id', 'campaign', 'campaign_title', 'project_name',
+            'business_project_name', 'release_type',
             'test_case_ref', 'data_json', 'status',
             'tester', 'tester_name', 'assigned_tester_name',
             'execution_date', 'proof_file',
