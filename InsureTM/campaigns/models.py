@@ -14,7 +14,6 @@ class Campaign(models.Model):
     estimated_end_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     excel_file = models.FileField(upload_to='campaigns/referentiels/%Y/%m/%d/', blank=True)
-    excel_file = models.FileField(upload_to='campaigns/referentiels/%Y/%m/%d/', blank=True)
     scheduled_at = models.DateTimeField(null=True, blank=True)
 
     description = models.TextField(blank=True, null=True)

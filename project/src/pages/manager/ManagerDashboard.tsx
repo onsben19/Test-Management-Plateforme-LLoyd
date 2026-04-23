@@ -262,11 +262,9 @@ const ManagerDashboard = () => {
 
     const dashboardTabs = [
         { id: 'overview', label: t('managerDashboard.tabs.overview') || 'Vue d\'ensemble', icon: LayoutDashboard },
-        { id: 'projects', label: t('managerDashboard.tabs.projects') || 'Projets', icon: Briefcase, badge: rawData.businessProjects.length },
-        { id: 'campaigns', label: t('managerDashboard.tabs.campaigns') || 'Campagnes', icon: Layers, badge: filteredData.stats.totalCampaigns },
-
         { id: 'activity', label: t('managerDashboard.tabs.activity') || 'Activité', icon: Activity },
     ];
+
 
     // -------------------------------------------------------------------------
     // Helpers
@@ -390,17 +388,17 @@ const ManagerDashboard = () => {
             subtitle={t('managerDashboard.subtitle')}
             actions={
                 <div className="flex items-center gap-3">
-                    {/* Project filter */}
+                    {/* Release filter */}
                     <div className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm">
-                        <FolderOpen className="w-4 h-4 text-slate-400 shrink-0" />
+                        <Layers className="w-4 h-4 text-slate-400 shrink-0" />
                         <select
-                            value={selectedProjectId}
-                            onChange={e => setSelectedProjectId(e.target.value)}
+                            value={selectedRelease}
+                            onChange={e => setSelectedRelease(e.target.value)}
                             className="bg-transparent border-none text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-0 cursor-pointer pr-1"
                         >
-                            <option value="all">{t('managerDashboard.projectFilter.all') || 'Tous les projets'}</option>
-                            {rawData.projects.map((p: any) => (
-                                <option key={p.id} value={String(p.id)}>{p.name || p.title}</option>
+                            <option value="all">Toutes les releases</option>
+                            {filteredData.releaseNames.map((rel: string) => (
+                                <option key={rel} value={rel}>{rel.split(' > ')[1] || rel}</option>
                             ))}
                         </select>
                     </div>
@@ -442,84 +440,8 @@ const ManagerDashboard = () => {
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.18 }}
                 >
-                    {/* ================================================================
-                        TAB 0 — PROJECTS
-                    ================================================================ */}
-                    {activeTab === 'projects' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10">
-                            {rawData.businessProjects.map((project, idx) => (
-                                <motion.div
-                                    key={project.id}
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: idx * 0.05 }}
-                                    className="group relative bg-[#0f172a]/40 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] p-9 hover:border-emerald-500/20 transition-all duration-500 shadow-2xl"
-                                >
-                                    <div className="flex items-start justify-between mb-10">
-                                        <div className="w-20 h-20 rounded-3xl bg-[#112121] border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                                            <div className="p-3 bg-emerald-500/5 rounded-2xl border border-emerald-500/10">
-                                                <Briefcase className="w-8 h-8" />
-                                            </div>
-                                        </div>
-                                    </div>
 
-                                    <div className="space-y-4 mb-10">
-                                        <div className="flex items-center gap-2.5">
-                                            <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                                            <span className="text-[11px] font-black text-emerald-500 uppercase tracking-widest">Actif</span>
-                                        </div>
-                                        <h3 className="text-3xl font-black text-white tracking-tight leading-none group-hover:text-emerald-400 transition-colors">{project.name}</h3>
-                                        <p className="text-slate-500 text-sm font-medium leading-relaxed line-clamp-2 min-h-[3rem] opacity-70">{project.description || 'Description du projet métier'}</p>
-                                    </div>
 
-                                    <div className="h-px w-full bg-white/5 mb-10" />
-
-                                    <div className="grid grid-cols-2 gap-5 mb-10">
-                                        <div className="p-7 bg-[#131b26]/60 border border-white/10 rounded-[2rem] space-y-4 relative overflow-hidden group/stat">
-                                            <div className="flex items-center gap-2.5">
-                                                <Layers className="w-4 h-4 text-slate-600" />
-                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Releases</p>
-                                            </div>
-                                            <p className="text-4xl font-black text-white">{project.releases_count || 0}</p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {(project.recent_releases || []).slice(0, 2).map((rel: string, i: number) => (
-                                                    <span key={i} className={`text-[9px] px-3 py-1 rounded-lg font-black uppercase tracking-widest ${i === 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-500'}`}>
-                                                        {rel}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className="p-7 bg-[#131b26]/60 border border-white/10 rounded-[2rem] space-y-4">
-                                            <div className="flex items-center gap-2.5">
-                                                <Calendar className="w-4 h-4 text-slate-600" />
-                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Créé le</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-2xl font-black text-white leading-tight uppercase tracking-tighter">
-                                                    {new Date(project.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
-                                                </p>
-                                                <p className="text-sm text-slate-600 font-bold mt-1">{new Date(project.created_at).getFullYear()}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        onClick={() => {
-                                            setSelectedProjectId(String(project.id));
-                                            setActiveTab('campaigns');
-                                            setGroupMode('release');
-                                        }}
-                                        className="w-full flex items-center justify-between px-10 py-7 bg-[#112121] hover:bg-[#1a2f2b] border border-emerald-500/10 hover:border-emerald-500/30 text-[#10b981] rounded-[2rem] text-xs font-black uppercase tracking-[0.25em] transition-all group/btn shadow-xl"
-                                    >
-                                        Explorer les Releases
-                                        <div className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center group-hover/btn:bg-emerald-500 group-hover/btn:text-white transition-all">
-                                            <ArrowRight size={18} className="group-hover/btn:translate-x-0.5 transition-transform" />
-                                        </div>
-                                    </button>
-                                </motion.div>
-                            ))}
-                        </div>
-                    )}
 
                     {/* ================================================================
                         TAB 1 — OVERVIEW
@@ -537,11 +459,11 @@ const ManagerDashboard = () => {
                                     isLoading={loading}
                                 />
                                 <StatCard
-                                    title="Projets actifs"
-                                    value={filteredData.stats.activeProjects}
+                                    title="Campagnes Totales"
+                                    value={filteredData.stats.totalCampaigns}
                                     icon={Layers}
                                     variant="purple"
-                                    description={`${filteredData.stats.totalCampaigns} campagne(s)`}
+                                    description={`${filteredData.stats.activeProjects} projet(s) actif(s)`}
                                     isLoading={loading}
                                 />
                                 <StatCard

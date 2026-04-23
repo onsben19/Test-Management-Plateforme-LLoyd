@@ -51,21 +51,21 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
     const groups = groupByDate(conversations, t);
 
     return (
-        <div className="w-80 bg-slate-950 flex flex-col h-full shrink-0">
+        <div className="w-80 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-white/5 flex flex-col h-full shrink-0">
             {/* Header */}
-            <div className="p-8 border-b border-white/5 bg-slate-900/40">
+            <div className="p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/40">
                 <div className="flex items-center gap-3 mb-8">
                     <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                        <History className="w-5 h-5 text-blue-400" />
+                        <History className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div className="flex flex-col">
-                        <h2 className="font-bold text-white tracking-tight text-lg leading-none">{t('analytics.history.title')}</h2>
-                        <span className="text-[10px] text-slate-500 font-medium tracking-wide mt-1 uppercase">VOTRE HISTORIQUE</span>
+                        <h2 className="font-bold text-slate-900 dark:text-white tracking-tight text-lg leading-none uppercase">{t('analytics.history.title')}</h2>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-black tracking-widest mt-1 uppercase">VOTRE HISTORIQUE</span>
                     </div>
                 </div>
                 <button
                     onClick={onNewChat}
-                    className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-[1.25rem] transition-all shadow-xl shadow-blue-900/30 active:scale-[0.98] font-bold text-sm"
+                    className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-[1.25rem] transition-all shadow-xl shadow-blue-600/20 active:scale-[0.98] font-bold text-sm"
                 >
                     <Plus className="w-5 h-5" />
                     {t('analytics.history.newChat')}
@@ -77,22 +77,22 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                 {isLoading ? (
                     <div className="flex flex-col gap-2 px-3">
                         {[1, 2, 3].map(i => (
-                            <div key={i} className="h-14 bg-slate-800/40 rounded-xl animate-pulse" />
+                            <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800/40 rounded-xl animate-pulse" />
                         ))}
                     </div>
                 ) : conversations.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full gap-3 px-4 py-8 text-center">
-                        <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center">
-                            <MessageCircle className="w-6 h-6 text-slate-600" />
+                        <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center">
+                            <MessageCircle className="w-6 h-6 text-slate-300 dark:text-slate-600" />
                         </div>
-                        <p className="text-slate-500 text-xs leading-relaxed">
+                        <p className="text-slate-400 dark:text-slate-500 text-xs leading-relaxed font-medium">
                             {t('analytics.history.empty')}
                         </p>
                     </div>
                 ) : (
                     groups.map(group => (
                         <div key={group.label} className="mb-4">
-                            <div className="px-4 py-1.5 text-[10px] font-bold text-slate-600 uppercase tracking-widest flex items-center gap-1.5">
+                            <div className="px-4 py-1.5 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest flex items-center gap-1.5">
                                 <Clock className="w-3 h-3" />
                                 {group.label}
                             </div>
@@ -102,28 +102,28 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                                         key={conv.id}
                                         onClick={() => onSelectConversation(conv.id)}
                                         className={`w-full text-left px-4 py-4 rounded-2xl flex items-start gap-4 transition-all group relative border ${currentConversationId === conv.id
-                                            ? 'bg-blue-600/10 text-white border-blue-500/30'
-                                            : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 border-transparent'
+                                            ? 'bg-blue-600/10 text-slate-900 dark:text-white border-blue-500/30'
+                                            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/[0.04] hover:text-slate-900 dark:hover:text-slate-200 border-transparent'
                                             }`}
                                     >
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 ${currentConversationId === conv.id ? 'bg-blue-600/20 text-blue-400' : 'bg-slate-800 text-slate-500'}`}>
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 ${currentConversationId === conv.id ? 'bg-blue-600/20 text-blue-600 dark:text-blue-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'}`}>
                                             <MessageCircle className="w-5 h-5" />
                                         </div>
                                         <div className="flex-1 min-w-0 py-0.5">
-                                            <span className="text-[14px] font-bold text-slate-200 group-hover:text-white truncate block leading-tight">
+                                            <span className={`text-[14px] font-bold truncate block leading-tight ${currentConversationId === conv.id ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
                                                 {conv.title || t('analytics.history.untitled')}
                                             </span>
-                                            <span className="text-[10px] text-slate-500 mt-1 block font-medium">
+                                            <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block font-black uppercase tracking-widest">
                                                 {new Date(conv.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>
                                         {/* Delete */}
                                         <div
                                             onClick={(e) => onDeleteConversation(conv.id, e)}
-                                            className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-red-500/20 text-slate-600 hover:text-red-400 transition-all shrink-0"
+                                            className="opacity-0 group-hover:opacity-100 p-2 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-500 transition-all shrink-0"
                                             title="Supprimer"
                                         >
-                                            <Trash2 className="w-3 h-3" />
+                                            <Trash2 className="w-4 h-4" />
                                         </div>
                                     </button>
                                 ))}

@@ -41,7 +41,7 @@ const DashboardWidget: React.FC<DashboardWidgetProps> = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
             onMouseMove={handleMouseMove}
-            className={`group relative bg-white/40 dark:bg-[#0f1423]/40 backdrop-blur-2xl rounded-[2.5rem] border border-slate-200/50 dark:border-white/5 shadow-xl hover:shadow-2xl dark:shadow-none transition-all duration-500 overflow-hidden ${className}`}
+            className={`group relative glass-panel rounded-[2.5rem] shadow-xl hover:shadow-2xl dark:shadow-none transition-all duration-500 overflow-hidden ${className}`}
         >
             {/* SaaS Spotlight Effect */}
             <motion.div

@@ -115,7 +115,7 @@ const Sidebar = () => {
       <div className={`h-16 flex items-center border-b border-slate-100 dark:border-white/5 ${isOpen ? 'px-6' : 'justify-center'}`}>
         <div className="flex items-center gap-3 overflow-hidden">
           <div className="relative flex-shrink-0 group">
-            <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-900 flex items-center justify-center overflow-hidden shadow-lg transition-transform duration-300 group-hover:scale-110">
+            <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-900 flex items-center justify-center overflow-hidden shadow-lg transition-transform duration-300 group-hover:scale-110 ring-2 ring-white/10">
               <img
                 src={theme === 'dark' ? '/logo-lloyd-dark.webp' : '/logo-lloyd-light.webp'}
                 alt="Logo"
@@ -153,8 +153,8 @@ const Sidebar = () => {
         </nav>
       </div>
 
-      <div className="p-4 bg-slate-50/50 dark:bg-white/[0.02] border-t border-slate-100 dark:border-white/5">
-        <div className={`group/user flex items-center ${isOpen ? 'px-3 py-3' : 'justify-center p-2'} rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200/50 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300`}>
+      <div className="p-4 bg-slate-50 dark:bg-white/[0.02] border-t border-slate-100 dark:border-white/5">
+        <div className={`group/user flex items-center ${isOpen ? 'px-3 py-3' : 'justify-center p-2'} rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300`}>
           <div className="relative">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/20 ring-2 ring-white dark:ring-slate-900">
               {user?.username?.charAt(0).toUpperCase() || 'U'}
@@ -189,7 +189,7 @@ const Sidebar = () => {
       {isOpen && (
         <div className="px-8 py-6 flex items-center justify-between opacity-30 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-5 h-5 rounded-md bg-slate-950 dark:bg-slate-900 flex items-center justify-center overflow-hidden">
+            <div className="w-5 h-5 rounded-md bg-slate-900 dark:bg-slate-900 flex items-center justify-center overflow-hidden">
               <img
                 src={theme === 'dark' ? '/logo-lloyd-dark.webp' : '/logo-lloyd-light.webp'}
                 alt="Lloyd"

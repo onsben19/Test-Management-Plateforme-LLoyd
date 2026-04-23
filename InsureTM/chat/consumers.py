@@ -50,7 +50,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     # Receive message from WebSocket
     async def receive(self, text_data):
-        text_data_json = json.json.loads(text_data)
+        text_data_json = json.loads(text_data)
         message_type = text_data_json.get("type")
 
         if message_type == "typing":

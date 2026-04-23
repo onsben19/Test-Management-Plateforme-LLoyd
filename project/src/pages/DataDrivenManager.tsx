@@ -441,7 +441,7 @@ const DataDrivenManager = () => {
                                 <div
                                     key={file.id}
                                     style={{ animationDelay: `${index * 100}ms` }}
-                                    className="group bg-[#0b0e14] border border-white/5 rounded-[2.5rem] p-6 relative overflow-hidden animate-slide-up hover:shadow-2xl hover:shadow-blue-500/10 transition-all hover:border-blue-500/20 flex flex-col h-full"
+                                    className="group bg-[#0f172a]/40 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] p-6 relative overflow-hidden animate-slide-up hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 hover:border-emerald-500/20 flex flex-col h-full"
                                 >
                                     {/* Top Right Area (Badges + Actions) */}
                                     <div className="absolute top-6 right-6 flex items-center gap-3 z-20">
@@ -487,11 +487,11 @@ const DataDrivenManager = () => {
 
                                     {/* Title & Metas */}
                                     <div className="mb-6">
-                                        <h3 className="text-xl font-black text-white leading-tight tracking-tight mb-2 line-clamp-2 min-h-[3rem]">
+                                        <h3 className="text-xl font-black text-white leading-tight tracking-tight mb-2 line-clamp-2 min-h-[3rem] group-hover:text-emerald-400 transition-colors">
                                             {file.name}
                                         </h3>
                                         {file.description && (
-                                            <p className="text-[11px] text-slate-300 leading-relaxed line-clamp-3 mb-5">
+                                            <p className="text-[11px] text-slate-300 leading-relaxed line-clamp-3 mb-5 opacity-70">
                                                 {file.description}
                                             </p>
                                         )}
@@ -509,8 +509,10 @@ const DataDrivenManager = () => {
                                         </div>
                                     </div>
 
+                                    <div className="h-px w-full bg-white/5 mb-6" />
+
                                     {/* Progression Section */}
-                                    <div className="bg-[#151921] border border-white/5 rounded-2xl p-5 mb-4">
+                                    <div className="bg-[#131b26]/60 backdrop-blur-md border border-white/10 rounded-[1.5rem] p-5 mb-4">
                                         <div className="flex items-center gap-2 text-[8px] font-black text-slate-600 uppercase tracking-widest mb-6">
                                             <TrendingUp size={12} />
                                             PROGRESSION & CADENCE
@@ -582,7 +584,7 @@ const DataDrivenManager = () => {
                                     </div>
 
                                     {/* Insight IA Area - Intelligent Integration */}
-                                    <div className="bg-blue-600/5 border border-blue-600/10 rounded-2xl p-5 border-l-2 border-l-blue-500/50 mb-4 flex-1 shadow-lg shadow-blue-900/5 group/insight">
+                                    <div className="bg-blue-600/5 backdrop-blur-md border border-blue-600/10 rounded-2xl p-5 border-l-2 border-l-blue-500/50 mb-4 flex-1 shadow-lg shadow-blue-900/5 group/insight">
                                         <div className="flex items-center gap-3 mb-3">
                                             <div className="w-6 h-6 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
                                                 <Zap size={14} className="fill-blue-400/20" />
@@ -630,7 +632,7 @@ const DataDrivenManager = () => {
 
                                         <button
                                             onClick={() => handleOpenPreview(file)}
-                                            className="w-full py-4 bg-[#0b0e14] hover:bg-white/[0.02] border border-white/10 rounded-2xl flex items-center justify-center gap-4 text-xs font-black uppercase tracking-widest text-white transition-all group/footer shadow-lg"
+                                            className="w-full py-4 bg-white/5 hover:bg-white/[0.08] border border-white/10 rounded-2xl flex items-center justify-center gap-4 text-xs font-black uppercase tracking-widest text-white transition-all group/footer shadow-lg"
                                         >
                                             <div className="flex flex-col gap-1 group-hover/footer:scale-110 transition-transform">
                                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />

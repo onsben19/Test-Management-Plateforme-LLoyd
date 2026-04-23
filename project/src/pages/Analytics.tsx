@@ -80,12 +80,12 @@ const Analytics = () => {
             fullHeight={true}
             noPadding={true}
         >
-            <div className="flex flex-1 h-full relative overflow-hidden bg-white/5 dark:bg-black/20 backdrop-blur-sm border border-white/10 rounded-t-[2.5rem]">
+            <div className="flex flex-1 h-full relative overflow-hidden glass-panel rounded-t-[2.5rem]">
                 {/* History sidebar with edge-tab toggle */}
                 <div className="relative flex shrink-0">
                     {/* Sliding panel */}
                     <div className={`${isHistorySidebarOpen ? 'w-80' : 'w-0'
-                        } transition-all duration-500 ease-in-out overflow-hidden border-r border-white/5 bg-slate-950`}>
+                        } transition-all duration-500 ease-in-out overflow-hidden glass-sidebar`}>
                         <ChatHistorySidebar
                             conversations={conversations}
                             currentConversationId={currentConversationId}

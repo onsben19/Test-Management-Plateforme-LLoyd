@@ -29,13 +29,18 @@ const PageLayout: React.FC<PageLayoutProps> = ({
         <div className="min-h-screen bg-slate-50 dark:bg-[#060a16] transition-colors duration-500 relative">
             {/* Premium Background Elements */}
             <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-                <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-blue-600/5 to-transparent dark:from-blue-500/10 dark:to-transparent" />
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+                {/* === LIGHT MODE backgrounds === */}
+                <div className="dark:hidden absolute top-0 left-0 right-0 h-[600px] bg-gradient-to-b from-blue-50 via-indigo-50/30 to-transparent" />
+                <div className="dark:hidden absolute inset-0 bg-[linear-gradient(to_right,#1e3a8a08_1px,transparent_1px),linear-gradient(to_bottom,#1e3a8a08_1px,transparent_1px)] bg-[size:40px_40px]" />
+                <div className="dark:hidden absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-blue-100/60 blur-[120px]" />
+                <div className="dark:hidden absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] rounded-full bg-indigo-100/50 blur-[100px]" />
 
-                {/* Animated Background Blobs */}
-                <div className="absolute top-[10%] left-[10%] w-96 h-96 bg-blue-500/10 blur-[120px] rounded-full animate-pulse" />
-                <div className="absolute bottom-[20%] right-[10%] w-[500px] h-[500px] bg-purple-500/5 blur-[150px] rounded-full animate-pulse [animation-delay:2s]" />
-                <div className="absolute top-[40%] right-[20%] w-72 h-72 bg-emerald-500/5 blur-[100px] rounded-full animate-pulse [animation-delay:4s]" />
+                {/* === DARK MODE backgrounds === */}
+                <div className="hidden dark:block absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-blue-500/10 to-transparent" />
+                <div className="hidden dark:block absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+                <div className="hidden dark:block absolute top-[10%] left-[10%] w-96 h-96 bg-blue-500/10 blur-[120px] rounded-full animate-pulse" />
+                <div className="hidden dark:block absolute bottom-[20%] right-[10%] w-[500px] h-[500px] bg-purple-500/5 blur-[150px] rounded-full animate-pulse [animation-delay:2s]" />
+                <div className="hidden dark:block absolute top-[40%] right-[20%] w-72 h-72 bg-emerald-500/5 blur-[100px] rounded-full animate-pulse [animation-delay:4s]" />
             </div>
 
             <Header />
@@ -59,9 +64,9 @@ const PageLayout: React.FC<PageLayoutProps> = ({
                                     )}
                                     <div className="flex items-center gap-3">
                                         {subtitle && (
-                                            <div className="flex items-center gap-2 px-3 py-1 bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/10 dark:border-blue-500/20 rounded-full">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500/50 animate-pulse" />
-                                                <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest text-nowrap">
+                                            <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-full shadow-sm dark:shadow-none">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                                                <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-widest text-nowrap">
                                                     {subtitle}
                                                 </span>
                                             </div>

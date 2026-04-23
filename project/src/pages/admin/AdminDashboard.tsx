@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import PageLayout from '../../components/PageLayout';
 import { useSidebar } from '../../context/SidebarContext';
+import { useTheme } from '../../context/ThemeContext';
 import StatCard from '../../components/StatCard';
 import DashboardWidget from '../../components/DashboardWidget';
 import AIBriefCard from '../../components/AIBriefCard';
@@ -35,6 +36,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const AdminDashboard = () => {
     const { t } = useTranslation();
     const { isOpen } = useSidebar();
+    const { theme } = useTheme();
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -166,7 +168,7 @@ const AdminDashboard = () => {
             actions={
                 <button
                     onClick={() => { setIsRefreshing(true); fetchData(); }}
-                    className={`p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white transition-all shadow-sm ${isRefreshing ? 'animate-spin' : ''}`}
+                    className={`p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white transition-all shadow-sm hover:shadow-md ${isRefreshing ? 'animate-spin' : ''}`}
                 >
                     <RefreshCw className="w-5 h-5" />
                 </button>
@@ -257,12 +259,13 @@ const AdminDashboard = () => {
                                         />
                                         <Tooltip
                                             contentStyle={{
-                                                backgroundColor: '#0f172a',
-                                                border: 'none',
+                                                backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
+                                                border: theme === 'dark' ? 'none' : '1px solid #e2e8f0',
                                                 borderRadius: '16px',
-                                                color: '#fff',
+                                                color: theme === 'dark' ? '#fff' : '#0f172a',
                                                 boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'
                                             }}
+                                            itemStyle={{ color: theme === 'dark' ? '#fff' : '#0f172a' }}
                                         />
                                         <Area
                                             type="monotone"
@@ -343,8 +346,12 @@ const AdminDashboard = () => {
                                                 ))}
                                             </Pie>
                                             <Tooltip
-                                                contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px' }}
-                                                itemStyle={{ color: '#fff' }}
+                                                contentStyle={{
+                                                    backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
+                                                    border: theme === 'dark' ? 'none' : '1px solid #e2e8f0',
+                                                    borderRadius: '12px'
+                                                }}
+                                                itemStyle={{ color: theme === 'dark' ? '#fff' : '#0f172a' }}
                                             />
                                             <Legend verticalAlign="bottom" height={36} />
                                         </PieChart>

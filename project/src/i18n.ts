@@ -14,13 +14,19 @@ i18n
             en: { translation: en }
         },
         fallbackLng: 'fr',
+        defaultNS: 'translation',
+        ns: ['translation'],
         interpolation: {
             escapeValue: false, // react already safes from xss
+        },
+        react: {
+            useSuspense: false, // Avoid blocking React 19 if translations are loading
         },
         detection: {
             order: ['localStorage', 'cookie', 'navigator'],
             caches: ['localStorage', 'cookie'],
-        }
+        },
+        debug: true // Helps identify missing keys or loading issues
     });
 
 export default i18n;

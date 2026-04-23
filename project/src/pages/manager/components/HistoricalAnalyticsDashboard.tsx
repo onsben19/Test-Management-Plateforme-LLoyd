@@ -70,9 +70,9 @@ const SparkBars = ({ data, color }: { data: number[], color: string }) => {
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-[#0f172a] border border-white/10 p-3 rounded-xl shadow-2xl backdrop-blur-xl">
+            <div className="bg-white/90 dark:bg-[#0f172a]/90 border border-slate-200 dark:border-white/10 p-3 rounded-xl shadow-2xl backdrop-blur-xl">
                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">{label}</p>
-                <p className="text-xs font-black text-white">{payload[0].value}%</p>
+                <p className="text-xs font-black text-slate-900 dark:text-white">{payload[0].value}%</p>
             </div>
         );
     }
@@ -121,25 +121,25 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
     }
 
     return (
-        <div className="bg-[#0f172a] border border-white/5 rounded-[3rem] p-10 shadow-2xl space-y-12 max-w-[900px] mx-auto">
+        <div className="glass-panel rounded-[3rem] p-10 shadow-2xl space-y-12 max-w-[900px] mx-auto overflow-hidden">
             {/* Header section as in mockup */}
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                    <h2 className="text-2xl font-black text-white tracking-tight">
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                         {projectId === 'all' ? 'Analytics Plateforme' : 'Analytics Historiques'}
                     </h2>
                     <p className="text-sm font-bold text-slate-500">
                         {projectId === 'all' ? 'Consolidation de tous les projets actifs' : `Tendances sur ${releaseData.length || 6} releases`}
                     </p>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 rounded-xl border border-blue-500/20 text-blue-400">
+                <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 rounded-xl border border-blue-500/20 text-blue-600 dark:text-blue-400">
                     <Activity className="w-4 h-4" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Live Aggregation</span>
                 </div>
             </div>
 
             {/* Custom Pilled Tabs */}
-            <div className="flex bg-[#161e31] p-1.5 rounded-[1.5rem] w-full max-w-md mx-auto">
+            <div className="flex bg-slate-100 dark:bg-[#161e31] p-1.5 rounded-[1.5rem] w-full max-w-md mx-auto border border-slate-200 dark:border-white/5">
                 {[
                     { id: 'quality', label: 'Qualité' },
                     { id: 'velocity', label: 'Vélocité' },
@@ -165,7 +165,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
-                        className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-8 space-y-8"
+                        className="bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-[2.5rem] p-8 space-y-8"
                     >
                         <div className="flex items-center gap-3 text-slate-400">
                             <TrendingUp size={16} />
@@ -220,7 +220,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
-                        className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-8 space-y-6"
+                        className="bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-[2.5rem] p-8 space-y-6"
                     >
                         <div className="flex items-center gap-3 text-slate-400 mb-4">
                             <Activity size={16} />
@@ -243,7 +243,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                             )}
                                         </div>
                                         <div className="space-y-0.5">
-                                            <h4 className="text-base font-black text-white group-hover:translate-x-1 transition-transform">{tester.tester.name}</h4>
+                                            <h4 className="text-base font-black text-slate-900 dark:text-white group-hover:translate-x-1 transition-transform">{tester.tester.name}</h4>
                                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                                                 {i === 0 ? 'Champion Quality' : i === 1 ? 'Expert' : 'Testeur Junior'}
                                             </p>
@@ -258,7 +258,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                             />
                                         </div>
                                         <div className="text-right w-20">
-                                            <p className="text-lg font-black text-white">{tester.latest_pass_rate}%</p>
+                                            <p className="text-lg font-black text-slate-900 dark:text-white">{tester.latest_pass_rate}%</p>
                                             <span className={`text-[10px] font-black uppercase tracking-widest ${tester.delta_vs_first > 5 ? 'text-emerald-500' : tester.delta_vs_first < -5 ? 'text-rose-500' : 'text-slate-500'}`}>
                                                 {tester.delta_vs_first > 0 ? '↑' : '↓'} {Math.abs(tester.delta_vs_first)}%
                                             </span>
@@ -286,7 +286,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                         {/* Strategic KPI: Confidence Gauge & Time-to-Quality */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                             {/* Left: Confidence Gauge */}
-                            <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center space-y-8 relative overflow-hidden">
+                            <div className="bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center space-y-8 relative overflow-hidden">
                                 <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-600/10 rounded-full blur-[80px]" />
                                 <div className="space-y-2">
                                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Indice de Confiance Global</h3>
@@ -306,7 +306,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                             className="transition-all duration-1000 ease-out"
                                         />
                                     </svg>
-                                    <div className="absolute bottom-0 text-5xl font-black text-white tracking-tighter">
+                                    <div className="absolute bottom-0 text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
                                         {readinessScore}<span className="text-xl text-slate-500">%</span>
                                     </div>
                                 </div>
@@ -319,12 +319,12 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                     </p>
                                     <div className="flex items-center gap-4 justify-center">
                                         <div className="flex flex-col">
-                                            <span className="text-[14px] font-black text-white">{moduleData.length}</span>
+                                            <span className="text-[14px] font-black text-slate-900 dark:text-white">{moduleData.length}</span>
                                             <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Fonctions Analysis</span>
                                         </div>
                                         <div className="w-px h-8 bg-white/5" />
                                         <div className="flex flex-col">
-                                            <span className="text-[14px] font-black text-white">{Math.round(releaseData.reduce((acc, r) => acc + r.anomaly_count, 0))}</span>
+                                            <span className="text-[14px] font-black text-slate-900 dark:text-white">{Math.round(releaseData.reduce((acc, r) => acc + r.anomaly_count, 0))}</span>
                                             <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Bugs Historiques</span>
                                         </div>
                                     </div>
@@ -332,7 +332,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                             </div>
 
                             {/* Right: Time-to-Quality (Area Chart) */}
-                            <div className="bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-8 flex flex-col space-y-6">
+                            <div className="bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-[2.5rem] p-8 flex flex-col space-y-6">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3 text-slate-400">
                                         <Clock size={16} />
@@ -368,9 +368,9 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                                     if (active && payload && payload.length) {
                                                         const data = payload[0].payload;
                                                         return (
-                                                            <div className="bg-[#1e293b] border border-white/10 p-4 rounded-2xl shadow-2xl backdrop-blur-xl">
+                                                            <div className="bg-white/90 dark:bg-[#1e293b]/90 border border-slate-200 dark:border-white/10 p-4 rounded-2xl shadow-2xl backdrop-blur-xl">
                                                                 <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">{data.version}</p>
-                                                                <p className="text-sm font-black text-white">{data.duration_days} Jours de Cycle</p>
+                                                                <p className="text-sm font-black text-slate-900 dark:text-white">{data.duration_days} Jours de Cycle</p>
                                                                 <p className="text-[9px] font-black text-slate-500 uppercase mt-2">Délai de Certification</p>
                                                             </div>
                                                         );
@@ -391,15 +391,15 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-2 mt-2">
-                                    <div className="p-3 bg-white/5 border border-white/10 rounded-2xl">
+                                    <div className="p-3 bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl">
                                         <p className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">Moyenne Cycle</p>
-                                        <p className="text-xs font-bold text-white mt-1">
+                                        <p className="text-xs font-bold text-slate-900 dark:text-white mt-1">
                                             {Math.round(releaseData.reduce((acc, r) => acc + r.duration_days, 0) / (releaseData.length || 1))} Jours
                                         </p>
                                     </div>
-                                    <div className="p-3 bg-white/5 border border-white/10 rounded-2xl">
+                                    <div className="p-3 bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl">
                                         <p className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">Dernier Délai</p>
-                                        <p className="text-xs font-bold text-white mt-1">
+                                        <p className="text-xs font-bold text-slate-900 dark:text-white mt-1">
                                             {releaseData[releaseData.length - 1]?.duration_days || 0} Jours
                                         </p>
                                     </div>

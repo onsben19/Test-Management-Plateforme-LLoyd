@@ -27,6 +27,7 @@ interface Conversation {
     participants: number[];
     participants_details: any[];
     last_message?: any;
+    test_case?: string | number;
     timestamp: Date;
     unreadCount: number;
 }
@@ -99,7 +100,7 @@ const ChatCenter = () => {
         return parts.map((part, i) => {
             const match = part.match(/@(\w+)/);
             if (match) {
-                return <span key={i} className="text-blue-200 font-black bg-blue-400/20 px-1.5 py-0.5 rounded-md mx-0.5 whitespace-nowrap">{match[0]}</span>;
+                return <span key={i} className="text-blue-600 dark:text-blue-200 font-black bg-blue-100 dark:bg-blue-400/20 px-1.5 py-0.5 rounded-md mx-0.5 whitespace-nowrap">{match[0]}</span>;
             }
             return part;
         });
@@ -362,10 +363,10 @@ const ChatCenter = () => {
 
     return (
         <PageLayout title="Chat Center" subtitle="COLLABORATION LIVE" noPadding>
-            <div className="flex bg-[#0b0e14]/50 backdrop-blur-3xl rounded-[2.5rem] border border-white/5 overflow-hidden h-[calc(100vh-280px)] min-h-[600px] relative shadow-2xl">
+            <div className="flex glass-panel rounded-[2.5rem] overflow-hidden h-[calc(100vh-280px)] min-h-[600px] relative">
 
                 {/* 1. Sidebar */}
-                <div className={`w-full lg:w-96 flex flex-col border-r border-white/5 relative z-20 ${selectedConv ? 'hidden lg:flex' : 'flex'}`}>
+                <div className={`w-full lg:w-96 flex flex-col glass-sidebar relative z-20 ${selectedConv ? 'hidden lg:flex' : 'flex'}`}>
                     <div className="p-8 space-y-6">
                         <div className="flex items-center justify-between">
                             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Conversations</h3>
@@ -375,8 +376,8 @@ const ChatCenter = () => {
                             </div>
                         </div>
                         <div className="relative group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500" />
-                            <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Rechercher..." className="w-full bg-white/5 border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-xs text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-bold" />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500" />
+                            <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Rechercher..." className="glass-input w-full pl-12" />
                         </div>
                     </div>
 
@@ -391,14 +392,14 @@ const ChatCenter = () => {
                                     key={conv.id}
                                     layout
                                     onClick={() => setSelectedConv(conv)}
-                                    className={`w-full p-4 rounded-3xl flex items-center gap-4 transition-all overflow-hidden relative ${selectedConv?.id === conv.id ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/40' : 'hover:bg-white/5 text-slate-400'}`}
+                                    className={`w-full p-4 rounded-3xl flex items-center gap-4 transition-all overflow-hidden relative ${selectedConv?.id === conv.id ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/20' : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400'}`}
                                 >
-                                    <div className="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-black border bg-white/5 border-white/5">
+                                    <div className="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-black border bg-white dark:bg-white/5 border-slate-200 dark:border-white/5">
                                         {conv.type === 'DIRECT' ? <User size={18} /> : conv.type === 'GROUP' ? <Users size={18} /> : <Hash size={18} />}
                                     </div>
                                     <div className="flex-1 text-left min-w-0">
                                         <div className="flex justify-between items-center mb-0.5">
-                                            <h4 className={`text-sm font-black truncate ${selectedConv?.id === conv.id ? 'text-white' : 'text-slate-200'}`}>{title}</h4>
+                                            <h4 className={`text-sm font-black truncate ${selectedConv?.id === conv.id ? 'text-white' : 'text-slate-900 dark:text-slate-200'}`}>{title}</h4>
                                             <span className="text-[9px] font-bold opacity-50">
                                                 {conv.timestamp instanceof Date && !isNaN(conv.timestamp.getTime())
                                                     ? formatDistanceToNow(conv.timestamp, { locale: fr })
@@ -414,19 +415,19 @@ const ChatCenter = () => {
                 </div>
 
                 {/* 2. Chat Area */}
-                <div className={`flex-1 flex flex-col relative z-20 ${!selectedConv ? 'hidden lg:flex' : 'flex'}`}>
+                <div className={`flex-1 flex flex-col relative z-20 ${!selectedConv ? 'hidden lg:flex' : 'flex'} bg-white/30 dark:bg-transparent`}>
                     {selectedConv ? (
                         <div className="flex flex-col h-full">
-                            <div className="p-8 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                            <div className="p-8 border-b border-slate-200 dark:border-white/5 bg-white/50 dark:bg-white/[0.02] flex items-center justify-between">
                                 <div className="flex items-center gap-6">
-                                    <button onClick={() => setSelectedConv(null)} className="p-2 lg:hidden hover:bg-white/10 rounded-xl transition-all text-slate-400"><ChevronLeft size={20} /></button>
-                                    <div className="w-16 h-16 rounded-[1.5rem] bg-gradient-to-br from-blue-600 to-indigo-700 p-0.5 shadow-xl">
-                                        <div className="w-full h-full bg-[#0b0e14] rounded-[1.4rem] flex items-center justify-center text-xl font-black text-blue-400 border border-white/5">
+                                    <button onClick={() => setSelectedConv(null)} className="p-2 lg:hidden hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-all text-slate-500 dark:text-slate-400"><ChevronLeft size={20} /></button>
+                                    <div className="w-16 h-16 rounded-[1.5rem] bg-gradient-to-br from-blue-500 to-indigo-600 p-0.5 shadow-xl">
+                                        <div className="w-full h-full bg-white dark:bg-[#0b0e14] rounded-[1.4rem] flex items-center justify-center text-xl font-black text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-white/5">
                                             {selectedConv.type === 'DIRECT' ? <User size={24} /> : <Users size={24} />}
                                         </div>
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-black text-white tracking-tight uppercase">{selectedConv.type === 'DIRECT' ? selectedConv.participants_details.find((p: any) => p.id !== currentUser?.id)?.username : selectedConv.name}</h2>
+                                        <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{selectedConv.type === 'DIRECT' ? selectedConv.participants_details.find((p: any) => p.id !== currentUser?.id)?.username : selectedConv.name}</h2>
                                         <div className="flex items-center gap-2">
                                             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
@@ -438,9 +439,9 @@ const ChatCenter = () => {
                                 <div className="flex items-center gap-4">
                                     <div className="hidden md:flex flex-col items-end">
                                         <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">STATUT GROUPE</p>
-                                        <p className="text-[10px] font-black text-green-400 uppercase tracking-widest">ACTIF & SÉCURISÉ</p>
+                                        <p className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest">ACTIF & SÉCURISÉ</p>
                                     </div>
-                                    <button className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-400 transition-all border border-white/5"><MoreVertical size={20} /></button>
+                                    <button className="p-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-2xl text-slate-500 dark:text-slate-400 transition-all border border-slate-200 dark:border-white/5"><MoreVertical size={20} /></button>
                                 </div>
                             </div>
 
@@ -448,11 +449,11 @@ const ChatCenter = () => {
                                 {groupMessagesByDate(messages).map((group, gIdx) => (
                                     <div key={gIdx} className="space-y-8">
                                         <div className="flex items-center justify-center gap-4">
-                                            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
-                                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] whitespace-nowrap bg-white/5 px-4 py-1.5 rounded-full border border-white/5 backdrop-blur-md">
+                                            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-200 dark:via-white/5 to-transparent" />
+                                            <span className="text-[10px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-[0.3em] whitespace-nowrap bg-white/80 dark:bg-white/5 px-4 py-1.5 rounded-full border border-slate-200 dark:border-white/5 backdrop-blur-md">
                                                 {group.date === new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) ? "Aujourd'hui" : group.date}
                                             </span>
-                                            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+                                            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-200 dark:via-white/5 to-transparent" />
                                         </div>
 
                                         {group.messages.map((msg) => {
@@ -477,13 +478,13 @@ const ChatCenter = () => {
                                                             </div>
                                                         )}
 
-                                                        <div className={`p-6 rounded-[2.5rem] shadow-2xl transition-all relative ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : isMentioned ? 'bg-indigo-600/30 text-slate-200 border border-indigo-500/30 rounded-tl-none' : 'bg-white/5 text-slate-200 border border-white/5 rounded-tl-none'}`}>
+                                                        <div className={`p-6 rounded-[2.5rem] shadow-xl transition-all relative ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : isMentioned ? 'bg-indigo-600/10 dark:bg-indigo-600/30 text-slate-900 dark:text-slate-200 border border-indigo-500/30 rounded-tl-none' : 'bg-white dark:bg-white/5 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/5 rounded-tl-none'}`}>
                                                             {isEditing ? (
                                                                 <div className="flex flex-col gap-3 min-w-[250px]">
-                                                                    <textarea value={editValue} onChange={(e) => setEditValue(e.target.value)} className="bg-black/40 border border-white/10 rounded-2xl p-4 text-sm focus:outline-none resize-none min-h-[100px]" autoFocus />
+                                                                    <textarea value={editValue} onChange={(e) => setEditValue(e.target.value)} className="bg-slate-100 dark:bg-black/40 border border-slate-300 dark:border-white/10 rounded-2xl p-4 text-sm focus:outline-none resize-none min-h-[100px]" autoFocus />
                                                                     <div className="flex justify-end gap-2">
-                                                                        <button onClick={() => setEditingMsgId(null)} className="px-4 py-2 text-[10px] font-black uppercase opacity-50 hover:opacity-100 transition-all">Annuler</button>
-                                                                        <button onClick={() => handleEditMessage(msg.id)} className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-[10px] font-black uppercase transition-all">Enregistrer</button>
+                                                                        <button onClick={() => setEditingMsgId(null)} className="px-4 py-2 text-[10px] font-black uppercase opacity-50 hover:opacity-100 transition-all text-slate-600 dark:text-white">Annuler</button>
+                                                                        <button onClick={() => handleEditMessage(msg.id)} className="px-4 py-2 bg-blue-600 dark:bg-white/20 hover:bg-blue-500 dark:hover:bg-white/30 rounded-xl text-[10px] font-black uppercase transition-all text-white">Enregistrer</button>
                                                                     </div>
                                                                 </div>
                                                             ) : (
@@ -520,8 +521,8 @@ const ChatCenter = () => {
                             <div className="p-8 pt-0 relative">
                                 <AnimatePresence>
                                     {showMentionPopover && (
-                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-8 right-8 mb-4 bg-[#0b0e14] border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden z-50">
-                                            <div className="p-4 border-b border-white/5 bg-white/5 flex items-center justify-between">
+                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-8 right-8 mb-4 bg-white dark:bg-[#0b0e14] border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-2xl overflow-hidden z-50">
+                                            <div className="p-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/5 flex items-center justify-between">
                                                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Mentionner un collègue</span>
                                                 <div className="flex items-center gap-2">
                                                     <AtSign size={12} className="text-blue-500" />
@@ -540,11 +541,11 @@ const ChatCenter = () => {
                                                         }}
                                                         className="w-full p-4 rounded-2xl hover:bg-blue-600 hover:text-white flex items-center gap-4 transition-all group"
                                                     >
-                                                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-xs font-black border border-white/5 group-hover:bg-white/20 transition-all">
+                                                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-xs font-black border border-slate-200 dark:border-white/5 group-hover:bg-white/20 transition-all text-slate-600 dark:text-blue-400">
                                                             {p.username.charAt(0)}
                                                         </div>
                                                         <div className="text-left">
-                                                            <p className="text-sm font-bold">{p.username}</p>
+                                                            <p className="text-sm font-bold text-slate-900 dark:text-white">{p.username}</p>
                                                             <p className="text-[10px] font-black opacity-50 uppercase tracking-widest">{p.first_name || "Utilisateur"} {p.last_name || ""}</p>
                                                         </div>
                                                     </button>
@@ -593,9 +594,9 @@ const ChatCenter = () => {
                         </div>
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center space-y-8">
-                            <div className="w-32 h-32 rounded-[3rem] bg-white/[0.02] border border-white/5 flex items-center justify-center"><MessageSquare size={48} className="text-slate-700" /></div>
-                            <h3 className="text-xl font-black text-white uppercase tracking-widest text-center">Collaboration Center</h3>
-                            <button onClick={() => setShowNewChatModal('direct')} className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl">Nouvelle Discussion</button>
+                            <div className="w-32 h-32 rounded-[3rem] bg-slate-100 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 flex items-center justify-center shadow-inner"><MessageSquare size={48} className="text-slate-300 dark:text-slate-700" /></div>
+                            <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-widest text-center">Collaboration Center</h3>
+                            <button onClick={() => setShowNewChatModal('direct')} className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-500/20 active:scale-95">Nouvelle Discussion</button>
                         </div>
                     )}
                 </div>
@@ -605,18 +606,18 @@ const ChatCenter = () => {
                     {showNewChatModal && (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowNewChatModal(null)} className="absolute inset-0 bg-black/80 backdrop-blur-xl" />
-                            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-lg bg-[#0b0e14] border border-white/10 rounded-[3rem] overflow-hidden">
-                                <div className="p-8 border-b border-white/5 flex items-center justify-between">
-                                    <h3 className="text-sm font-black text-white uppercase tracking-widest">{showNewChatModal === 'direct' ? 'Message Direct' : 'Nouveau Groupe'}</h3>
-                                    <button onClick={() => setShowNewChatModal(null)} className="p-2 hover:bg-white/5 rounded-xl text-slate-500"><X size={20} /></button>
+                            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-lg bg-white dark:bg-[#0b0e14] border border-slate-200 dark:border-white/10 rounded-[3rem] overflow-hidden">
+                                <div className="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">{showNewChatModal === 'direct' ? 'Message Direct' : 'Nouveau Groupe'}</h3>
+                                    <button onClick={() => setShowNewChatModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl text-slate-500"><X size={20} /></button>
                                 </div>
                                 <div className="p-8 space-y-6">
                                     {showNewChatModal === 'group' && (
-                                        <input type="text" value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="Nom du groupe..." className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none" />
+                                        <input type="text" value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="Nom du groupe..." className="glass-input w-full" />
                                     )}
                                     <div className="relative group">
-                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                        <input type="text" value={userSearchTerm} onChange={(e) => setUserSearchTerm(e.target.value)} placeholder="Chercher des membres..." className="w-full bg-white/5 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm text-white focus:outline-none " />
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <input type="text" value={userSearchTerm} onChange={(e) => setUserSearchTerm(e.target.value)} placeholder="Chercher des membres..." className="glass-input w-full pl-12" />
                                     </div>
                                     <div className="max-h-64 overflow-y-auto custom-scrollbar space-y-2">
                                         {filteredUsers.map((u: any) => {
@@ -625,10 +626,10 @@ const ChatCenter = () => {
                                                 <button key={u.id} onClick={() => {
                                                     if (showNewChatModal === 'direct') handleCreateDirect(u.id);
                                                     else setSelectedParticipants(prev => isSelected ? prev.filter(id => id !== u.id) : [...prev, u.id]);
-                                                }} className={`w-full p-4 rounded-2xl flex items-center gap-4 transition-all border ${isSelected ? 'bg-indigo-600/20 border-indigo-500/30' : 'hover:bg-white/5 border-transparent'}`}>
-                                                    <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center text-blue-400 font-black text-xs">{u.username.charAt(0)}</div>
-                                                    <div className="text-left flex-1"><p className="text-sm font-bold text-slate-200">{u.username}</p></div>
-                                                    {isSelected && <Check size={16} className="text-indigo-400" />}
+                                                }} className={`w-full p-4 rounded-2xl flex items-center gap-4 transition-all border ${isSelected ? 'bg-indigo-600/10 border-indigo-500/30' : 'hover:bg-slate-50 dark:hover:bg-white/5 border-transparent'}`}>
+                                                    <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-xs">{u.username.charAt(0)}</div>
+                                                    <div className="text-left flex-1"><p className="text-sm font-bold text-slate-700 dark:text-slate-200">{u.username}</p></div>
+                                                    {isSelected && <Check size={16} className="text-indigo-600 dark:text-indigo-400" />}
                                                 </button>
                                             );
                                         })}
@@ -644,19 +645,19 @@ const ChatCenter = () => {
                     {showForwardModal && (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowForwardModal(false)} className="absolute inset-0 bg-black/80 backdrop-blur-xl" />
-                            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-lg bg-[#0b0e14] border border-white/10 rounded-[3rem] overflow-hidden">
-                                <div className="p-8 border-b border-white/5 flex items-center justify-between">
-                                    <h3 className="text-sm font-black text-white uppercase tracking-widest">Transférer le message</h3>
-                                    <button onClick={() => setShowForwardModal(false)} className="p-2 hover:bg-white/5 rounded-xl text-slate-500"><X size={20} /></button>
+                            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-lg bg-white dark:bg-[#0b0e14] border border-slate-200 dark:border-white/10 rounded-[3rem] overflow-hidden">
+                                <div className="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Transférer le message</h3>
+                                    <button onClick={() => setShowForwardModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl text-slate-500"><X size={20} /></button>
                                 </div>
                                 <div className="p-8 space-y-4">
-                                    <div className="bg-white/5 p-4 rounded-2xl mb-4 italic text-slate-500 text-xs truncate">"{msgToForward?.text}"</div>
-                                    <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Choisir une destination</h4>
+                                    <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-2xl mb-4 italic text-slate-500 text-xs truncate">"{msgToForward?.text}"</div>
+                                    <h4 className="text-[10px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-widest">Choisir une destination</h4>
                                     <div className="max-h-64 overflow-y-auto custom-scrollbar space-y-2">
                                         {conversations.map(c => (
-                                            <button key={c.id} onClick={() => handleForwardMessage(c.id)} className="w-full p-4 rounded-2xl hover:bg-white/5 flex items-center gap-4 transition-all border border-transparent hover:border-white/5">
-                                                <div className="w-8 h-8 rounded-lg bg-blue-600/10 flex items-center justify-center text-blue-400"><Send size={14} /></div>
-                                                <span className="text-sm font-bold text-slate-200">{c.name || c.type}</span>
+                                            <button key={c.id} onClick={() => handleForwardMessage(c.id)} className="w-full p-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-4 transition-all border border-transparent hover:border-slate-200 dark:hover:border-white/5">
+                                                <div className="w-8 h-8 rounded-lg bg-blue-600/10 flex items-center justify-center text-blue-600 dark:text-blue-400"><Send size={14} /></div>
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{c.name || c.type}</span>
                                             </button>
                                         ))}
                                     </div>

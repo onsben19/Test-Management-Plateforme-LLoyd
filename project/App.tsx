@@ -49,142 +49,143 @@ const App: React.FC = () => {
           <SidebarProvider>
             <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <main className="min-h-screen font-sans bg-background text-foreground transition-colors duration-300">
+                <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-[#060a16] text-white font-bold animate-pulse">Chargement des ressources...</div>}>
+                  <Routes>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/unauthorized" element={<Unauthorized />} />
 
-                <Routes>
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/unauthorized" element={<Unauthorized />} />
+                    <Route path="/" element={
+                      <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
+                        <Home />
+                      </RoleGuard>
+                    } />
 
-                  <Route path="/" element={
-                    <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
-                      <Home />
-                    </RoleGuard>
-                  } />
+                    <Route path="/anomalies" element={
+                      <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
+                        <Anomalies />
+                      </RoleGuard>
+                    } />
 
-                  <Route path="/anomalies" element={
-                    <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
-                      <Anomalies />
-                    </RoleGuard>
-                  } />
+                    <Route path="/manager/dashboard" element={
+                      <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
+                        <ManagerDashboard />
+                      </RoleGuard>
+                    } />
 
-                  <Route path="/manager/dashboard" element={
-                    <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
-                      <ManagerDashboard />
-                    </RoleGuard>
-                  } />
+                    <Route path="/manager" element={
+                      <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
+                        <DataDrivenManager />
+                      </RoleGuard>
+                    } />
 
-                  <Route path="/manager" element={
-                    <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
-                      <DataDrivenManager />
-                    </RoleGuard>
-                  } />
+                    <Route path="/portfolio" element={
+                      <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
+                        <ProjectPortfolio />
+                      </RoleGuard>
+                    } />
 
-                  <Route path="/portfolio" element={
-                    <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
-                      <ProjectPortfolio />
-                    </RoleGuard>
-                  } />
-
-                  <Route path="/releases" element={
-                    <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
-                      <ReleaseManager />
-                    </RoleGuard>
-                  } />
-
-
-
-
-                  <Route path="/analytics" element={
-                    <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
-                      <Analytics />
-                    </RoleGuard>
-                  } />
-
-                  <Route path="/execution" element={
-                    <RoleGuard allowedRoles={['ADMIN', 'TESTER', 'MANAGER']}>
-                      <ExecutionTracking />
-                    </RoleGuard>
-                  } />
-
-                  <Route path="/tester-dashboard" element={
-                    <RoleGuard allowedRoles={['ADMIN', 'TESTER']}>
-                      <TesterDashboard />
-                    </RoleGuard>
-                  } />
-
-                  <Route path="/users" element={
-                    <RoleGuard allowedRoles={['ADMIN']}>
-                      <UserManagement />
-                    </RoleGuard>
-                  } />
-
-                  <Route path="/settings" element={
-                    <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
-                      <Settings />
-                    </RoleGuard>
-                  } />
-
-                  <Route path="/messages" element={
-                    <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
-                      <EmailDashboard />
-                    </RoleGuard>
-                  } />
-
-                  <Route path="/chat" element={
-                    <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
-                      <ChatCenter />
-                    </RoleGuard>
-                  } />
+                    <Route path="/releases" element={
+                      <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
+                        <ReleaseManager />
+                      </RoleGuard>
+                    } />
 
 
 
-                  {/* Admin Routes */}
-                  <Route path="/admin/releases" element={
-                    <RoleGuard allowedRoles={['ADMIN']}>
-                      <AdminReleases />
-                    </RoleGuard>
-                  } />
 
-                  <Route path="/admin/campaigns" element={
-                    <RoleGuard allowedRoles={['ADMIN']}>
-                      <AdminCampaigns />
-                    </RoleGuard>
-                  } />
+                    <Route path="/analytics" element={
+                      <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
+                        <Analytics />
+                      </RoleGuard>
+                    } />
 
-                  <Route path="/admin/executions" element={
-                    <RoleGuard allowedRoles={['ADMIN']}>
-                      <AdminExecutions />
-                    </RoleGuard>
-                  } />
+                    <Route path="/execution" element={
+                      <RoleGuard allowedRoles={['ADMIN', 'TESTER', 'MANAGER']}>
+                        <ExecutionTracking />
+                      </RoleGuard>
+                    } />
 
-                  <Route path="/admin/anomalies" element={
-                    <RoleGuard allowedRoles={['ADMIN']}>
-                      <AdminAnomalies />
-                    </RoleGuard>
-                  } />
+                    <Route path="/tester-dashboard" element={
+                      <RoleGuard allowedRoles={['ADMIN', 'TESTER']}>
+                        <TesterDashboard />
+                      </RoleGuard>
+                    } />
 
-                  <Route path="/admin/comments" element={
-                    <RoleGuard allowedRoles={['ADMIN']}>
-                      <AdminComments />
-                    </RoleGuard>
-                  } />
-                  <Route path="/management/messages" element={
-                    <RoleGuard allowedRoles={['ADMIN']}>
-                      <AdminEmails />
-                    </RoleGuard>
-                  } />
-                  <Route path="/admin/dashboard" element={
-                    <RoleGuard allowedRoles={['ADMIN']}>
-                      <AdminDashboard />
-                    </RoleGuard>
-                  } />
-                  <Route path="/management/analytics" element={
-                    <RoleGuard allowedRoles={['ADMIN']}>
-                      <AdminAnalytics />
-                    </RoleGuard>
-                  } />
+                    <Route path="/users" element={
+                      <RoleGuard allowedRoles={['ADMIN']}>
+                        <UserManagement />
+                      </RoleGuard>
+                    } />
 
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
+                    <Route path="/settings" element={
+                      <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
+                        <Settings />
+                      </RoleGuard>
+                    } />
+
+                    <Route path="/messages" element={
+                      <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
+                        <EmailDashboard />
+                      </RoleGuard>
+                    } />
+
+                    <Route path="/chat" element={
+                      <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
+                        <ChatCenter />
+                      </RoleGuard>
+                    } />
+
+
+
+                    {/* Admin Routes */}
+                    <Route path="/admin/releases" element={
+                      <RoleGuard allowedRoles={['ADMIN']}>
+                        <AdminReleases />
+                      </RoleGuard>
+                    } />
+
+                    <Route path="/admin/campaigns" element={
+                      <RoleGuard allowedRoles={['ADMIN']}>
+                        <AdminCampaigns />
+                      </RoleGuard>
+                    } />
+
+                    <Route path="/admin/executions" element={
+                      <RoleGuard allowedRoles={['ADMIN']}>
+                        <AdminExecutions />
+                      </RoleGuard>
+                    } />
+
+                    <Route path="/admin/anomalies" element={
+                      <RoleGuard allowedRoles={['ADMIN']}>
+                        <AdminAnomalies />
+                      </RoleGuard>
+                    } />
+
+                    <Route path="/admin/comments" element={
+                      <RoleGuard allowedRoles={['ADMIN']}>
+                        <AdminComments />
+                      </RoleGuard>
+                    } />
+                    <Route path="/management/messages" element={
+                      <RoleGuard allowedRoles={['ADMIN']}>
+                        <AdminEmails />
+                      </RoleGuard>
+                    } />
+                    <Route path="/admin/dashboard" element={
+                      <RoleGuard allowedRoles={['ADMIN']}>
+                        <AdminDashboard />
+                      </RoleGuard>
+                    } />
+                    <Route path="/management/analytics" element={
+                      <RoleGuard allowedRoles={['ADMIN']}>
+                        <AdminAnalytics />
+                      </RoleGuard>
+                    } />
+
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </React.Suspense>
                 <ToastContainer
                   position="top-right"
                   autoClose={3000}

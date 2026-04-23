@@ -7,6 +7,7 @@ type StarBorderProps<T extends React.ElementType> = React.ComponentPropsWithoutR
     color?: string;
     speed?: React.CSSProperties['animationDuration'];
     thickness?: number;
+    innerClassName?: string;
 };
 
 const StarBorder = <T extends React.ElementType = 'button'>({
@@ -18,10 +19,9 @@ const StarBorder = <T extends React.ElementType = 'button'>({
     children,
     innerClassName,
     ...rest
-}: StarBorderProps<T> & { innerClassName?: string }) => {
+}: StarBorderProps<T>) => {
     const Component = as || 'button';
-    const defaultInnerClass = "relative z-1 bg-gradient-to-b from-black to-gray-900 border border-gray-800 text-white text-center text-[16px] py-[16px] px-[26px] rounded-[20px]";
-
+    const defaultInnerClass = "relative z-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-center text-[16px] py-[16px] px-[26px] rounded-[20px]";
 
     return (
         <Component
@@ -54,4 +54,3 @@ const StarBorder = <T extends React.ElementType = 'button'>({
 };
 
 export default StarBorder;
-

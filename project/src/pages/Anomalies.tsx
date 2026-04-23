@@ -21,7 +21,15 @@ import {
   User,
   Info,
   Edit,
-  Eye
+  Eye,
+  Plus,
+  ArrowRight,
+  Sparkles,
+  Layers,
+  Zap,
+  Clock,
+  ShieldCheck,
+  X
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
@@ -39,7 +47,7 @@ import {
   Legend,
   Tooltip
 } from 'recharts';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Anomaly {
   id: string;
@@ -120,6 +128,7 @@ const Anomalies: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [anomalyToDelete, setAnomalyToDelete] = useState<string | null>(null);
+  const [viewingList, setViewingList] = useState<{ type: 'priorities' | 'ageing', items: any[] } | null>(null);
 
   React.useEffect(() => {
     fetchAnomalies(1);
@@ -213,13 +222,32 @@ const Anomalies: React.FC = () => {
 
   const stats = useMemo(() => {
     const total = data.length;
+    const resolved = data.filter(a => a.status === 'RESOLUE');
+    const openAnomalies = data.filter(a => a.status !== 'RESOLUE');
+
+    // Action Priorities: Critical/Blocker and not resolved
+    const actionPriorities = openAnomalies
+      .filter(a => ['CRITIQUE', 'BLOQUANTES'].includes(a.impact))
+      .sort((a, b) => b.impact === 'BLOQUANTES' ? 1 : -1);
+
+    // Stability Score: Simple ratio for now: resolved / total
+    const stabilityScore = total > 0 ? Math.round((resolved.length / total) * 100) : 100;
+
+    // Ageing: Open for more than 7 days
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const ageingAnomalies = openAnomalies.filter(a => new Date(a.created_at) < sevenDaysAgo);
+
     const items = {
-      total: data.length,
+      total,
       critical: data.filter(a => a.impact === 'CRITIQUE' || a.impact === 'BLOQUANTES').length,
       medium: data.filter(a => a.impact === 'MAJEUR' || a.impact === 'MINEURS').length,
       low: data.filter(a => ['FONCTIONNALITE', 'SIMPLE', 'TEXTE', 'COSMETIQUE'].includes(a.impact)).length,
-      resolved: data.filter(a => a.status === 'RESOLUE').length,
+      resolved: resolved.length,
+      actionPrioritiesCount: actionPriorities.length,
+      ageingAnomaliesCount: ageingAnomalies.length
     };
+
     const distribution = [
       { name: 'Critique/Bloquant', value: items.critical, color: '#ef4444' },
       { name: 'Majeur/Mineur', value: items.medium, color: '#eab308' },
@@ -230,7 +258,7 @@ const Anomalies: React.FC = () => {
       distribution.push({ name: 'Aucune', value: 1, color: '#475569' });
     }
 
-    return { total, items, distribution };
+    return { total, items, distribution, actionPriorities, stabilityScore, ageingAnomalies };
   }, [data]);
 
   const handleDownload = async () => {
@@ -323,22 +351,13 @@ const Anomalies: React.FC = () => {
               isLoading={loading}
             />
             <StatCard
-              title={t('anomalies.stats.critical')}
-              value={stats.items.critical}
-              icon={AlertOctagon}
+              title="Priorités d'Action"
+              value={stats.actionPriorities.length}
+              icon={Zap}
               variant="red"
-              description={t('anomalies.stats.criticalDesc')}
-              change={stats.items.critical > 0 ? `+${stats.items.critical}` : undefined}
-              changeType="negative"
+              description="Bloquantes à traiter d'urgence"
               isLoading={loading}
-            />
-            <StatCard
-              title={t('anomalies.stats.medium')}
-              value={stats.items.medium}
-              icon={AlertCircle}
-              variant="yellow"
-              description={t('anomalies.stats.mediumDesc')}
-              isLoading={loading}
+              onClick={() => setViewingList({ type: 'priorities', items: stats.actionPriorities })}
             />
             <StatCard
               title={t('anomalies.stats.resolved')}
@@ -346,47 +365,57 @@ const Anomalies: React.FC = () => {
               icon={CheckCircle2}
               variant="green"
               description={t('anomalies.stats.resolvedDesc')}
-              changeType="positive"
               isLoading={loading}
+            />
+            <StatCard
+              title="Anomalies Vieillissantes"
+              value={stats.ageingAnomalies.length}
+              icon={Clock}
+              variant="yellow"
+              description="Bugs ouverts depuis +7 jours"
+              isLoading={loading}
+              onClick={() => setViewingList({ type: 'ageing', items: stats.ageingAnomalies })}
             />
           </div>
 
           <div className="flex flex-col gap-8">
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
-              <div className="p-6 border-b border-white/5 flex flex-col xl:flex-row items-center gap-4">
+            <div className="bg-white dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
+              <div className="p-6 border-b border-slate-100 dark:border-white/5 flex flex-col xl:flex-row items-center gap-4">
                 <div className="relative flex-1 group w-full">
                   <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder={t('anomalies.searchPlaceholder')}
-                    className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] pl-16 pr-8 py-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder-slate-500"
+                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[1.5rem] pl-16 pr-8 py-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder-slate-400 dark:placeholder-slate-500"
                   />
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
-                  <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/5 flex-1 xl:flex-none">
-                    <div className="p-2 bg-rose-500/10 rounded-lg">
-                      <Filter className="w-4 h-4 text-rose-500" />
+                <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
+                  <div className="relative group/select min-w-[200px]">
+                    <div className="absolute inset-0 bg-blue-500/5 blur-xl opacity-0 group-hover/select:opacity-100 transition-opacity duration-500 rounded-full" />
+                    <div className="relative bg-slate-50 dark:bg-white/5 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-white/10 hover:border-blue-500/30 hover:bg-slate-100 dark:hover:bg-white/10 transition-all duration-300 overflow-hidden">
+                      <select
+                        value={impactFilter}
+                        onChange={(e) => setImpactFilter(e.target.value as any)}
+                        className="w-full bg-transparent text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-[0.25em] pl-12 pr-10 py-4 outline-none cursor-pointer appearance-none relative z-10"
+                      >
+                        <option value="Tout" className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white">TOUT IMPACT</option>
+                        <option value="BLOQUANTES" className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white">BLOQUANTES</option>
+                        <option value="CRITIQUE" className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white">CRITIQUE</option>
+                        <option value="MAJEUR" className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white">MAJEUR</option>
+                        <option value="MINEURS" className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white">MINEURS</option>
+                        <option value="FONCTIONNALITE" className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white">FONCTIONNALITÉ</option>
+                      </select>
+                      <Filter className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500/50 group-hover/select:text-blue-500 transition-colors pointer-events-none" />
+                      <ArrowRight className="absolute right-5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-600 rotate-90 pointer-events-none" />
                     </div>
-                    <select
-                      value={impactFilter}
-                      onChange={(e) => setImpactFilter(e.target.value as any)}
-                      className="bg-transparent text-[10px] font-black uppercase tracking-widest text-white px-4 py-2 outline-none cursor-pointer appearance-none min-w-[120px]"
-                    >
-                      <option value="Tout" className="bg-slate-900">TOUT IMPACT</option>
-                      <option value="BLOQUANTES" className="bg-slate-900">BLOQUANTES</option>
-                      <option value="CRITIQUE" className="bg-slate-900">CRITIQUE</option>
-                      <option value="MAJEUR" className="bg-slate-900">MAJEUR</option>
-                      <option value="MINEURS" className="bg-slate-900">MINEURS</option>
-                      <option value="FONCTIONNALITE" className="bg-slate-900">FONCTIONNALITÉ</option>
-                    </select>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => fetchAnomalies(currentPage)}
-                      className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-400 hover:text-white transition-all border border-white/5"
+                      className="p-4 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white transition-all border border-slate-200 dark:border-white/5"
                       title={t('anomalies.actions.refresh')}
                     >
                       <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -394,7 +423,7 @@ const Anomalies: React.FC = () => {
                     <button
                       onClick={handleDownload}
                       disabled={isDownloading}
-                      className="px-6 py-4 bg-white/5 hover:bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all border border-white/5"
+                      className="px-6 py-4 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white transition-all border border-slate-200 dark:border-white/5"
                     >
                       {t('anomalies.actions.exportCsv')}
                     </button>
@@ -412,7 +441,7 @@ const Anomalies: React.FC = () => {
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse table-fixed min-w-[1000px]">
                   <thead>
-                    <tr className="border-b border-white/5 bg-white/[0.01]">
+                    <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01]">
                       <th className="w-[30%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('anomalies.table.anomaly')}</th>
                       <th className="w-[12%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Impact</th>
                       <th className="w-[12%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Priorité</th>
@@ -420,7 +449,7 @@ const Anomalies: React.FC = () => {
                       <th className="w-[18%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">{t('anomalies.table.actions')}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                     {loading ? (
                       Array.from({ length: 5 }).map((_, i) => (
                         <tr key={i} className="animate-pulse">
@@ -437,15 +466,16 @@ const Anomalies: React.FC = () => {
                       <tr
                         key={an.id}
                         onClick={() => setSelectedAnomaly(an)}
-                        className="hover:bg-white/[0.04] transition-all duration-300 group cursor-pointer border-b border-white/5 last:border-0"
+                        className="hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-all duration-300 group cursor-pointer border-b border-slate-100 dark:border-white/5 last:border-0"
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-4">
-                            <div className={`p-2.5 rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform ${impactToBadgeColor(an.impact) === 'red' ? 'text-rose-400' : 'text-blue-400'}`}>
+                            <div className={`p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 group-hover:scale-110 transition-transform ${impactToBadgeColor(an.impact) === 'red' ? 'text-rose-600 dark:text-rose-400' : 'text-blue-600 dark:text-blue-400'}`}>
                               <ShieldAlert className="w-5 h-5" />
                             </div>
                             <div className="flex flex-col gap-0.5 min-w-0">
-                              <span className="text-[14px] font-bold text-white tracking-tight group-hover:text-blue-400 transition-colors truncate">
+                              <span className="text-[14px] font-bold text-slate-900 dark:text-white tracking-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+                                <span className="text-blue-500/50 mr-2 font-mono text-[11px]">#{an.id}</span>
                                 {an.title}
                               </span>
                               <div className="flex items-center gap-2">
@@ -527,26 +557,26 @@ const Anomalies: React.FC = () => {
             </div>
 
             {/* Insights Card - Re-designed for decluttering */}
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[3rem] p-10 shadow-2xl relative overflow-hidden group">
+            <div className="bg-white dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-[3rem] p-10 shadow-2xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
                 <ShieldAlert className="w-48 h-48" />
               </div>
 
               <div className="flex flex-col lg:flex-row items-center gap-12 relative">
                 <div className="flex-1 space-y-6">
-                  <div className="inline-flex items-center gap-3 px-4 py-2 bg-blue-500/10 rounded-full border border-blue-500/20">
+                  <div className="inline-flex items-center gap-3 px-4 py-2 bg-blue-50 dark:bg-blue-500/10 rounded-full border border-blue-100 dark:border-blue-500/20">
                     <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{t('anomalies.chart.title')}</span>
+                    <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{t('anomalies.chart.title')}</span>
                   </div>
-                  <h3 className="text-3xl font-black text-white uppercase tracking-tighter leading-none">
+                  <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">
                     Analyse de <span className="text-blue-500">Distribution</span>
                   </h3>
-                  <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-md">
+                  <p className="text-slate-600 dark:text-slate-400 text-sm font-medium leading-relaxed max-w-md">
                     Visualisation dynamique des points de friction identifiés. Les anomalies critiques nécessitent une attention immédiate pour garantir la stabilité de la release.
                   </p>
                 </div>
 
-                <div className="w-full lg:w-[450px] h-[300px] bg-white/[0.02] rounded-[2.5rem] border border-white/5 p-6 backdrop-blur-md">
+                <div className="w-full lg:w-[450px] h-[300px] bg-white dark:bg-white/[0.02] rounded-[2.5rem] border border-slate-100 dark:border-white/5 p-6 shadow-xl dark:shadow-none backdrop-blur-md">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -631,6 +661,91 @@ const Anomalies: React.FC = () => {
         confirmText="Supprimer"
         type="danger"
       />
+
+      <AnimatePresence>
+        {viewingList && (
+          <div className="fixed inset-0 z-[2100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setViewingList(null)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-[#0f172a] border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                <div className="flex items-center gap-4">
+                  <div className={`p-3 rounded-2xl ${viewingList.type === 'priorities' ? 'bg-rose-500/10 text-rose-400' : 'bg-orange-500/10 text-orange-400'}`}>
+                    {viewingList.type === 'priorities' ? <Zap /> : <Clock />}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white uppercase tracking-tight">
+                      {viewingList.type === 'priorities' ? 'Priorités d\'Action' : 'Bugs Vieillissants (+7j)'}
+                    </h3>
+                    <p className="text-slate-500 text-xs font-medium uppercase tracking-widest">
+                      {viewingList.items.length} anomalies identifiées
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setViewingList(null)}
+                  className="p-3 bg-white/5 hover:bg-white/10 text-slate-500 hover:text-white rounded-2xl transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                <div className="space-y-4">
+                  {viewingList.items.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="group p-6 bg-white/5 border border-white/5 rounded-3xl hover:border-blue-500/30 transition-all flex flex-col gap-4"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm ${viewingList.type === 'priorities' ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' : 'bg-orange-500/10 text-orange-500 border border-orange-500/20'}`}>
+                            #{idx + 1}
+                          </div>
+                          <div>
+                            <p className="text-lg font-black text-white tracking-tight">{item.title}</p>
+                            <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mt-0.5">
+                              Impact: {item.impact} • Assigné à: {item.assignedTo}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
+                          <Info size={16} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {viewingList.items.length === 0 && (
+                    <div className="py-12 text-center text-slate-500 font-bold uppercase tracking-widest text-xs">
+                      Aucune donnée disponible
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-6 bg-white/[0.02] border-t border-white/5 flex justify-end">
+                <button
+                  onClick={() => setViewingList(null)}
+                  className="px-8 py-3.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                >
+                  Fermer
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </>
   );
 };

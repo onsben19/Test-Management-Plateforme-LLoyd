@@ -8,9 +8,10 @@ interface StatCardProps {
   change?: string;
   changeType?: 'positive' | 'negative' | 'neutral';
   icon: LucideIcon;
-  variant?: 'blue' | 'red' | 'green' | 'yellow' | 'purple' | 'slate';
+  variant?: 'blue' | 'red' | 'green' | 'yellow' | 'purple' | 'slate' | 'indigo';
   description?: string;
   isLoading?: boolean;
+  onClick?: () => void;
 }
 
 const AnimatedNumber: React.FC<{ value: number | string }> = ({ value }) => {
@@ -54,7 +55,8 @@ const StatCard: React.FC<StatCardProps> = ({
   icon: Icon,
   variant = 'blue',
   description,
-  isLoading = false
+  isLoading = false,
+  onClick
 }) => {
   const variants = {
     blue: {
@@ -110,6 +112,15 @@ const StatCard: React.FC<StatCardProps> = ({
       glow: 'shadow-slate-500/5',
       accent: 'bg-slate-600',
       skeleton: 'bg-slate-200/20 dark:bg-slate-500/20'
+    },
+    indigo: {
+      bg: 'bg-indigo-500/[0.03] dark:bg-indigo-500/[0.02]',
+      border: 'border-indigo-200/50 dark:border-indigo-500/10',
+      iconBg: 'bg-indigo-50 dark:bg-indigo-500/10',
+      iconColor: 'text-indigo-600 dark:text-indigo-400',
+      glow: 'shadow-indigo-500/5',
+      accent: 'bg-indigo-600',
+      skeleton: 'bg-indigo-200/20 dark:bg-indigo-500/20'
     }
   };
 
@@ -135,7 +146,8 @@ const StatCard: React.FC<StatCardProps> = ({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       whileHover={{ y: -8, transition: { type: "spring", stiffness: 400, damping: 25 } }}
-      className={`relative group overflow-hidden ${currentVariant.bg} backdrop-blur-3xl border ${currentVariant.border} rounded-[2rem] p-7 transition-all duration-500 shadow-2xl ${currentVariant.glow}`}
+      onClick={onClick}
+      className={`relative group overflow-hidden glass-card rounded-[2rem] p-7 transition-all duration-500 shadow-2xl ${onClick ? 'cursor-pointer active:scale-[0.98]' : ''}`}
     >
       {/* Dynamic Glow Background */}
       <div className={`absolute -right-10 -bottom-10 w-32 h-32 rounded-full ${currentVariant.accent} opacity-[0.03] group-hover:opacity-[0.08] blur-3xl transition-opacity duration-700`} />
@@ -172,13 +184,11 @@ const StatCard: React.FC<StatCardProps> = ({
 
         <div className={`relative shrink-0`}>
           <div className={`absolute inset-0 ${currentVariant.accent} blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-500 rounded-full`} />
-          <div className={`${currentVariant.iconBg} w-14 h-14 flex items-center justify-center rounded-2xl border ${currentVariant.border} shadow-xl transition-all duration-500 group-hover:scale-110 group-hover:-rotate-6 group-hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.1)]`}>
+          <div className={`${currentVariant.iconBg} w-14 h-14 flex items-center justify-center rounded-2xl border ${currentVariant.border} shadow-sm transition-all duration-500 group-hover:scale-110 group-hover:-rotate-6`}>
             <Icon className={`w-6 h-6 ${currentVariant.iconColor} transition-transform duration-500 group-hover:scale-110`} />
           </div>
         </div>
       </div>
-
-      {/* Subtle corner highlight */}
       <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-white/[0.03] to-transparent pointer-events-none`} />
     </motion.div>
   );

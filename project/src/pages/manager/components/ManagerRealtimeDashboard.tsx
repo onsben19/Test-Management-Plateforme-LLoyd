@@ -246,14 +246,8 @@ const ManagerRealtimeDashboard: React.FC<ManagerRealtimeDashboardProps> = ({ cam
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <button className="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-xl text-indigo-400 text-[10px] font-black uppercase tracking-widest transition-all">
-                        Exporter Session
-                    </button>
-                    <button className="p-2 hover:bg-white/5 rounded-xl transition-all text-slate-400">
-                        <Send size={16} />
-                    </button>
-                </div>
+
+
             </div>
 
             {/* KPI Stack */}

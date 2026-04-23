@@ -14,7 +14,8 @@ import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
 import AdminTable from '../components/AdminTable';
 import StatCard from '../components/StatCard';
-import { Clock, ArrowDownWideZap, SortAsc, SortDesc } from 'lucide-react';
+import { Clock, ArrowDownZa, SortAsc, SortDesc } from 'lucide-react';
+
 
 const ProjectPortfolio = () => {
     const { t } = useTranslation();
@@ -88,7 +89,7 @@ const ProjectPortfolio = () => {
     const HeaderActions = isAdminOrManager && (
         <button
             onClick={() => { setEditingProject(null); setNewProject({ name: '', description: '' }); setIsModalOpen(true); }}
-            className="flex items-center gap-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-8 py-3.5 rounded-2xl transition-all shadow-xl shadow-emerald-900/30 font-bold text-xs tracking-tight"
+            className="flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-8 py-3.5 rounded-2xl transition-all shadow-xl shadow-blue-600/20 font-bold text-xs tracking-tight"
         >
             <Plus className="w-4 h-4" />
             NOUVEAU PROJET
@@ -100,15 +101,15 @@ const ProjectPortfolio = () => {
             header: 'Projet',
             accessor: (item: any) => (
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                         <Briefcase size={14} />
                     </div>
                     <span className="font-bold">{item.name}</span>
                 </div>
             )
         },
-        { header: 'Description', accessor: (item: any) => <span className="text-xs truncate max-w-xs block">{item.description || 'N/A'}</span> },
-        { header: 'Releases', accessor: (item: any) => <span className="font-bold text-blue-400">{item.releases_count || 0}</span> },
+        { header: 'Description', accessor: (item: any) => <span className="text-xs truncate max-w-xs block text-slate-500 dark:text-slate-400">{item.description || 'N/A'}</span> },
+        { header: 'Releases', accessor: (item: any) => <span className="font-bold text-blue-600 dark:text-blue-400">{item.releases_count || 0}</span> },
         { header: 'Créé le', accessor: (item: any) => new Date(item.created_at).toLocaleDateString() },
         { header: 'Propriétaire', accessor: 'created_by_username' }
     ];
@@ -158,27 +159,27 @@ const ProjectPortfolio = () => {
                         >
                             {/* Search & Sort Bar */}
                             <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
-                                <div className="flex-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-4 flex items-center gap-4">
-                                    <Search className="w-5 h-5 text-slate-500 ml-4" />
+                                <div className="flex-1 glass-card p-4 flex items-center gap-4">
+                                    <Search className="w-5 h-5 text-slate-400 ml-4" />
                                     <input
                                         type="text"
                                         placeholder="Rechercher un projet..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="flex-1 bg-transparent border-none text-sm text-white focus:ring-0 outline-none"
+                                        className="flex-1 bg-transparent border-none text-sm text-foreground focus:ring-0 outline-none placeholder-slate-400"
                                     />
                                 </div>
-                                <div className="bg-white/5 border border-white/10 rounded-3xl p-2 flex gap-1">
+                                <div className="glass-card p-2 flex gap-1">
                                     <button
                                         onClick={() => setSortBy('newest')}
-                                        className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === 'newest' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
+                                        className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === 'newest' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'}`}
                                     >
                                         <SortDesc className="w-3.5 h-3.5" />
                                         Plus Récents
                                     </button>
                                     <button
                                         onClick={() => setSortBy('oldest')}
-                                        className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === 'oldest' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
+                                        className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === 'oldest' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'}`}
                                     >
                                         <SortAsc className="w-3.5 h-3.5" />
                                         Plus Anciens
@@ -208,85 +209,91 @@ const ProjectPortfolio = () => {
                                                 initial={{ opacity: 0, scale: 0.95 }}
                                                 animate={{ opacity: 1, scale: 1 }}
                                                 transition={{ delay: idx * 0.05 }}
-                                                className="group relative bg-[#0f172a]/40 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] p-9 hover:border-emerald-500/20 transition-all duration-500 shadow-2xl"
+                                                onClick={() => navigate('/releases', { state: { businessProjectId: project.id, businessProjectName: project.name } })}
+                                                className="group relative glass-card rounded-[2.5rem] p-8 overflow-hidden shadow-xl hover:shadow-2xl cursor-pointer"
                                             >
                                                 {/* Card Header - Icon & Actions */}
-                                                <div className="flex items-start justify-between mb-10">
-                                                    <div className="w-20 h-20 rounded-3xl bg-[#112121] border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                                                        <div className="p-3 bg-emerald-500/5 rounded-2xl border border-emerald-500/10">
-                                                            <Briefcase className="w-8 h-8" />
+                                                <div className="flex items-start justify-between mb-8">
+                                                    <div className="w-16 h-16 rounded-3xl bg-emerald-50 dark:bg-[#112121] border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                                                        <div className="p-2.5 bg-emerald-500/5 rounded-2xl border border-emerald-500/10">
+                                                            <Briefcase className="w-6 h-6" />
                                                         </div>
                                                     </div>
-                                                    <div className="flex gap-3">
+                                                    <div className="flex gap-2" onClick={e => e.stopPropagation()}>
                                                         <button
                                                             onClick={() => { setEditingProject(project); setNewProject({ name: project.name, description: project.description }); setIsModalOpen(true); }}
-                                                            className="p-3.5 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-2xl border border-white/5 transition-all shadow-lg active:scale-95"
+                                                            className="p-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white rounded-2xl border border-slate-200 dark:border-white/5 transition-all shadow-lg active:scale-95"
                                                         >
-                                                            <Pencil size={20} />
+                                                            <Pencil size={16} />
                                                         </button>
                                                         <button
                                                             onClick={() => { setProjectToDelete(project.id); setIsDeleteModalOpen(true); }}
-                                                            className="p-3.5 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-2xl border border-white/5 transition-all shadow-lg active:scale-95"
+                                                            className="p-3 bg-slate-100 dark:bg-white/5 hover:bg-rose-500/10 text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 rounded-2xl border border-slate-200 dark:border-white/5 transition-all shadow-lg active:scale-95"
                                                         >
-                                                            <Trash size={20} />
+                                                            <Trash size={16} />
                                                         </button>
                                                     </div>
                                                 </div>
 
                                                 {/* Status & Info */}
-                                                <div className="space-y-4 mb-10">
-                                                    <div className="flex items-center gap-2.5">
-                                                        <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                                                        <span className="text-[11px] font-black text-emerald-500 uppercase tracking-widest">Actif</span>
+                                                <div className="space-y-2 mb-6">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                                        <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest">Actif</span>
                                                     </div>
-                                                    <h3 className="text-3xl font-black text-white tracking-tight leading-none group-hover:text-emerald-400 transition-colors">{project.name}</h3>
-                                                    <p className="text-slate-500 text-sm font-medium leading-relaxed line-clamp-2 min-h-[3rem] opacity-70">{project.description || 'Description du projet métier'}</p>
+                                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-blue-600 dark:group-hover:text-emerald-400 transition-colors uppercase">{project.name}</h3>
+                                                    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium leading-relaxed line-clamp-2">{project.description || 'Description du projet métier'}</p>
                                                 </div>
 
-                                                <div className="h-px w-full bg-white/5 mb-10" />
+                                                <div className="h-px w-full bg-slate-200 dark:bg-white/5 mb-6" />
 
-                                                {/* Stats Sections */}
-                                                <div className="grid grid-cols-2 gap-5 mb-10">
-                                                    <div className="p-7 bg-[#131b26]/60 border border-white/10 rounded-[2rem] space-y-4 relative overflow-hidden group/stat">
-                                                        <div className="flex items-center gap-2.5">
-                                                            <Layers className="w-4 h-4 text-slate-600" />
-                                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Releases</p>
+                                                {/* Stats */}
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="p-5 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[1.5rem] space-y-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <Layers className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600" />
+                                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Releases</p>
                                                         </div>
-                                                        <p className="text-4xl font-black text-white">{project.releases_count || 0}</p>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {(project.recent_releases || []).slice(0, 2).map((rel: string, i: number) => (
-                                                                <span key={i} className={`text-[9px] px-3 py-1 rounded-lg font-black uppercase tracking-widest ${i === 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-500'}`}>
-                                                                    {rel}
-                                                                </span>
-                                                            ))}
-                                                        </div>
+                                                        <p className="text-3xl font-black text-slate-900 dark:text-white">{project.releases_count || 0}</p>
                                                     </div>
-                                                    <div className="p-7 bg-[#131b26]/60 border border-white/10 rounded-[2rem] space-y-4">
-                                                        <div className="flex items-center gap-2.5">
-                                                            <Calendar className="w-4 h-4 text-slate-600" />
-                                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Créé le</p>
+                                                    <div className="p-5 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[1.5rem] space-y-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600" />
+                                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Créé le</p>
                                                         </div>
                                                         <div>
-                                                            <p className="text-2xl font-black text-white leading-tight uppercase tracking-tighter">
+                                                            <p className="text-xl font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter">
                                                                 {new Date(project.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
                                                             </p>
-                                                            <p className="text-sm text-slate-600 font-bold mt-1">{new Date(project.created_at).getFullYear()}</p>
+                                                            <p className="text-xs text-slate-500 dark:text-slate-600 font-bold mt-0.5">{new Date(project.created_at).getFullYear()}</p>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                {/* Footer Action */}
-                                                <button
-                                                    onClick={() => navigate('/releases', { state: { businessProjectId: project.id, businessProjectName: project.name } })}
-                                                    className="w-full flex items-center justify-between px-10 py-7 bg-[#112121] hover:bg-[#1a2f2b] border border-emerald-500/10 hover:border-emerald-500/30 text-[#10b981] rounded-[2rem] text-xs font-black uppercase tracking-[0.25em] transition-all group/btn shadow-xl"
-                                                >
-                                                    Explorer les Releases
-                                                    <div className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center group-hover/btn:bg-emerald-500 group-hover/btn:text-white transition-all shadow-lg">
-                                                        <ArrowRight size={18} className="group-hover/btn:translate-x-0.5 transition-transform" />
+                                                {/* Testers & Footer */}
+                                                <div className="mt-8 pt-6 border-t border-slate-200/50 dark:border-white/5 flex items-center justify-between">
+                                                    <div className="flex -space-x-3">
+                                                        {project.testers?.slice(0, 3).map((t: any, i: number) => (
+                                                            <div key={i} className="w-10 h-10 rounded-xl border-2 border-white dark:border-slate-900 bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-600 dark:text-slate-300 shadow-lg group-hover:-translate-y-1 transition-transform" style={{ transitionDelay: `${i * 50}ms` }}>
+                                                                {t.initials}
+                                                            </div>
+                                                        ))}
+                                                        {(project.testers?.length || 0) > 3 && (
+                                                            <div className="w-10 h-10 rounded-xl border-2 border-white dark:border-slate-900 bg-white dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-blue-600 dark:text-blue-400 shadow-lg">
+                                                                +{project.testers.length - 3}
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                </button>
+                                                </div>
+
+                                                {/* Hover indicator */}
+                                                <div className="mt-5 flex items-center gap-2 text-[10px] font-black text-slate-600 group-hover:text-emerald-500 transition-colors uppercase tracking-widest">
+                                                    <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                                                    Voir les releases
+                                                </div>
                                             </motion.div>
                                         ))
+
                                 )}
                             </div>
                         </motion.div>
@@ -330,19 +337,19 @@ const ProjectPortfolio = () => {
             {/* Modal */}
             <AnimatePresence>
                 {isModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 backdrop-blur-xl bg-black/60">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 backdrop-blur-2xl bg-black/60">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="w-full max-w-lg bg-[#0f172a] border border-white/10 rounded-[2.5rem] p-10"
+                            className="w-full max-w-lg bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-[2.5rem] p-10 shadow-2xl"
                         >
-                            <h2 className="text-2xl font-bold text-white mb-8">{editingProject ? 'Modifier le Projet' : 'Nouveau Projet'}</h2>
+                            <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-8 tracking-tight uppercase">{editingProject ? 'Modifier le Projet' : 'Nouveau Projet'}</h2>
                             <div className="space-y-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nom du Projet</label>
                                     <input
                                         type="text"
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-emerald-500/50 outline-none"
+                                        className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600/50 outline-none transition-all"
                                         value={newProject.name}
                                         onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
                                     />
@@ -350,7 +357,7 @@ const ProjectPortfolio = () => {
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Description</label>
                                     <textarea
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-emerald-500/50 outline-none h-32 resize-none"
+                                        className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600/50 outline-none h-32 resize-none transition-all"
                                         value={newProject.description}
                                         onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
                                     />

@@ -97,27 +97,6 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                     </div>
                 </section>
 
-                <section className="space-y-6">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Communication</h3>
-                    <div className="bg-gradient-to-br from-blue-600/20 to-indigo-600/10 border border-blue-500/20 rounded-[2.5rem] p-10 text-center space-y-8 shadow-2xl shadow-blue-900/10">
-                        <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-blue-500/40">
-                            <MessageSquare size={32} className="text-white" />
-                        </div>
-                        <div className="space-y-3">
-                            <h4 className="text-xl font-black text-white tracking-tight uppercase">Messagerie Centralisée</h4>
-                            <p className="text-xs font-bold text-slate-400 leading-relaxed mx-auto max-w-[280px]">
-                                Les discussions contextuelles ont été déplacées vers le nouveau **Chat Center** pour une meilleure supervision.
-                            </p>
-                        </div>
-                        <button
-                            onClick={() => navigate(`/chat?testCaseId=${test.id}`)}
-                            className="w-full py-4 bg-white text-blue-600 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-blue-50 transition-all flex items-center justify-center gap-3 active:scale-95 shadow-xl"
-                        >
-                            Accéder à la discussion
-                            <ArrowRight size={14} />
-                        </button>
-                    </div>
-                </section>
             </div>
         </div>
     );

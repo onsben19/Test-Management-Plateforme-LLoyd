@@ -241,9 +241,9 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
             const plotTitle = typeof props.layout?.title === 'object' ? props.layout.title.text : (typeof props.layout?.title === 'string' ? props.layout.title : null);
 
             return (
-                <div className="mt-4 rounded-[2rem] overflow-hidden border border-slate-700/50 bg-slate-950/40 backdrop-blur-md p-8 w-full shadow-2xl flex flex-col items-center">
+                <div className="mt-4 rounded-[2rem] overflow-hidden border border-slate-200 dark:border-slate-700/50 bg-white/50 dark:bg-slate-950/40 backdrop-blur-md p-8 w-full shadow-2xl flex flex-col items-center">
                     {plotTitle && (
-                        <h4 className="text-lg font-bold text-slate-100 mb-6 text-center leading-tight">
+                        <h4 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-6 text-center leading-tight">
                             {plotTitle}
                         </h4>
                     )}
@@ -253,7 +253,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                             autosize: true,
                             paper_bgcolor: 'transparent',
                             plot_bgcolor: 'transparent',
-                            font: { color: '#f8fafc', family: 'Outfit, Inter, sans-serif', size: 13 },
+                            font: { color: 'var(--foreground)', family: 'Outfit, Inter, sans-serif', size: 13 },
                             showlegend: true,
                             legend: { orientation: 'h', y: -0.1, x: 0.5, xanchor: 'center' },
                             ...props.layout,
@@ -297,13 +297,13 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
 
         if (valueKey && (msg.type === 'bar' || !msg.type)) {
             return (
-                <div className="mt-3 h-[450px] w-full p-6 rounded-2xl border border-slate-700/50 bg-slate-900/80 shadow-inner">
+                <div className="mt-3 h-[450px] w-full p-6 rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/80 shadow-inner">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={normalized} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.12)" />
-                            <XAxis dataKey={labelKey} fontSize={12} tickLine={false} axisLine={false} tick={{ fill: '#e2e8f0' }} angle={-35} textAnchor="end" interval={0} />
-                            <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: '#e2e8f0' }} width={40} />
-                            <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', fontSize: '12px', border: '1px solid rgba(148,163,184,0.2)' }} />
+                            <XAxis dataKey={labelKey} fontSize={12} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500 dark:text-slate-400" angle={-35} textAnchor="end" interval={0} />
+                            <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500 dark:text-slate-400" width={40} />
+                            <Tooltip contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '12px', fontSize: '12px', border: '1px solid var(--border)', color: 'var(--foreground)' }} />
                             <Bar dataKey={valueKey} fill="#3b82f6" radius={[8, 8, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
@@ -312,14 +312,14 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
         }
 
         return (
-            <div className="mt-3 rounded-2xl border border-slate-700/50 overflow-hidden">
+            <div className="mt-3 rounded-2xl border border-slate-200 dark:border-slate-700/50 overflow-hidden">
                 <div className="overflow-x-auto max-h-60">
                     <table className="min-w-full text-[11px]">
-                        <thead className="bg-slate-800 sticky top-0 font-bold text-slate-400 uppercase tracking-wider">
+                        <thead className="bg-slate-50 dark:bg-slate-800 sticky top-0 font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                             <tr>{keys.map(k => <th key={k} className="px-4 py-2 text-left">{k.replace(/_/g, ' ')}</th>)}</tr>
                         </thead>
-                        <tbody className="bg-slate-900/60 divide-y divide-slate-800">
-                            {normalized.map((row, i) => <tr key={i} className="hover:bg-blue-900/10 text-slate-300">{keys.map(k => <td key={k} className="px-4 py-2">{row[k]}</td>)}</tr>)}
+                        <tbody className="bg-white/50 dark:bg-slate-900/60 divide-y divide-slate-100 dark:divide-slate-800">
+                            {normalized.map((row, i) => <tr key={i} className="hover:bg-blue-50 dark:hover:bg-blue-900/10 text-slate-700 dark:text-slate-300">{keys.map(k => <td key={k} className="px-4 py-2">{row[k]}</td>)}</tr>)}
                         </tbody>
                     </table>
                 </div>
@@ -348,12 +348,12 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                         </div>
                     ) : (
                         <>
-                            <div className={`rounded-2xl px-4 py-3 shadow-sm ${isUser ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-sm' : msg.type === 'error' ? 'bg-red-900/30 border border-red-700/40 text-red-300 rounded-tl-sm' : 'bg-slate-800 border border-slate-700 text-slate-100 rounded-tl-sm'}`}>
-                                {msg.image && <div className="mb-3 rounded-xl overflow-hidden border border-slate-600"><img src={msg.image} alt="Upload" className="w-full max-h-40 object-cover" /></div>}
+                            <div className={`rounded-2xl px-4 py-3 shadow-sm ${isUser ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-sm' : msg.type === 'error' ? 'bg-red-900/10 dark:bg-red-900/30 border border-red-200 dark:border-red-700/40 text-red-600 dark:text-red-300 rounded-tl-sm' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-tl-sm'}`}>
+                                {msg.image && <div className="mb-3 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-600"><img src={msg.image} alt="Upload" className="w-full max-h-40 object-cover" /></div>}
                                 <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                                 {!isUser && msg.type !== 'text' && msg.type !== 'error' && <div className="mt-1">{renderVisualization(msg)}</div>}
                             </div>
-                            {isUser && <button onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }} className="mt-1.5 opacity-0 group-hover:opacity-100 flex items-center gap-1 text-[10px] text-slate-500 hover:text-blue-400 px-2 py-1 rounded-lg hover:bg-slate-800"><Pencil className="w-3 h-3" />{t('analytics.chat.edit')}</button>}
+                            {isUser && <button onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }} className="mt-1.5 opacity-0 group-hover:opacity-100 flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><Pencil className="w-3 h-3" />{t('analytics.chat.edit')}</button>}
                         </>
                     )}
                     <span className="text-[10px] mt-1.5 text-slate-600 font-medium px-1">{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -363,7 +363,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
     };
 
     const renderInput = () => (
-        <div className="shrink-0 p-4 border-t border-slate-800 bg-slate-950/80 backdrop-blur">
+        <div className="shrink-0 p-4 border-t border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur">
             {imagePreview && (
                 <div className="mb-3 relative inline-block">
                     <img src={imagePreview} className="w-16 h-16 object-cover rounded-xl border-2 border-blue-500" alt="Preview" />
@@ -372,22 +372,22 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
             )}
             <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                 <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" className="hidden" />
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2.5 text-slate-500 hover:text-blue-400 hover:bg-slate-800 rounded-xl transition-all shrink-0"><Paperclip className="w-4 h-4" /></button>
-                <input ref={inputRef} type="text" value={input} onChange={e => setInput(e.target.value)} placeholder={t('analytics.chat.placeholder')} className="flex-1 bg-slate-800 border border-slate-700 text-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all" disabled={loading} />
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2.5 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all shrink-0"><Paperclip className="w-4 h-4" /></button>
+                <input ref={inputRef} type="text" value={input} onChange={e => setInput(e.target.value)} placeholder={t('analytics.chat.placeholder')} className="glass-input w-full" disabled={loading} />
                 <button type="submit" disabled={(!input.trim() && !selectedImage) || loading} className="p-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-xl shadow-lg active:scale-95 shrink-0"><Send className="w-4 h-4" /></button>
             </form>
         </div>
     );
 
     const renderMessages = () => (
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-5 custom-scrollbar bg-slate-900">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-5 custom-scrollbar bg-slate-50 dark:bg-slate-900">
             {messages.length <= 1 && messages[0]?.id === 'welcome' && (
                 <div className="flex flex-col items-center justify-center py-8 gap-4">
                     <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-violet-600 rounded-2xl flex items-center justify-center shadow-xl">
                         <Sparkles className="w-7 h-7 text-white" />
                     </div>
                     <div className="text-center">
-                        <h3 className="font-bold text-slate-200 text-base">{t('analytics.chat.title')}</h3>
+                        <h3 className="font-bold text-slate-900 dark:text-slate-200 text-base">{t('analytics.chat.title')}</h3>
                         <p className="text-slate-500 text-sm mt-1">{t('analytics.subtitle')}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3 mt-4 w-full max-w-lg">
@@ -404,7 +404,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                                 speed="4s"
                                 thickness={1}
                                 className="w-full"
-                                innerClassName="relative z-1 bg-slate-900 border border-slate-700/50 hover:border-blue-500/50 text-slate-300 text-left text-xs p-3 rounded-xl transition-all w-full h-full"
+                                innerClassName="relative z-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 hover:border-blue-500/50 text-slate-700 dark:text-slate-300 text-left text-xs p-3 rounded-xl transition-all w-full h-full"
                             >
                                 {s}
                             </StarBorder>
@@ -415,8 +415,8 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
             <AnimatePresence initial={false}>{messages.filter(m => m.id !== 'welcome' || messages.length === 1).map(msg => <div key={msg.id}>{renderMessage(msg)}</div>)}</AnimatePresence>
             {loading && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0"><Bot className="w-4 h-4 text-blue-400" /></div>
-                    <div className="bg-slate-800 border border-slate-700 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">{[0, 0.2, 0.4].map((delay, i) => <motion.div key={i} animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.8, delay }} className="w-2 h-2 bg-blue-500 rounded-full" />)}</div>
+                    <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0"><Bot className="w-4 h-4 text-blue-600 dark:text-blue-400" /></div>
+                    <div className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">{[0, 0.2, 0.4].map((delay, i) => <motion.div key={i} animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.8, delay }} className="w-2 h-2 bg-blue-500 rounded-full" />)}</div>
                 </motion.div>
             )}
             <div ref={messagesEndRef} />
@@ -425,12 +425,12 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
 
     if (embedded) {
         return (
-            <div className="w-full h-full flex flex-col bg-slate-900 relative overflow-hidden">
-                <div className="shrink-0 bg-slate-950/90 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+            <div className="w-full h-full flex flex-col bg-white dark:bg-slate-900 relative overflow-hidden">
+                <div className="shrink-0 bg-slate-50/90 dark:bg-slate-950/90 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2.5">
-                            <div className="relative"><div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-violet-700 rounded-xl flex items-center justify-center shadow-lg"><Sparkles className="w-4 h-4 text-white" /></div><div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-slate-950 rounded-full" /></div>
-                            <div><h3 className="font-bold text-white text-sm leading-none">Assistant Analytics</h3><span className="text-[10px] text-emerald-400 font-semibold tracking-wider">IA ACTIVE</span></div>
+                            <div className="relative"><div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-violet-700 rounded-xl flex items-center justify-center shadow-lg"><Sparkles className="w-4 h-4 text-white" /></div><div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-950 rounded-full" /></div>
+                            <div><h3 className="font-bold text-slate-800 dark:text-white text-sm leading-none">Assistant Analytics</h3><span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold tracking-wider">IA ACTIVE</span></div>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -447,7 +447,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                         {!embedded && onToggleSidebar && (
                             <button onClick={onToggleSidebar} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">{isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}</button>
                         )}
-                        <button onClick={handleExportPDF} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all" title="Exporter en PDF"><Download className="w-5 h-5" /></button>
+                        <button onClick={handleExportPDF} className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all" title="Exporter en PDF"><Download className="w-5 h-5" /></button>
                     </div>
                 </div>
                 {renderMessages()}
@@ -457,15 +457,15 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
     }
 
     return (
-        <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-            <div className="shrink-0 bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+        <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-slate-900">
+            <div className="shrink-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     {!embedded && onToggleSidebar && (
                         <button onClick={onToggleSidebar} className="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">{isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}</button>
                     )}
                     <div>
-                        <h2 className="text-lg font-bold text-white flex items-center gap-2"><div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />Analyseur de Données IA</h2>
-                        <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">Mode Intelligence Active</p>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />Analyseur de Données IA</h2>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 font-medium tracking-wide uppercase">Mode Intelligence Active</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
