@@ -114,23 +114,15 @@ const Sidebar = () => {
       {/* Branding Section - Top */}
       <div className={`h-16 flex items-center border-b border-slate-100 dark:border-white/5 ${isOpen ? 'px-6' : 'justify-center'}`}>
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="relative flex-shrink-0 group">
-            <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-900 flex items-center justify-center overflow-hidden shadow-lg transition-transform duration-300 group-hover:scale-110 ring-2 ring-white/10">
-              <img
-                src={theme === 'dark' ? '/logo-lloyd-dark.webp' : '/logo-lloyd-light.webp'}
-                alt="Logo"
-                onError={(e) => { (e.target as HTMLImageElement).src = '/logo-lloyd.webp'; }}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
-
-          {isOpen && (
+          {isOpen ? (
             <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-500">
               <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tighter leading-none">
                 Insure<span className="text-blue-600 dark:text-blue-400">TM</span>
               </h1>
+            </div>
+          ) : (
+            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xs shadow-lg">
+              TM
             </div>
           )}
         </div>
@@ -185,23 +177,6 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* Brand Footer */}
-      {isOpen && (
-        <div className="px-8 py-6 flex items-center justify-between opacity-30 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-5 h-5 rounded-md bg-slate-900 dark:bg-slate-900 flex items-center justify-center overflow-hidden">
-              <img
-                src={theme === 'dark' ? '/logo-lloyd-dark.webp' : '/logo-lloyd-light.webp'}
-                alt="Lloyd"
-                onError={(e) => { (e.target as HTMLImageElement).src = '/logo-lloyd.webp'; }}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <span className="text-[9px] font-black text-slate-900 dark:text-white uppercase tracking-[0.2em]">Lloyd Assurances</span>
-          </div>
-          <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
-        </div>
-      )}
     </aside>
   );
 };

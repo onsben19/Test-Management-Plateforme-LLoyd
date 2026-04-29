@@ -47,6 +47,7 @@
     },
     "sidebar": {
         "dashboard": "Tableau de Bord",
+        "Dashboard": "Tableau de Bord",
         "anomalies": "Anomalies",
         "analytics": "AI Analytics",
         "emails": "Emails",
@@ -855,8 +856,15 @@
             "attachment": "Pièce jointe",
             "download": "Cliquer pour télécharger",
             "originalMessage": "Message original",
-            "forwardedMessage": "Message transféré"
+            "forwardedMessage": "Message transféré",
+            "empty": "Sélectionnez un message",
+            "emptyDesc": "Choisissez un message dans la liste pour l'afficher ici"
         },
+        "modal": {
+            "deleteTitle": "Supprimer le message",
+            "deleteConfirm": "Voulez-vous vraiment supprimer ce message ?"
+        },
+        "searchPlaceholder": "Rechercher...",
         "compose": {
             "title": "Nouveau Message",
             "reply": "Répondre",

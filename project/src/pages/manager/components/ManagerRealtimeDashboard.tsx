@@ -104,7 +104,8 @@ const ManagerRealtimeDashboard: React.FC<ManagerRealtimeDashboardProps> = ({ cam
 
         // Setup WebSocket
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws/campaigns/${campaignId}/live/`;
+        const token = localStorage.getItem('access_token');
+        const wsUrl = `${protocol}//${window.location.host}/ws/campaigns/${campaignId}/live/?token=${token}`;
 
         const connectWs = () => {
             const socket = new WebSocket(wsUrl);

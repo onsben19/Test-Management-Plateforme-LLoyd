@@ -10,6 +10,7 @@ import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
 import StatCard from '../components/StatCard';
 import { motion, AnimatePresence } from 'framer-motion';
+import Button from '../components/ui/Button';
 
 interface UserData {
     id: string;
@@ -221,13 +222,13 @@ const UserManagement = () => {
     };
 
     const HeaderActions = isAdmin && (
-        <button
+        <Button
+            variant="primary"
+            icon={UserPlus}
             onClick={() => setIsAddUserOpen(true)}
-            className="group flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-8 py-4 rounded-[2rem] transition-all shadow-xl shadow-blue-900/10 active:scale-95 font-bold text-[11px] tracking-wide uppercase"
         >
-            <UserPlus className="w-4 h-4 group-hover:scale-110 transition-transform" />
             {t('userManagement.addUser')}
-        </button>
+        </Button>
     );
 
     return (
@@ -549,20 +550,19 @@ const UserManagement = () => {
                                 </div>
 
                                 <div className="flex items-center justify-end gap-5 pt-6 border-t border-white/5">
-                                    <button
-                                        type="button"
+                                    <Button
+                                        variant="ghost"
                                         onClick={() => setIsAddUserOpen(false)}
-                                        className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all"
                                     >
                                         {t('userManagement.modal.cancel')}
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                         type="submit"
-                                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hove:to-indigo-500 text-white px-10 py-4 rounded-3xl font-black text-[10px] tracking-widest uppercase transition-all shadow-xl shadow-blue-900/40 active:scale-95 flex items-center gap-3"
+                                        variant="primary"
+                                        icon={UserCheck}
                                     >
-                                        <UserCheck className="w-5 h-5" />
                                         {t('userManagement.modal.create')}
-                                    </button>
+                                    </Button>
                                 </div>
                             </form>
                         </motion.div>
@@ -586,20 +586,22 @@ const UserManagement = () => {
                                 </div>
                                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col items-center gap-4 relative group">
                                     <code className="text-3xl font-black text-blue-400 tracking-[0.2em] font-mono">{generatedPassword}</code>
-                                    <button
+                                    <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        icon={copied ? Check : Copy}
                                         onClick={handleCopyPassword}
-                                        className="flex items-center gap-3 px-6 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-[10px] font-black uppercase tracking-widest text-blue-400 rounded-full border border-blue-500/20 transition-all"
                                     >
-                                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                                         {copied ? "Copied" : "Copy Password"}
-                                    </button>
+                                    </Button>
                                 </div>
-                                <button
+                                <Button
+                                    variant="primary"
                                     onClick={() => setGeneratedPassword(null)}
-                                    className="w-full bg-white text-black hover:bg-slate-200 font-black py-5 rounded-[2rem] text-xs tracking-[0.3em] uppercase transition-all shadow-xl shadow-white/5"
+                                    className="w-full !rounded-[2rem] py-5"
                                 >
                                     {t('userManagement.modal.finish')}
-                                </button>
+                                </Button>
                             </div>
                         </motion.div>
                     </div>

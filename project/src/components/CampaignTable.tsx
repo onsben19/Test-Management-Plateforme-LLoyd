@@ -39,8 +39,9 @@ const CampaignTable = () => {
     try {
       setLoading(true);
       const response = await campaignService.getCampaigns();
-      const results = response.data.results || response.data;
-      const data = results.map((c: any) => ({
+      const responseData = response.data || {};
+      const results = responseData.results || (Array.isArray(responseData) ? responseData : []);
+      const data = Array.isArray(results) ? results.map((c: any) => ({
         id: c.id.toString(),
         title: c.title,
         status: c.is_processed ? 'Terminé' : 'En cours', // Simple logic for now
@@ -52,7 +53,7 @@ const CampaignTable = () => {
         project_name: c.project_name,
         start_date: c.start_date,
         estimated_end_date: c.estimated_end_date
-      }));
+      })) : [];
       setCampaigns(data);
     } catch (error) {
       console.error("Failed to fetch campaigns", error);

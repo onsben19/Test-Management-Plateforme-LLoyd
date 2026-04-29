@@ -15,6 +15,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import AdminTable from '../components/AdminTable';
 import StatCard from '../components/StatCard';
 import { Clock, ArrowDownZa, SortAsc, SortDesc } from 'lucide-react';
+import Button from '../components/ui/Button';
 
 
 const ProjectPortfolio = () => {
@@ -87,13 +88,12 @@ const ProjectPortfolio = () => {
     };
 
     const HeaderActions = isAdminOrManager && (
-        <button
+        <Button
             onClick={() => { setEditingProject(null); setNewProject({ name: '', description: '' }); setIsModalOpen(true); }}
-            className="flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-8 py-3.5 rounded-2xl transition-all shadow-xl shadow-blue-600/20 font-bold text-xs tracking-tight"
+            icon={Plus}
         >
-            <Plus className="w-4 h-4" />
             NOUVEAU PROJET
-        </button>
+        </Button>
     );
 
     const columns = [
@@ -170,20 +170,22 @@ const ProjectPortfolio = () => {
                                     />
                                 </div>
                                 <div className="glass-card p-2 flex gap-1">
-                                    <button
+                                    <Button
+                                        variant={sortBy === 'newest' ? 'primary' : 'ghost'}
+                                        size="sm"
                                         onClick={() => setSortBy('newest')}
-                                        className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === 'newest' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'}`}
+                                        icon={SortDesc}
                                     >
-                                        <SortDesc className="w-3.5 h-3.5" />
-                                        Plus Récents
-                                    </button>
-                                    <button
+                                        RÉCENTS
+                                    </Button>
+                                    <Button
+                                        variant={sortBy === 'oldest' ? 'primary' : 'ghost'}
+                                        size="sm"
                                         onClick={() => setSortBy('oldest')}
-                                        className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${sortBy === 'oldest' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'}`}
+                                        icon={SortAsc}
                                     >
-                                        <SortAsc className="w-3.5 h-3.5" />
-                                        Plus Anciens
-                                    </button>
+                                        ANCIENS
+                                    </Button>
                                 </div>
                             </div>
 
@@ -220,18 +222,18 @@ const ProjectPortfolio = () => {
                                                         </div>
                                                     </div>
                                                     <div className="flex gap-2" onClick={e => e.stopPropagation()}>
-                                                        <button
+                                                        <Button
+                                                            variant="secondary"
+                                                            size="icon"
                                                             onClick={() => { setEditingProject(project); setNewProject({ name: project.name, description: project.description }); setIsModalOpen(true); }}
-                                                            className="p-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white rounded-2xl border border-slate-200 dark:border-white/5 transition-all shadow-lg active:scale-95"
-                                                        >
-                                                            <Pencil size={16} />
-                                                        </button>
-                                                        <button
+                                                            icon={Pencil}
+                                                        />
+                                                        <Button
+                                                            variant="danger"
+                                                            size="icon"
                                                             onClick={() => { setProjectToDelete(project.id); setIsDeleteModalOpen(true); }}
-                                                            className="p-3 bg-slate-100 dark:bg-white/5 hover:bg-rose-500/10 text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 rounded-2xl border border-slate-200 dark:border-white/5 transition-all shadow-lg active:scale-95"
-                                                        >
-                                                            <Trash size={16} />
-                                                        </button>
+                                                            icon={Trash}
+                                                        />
                                                     </div>
                                                 </div>
 
@@ -314,18 +316,18 @@ const ProjectPortfolio = () => {
                                 onSearch={setSearchQuery}
                                 actions={(item) => (
                                     <div className="flex items-center gap-2">
-                                        <button
+                                        <Button
+                                            variant="secondary"
+                                            size="icon"
                                             onClick={() => { setEditingProject(item); setNewProject({ name: item.name, description: item.description }); setIsModalOpen(true); }}
-                                            className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
-                                        >
-                                            <Edit className="w-4 h-4" />
-                                        </button>
-                                        <button
+                                            icon={Edit}
+                                        />
+                                        <Button
+                                            variant="danger"
+                                            size="icon"
                                             onClick={() => { setProjectToDelete(item.id); setIsDeleteModalOpen(true); }}
-                                            className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                            icon={Trash2}
+                                        />
                                     </div>
                                 )}
                             />
@@ -363,10 +365,10 @@ const ProjectPortfolio = () => {
                                     />
                                 </div>
                                 <div className="flex justify-end gap-4 pt-4">
-                                    <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Annuler</button>
-                                    <button onClick={handleSaveProject} className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all shadow-lg shadow-emerald-900/30">
+                                    <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Annuler</Button>
+                                    <Button onClick={handleSaveProject}>
                                         Enregistrer
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         </motion.div>

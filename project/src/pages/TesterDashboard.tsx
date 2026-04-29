@@ -62,13 +62,14 @@ const TesterDashboard = () => {
                 page,
                 search: searchQuery,
             });
-            const data = response.data.results || response.data;
-            const count = response.data.count || (Array.isArray(response.data) ? response.data.length : 0);
+            const responseData = response.data || {};
+            const data = (responseData.results || (Array.isArray(responseData) ? responseData : []));
+            const count = responseData.count || (Array.isArray(data) ? data.length : 0);
             setTotalItems(count);
             setCampaigns(data);
 
             // Calculate total tests planned
-            const total = data.reduce((sum: number, c: any) => sum + (c.nb_test_cases || 0), 0);
+            const total = Array.isArray(data) ? data.reduce((sum: number, c: any) => sum + (c.nb_test_cases || 0), 0) : 0;
 
             // Fetch Anomalies for the user
             try {
@@ -455,7 +456,7 @@ const TesterDashboard = () => {
                         </div>
                     ) : groupMode !== 'none' ? (
                         <div className="space-y-12">
-                            {Object.keys(groupedCampaigns).map(releaseName => (
+                            {Object.keys(groupedCampaigns || {}).map(releaseName => (
                                 <div key={releaseName} className="space-y-6">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-xl bg-blue-600/20 flex items-center justify-center border border-blue-600/30">
@@ -478,7 +479,7 @@ const TesterDashboard = () => {
                                         </span>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                        {groupedCampaigns[releaseName].map(camp => renderCampaignCard(camp))}
+                                        {(groupedCampaigns[releaseName] || []).map(camp => renderCampaignCard(camp))}
                                     </div>
                                 </div>
                             ))}

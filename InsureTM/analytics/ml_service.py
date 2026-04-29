@@ -143,6 +143,58 @@ class MLTimelineGuard:
             }
         }
 
+    def score_tester(self, tester_id, campaign_id=None):
+        """
+        ML scoring system for testers fitness.
+        Calculates a score from 0-100 based on performance features.
+        """
+        try:
+            from testCases.models import TestCase
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            tester = User.objects.get(id=tester_id)
+            
+            # Features extraction
+            # 1. Success Rate (Weight 40%)
+            all_tests = TestCase.objects.filter(tester=tester)
+            total_count = all_tests.count()
+            if total_count == 0: 
+                return {
+                    "score": 50.0,
+                    "metrics": {"success_rate": 0, "velocity": 0, "reliability": 0},
+                    "label": "NEUTRAL"
+                } # New tester neutral score
+
+            
+            success_count = all_tests.filter(status='PASSED').count()
+            success_rate = (success_count / total_count) * 100
+            
+            # 2. Recent Velocity (Weight 30%)
+            last_7_days = timezone.now() - timedelta(days=7)
+            recent_tests = all_tests.filter(execution_date__gte=last_7_days).count()
+            velocity_score = min(100, (recent_tests / 7.0) * 10) # 10 tests/day = 100 points
+            
+            # 3. Reliability (Weight 30%)
+            # Checks consistency: days with at least 1 test in last 14 days
+            last_14_days = timezone.now() - timedelta(days=14)
+            active_days = all_tests.filter(execution_date__gte=last_14_days).dates('execution_date', 'day').count()
+            reliability_score = (active_days / 14.0) * 100
+            
+            # Final ML score (Weighted Average)
+            final_score = (success_rate * 0.4) + (velocity_score * 0.3) + (reliability_score * 0.3)
+            
+            return {
+                "score": round(final_score, 1),
+                "metrics": {
+                    "success_rate": round(success_rate, 1),
+                    "velocity": round(velocity_score, 1),
+                    "reliability": round(reliability_score, 1)
+                },
+                "label": "EXPERT" if final_score > 80 else "STABLE" if final_score > 50 else "TRAINEE"
+            }
+        except Exception:
+            return {"score": 50, "metrics": {}, "label": "NEUTRAL"}
+
     def _generate_ai_insight(self, title, finished, total, velocity, projected, target):
         if finished >= total and total > 0:
             return "Objectif atteint ! Tous les cas de tests ont été validés avec succès. La campagne est terminée."

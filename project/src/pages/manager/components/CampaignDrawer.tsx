@@ -24,6 +24,8 @@ interface Campaign {
     estimated_end_date?: string;
     created_at?: string;
     description?: string;
+    assigned_testers?: number[];
+    assigned_testers_names?: string[];
 }
 
 interface CampaignDrawerProps {
@@ -277,11 +279,23 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                 <div className="pt-10 border-t border-white/5 flex items-center justify-between mb-8">
                                     <div className="flex items-center gap-4">
                                         <div className="flex -space-x-2">
-                                            <div className="w-10 h-10 rounded-full bg-blue-600 border-2 border-[#0b0e14] flex items-center justify-center text-xs font-black text-white">T</div>
-                                            <div className="w-10 h-10 rounded-full bg-emerald-600 border-2 border-[#0b0e14] flex items-center justify-center text-xs font-black text-white">T</div>
+                                            {(campaign.assigned_testers_names || []).length > 0 ? (
+                                                (campaign.assigned_testers_names || []).slice(0, 3).map((name, i) => (
+                                                    <div key={i} className={`w-10 h-10 rounded-full border-2 border-[#0b0e14] flex items-center justify-center text-xs font-black text-white ${i === 0 ? 'bg-blue-600' : i === 1 ? 'bg-emerald-600' : 'bg-purple-600'}`}>
+                                                        {name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-[#0b0e14] flex items-center justify-center text-xs font-black text-slate-500">?</div>
+                                            )}
+                                            {(campaign.assigned_testers_names || []).length > 3 && (
+                                                <div className="w-10 h-10 rounded-full bg-slate-700 border-2 border-[#0b0e14] flex items-center justify-center text-[10px] font-black text-white">
+                                                    +{(campaign.assigned_testers_names || []).length - 3}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="text-sm font-black text-white leading-none mb-1">2</span>
+                                            <span className="text-sm font-black text-white leading-none mb-1">{(campaign.assigned_testers_names || []).length}</span>
                                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Testeurs</span>
                                         </div>
                                     </div>

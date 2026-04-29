@@ -21,6 +21,7 @@ import CatchupPlanIA from '../components/CatchupPlanIA';
 import { Briefcase, Activity, Target, ShieldAlert as ShieldAlertIcon, Award, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageLayout from '../components/PageLayout';
+import Button from '../components/ui/Button';
 import { createPortal } from 'react-dom';
 
 interface TimelineGuardData {
@@ -157,12 +158,13 @@ const DataDrivenManager = () => {
                 page,
                 search: searchQuery,
             });
-            const data = response.data.results || response.data;
-            const count = response.data.count || (Array.isArray(response.data) ? response.data.length : 0);
+            const responseData = response.data || {};
+            const data = (responseData.results || (Array.isArray(responseData) ? responseData : []));
+            const count = responseData.count || (Array.isArray(data) ? data.length : 0);
 
             setTotalItems(count);
 
-            const mappedCampaigns = data.map((camp: any) => ({
+            const mappedCampaigns = Array.isArray(data) ? data.map((camp: any) => ({
                 id: camp.id.toString(),
                 name: camp.title,
                 description: camp.description || '',
@@ -177,7 +179,7 @@ const DataDrivenManager = () => {
                 start_date: camp.start_date,
                 estimated_end_date: camp.estimated_end_date,
                 scheduled_at: camp.scheduled_at
-            }));
+            })) : [];
             setImportedFiles(mappedCampaigns);
 
             mappedCampaigns.forEach((camp: any) => {
@@ -219,22 +221,23 @@ const DataDrivenManager = () => {
     const fetchTesters = async () => {
         try {
             const response = await userService.getUsers({ role: 'TESTER' });
-            setTesters(response.data.results || response.data);
+            const responseData = response.data || {};
+            setTesters(responseData.results || (Array.isArray(responseData) ? responseData : []));
         } catch (error) {
             console.error("Failed to fetch testers", error);
         }
     };
 
     const stats = useMemo(() => {
-        const total = importedFiles.length;
-        const active = importedFiles.filter(f => {
-            const guard = timelineGuards[f.id];
-            return guard && guard.progress.percentage < 100;
+        const total = (importedFiles || []).length;
+        const active = (importedFiles || []).filter(f => {
+            const guard = timelineGuards?.[f.id];
+            return guard && guard.progress?.percentage < 100;
         }).length;
-        const critical = Object.values(timelineGuards).filter(g => g.status === 'CRITICAL').length;
-        const finished = importedFiles.filter(f => {
-            const guard = timelineGuards[f.id];
-            return guard && guard.progress.percentage === 100;
+        const critical = Object.values(timelineGuards || {}).filter(g => g?.status === 'CRITICAL').length;
+        const finished = (importedFiles || []).filter(f => {
+            const guard = timelineGuards?.[f.id];
+            return guard && guard.progress?.percentage === 100;
         }).length;
 
         return { total, active, critical, finished };
@@ -269,6 +272,16 @@ const DataDrivenManager = () => {
             estimated_end_date: campaign.estimated_end_date || '',
             scheduled_at: campaign.scheduled_at || ''
         });
+        
+        // Charger les quotas existants
+        if (campaign.current_quotas) {
+            const quotas: Record<number, number> = {};
+            Object.entries(campaign.current_quotas).forEach(([id, quota]) => {
+                quotas[Number(id)] = Number(quota);
+            });
+            setTesterQuotas(quotas);
+        }
+
         setShowScheduleSelector(!!campaign.scheduled_at);
         setIsModalOpen(true);
     };
@@ -278,6 +291,30 @@ const DataDrivenManager = () => {
         if (file) {
             setCampaignForm({ ...campaignForm, file, title: campaignForm.title || file.name });
         }
+    };
+
+    const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
+    const [isSingleQuotaModalOpen, setIsSingleQuotaModalOpen] = useState(false);
+    const [pendingTester, setPendingTester] = useState<any | null>(null);
+    const [testerQuotas, setTesterQuotas] = useState<Record<number, number>>({});
+    const [tempQuota, setTempQuota] = useState<number>(0);
+
+    const confirmSingleQuota = () => {
+        if (!pendingTester) return;
+        
+        setCampaignForm({
+            ...campaignForm,
+            assigned_testers: [...campaignForm.assigned_testers, pendingTester.id]
+        });
+        
+        setTesterQuotas({
+            ...testerQuotas,
+            [pendingTester.id]: tempQuota || 10
+        });
+        
+        setIsSingleQuotaModalOpen(false);
+        setPendingTester(null);
+        setTempQuota(0);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -306,6 +343,9 @@ const DataDrivenManager = () => {
             formData.append('assigned_testers', id.toString());
         });
 
+        // Ajouter les quotas au format JSON
+        formData.append('tester_quotas', JSON.stringify(testerQuotas));
+
         try {
             if (editingCampaign) {
                 await campaignService.updateCampaign(editingCampaign.id, formData);
@@ -315,6 +355,7 @@ const DataDrivenManager = () => {
                 toast.success("Campagne créée avec succès");
             }
             setIsModalOpen(false);
+            setIsQuotaModalOpen(false);
             fetchCampaigns();
         } catch (error) {
             console.error('Save error:', error);
@@ -353,13 +394,12 @@ const DataDrivenManager = () => {
             title="Campagnes de Tests"
             subtitle={`${activeReleaseName || 'SANS RELEASE'}`}
             actions={
-                <button
+                <Button
                     onClick={openCreateModal}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95"
+                    icon={Upload}
                 >
-                    <Upload className="w-4 h-4" />
                     NOUVELLE CAMPAGNE
-                </button>
+                </Button>
             }
         >
             <div className="space-y-12">
@@ -429,7 +469,7 @@ const DataDrivenManager = () => {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {importedFiles.map((file, index) => {
+                        {(importedFiles || []).map((file, index) => {
                             const guard = timelineGuards[file.id];
                             const readiness = readinessScores[file.id];
                             const total = file.rowCount || 0;
@@ -809,19 +849,27 @@ const DataDrivenManager = () => {
                                 <div className="space-y-4">
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Équipe assignée</label>
                                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 bg-white/5 p-6 rounded-[2rem] border border-white/10 max-h-56 overflow-y-auto custom-scrollbar">
-                                        {testers.map(tester => (
+                                        {(testers || []).map(tester => (
                                             <label key={tester.id} className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all border ${campaignForm.assigned_testers.includes(tester.id) ? 'bg-blue-600/20 border-blue-500 text-white' : 'bg-transparent border-white/5 text-slate-500 hover:border-white/20'}`}>
                                                 <input
                                                     type="checkbox"
                                                     checked={campaignForm.assigned_testers.includes(tester.id)}
                                                     onChange={(e) => {
                                                         const id = tester.id;
-                                                        setCampaignForm({
-                                                            ...campaignForm,
-                                                            assigned_testers: e.target.checked
-                                                                ? [...campaignForm.assigned_testers, id]
-                                                                : campaignForm.assigned_testers.filter(tid => tid !== id)
-                                                        });
+                                                        if (e.target.checked) {
+                                                            // Ouvre le popup pour ce testeur spécifique
+                                                            setPendingTester(tester);
+                                                            setIsSingleQuotaModalOpen(true);
+                                                        } else {
+                                                            // Supprime simplement
+                                                            setCampaignForm({
+                                                                ...campaignForm,
+                                                                assigned_testers: campaignForm.assigned_testers.filter(tid => tid !== id)
+                                                            });
+                                                            const newQuotas = { ...testerQuotas };
+                                                            delete newQuotas[id];
+                                                            setTesterQuotas(newQuotas);
+                                                        }
                                                     }}
                                                     className="hidden"
                                                 />
@@ -871,22 +919,77 @@ const DataDrivenManager = () => {
                     </div>
                 </div>
             )}
-            {/* Readiness Details Modal */}
-            <ReadinessDetailModal
-                isOpen={isDetailModalOpen}
-                onClose={() => setIsDetailModalOpen(false)}
-                data={selectedReadinessData}
-                title={selectedEntityName}
-                aiInsight={selectedAIInsight}
-            />
-            <AIInsightModal
-                isOpen={isAIModalOpen}
-                onClose={() => setIsAIModalOpen(false)}
-                title={selectedEntityName}
-                insight={selectedAIInsight || ""}
-                onOptimize={() => setIsCatchupPlanOpen(true)}
-                showOptimizeButton={activeCampaignId ? timelineGuards[activeCampaignId.toString()]?.status === 'CRITICAL' : false}
-            />
+            {/* Single Quota Modal */}
+            <AnimatePresence>
+                {isSingleQuotaModalOpen && pendingTester && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-950/90 backdrop-blur-md"
+                        />
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-lg bg-slate-900 border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden"
+                        >
+                            <div className="p-10 border-b border-white/5 bg-gradient-to-r from-blue-600/10 to-transparent">
+                                <h3 className="text-3xl font-black text-white uppercase tracking-tight">Assignation</h3>
+                                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-2">Définissez l'objectif pour {pendingTester.username}</p>
+                            </div>
+                            
+                            <div className="p-10 space-y-6">
+                                <div className="flex items-center justify-between gap-6 p-6 bg-white/5 rounded-[2rem] border border-white/5">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+                                            <Target size={20} />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="font-black text-white uppercase tracking-tight text-sm">{pendingTester.username}</span>
+                                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Membre de l'équipe</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <input 
+                                            type="number"
+                                            autoFocus
+                                            value={tempQuota || ''}
+                                            placeholder="10"
+                                            onChange={(e) => setTempQuota(parseInt(e.target.value) || 0)}
+                                            onKeyDown={(e) => e.key === 'Enter' && confirmSingleQuota()}
+                                            className="w-24 bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white font-black text-center focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                        />
+                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tests</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-10 bg-black/20 flex gap-4">
+                                <button 
+                                    type="button"
+                                    onClick={() => {
+                                        setIsSingleQuotaModalOpen(false);
+                                        setPendingTester(null);
+                                    }}
+                                    className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
+                                >
+                                    ANNULER
+                                </button>
+                                <button 
+                                    type="button"
+                                    onClick={confirmSingleQuota}
+                                    className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-900/40 flex items-center justify-center gap-3"
+                                >
+                                    <CheckCircle size={16} />
+                                    CONFIRMER
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </PageLayout>
     );
 };

@@ -1,325 +1,298 @@
 import React, { useState, useEffect } from 'react';
-import {
-    AlertTriangle,
-    TrendingUp,
-    Users,
-    Sparkles,
-    CheckCircle2,
-    ArrowRight,
-    UserPlus,
-    Zap,
-    Clock,
-    ChevronRight,
-    Target,
-    BarChart3,
-    X
-} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+    Zap, AlertTriangle, CheckCircle, ArrowRight, 
+    UserPlus, ShieldCheck, Clock, Brain, RefreshCw, 
+    ChevronRight, Sparkles, Activity
+} from 'lucide-react';
 import { aiService } from '../services/api';
 import { toast } from 'react-toastify';
+import Button from './ui/Button';
 
-interface TesterLoad {
+interface CatchupRecommendation {
     id: number;
     name: string;
+    ml_score: number;
+    ml_label: string;
     current_load: number;
-    is_overloaded: boolean;
-    recommended_extra?: number;
-    status?: 'RECOMMENDED' | 'OVERLOADED';
-    total_executed?: number;
+    recommended_extra: number;
+    status: string;
 }
 
-interface AIAction {
-    id: string;
-    title: string;
-    description: string;
-    type: 'success' | 'warning' | 'error';
-    action_label: string;
-    impact: string;
-}
-
-interface CatchupPlanData {
-    campaign_id: number;
+interface CatchupPlan {
+    campaign_id: string;
     campaign_title: string;
     delay_days: number;
-    current_velocity: number;
     required_velocity: number;
-    days_left: number;
-    remaining_tests: number;
-    progress_percentage: number;
-    tester_distribution: TesterLoad[];
-    ai_actions: AIAction[];
+    current_velocity: number;
+    tester_distribution: CatchupRecommendation[];
+    recommendation_engine: string;
     deadline: string;
 }
 
 interface CatchupPlanIAProps {
-    campaignId: string | number;
-    onClose?: () => void;
+    campaignId: string;
+    onPlanApplied?: () => void;
 }
 
-const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onClose }) => {
-    const [data, setData] = useState<CatchupPlanData | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [appliedActions, setAppliedActions] = useState<string[]>([]);
+const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied }) => {
+    const [plan, setPlan] = useState<any | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [applying, setApplying] = useState(false);
+    const [selectedTesterIds, setSelectedTesterIds] = useState<number[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [assignments, setAssignments] = useState<Record<number, number>>({});
+
+    const fetchPlan = async () => {
+        try {
+            setLoading(true);
+            const response = await aiService.getCatchupPlan(campaignId);
+            const data = response.data;
+            setPlan(data);
+            
+            // Auto-select recommended testers
+            if (data?.tester_distribution) {
+                const recommended = data.tester_distribution
+                    .filter((t: any) => t.status === 'RECOMMENDED')
+                    .map((t: any) => t.id);
+                setSelectedTesterIds(recommended);
+                
+                // Init assignments with recommended extra or default
+                const initialAssignments: Record<number, number> = {};
+                data.tester_distribution.forEach((t: any) => {
+                    if (t.status === 'RECOMMENDED') {
+                        initialAssignments[t.id] = Math.ceil(t.recommended_extra * (data.days_left || 7));
+                    }
+                });
+                setAssignments(initialAssignments);
+            }
+        } catch (error) {
+            toast.error("Impossible de générer le plan de rattrapage");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchPlan = async () => {
-            try {
-                setLoading(true);
-                const response = await aiService.getCatchupPlan(campaignId);
-                setData(response.data);
-            } catch (error) {
-                console.error("Error fetching catchup plan:", error);
-                toast.error("Impossible de charger le plan de rattrapage.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (campaignId) fetchPlan();
+        if (campaignId) {
+            fetchPlan();
+        }
     }, [campaignId]);
 
-    const handleApplyAction = async (actionId: string) => {
+    const toggleTesterSelection = (id: number) => {
+        setSelectedTesterIds(prev => {
+            const isRemoving = prev.includes(id);
+            if (isRemoving) {
+                const { [id]: _, ...rest } = assignments;
+                setAssignments(rest);
+                return prev.filter(tid => tid !== id);
+            } else {
+                setAssignments({ ...assignments, [id]: 10 }); // Default 10 tests
+                return [...prev, id];
+            }
+        });
+    };
+
+    const handleApplyPlan = async () => {
         try {
-            await aiService.applyRecommendation(campaignId, actionId);
-            setAppliedActions(prev => [...prev, actionId]);
-            toast.success("Action IA appliquée avec succès !");
+            setApplying(true);
+            const payload = selectedTesterIds.map(id => ({
+                tester_id: id,
+                test_count: assignments[id] || 0
+            }));
+
+            await aiService.applyCatchupPlan(campaignId, payload);
+            
+            toast.success("Stratégie appliquée : les renforts ont été assignés");
+            if (onPlanApplied) onPlanApplied();
+            fetchPlan();
         } catch (error) {
-            toast.error("Erreur lors de l'application de l'action.");
+            toast.error("Erreur lors de l'application du plan");
+        } finally {
+            setApplying(false);
         }
     };
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center h-[600px] bg-[#0b0e14] rounded-[3rem] border border-white/5 overflow-hidden relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/10 to-purple-600/10 blur-[120px] opacity-40 animate-pulse" />
-                <div className="relative z-10 flex flex-col items-center">
-                    <div className="w-20 h-20 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin shadow-[0_0_30px_rgba(99,102,241,0.5)] mb-8"></div>
-                    <p className="text-slate-400 font-black tracking-[0.3em] uppercase text-[10px] animate-pulse">Synchronisation IA en cours...</p>
+            <div className="bg-slate-900/50 border border-white/5 rounded-3xl p-12 flex flex-col items-center justify-center space-y-6">
+                <div className="relative">
+                    <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                    <Brain className="absolute inset-0 m-auto text-blue-500 animate-pulse" size={24} />
+                </div>
+                <div className="text-center">
+                    <h3 className="text-white font-black uppercase tracking-widest text-sm mb-2">Calcul du Plan Optimal</h3>
+                    <p className="text-slate-500 text-[10px] uppercase font-bold tracking-tight">Analyse des ressources et de la timeline...</p>
                 </div>
             </div>
         );
     }
 
-    if (!data) return null;
+    if (!plan) return null;
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-[#0b0e14] text-white rounded-[3.5rem] border border-white/[0.08] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)] max-w-2xl mx-auto overflow-hidden relative backdrop-blur-3xl"
-        >
-            {/* Premium Background Effects */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(99,102,241,0.1),transparent_70%)] pointer-events-none" />
-            <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-600/10 blur-[130px] -mr-40 -mt-40 rounded-full pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-80 h-80 bg-amber-600/5 blur-[130px] -ml-40 -mb-40 rounded-full pointer-events-none" />
-
-            {/* Fixed Header */}
-            <div className="relative z-20 px-10 pt-10 pb-6 border-b border-white/5 bg-[#0b0e14]/50 backdrop-blur-md">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-slate-500 font-black uppercase tracking-[0.4em] text-[9px] mb-1.5 opacity-60">Optimiseur Stratégique IA</p>
-                        <h2 className="text-xl font-black tracking-tight flex items-center gap-3">
-                            {data.campaign_title}
-                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse" />
-                        </h2>
-                    </div>
-                    <div className="flex flex-col items-end gap-1.5">
-                        <div className="bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 rounded-xl flex items-center gap-2 shadow-[0_0_30px_rgba(99,102,241,0.15)]">
-                            <Sparkles className="w-3.5 h-3.5 text-indigo-400 fill-indigo-400" />
-                            <span className="text-indigo-300 font-black text-[9px] uppercase tracking-widest">Expert Connecté</span>
+        <div className="space-y-8 animate-fade-in">
+            {/* Header Strategy */}
+            <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-12 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <Zap size={120} className="fill-white" />
+                </div>
+                
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 relative z-10">
+                    <div className="max-w-2xl">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full flex items-center gap-2">
+                                <Brain size={14} className="text-blue-400" />
+                                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">STRATÉGIE IA</span>
+                            </div>
+                            <div className="px-3 py-1 bg-amber-500/20 border border-amber-500/30 rounded-full flex items-center gap-2">
+                                <Clock size={14} className="text-amber-400" />
+                                <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">RETARD : {plan.delay_days || 0} JOURS</span>
+                            </div>
                         </div>
-                        {data.delay_days > 0 && (
-                            <span className="text-rose-500/80 font-black text-[8px] uppercase tracking-[0.2em] bg-rose-500/5 px-2 py-0.5 rounded-full border border-rose-500/10">
-                                +{data.delay_days}j retard détecté
-                            </span>
-                        )}
+                        <h2 className="text-3xl font-black text-white uppercase tracking-tight mb-4">{plan.campaign_title || 'Optimisation de Campagne'}</h2>
+                        <p className="text-slate-300 text-sm leading-relaxed italic border-l-2 border-blue-500/50 pl-6">
+                            "{plan.recommendation_engine || "Analyse des performances en cours..."}"
+                        </p>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-4 bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-3xl min-w-[240px]">
+                        <div className="text-center">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">VÉLOCITÉ REQUISE</span>
+                            <div className="text-4xl font-black text-white">{plan.required_velocity || 0} <span className="text-xs text-blue-500">t/j</span></div>
+                        </div>
+                        <div className="w-full h-px bg-white/10" />
+                        <div className="text-center">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">VÉLOCITÉ ACTUELLE</span>
+                            <div className="text-2xl font-bold text-slate-400">{plan.current_velocity || 0} <span className="text-[10px]">t/j</span></div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Scrollable Content Area */}
-            <div className="h-[550px] overflow-y-auto px-10 py-8 custom-scrollbar relative z-10">
-                <style dangerouslySetInnerHTML={{
-                    __html: `
-                    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-                    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
-                    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.3); }
-                `}} />
+            {/* Recommendations Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {(plan.tester_distribution || []).map((rec: any, idx: number) => {
+                    const isSelected = selectedTesterIds.includes(rec.id);
+                    const isRecommended = rec.status === 'RECOMMENDED';
+                    const isAlreadyIn = rec.is_already_in;
 
-                {/* Required Goal Section */}
-                <div className="mb-10">
-                    <label className="text-[9px] uppercase font-black tracking-[0.4em] text-slate-500 flex items-center gap-3 mb-6">
-                        <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full shadow-[0_0_8px_rgba(99,102,241,1)]" />
-                        Objectif requis
-                    </label>
-
-                    <div className="flex justify-between items-end mb-6">
-                        <div>
-                            <div className="flex items-baseline gap-3">
-                                <span className="text-6xl font-black text-white tracking-tighter tabular-nums drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]">{data.required_velocity}</span>
-                                <span className="text-slate-500 font-black uppercase text-[10px] tracking-[0.2em] mb-2">tests/jour</span>
+                    return (
+                        <motion.div 
+                            key={rec.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.1 }}
+                            onClick={() => toggleTesterSelection(rec.id)}
+                            className={`relative cursor-pointer bg-slate-900/40 border-2 rounded-3xl p-6 transition-all group overflow-hidden ${
+                                isSelected 
+                                    ? 'border-blue-500 bg-blue-500/5 shadow-lg shadow-blue-500/10' 
+                                    : 'border-white/5 hover:border-white/20'
+                            }`}
+                        >
+                            {/* Selection Indicator */}
+                            <div className={`absolute top-4 right-4 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                                isSelected ? 'bg-blue-500 border-blue-500' : 'border-white/10'
+                            }`}>
+                                {isSelected && <CheckCircle size={14} className="text-white" />}
                             </div>
-                            <div className="flex items-center gap-2.5 bg-white/[0.03] w-fit px-3 py-1 rounded-lg border border-white/5 mt-2">
-                                <TrendingUp className="w-3 h-3 text-amber-500" />
-                                <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Actuel : {data.current_velocity}</span>
-                                <div className="w-1 h-3 bg-white/10 rounded-full" />
-                                <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Rattrapage requis</span>
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <div className="flex items-baseline justify-end gap-2">
-                                <span className="text-4xl font-black text-amber-500 tracking-tighter">{data.days_left}</span>
-                                <span className="text-slate-500 font-black uppercase text-[10px] tracking-[0.2em] mb-1">jours</span>
-                            </div>
-                            <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] opacity-40">{data.remaining_tests} tests restants</p>
-                        </div>
-                    </div>
 
-                    <div className="space-y-3">
-                        <div className="h-2.5 w-full bg-white/[0.03] rounded-full overflow-hidden relative border border-white/[0.05] p-0.5">
-                            <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${data.progress_percentage}%` }}
-                                transition={{ duration: 1, ease: "circOut" }}
-                                className="h-full bg-gradient-to-r from-indigo-600 to-indigo-400 rounded-full shadow-[0_0_15px_rgba(99,102,241,0.5)]"
-                            />
-                        </div>
-                        <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-[0.2em]">
-                            <span className="text-indigo-400">{data.progress_percentage}% COMPLÉTÉ</span>
-                            <span className="text-slate-600 italic">Deadline : {new Date(data.deadline).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Tester Distribution Section */}
-                <div className="mb-10">
-                    <label className="text-[9px] uppercase font-black tracking-[0.4em] text-slate-500 flex items-center gap-3 mb-6">
-                        <div className="w-1.5 h-1.5 bg-amber-500 rounded-full shadow-[0_0_8px_rgba(245,158,11,1)]" />
-                        Répartition des ressources
-                    </label>
-
-                    <div className="grid gap-3">
-                        {data.tester_distribution.map((tester, idx) => {
-                            const maxLoad = 15; // Échelle max pour le graph
-                            const currentPercent = (tester.current_load / maxLoad) * 100;
-                            const extraPercent = ((tester.recommended_extra || 0) / maxLoad) * 100;
-
-                            return (
-                                <motion.div
-                                    key={tester.id}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.2 + (idx * 0.05) }}
-                                    className="bg-white/[0.01] border border-white/[0.05] rounded-2xl p-4 flex items-center justify-between group hover:bg-white/[0.03] hover:border-white/10 transition-all duration-300"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs ${tester.status === 'OVERLOADED' ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' : 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20'}`}>
-                                            {tester.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-sm tracking-tight">{tester.name}</h4>
-                                            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Charge : {tester.current_load} t/j</p>
-                                        </div>
+                            <div className="flex items-start justify-between mb-6">
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl transition-all group-hover:scale-110 ${
+                                        isSelected ? 'bg-blue-500 shadow-blue-500/20' : 'bg-slate-800'
+                                    }`}>
+                                        <UserPlus size={24} />
                                     </div>
-
-                                    <div className="flex items-center gap-6">
-                                        {tester.recommended_extra && (
-                                            <div className="flex flex-col items-end gap-1.5">
-                                                <div className="h-1.5 w-24 bg-white/5 rounded-full overflow-hidden flex">
-                                                    <div className="h-full bg-slate-500/30" style={{ width: `${currentPercent}%` }} />
-                                                    <motion.div
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${extraPercent}%` }}
-                                                        className="h-full bg-indigo-400 shadow-[0_0_10px_rgba(129,140,248,0.5)]"
-                                                    />
-                                                </div>
-                                                <span className="text-[8px] font-black text-indigo-400 tracking-widest">+{tester.recommended_extra} OPTIMISATION</span>
-                                            </div>
-                                        )}
-                                        <div className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${tester.status === 'OVERLOADED' ? 'bg-rose-500/5 text-rose-500 border-rose-500/20' : 'bg-emerald-500/5 text-emerald-500 border-emerald-500/20'}`}>
-                                            {tester.status === 'OVERLOADED' ? 'Saturé' : 'Recommandé'}
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* AI Actions Section */}
-                <div>
-                    <label className="text-[9px] uppercase font-black tracking-[0.4em] text-slate-500 flex items-center gap-3 mb-6">
-                        <Zap className="w-3 h-3 text-indigo-400 fill-indigo-400" />
-                        Actions correctives IA
-                    </label>
-
-                    <div className="grid gap-3">
-                        {data.ai_actions.map((action, idx) => {
-                            const isApplied = appliedActions.includes(action.id);
-                            return (
-                                <motion.div
-                                    key={action.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.4 + (idx * 0.1) }}
-                                    className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 relative overflow-hidden group hover:bg-white/[0.05] hover:border-indigo-500/30 transition-all duration-300 shadow-xl"
-                                >
-                                    <div className="flex gap-5 items-start relative z-10">
-                                        <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${action.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' :
-                                            action.type === 'warning' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' :
-                                                'bg-rose-500/10 border-rose-500/20 text-rose-500'
-                                            }`}>
-                                            {isApplied ? <CheckCircle2 size={20} /> : (
-                                                action.type === 'success' ? <UserPlus size={20} /> :
-                                                    action.type === 'warning' ? <BarChart3 size={20} /> :
-                                                        <AlertTriangle size={20} />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-xl font-black text-white uppercase tracking-tight truncate">{rec.name}</h3>
+                                            {isAlreadyIn && (
+                                                <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-md text-[7px] font-black text-blue-400 uppercase tracking-widest">DÉJÀ ASSIGNÉ</span>
                                             )}
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between gap-4 mb-2">
-                                                <h5 className="font-bold text-sm tracking-tight truncate">{action.title}</h5>
-                                                <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest px-2 py-0.5 bg-indigo-500/10 rounded border border-indigo-500/20 shrink-0">{action.impact}</span>
-                                            </div>
-                                            <p className="text-[11px] text-slate-500 font-medium leading-relaxed mb-4 line-clamp-2">
-                                                {action.description}
-                                            </p>
-
-                                            <div className="flex gap-4">
-                                                {isApplied ? (
-                                                    <div className="flex items-center gap-2 text-emerald-400 text-[9px] font-black uppercase tracking-widest bg-emerald-500/10 px-4 py-2 rounded-xl border border-emerald-500/20 w-fit">
-                                                        <CheckCircle2 className="w-3 h-3" /> Appliqué
-                                                    </div>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => handleApplyAction(action.id)}
-                                                        className="bg-white/5 border border-white/10 hover:bg-white hover:text-black transition-all duration-300 text-white px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 group/btn"
-                                                    >
-                                                        {action.action_label}
-                                                        <ArrowRight className="w-3 h-3 group-hover/btn:translate-x-1 transition-transform" />
-                                                    </button>
-                                                )}
-                                            </div>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <ShieldCheck size={12} className={isRecommended ? "text-emerald-500" : "text-slate-500"} />
+                                            <span className={`text-[10px] font-black uppercase tracking-widest ${isRecommended ? "text-emerald-500" : "text-slate-500"}`}>
+                                                FIT SCORE : {rec.ml_score}%
+                                            </span>
                                         </div>
                                     </div>
-                                </motion.div>
-                            );
-                        })}
-                    </div>
-                </div>
+                                </div>
+                                {rec.recommended_extra > 0 && (
+                                    <div className={`rounded-2xl p-3 text-right transition-colors ${isSelected ? 'bg-blue-500/10' : 'bg-white/5'}`}>
+                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">CHARGE ADDITIONNELLE</span>
+                                        <span className="text-lg font-black text-white">+{rec.recommended_extra} <span className="text-[10px] text-blue-500">tests</span></span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 mb-6 relative overflow-hidden">
+                                <div className="absolute top-2 right-2 text-blue-500/10">
+                                    <Brain size={40} />
+                                </div>
+                                <p className="text-[11px] text-slate-400 leading-relaxed relative z-10">
+                                    {rec.ml_label || "Ressource qualifiée pour cette campagne."}
+                                </p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="flex justify-between text-[8px] font-black text-slate-500 uppercase tracking-widest">
+                                    <span>Charge actuelle</span>
+                                    <span className={rec.current_load > 8 ? 'text-rose-500' : 'text-emerald-500'}>
+                                        {rec.current_load} units/jour
+                                    </span>
+                                </div>
+                                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                                    <div 
+                                        className={`h-full rounded-full ${rec.current_load > 8 ? 'bg-rose-500' : 'bg-blue-500'}`}
+                                        style={{ width: `${Math.min((rec.current_load / 10) * 100, 100)}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </motion.div>
+                    );
+                })}
             </div>
 
-            {/* Fixed Footer */}
-            <div className="relative z-20 p-6 border-t border-white/5 bg-[#0b0e14]/80 backdrop-blur-md">
-                <button
-                    onClick={onClose}
-                    className="w-full py-4 text-slate-500 hover:text-white text-[10px] font-black uppercase tracking-[0.4em] transition-all flex items-center justify-center gap-2.5 group hover:bg-white/[0.02] rounded-2xl border border-transparent hover:border-white/5"
-                >
-                    <X className="w-3.5 h-3.5 opacity-50 group-hover:rotate-90 transition-transform duration-300" />
-                    Fermer la session IA
-                </button>
+            {/* Action Footer */}
+            <div className="flex items-center justify-between bg-white/[0.02] border border-white/5 p-8 rounded-[2rem]">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                        <Activity size={24} />
+                    </div>
+                    <div>
+                        <h4 className="text-lg font-black text-white uppercase tracking-tight">
+                            {selectedTesterIds.length} Testeur(s) sélectionné(s)
+                        </h4>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                            Impact estimé : +{((plan.current_velocity || 0) * (1 + selectedTesterIds.length * 0.25)).toFixed(1)} tests/jour
+                        </p>
+                    </div>
+                </div>
+                
+                <div className="flex gap-4">
+                    <Button 
+                        variant="secondary"
+                        size="icon"
+                        onClick={fetchPlan}
+                        isLoading={loading}
+                        disabled={applying}
+                        icon={RefreshCw}
+                    />
+                    <Button 
+                        variant="primary"
+                        onClick={handleApplyPlan}
+                        isLoading={applying}
+                        disabled={applying || !plan || selectedTesterIds.length === 0}
+                        icon={ArrowRight}
+                        className="px-8"
+                    >
+                        {applying ? 'APPLICATION...' : 'APPLIQUER LA STRATÉGIE'}
+                    </Button>
+                </div>
             </div>
-        </motion.div>
+        </div>
     );
 };
 

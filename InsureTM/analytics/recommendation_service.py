@@ -41,62 +41,82 @@ class CatchupRecommendationManager:
                 
             required_velocity = remaining_tests / days_left
             
-            # Analyse des testeurs assignés
-            testers = campaign.assigned_testers.all()
-            tester_stats = []
+            # Analyse des testeurs disponibles (ceux du projet ou tous les testeurs)
+            # On cherche des renforts parmi ceux qui ne sont pas déjà dans la campagne
+            current_tester_ids = list(campaign.assigned_testers.values_list('id', flat=True))
             
-            for tester in testers:
-                # Mesure de la charge récente (test exécutés ces 3 derniers jours)
+            # Pool de testeurs potentiels : tous les testeurs du système
+            all_relevant_testers = User.objects.filter(role='TESTER')
+            
+            from campaigns.models import CampaignAssignment
+            
+            tester_stats = []
+            for tester in all_relevant_testers:
+                # 1. Measure recent load (last 3 days)
                 recent_tests = TestCase.objects.filter(
                     tester=tester,
-                    campaign=campaign,
                     execution_date__gte=timezone.now() - timedelta(days=3)
                 ).count()
-                
-                # Charge journalière moyenne sur 3 jours
                 tester_load = recent_tests / 3.0
                 
+                # 2. Get ML Performance Score
+                perf = self.ml_guard.score_tester(tester.id, campaign_id)
+                
+                is_already_in = tester.id in current_tester_ids
+                
+                # 3. Check if they finished their quota (if already in)
+                has_finished_quota = False
+                if is_already_in:
+                    assignment = CampaignAssignment.objects.filter(campaign=campaign, tester=tester).first()
+                    if assignment and assignment.test_quota > 0:
+                        total_done = TestCase.objects.filter(campaign=campaign, tester=tester).count()
+                        has_finished_quota = total_done >= assignment.test_quota
+
                 tester_stats.append({
                     "id": tester.id,
                     "name": f"{tester.first_name} {tester.last_name[0]}." if tester.first_name and tester.last_name else tester.username,
                     "current_load": round(tester_load, 1),
-                    "is_overloaded": tester_load > 8, # Seuil arbitraire
-                    "total_executed": recent_tests
+                    "is_overloaded": tester_load > 8,
+                    "is_already_in": is_already_in,
+                    "has_finished_quota": has_finished_quota,
+                    "ml_score": perf['score'],
+                    "ml_label": perf['label'],
+                    "ml_metrics": perf['metrics']
                 })
                 
-            # Distribution intelligente
-            # Trier par charge croissante
-            tester_stats.sort(key=lambda x: x['current_load'])
+            # Distribution intelligente : on cherche des renforts
+            # (ceux qui ne sont PAS dans la campagne OU ceux qui ont déjà fini leur quota)
+            potential_reinforcements = [
+                t for t in tester_stats 
+                if not t['is_overloaded'] and (not t['is_already_in'] or t['has_finished_quota'])
+            ]
+            potential_reinforcements.sort(key=lambda x: (-x['ml_score'], x['current_load']))
             
             delta_velocity = max(0, required_velocity - current_velocity)
             
-            # Suggérer une charge supplémentaire pour les 2 testeurs les moins chargés
+            # Suggérer une charge supplémentaire pour les 2 testeurs les moins chargés PARMI LES RENFORTS
             recommendations = []
-            if delta_velocity > 0 and tester_stats:
-                num_eligible = sum(1 for t in tester_stats if not t['is_overloaded'])
-                if num_eligible > 0:
-                    num_to_assign = min(2, num_eligible)
-                    for i in range(num_to_assign):
-                        # On ne prend que ceux qui ne sont pas surchargés
-                        tester = next((t for t in tester_stats if not t['is_overloaded'] and 'recommended_extra' not in t), None)
-                        if tester:
-                            extra = round(delta_velocity / num_to_assign, 1)
-                            tester['recommended_extra'] = extra
-                            tester['status'] = 'RECOMMENDED'
-                            recommendations.append({
-                                "type": "assignment",
-                                "tester_id": tester['id'],
-                                "tester_name": tester['name'],
-                                "extra_tests_per_day": extra
-                            })
-                else:
-                    # Tous sont surchargés
-                    for t in tester_stats:
-                        t['status'] = 'OVERLOADED'
+            if delta_velocity > 0 and potential_reinforcements:
+                num_to_assign = min(2, len(potential_reinforcements))
+                for i in range(num_to_assign):
+                    tester = potential_reinforcements[i]
+                    extra = round(delta_velocity / num_to_assign, 1)
+                    tester['recommended_extra'] = extra
+                    tester['status'] = 'RECOMMENDED'
+                    recommendations.append({
+                        "type": "assignment",
+                        "tester_id": tester['id'],
+                        "tester_name": tester['name'],
+                        "extra_tests_per_day": extra
+                    })
 
-            # Génération des actions IA structurées
-            ai_actions = self._generate_ai_actions(campaign, ml_status, required_velocity, tester_stats)
+            # On ne retourne que les testeurs recommandés (renforts) ou ceux qui sont intéressants à voir
+            final_distribution = [t for t in tester_stats if t.get('status') == 'RECOMMENDED']
             
+            # Si aucun renfort n'est disponible, on montre les testeurs actuels pour information
+            if not final_distribution:
+                final_distribution = [t for t in tester_stats if t['is_already_in']]
+
             return {
                 "campaign_id": campaign_id,
                 "campaign_title": campaign.title,
@@ -106,48 +126,11 @@ class CatchupRecommendationManager:
                 "days_left": days_left,
                 "remaining_tests": remaining_tests,
                 "progress_percentage": ml_status.get('progress', {}).get('percentage', 0),
-                "tester_distribution": tester_stats,
-                "ai_actions": ai_actions,
-                "deadline": target_date.isoformat()
+                "tester_distribution": final_distribution,
+                "deadline": target_date.isoformat(),
+                "recommendation_engine": "ML Performance Model v1.0"
             }
         except Exception as e:
             logger.exception("Error in CatchupRecommendationManager")
             return {"error": str(e)}
 
-    def _generate_ai_actions(self, campaign, ml_status, required_velocity, tester_stats):
-        actions = []
-        
-        # 1. Suggestion d'assignation
-        top_tester = next((t for t in tester_stats if t.get('recommended_extra')), None)
-        if top_tester:
-            actions.append({
-                "id": f"assign_{top_tester['id']}",
-                "title": f"Assigner {top_tester['recommended_extra']} tests/jour supplémentaires à {top_tester['name']}",
-                "description": f"Sa charge actuelle est de {top_tester['current_load']} tests/j, ce qui laisse de la marge pour rattraper le retard.",
-                "type": "success",
-                "action_label": "Appliquer",
-                "impact": f"+{top_tester['recommended_extra']} tests/j"
-            })
-            
-        # 2. Dépriorisation
-        actions.append({
-            "id": "deprioritize_low",
-            "title": "Déprioriser les tests TC80-TC95 (couverture basse criticité)",
-            "description": "Action recommandée pour concentrer les efforts sur les modules critiques et réduire la charge de 15%.",
-            "type": "warning",
-            "action_label": "Appliquer",
-            "impact": "Concentration"
-        })
-        
-        # 3. Alerte Manager
-        if ml_status.get('delay_days', 0) > 3:
-            actions.append({
-                "id": "alert_mgr",
-                "title": "Alerte manager requise",
-                "description": "À la cadence actuelle, la date contractuelle du projet ne sera pas respectée.",
-                "type": "error",
-                "action_label": "Notifier le manager",
-                "impact": "Escalade"
-            })
-            
-        return actions

@@ -39,6 +39,7 @@ import { useSidebar } from '../context/SidebarContext';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
 import StatCard from '../components/StatCard';
+import Button from '../components/ui/Button';
 import {
   ResponsiveContainer,
   PieChart,
@@ -330,13 +331,13 @@ const Anomalies: React.FC = () => {
         subtitle={t('anomalies.subtitle')}
         actions={
           user?.role?.toLowerCase() !== 'manager' && (
-            <button
+            <Button
               onClick={() => setIsCreating(true)}
-              className="flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-[1.5rem] transition-all font-bold text-[11px] uppercase tracking-wide shadow-xl shadow-blue-600/10 active:scale-95 group"
+              icon={AlertTriangle}
+              size="lg"
             >
-              <AlertTriangle className="w-5 h-5 transition-transform group-hover:rotate-12" />
               {t('anomalies.actions.report')}
-            </button>
+            </Button>
           )
         }
       >
@@ -413,27 +414,29 @@ const Anomalies: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <button
+                    <Button
+                      variant="secondary"
+                      size="icon"
                       onClick={() => fetchAnomalies(currentPage)}
-                      className="p-4 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white transition-all border border-slate-200 dark:border-white/5"
+                      icon={RefreshCcw}
+                      isLoading={loading}
                       title={t('anomalies.actions.refresh')}
-                    >
-                      <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
-                    <button
+                    />
+                    <Button
+                      variant="secondary"
                       onClick={handleDownload}
                       disabled={isDownloading}
-                      className="px-6 py-4 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white transition-all border border-slate-200 dark:border-white/5"
+                      isLoading={isDownloading}
                     >
                       {t('anomalies.actions.exportCsv')}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={handleDownloadPdf}
                       disabled={isPdfDownloading}
-                      className="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white transition-all shadow-xl shadow-blue-600/20"
+                      isLoading={isPdfDownloading}
                     >
                       {t('anomalies.actions.exportPdf')}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -499,16 +502,16 @@ const Anomalies: React.FC = () => {
                         </td>
                         <td className="px-6 py-4">
                           {an.proofImage ? (
-                            <button
+                            <Button
+                              variant="secondary"
+                              size="icon"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 window.open(an.proofImage, '_blank');
                               }}
-                              className="p-3 bg-white/5 hover:bg-blue-500/10 text-slate-500 hover:text-blue-400 rounded-xl transition-all border border-white/5"
+                              icon={Eye}
                               title="Voir la capture"
-                            >
-                              <Eye className="w-5 h-5" />
-                            </button>
+                            />
                           ) : (
                             <div className="w-12 h-12 rounded-lg bg-white/5 border border-dashed border-white/10 flex items-center justify-center">
                               <Info className="w-4 h-4 text-slate-700" />
@@ -517,36 +520,36 @@ const Anomalies: React.FC = () => {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
-                            <button
+                            <Button
+                              variant="secondary"
+                              size="icon"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedAnomaly(an);
                               }}
-                              className="p-2.5 bg-white/5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all border border-white/5"
+                              icon={Info}
                               title="Voir détails"
-                            >
-                              <Info className="w-3.5 h-3.5" />
-                            </button>
-                            <button
+                            />
+                            <Button
+                              variant="secondary"
+                              size="icon"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleEditAnomaly(an);
                               }}
-                              className="p-2.5 bg-white/5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-xl transition-all border border-white/5"
+                              icon={Edit}
                               title={t('anomalies.actions.edit')}
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                            </button>
-                            <button
+                            />
+                            <Button
+                              variant="danger"
+                              size="icon"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteAnomaly(an.id);
                               }}
-                              className="p-2.5 bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all border border-white/5"
+                              icon={Trash2}
                               title={t('anomalies.actions.delete')}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            />
                           </div>
                         </td>
                       </tr>
@@ -693,12 +696,12 @@ const Anomalies: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <button
+                <Button
+                  variant="secondary"
+                  size="icon"
                   onClick={() => setViewingList(null)}
-                  className="p-3 bg-white/5 hover:bg-white/10 text-slate-500 hover:text-white rounded-2xl transition-all"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                  icon={X}
+                />
               </div>
 
               <div className="p-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
@@ -735,12 +738,12 @@ const Anomalies: React.FC = () => {
               </div>
 
               <div className="p-6 bg-white/[0.02] border-t border-white/5 flex justify-end">
-                <button
+                <Button
+                  variant="secondary"
                   onClick={() => setViewingList(null)}
-                  className="px-8 py-3.5 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
                 >
                   Fermer
-                </button>
+                </Button>
               </div>
             </motion.div>
           </div>

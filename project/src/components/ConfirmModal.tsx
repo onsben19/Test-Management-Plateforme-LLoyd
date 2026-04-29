@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, X } from 'lucide-react';
+import Button from './ui/Button';
 
 interface ConfirmModalProps {
     isOpen: boolean;
@@ -23,20 +24,20 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     cancelText = 'Annuler',
     type = 'danger'
 }) => {
-    const typeStyles = {
+    const typeStyles: Record<string, { icon: React.ReactNode, variant: 'danger' | 'primary' | 'secondary', bg: string }> = {
         danger: {
             icon: <AlertTriangle className="w-6 h-6 text-red-500" />,
-            button: 'bg-red-600 hover:bg-red-700 shadow-red-500/20',
+            variant: 'danger',
             bg: 'bg-red-500/10'
         },
         warning: {
             icon: <AlertTriangle className="w-6 h-6 text-amber-500" />,
-            button: 'bg-amber-600 hover:bg-amber-700 shadow-amber-500/20',
+            variant: 'secondary',
             bg: 'bg-amber-500/10'
         },
         info: {
             icon: <AlertTriangle className="w-6 h-6 text-blue-500" />,
-            button: 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20',
+            variant: 'primary',
             bg: 'bg-blue-500/10'
         }
     };
@@ -83,21 +84,23 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                         </div>
 
                         <div className="p-4 bg-slate-800/50 flex items-center justify-end gap-3 border-t border-slate-700/50">
-                            <button
+                            <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={onCancel}
-                                className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all active:scale-95"
                             >
                                 {cancelText}
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                                variant={style.variant}
+                                size="sm"
                                 onClick={() => {
                                     onConfirm();
-                                    onCancel(); // Close after confirming
+                                    onCancel();
                                 }}
-                                className={`px-6 py-2.5 rounded-xl text-sm font-bold text-white shadow-lg transition-all active:scale-95 ${style.button}`}
                             >
                                 {confirmText}
-                            </button>
+                            </Button>
                         </div>
                     </motion.div>
                 </div>

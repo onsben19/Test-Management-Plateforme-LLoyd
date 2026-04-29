@@ -13,6 +13,7 @@ import ReadinessGauge from '../components/ReadinessGauge';
 import ReadinessDetailModal from '../components/ReadinessDetailModal';
 import { aiService } from '../services/api';
 import { Award, Info, XCircle } from 'lucide-react';
+import Button from '../components/ui/Button';
 
 const ReleaseManager = () => {
     const { t, i18n } = useTranslation();
@@ -210,13 +211,12 @@ const ReleaseManager = () => {
     };
 
     const HeaderActions = isAdminOrManager && (
-        <button
+        <Button
             onClick={() => { resetForm(); setIsModalOpen(true); }}
-            className="group flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-8 py-3.5 rounded-2xl transition-all shadow-xl shadow-blue-600/20 active:scale-95 font-bold text-xs tracking-tight"
+            icon={Plus}
         >
-            <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
             {t('releaseManager.newRelease')}
-        </button>
+        </Button>
     );
 
     return (
@@ -298,12 +298,12 @@ const ReleaseManager = () => {
                                 >
                                     <div className="absolute top-8 right-8">
                                         <div className="relative">
-                                            <button
+                                            <Button
+                                                variant="secondary"
+                                                size="icon"
                                                 onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === release.id ? null : release.id); }}
-                                                className="p-3 hover:bg-white/5 rounded-2xl transition-all text-slate-500 hover:text-white border border-transparent hover:border-white/10 bg-white/5"
-                                            >
-                                                <MoreVertical className="w-5 h-5" />
-                                            </button>
+                                                icon={MoreVertical}
+                                            />
 
                                             <AnimatePresence>
                                                 {openMenuId === release.id && isAdminOrManager && (
@@ -472,12 +472,12 @@ const ReleaseManager = () => {
                                     <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{editingRelease ? t('releaseManager.modal.editTitle') : t('releaseManager.modal.createTitle')}</h2>
                                     <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-[0.2em]">Release Management Terminal</p>
                                 </div>
-                                <button
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
                                     onClick={resetForm}
-                                    className="p-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all border border-slate-200 dark:border-white/5"
-                                >
-                                    <XCircle className="w-6 h-6" />
-                                </button>
+                                    icon={XCircle}
+                                />
                             </div>
 
                             <div className="p-8 space-y-6">
@@ -553,20 +553,19 @@ const ReleaseManager = () => {
                                 </div>
 
                                 <div className="flex items-center justify-end gap-5 pt-6 border-t border-slate-100 dark:border-white/5">
-                                    <button
+                                    <Button
+                                        variant="ghost"
                                         onClick={resetForm}
-                                        className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-900 dark:hover:text-white transition-all"
                                     >
                                         {t('releaseManager.modal.cancel')}
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                         onClick={handleSaveRelease}
                                         disabled={!newRelease.name}
-                                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-10 py-4 rounded-2xl font-bold text-xs tracking-tight transition-all shadow-xl shadow-blue-600/20 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-3"
+                                        icon={editingRelease ? Save : Plus}
                                     >
-                                        {editingRelease ? <Save className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
                                         {editingRelease ? t('releaseManager.modal.save') : t('releaseManager.modal.create')}
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         </motion.div>

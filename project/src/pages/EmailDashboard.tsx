@@ -9,6 +9,7 @@ import { toast } from 'react-toastify';
 import ConfirmModal from '../components/ConfirmModal';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
+import Button from '../components/ui/Button';
 
 const EmailDashboard = () => {
     const { t } = useTranslation();
@@ -106,13 +107,12 @@ const EmailDashboard = () => {
     };
 
     const HeaderActions = (
-        <button
+        <Button
             onClick={() => { setComposeInitialData(undefined); setComposeModalOpen(true); }}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 transition-all hover:scale-105 active:scale-95 font-bold text-sm"
+            icon={Mail}
         >
-            <Mail className="w-4 h-4" />
             {t('email.new')}
-        </button>
+        </Button>
     );
 
     return (
@@ -234,29 +234,29 @@ const EmailDashboard = () => {
                                         <div className="flex items-center gap-2">
                                             {activeTab === 'inbox' && (
                                                 <>
-                                                    <button
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="icon"
                                                         onClick={() => handleReply(selectedEmail)}
-                                                        className="p-2.5 hover:bg-blue-500 hover:text-white text-slate-500 dark:text-slate-400 rounded-xl transition-all border border-slate-200 dark:border-slate-700 hover:border-blue-500 shadow-sm"
+                                                        icon={Reply}
                                                         title={t('email.details.reply')}
-                                                    >
-                                                        <Reply className="w-4 h-4" />
-                                                    </button>
-                                                    <button
+                                                    />
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="icon"
                                                         onClick={() => handleForward(selectedEmail)}
-                                                        className="p-2.5 hover:bg-emerald-500 hover:text-white text-slate-500 dark:text-slate-400 rounded-xl transition-all border border-slate-200 dark:border-slate-700 hover:border-emerald-500 shadow-sm"
+                                                        icon={Forward}
                                                         title={t('email.details.forward')}
-                                                    >
-                                                        <Forward className="w-4 h-4" />
-                                                    </button>
+                                                    />
                                                 </>
                                             )}
-                                            <button
+                                            <Button
+                                                variant="danger"
+                                                size="icon"
                                                 onClick={() => handleDeleteEmail(selectedEmail)}
-                                                className="p-2.5 hover:bg-red-500 hover:text-white text-slate-500 dark:text-slate-400 rounded-xl transition-all border border-slate-200 dark:border-slate-700 hover:border-red-500 shadow-sm"
+                                                icon={Trash2}
                                                 title={t('email.table.delete')}
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            />
                                         </div>
                                     </div>
                                 </div>

@@ -66,64 +66,30 @@ module.exports = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)'
       },
-      keyframes: {
-        'accordion-down': {
-          from: { height: '0' },
-          to: { height: 'var(--radix-accordion-content-height)' }
-        },
-        'accordion-up': {
-          from: { height: 'var(--radix-accordion-content-height)' },
-          to: { height: '0' }
-        },
-        'star-movement-bottom': {
-          '0%': { transform: 'translate(0%, 0%)', opacity: '1' },
-          '100%': { transform: 'translate(-100%, 0%)', opacity: '0' },
-        },
-        'star-movement-top': {
-          '0%': { transform: 'translate(0%, 0%)', opacity: '1' },
-          '100%': { transform: 'translate(100%, 0%)', opacity: '0' },
-        }
-      },
-    },
-    animation: {
-      'accordion-down': 'accordion-down 0.2s ease-out',
-      'accordion-up': 'accordion-up 0.2s ease-out',
-      'star-movement-bottom': 'star-movement-bottom linear infinite alternate',
-      'star-movement-top': 'star-movement-top linear infinite alternate',
-    },
-    boxShadow: {
-      none: "none",
-      "2xs": "var(--shadow-2xs)",
-      xs: "var(--shadow-xs)",
-      sm: "var(--shadow-sm)",
-      md: "var(--shadow-md)",
-      lg: "var(--shadow-lg)",
-      xl: "var(--shadow-xl)",
-      "2xl": "var(--shadow-2xl)"
-    },
-    fontFamily: {
-      sans: [
-        "'Plus Jakarta Sans'",
-        "'Inter'",
-        "ui-sans-serif",
-        "system-ui",
-        "sans-serif"
-      ],
-      heading: [
-        "'Outfit'",
-        "'Plus Jakarta Sans'",
-        "sans-serif"
-      ],
-      serif: [
-        "'Lora'",
-        "ui-serif",
-        "serif"
-      ],
-      mono: [
-        "'Space Mono'",
-        "ui-monospace",
-        "monospace"
-      ]
+      fontFamily: {
+        sans: [
+          "'Plus Jakarta Sans'",
+          "'Inter'",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif"
+        ],
+        heading: [
+          "'Outfit'",
+          "'Plus Jakarta Sans'",
+          "sans-serif"
+        ],
+        serif: [
+          "'Lora'",
+          "ui-serif",
+          "serif"
+        ],
+        mono: [
+          "'Space Mono'",
+          "ui-monospace",
+          "monospace"
+        ]
+      }
     }
   },
   plugins: [require("tailwindcss-animate")],

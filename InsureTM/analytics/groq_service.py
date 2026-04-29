@@ -75,6 +75,38 @@ class GroqService:
 
         return [{k: serialize_value(v) for k, v in zip(columns, row)} for row in results]
 
+    def _parse_document(self, uploaded_file):
+        """Extract text content from common document formats."""
+        try:
+            filename = uploaded_file.name.lower()
+            if filename.endswith('.pdf'):
+                from pypdf import PdfReader
+                reader = PdfReader(uploaded_file)
+                text = ""
+                for page in reader.pages:
+                    text += page.extract_text() + "\n"
+                return text
+            
+            elif filename.endswith('.docx'):
+                import docx
+                doc = docx.Document(uploaded_file)
+                return "\n".join([p.text for p in doc.paragraphs])
+            
+            elif filename.endswith(('.xlsx', '.xls')):
+                import openpyxl
+                wb = openpyxl.load_workbook(uploaded_file)
+                text = ""
+                for sheet in wb.sheetnames:
+                    ws = wb[sheet]
+                    for row in ws.iter_rows(values_only=True):
+                        text += "\t".join([str(cell) for cell in row if cell is not None]) + "\n"
+                return text
+            
+            # Fallback for plain text
+            return uploaded_file.read().decode('utf-8')
+        except Exception as e:
+            return f"[Error parsing document: {str(e)}]"
+
     def analyze_image(self, image_file, question):
         """Analyze an image using Groq's Vision model."""
         image_bytes = image_file.read()
@@ -138,12 +170,37 @@ class GroqService:
             config_text = config_text.replace("```json", "").replace("```", "").strip()
         return config_text
 
-    def process_query(self, question, user, image=None):
+    def process_query(self, question, user, uploaded_file=None):
         try:
             # Case 1: Vision analysis if image is provided
-            if image:
-                answer = self.analyze_image(image, question)
-                return {"answer": answer, "type": "text", "sql": "", "data": []}
+            if uploaded_file:
+                is_image = uploaded_file.name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp'))
+                if is_image:
+                    answer = self.analyze_image(uploaded_file, question)
+                    return {"answer": answer, "type": "text", "sql": "", "data": []}
+                else:
+                    # Parse document and use Llama-3 to analyze content
+                    doc_content = self._parse_document(uploaded_file)
+                    prompt = f"""
+                    Tu es un expert QA. On t'a fourni le document suivant : {uploaded_file.name}
+                    
+                    CONTENU DU DOCUMENT :
+                    ---
+                    {doc_content[:10000]} # Limit to 10k chars to avoid token issues
+                    ---
+                    
+                    Question de l'utilisateur : {question}
+                    
+                    Consigne : Analyse le document par rapport à la question et réponds de manière précise. Si le document ne contient pas l'info, mentionne-le.
+                    """
+                    completion = self.client.chat.completions.create(
+                        messages=[{"role": "user", "content": prompt}],
+                        model="llama-3.3-70b-versatile",
+                    )
+                    return {
+                        "answer": completion.choices[0].message.content,
+                        "type": "text", "sql": "", "data": []
+                    }
             
             # Case 2: Readiness Score Intent
             readiness_keywords = ['score', 'readiness', 'prêt', 'déploiement', 'confiance', 'readynace']

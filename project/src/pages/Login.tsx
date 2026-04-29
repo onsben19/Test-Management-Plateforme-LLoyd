@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import StarBorder from '../components/bits/StarBorder';
+import Button from '../components/ui/Button';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
 
@@ -139,32 +139,24 @@ const Login = () => {
               </div>
 
               <div className="space-y-3">
-                <StarBorder
-                  as="button"
-                  className="w-full text-white font-medium shadow-lg shadow-blue-500/30 dark:shadow-blue-900/40 hover:shadow-blue-500/50 transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
-                  color="magenta"
-                  speed="5s"
+                <Button
+                  variant="primary"
                   type="submit"
-                  disabled={isLoading || otpCode.length < 6}
-                  innerClassName="relative z-1 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 dark:hover:from-blue-500 dark:hover:to-blue-400 border border-blue-500/50 text-white text-center text-[16px] py-3 px-6 rounded-[20px] transition-all"
+                  isLoading={isLoading}
+                  disabled={otpCode.length < 6}
+                  icon={Shield}
+                  className="w-full"
                 >
-                  {isLoading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      {t('login.otpSubmit')}
-                      <Shield className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                    </>
-                  )}
-                </StarBorder>
+                  {t('login.otpSubmit')}
+                </Button>
 
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
                   onClick={() => setIs2FAMode(false)}
-                  className="w-full text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 text-sm font-medium py-2 transition-colors"
+                  className="w-full"
                 >
                   {t('login.otpBack')}
-                </button>
+                </Button>
               </div>
             </form>
           ) : isForgotPasswordMode ? (
@@ -195,32 +187,24 @@ const Login = () => {
               </div>
 
               <div className="space-y-3">
-                <StarBorder
-                  as="button"
-                  className="w-full text-white font-medium shadow-lg shadow-blue-500/30 dark:shadow-blue-900/40 hover:shadow-blue-500/50 transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
-                  color="magenta"
-                  speed="5s"
+                <Button
+                  variant="primary"
                   type="submit"
-                  disabled={isLoading || !resetIdentifier}
-                  innerClassName="relative z-1 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 dark:hover:from-blue-500 dark:hover:to-blue-400 border border-blue-500/50 text-white text-center text-[16px] py-3 px-6 rounded-[20px] transition-all"
+                  isLoading={isLoading}
+                  disabled={!resetIdentifier}
+                  icon={ArrowRight}
+                  className="w-full"
                 >
-                  {isLoading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      {t('login.forgotPasswordSubmit')}
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </>
-                  )}
-                </StarBorder>
+                  {t('login.forgotPasswordSubmit')}
+                </Button>
 
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
                   onClick={() => setIsForgotPasswordMode(false)}
-                  className="w-full text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 text-sm font-medium py-2 transition-colors"
+                  className="w-full"
                 >
                   {t('login.forgotPasswordBack')}
-                </button>
+                </Button>
               </div>
             </form>
           ) : (
@@ -273,24 +257,15 @@ const Login = () => {
                 </div>
               </div>
 
-              <StarBorder
-                as="button"
-                className="w-full text-white font-medium shadow-lg shadow-blue-500/30 dark:shadow-blue-900/40 hover:shadow-blue-500/50 transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed"
-                color="magenta"
-                speed="5s"
+              <Button
+                variant="primary"
                 type="submit"
-                disabled={isLoading}
-                innerClassName="relative z-1 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 dark:hover:from-blue-500 dark:hover:to-blue-400 border border-blue-500/50 text-white text-center text-[16px] py-3 px-6 rounded-[20px] transition-all"
+                isLoading={isLoading}
+                icon={ArrowRight}
+                className="w-full"
               >
-                {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    {t('login.submit')}
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </>
-                )}
-              </StarBorder>
+                {t('login.submit')}
+              </Button>
             </form>
           )}
 

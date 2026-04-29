@@ -15,6 +15,7 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import Button from '../components/ui/Button';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -169,7 +170,8 @@ const ChatCenter = () => {
     // WebSocket Integration
     useEffect(() => {
         const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-        const wsUrl = `${protocol}://${window.location.host}/ws/chat/global/`;
+        const token = localStorage.getItem('access_token');
+        const wsUrl = `${protocol}://${window.location.host}/ws/chat/global/?token=${token}`;
         let ws: WebSocket;
 
         try {
@@ -371,8 +373,8 @@ const ChatCenter = () => {
                         <div className="flex items-center justify-between">
                             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Conversations</h3>
                             <div className="flex gap-2">
-                                <button onClick={() => setShowNewChatModal('group')} className="p-2 bg-indigo-600/20 hover:bg-indigo-600/30 rounded-xl transition-all text-indigo-400 border border-indigo-500/20" title="Nouveau groupe"><Users size={16} /></button>
-                                <button onClick={() => setShowNewChatModal('direct')} className="p-2 bg-blue-600/20 hover:bg-blue-600/30 rounded-xl transition-all text-blue-400 border border-blue-500/20" title="Message direct"><Plus size={16} /></button>
+                                <Button variant="secondary" size="icon" onClick={() => setShowNewChatModal('group')} title="Nouveau groupe" icon={Users} />
+                                <Button variant="secondary" size="icon" onClick={() => setShowNewChatModal('direct')} title="Message direct" icon={Plus} />
                             </div>
                         </div>
                         <div className="relative group">
@@ -441,7 +443,7 @@ const ChatCenter = () => {
                                         <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">STATUT GROUPE</p>
                                         <p className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest">ACTIF & SÉCURISÉ</p>
                                     </div>
-                                    <button className="p-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-2xl text-slate-500 dark:text-slate-400 transition-all border border-slate-200 dark:border-white/5"><MoreVertical size={20} /></button>
+                                    <Button variant="secondary" size="icon" icon={MoreVertical} />
                                 </div>
                             </div>
 
@@ -587,8 +589,8 @@ const ChatCenter = () => {
                                             className="w-full bg-transparent border-none py-4 text-sm font-bold text-white focus:outline-none resize-none placeholder:text-slate-600"
                                         />
                                     </div>
-                                    <button onClick={handleAIReformulate} disabled={!chatMessage || isAILoading} className="p-4 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-2xl transition-all border border-indigo-500/10 group"><Sparkles size={20} className={`${isAILoading ? 'animate-spin' : 'group-hover:scale-110 transition-transform'}`} /></button>
-                                    <button onClick={handleSendMessage} disabled={!chatMessage.trim()} className="p-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl transition-all shadow-lg active:scale-95"><Send size={20} /></button>
+                                    <Button variant="secondary" size="icon" icon={Sparkles} onClick={handleAIReformulate} disabled={!chatMessage || isAILoading} isLoading={isAILoading} className="text-indigo-400" />
+                                    <Button size="icon" icon={Send} onClick={handleSendMessage} disabled={!chatMessage.trim()} />
                                 </div>
                             </div>
                         </div>
@@ -596,7 +598,7 @@ const ChatCenter = () => {
                         <div className="flex-1 flex flex-col items-center justify-center space-y-8">
                             <div className="w-32 h-32 rounded-[3rem] bg-slate-100 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 flex items-center justify-center shadow-inner"><MessageSquare size={48} className="text-slate-300 dark:text-slate-700" /></div>
                             <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-widest text-center">Collaboration Center</h3>
-                            <button onClick={() => setShowNewChatModal('direct')} className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-500/20 active:scale-95">Nouvelle Discussion</button>
+                            <Button onClick={() => setShowNewChatModal('direct')} size="lg">Nouvelle Discussion</Button>
                         </div>
                     )}
                 </div>

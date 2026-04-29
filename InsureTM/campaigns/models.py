@@ -28,11 +28,21 @@ class Campaign(models.Model):
     assigned_testers = models.ManyToManyField(
         settings.AUTH_USER_MODEL, 
         related_name='assigned_campaigns',
-        blank=True
+        blank=True,
+        through='CampaignAssignment'
     )
 
     def __str__(self):
         return f"{self.title} (Project: {self.project.name})"
+
+class CampaignAssignment(models.Model):
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name='tester_assignments')
+    tester = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='campaign_assignments')
+    test_quota = models.IntegerField(default=0)
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('campaign', 'tester')
 
 class TaskAssignment(models.Model):
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name='tasks')
@@ -42,5 +52,4 @@ class TaskAssignment(models.Model):
     is_completed = models.BooleanField(default=False)
 
     class Meta:
-        # Correction : Ajout du nom de l'app si nécessaire, mais ici unique_together est local
         unique_together = ('campaign', 'test_case_ref')

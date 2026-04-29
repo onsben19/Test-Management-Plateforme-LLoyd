@@ -155,6 +155,8 @@ export const aiService = {
         api.post('/analytics/dashboard-brief/', { stats }),
     getCatchupPlan: (campaignId: string | number) =>
         api.get(`/analytics/catchup-plan/${campaignId}/`),
+    applyCatchupPlan: (campaignId: string | number, testerIds: number[]) =>
+        api.post(`/analytics/catchup-plan/${campaignId}/`, { tester_ids: testerIds }),
     applyRecommendation: (campaignId: string | number, actionId: string) =>
         api.post('/analytics/apply-recommendation/', { campaign_id: campaignId, action_id: actionId }),
 };

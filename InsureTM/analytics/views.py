@@ -59,17 +59,17 @@ class AskAgentView(APIView):
             title = question[:50] + '...' if len(question) > 50 else question
             conversation = Conversation.objects.create(user=request.user, title=title)
 
-        image_file = request.FILES.get('image')
+        uploaded_file = request.FILES.get('file')
         Message.objects.create(
             conversation=conversation, 
             sender='user', 
             text=question, 
             type='text',
-            image=image_file
+            file=uploaded_file
         )
 
         try:
-            result = GroqService().process_query(question, request.user, image=image_file)
+            result = GroqService().process_query(question, request.user, uploaded_file=uploaded_file)
 
             Message.objects.create(
                 conversation=conversation,
@@ -361,6 +361,48 @@ class CatchupPlanView(APIView):
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
             
         return Response(result)
+
+    def post(self, request, campaign_id):
+        # Security check
+        if request.user.role not in ['ADMIN', 'MANAGER']:
+            return Response({'error': 'Accès réservé aux managers.'}, status=status.HTTP_403_FORBIDDEN)
+
+        assignments = request.data.get('tester_ids', []) # On garde le nom mais c'est maintenant une liste d'objets ou d'IDs
+        if not assignments:
+            return Response({'error': 'Aucun testeur sélectionné.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            campaign = get_object_or_404(Campaign, id=campaign_id)
+            
+            # Traitement flexible : peut être une liste d'IDs ou une liste d'objets {tester_id, test_count}
+            assigned_count = 0
+            from campaigns.models import CampaignAssignment
+            
+            for item in assignments:
+                if isinstance(item, dict):
+                    t_id = item.get('tester_id')
+                    count = item.get('test_count', 0)
+                else:
+                    t_id = item
+                    count = 0
+
+                if t_id:
+                    # On utilise update_or_create pour gérer le quota spécifique au travers du modèle de jointure
+                    CampaignAssignment.objects.update_or_create(
+                        campaign=campaign,
+                        tester_id=t_id,
+                        defaults={'test_quota': count}
+                    )
+                    assigned_count += 1
+
+            campaign.save()
+
+            return Response({
+                'status': 'success',
+                'message': f"{assigned_count} testeurs ont été assignés avec succès à la campagne {campaign.title}."
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ApplyRecommendationActionView(APIView):
     permission_classes = [IsAuthenticated]

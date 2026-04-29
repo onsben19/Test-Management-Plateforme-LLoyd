@@ -24,7 +24,8 @@ interface Message {
     type?: 'text' | 'bar' | 'line' | 'table' | 'metric' | 'error' | 'plotly';
     data?: any;
     sql?: string;
-    image?: string;
+    file?: string;     // URL or base64 preview
+    fileName?: string; // Original name
     timestamp: Date;
 }
 
@@ -57,8 +58,8 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
     const [messages, setMessages] = useState<Message[]>([WELCOME_MSG]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    const [selectedImage, setSelectedImage] = useState<File | null>(null);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [filePreview, setFilePreview] = useState<string | null>(null);
     const [activeConvId, setActiveConvId] = useState<string | null>(conversationId ?? null);
     const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
     const [editingText, setEditingText] = useState('');
@@ -94,7 +95,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                 type: msg.type,
                 sql: msg.sql,
                 data: msg.data,
-                image: msg.image,
+                file: msg.file,
                 timestamp: new Date(msg.created_at)
             }));
             setMessages(mapped.length > 0 ? mapped : [WELCOME_MSG]);
@@ -108,28 +109,29 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
     const handleSendMessage = async (e?: React.FormEvent, overrideText?: string) => {
         e?.preventDefault();
         const text = overrideText ?? input;
-        if (!text.trim() && !selectedImage) return;
+        if (!text.trim() && !selectedFile) return;
 
         const userMsg: Message = {
             id: Date.now().toString(),
             sender: 'user',
             text,
             type: 'text',
-            image: imagePreview || undefined,
+            file: filePreview || undefined,
+            fileName: selectedFile?.name,
             timestamp: new Date()
         };
 
         setMessages(prev => [...prev.filter(m => m.id !== 'welcome'), userMsg]);
         setInput('');
-        setSelectedImage(null);
-        setImagePreview(null);
+        setSelectedFile(null);
+        setFilePreview(null);
         setLoading(true);
 
         try {
             const formData = new FormData();
             formData.append('query', text);
             if (activeConvId) formData.append('conversation_id', activeConvId);
-            if (selectedImage) formData.append('image', selectedImage);
+            if (selectedFile) formData.append('file', selectedFile);
 
             const response = await aiService.ask(formData);
             const data = response.data;
@@ -146,6 +148,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                 type: data.type ?? 'text',
                 data: data.data,
                 sql: data.sql,
+                file: data.file,
                 timestamp: new Date()
             };
 
@@ -165,13 +168,17 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
         }
     };
 
-    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            setSelectedImage(file);
-            const reader = new FileReader();
-            reader.onloadend = () => setImagePreview(reader.result as string);
-            reader.readAsDataURL(file);
+            setSelectedFile(file);
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onloadend = () => setFilePreview(reader.result as string);
+                reader.readAsDataURL(file);
+            } else {
+                setFilePreview(null); // No preview for non-images
+            }
         }
     };
 
@@ -349,7 +356,27 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                     ) : (
                         <>
                             <div className={`rounded-2xl px-4 py-3 shadow-sm ${isUser ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-sm' : msg.type === 'error' ? 'bg-red-900/10 dark:bg-red-900/30 border border-red-200 dark:border-red-700/40 text-red-600 dark:text-red-300 rounded-tl-sm' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-tl-sm'}`}>
-                                {msg.image && <div className="mb-3 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-600"><img src={msg.image} alt="Upload" className="w-full max-h-40 object-cover" /></div>}
+                                {(msg.file || msg.fileName) && (
+                                    <div className="mb-3 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-600">
+                                        {(msg.file?.match(/\.(jpeg|jpg|gif|png|webp|data:image)/i) || (msg.fileName?.match(/\.(jpeg|jpg|gif|png|webp)/i))) ? (
+                                            <img src={msg.file} alt="File" className="w-full max-h-40 object-cover" />
+                                        ) : (
+                                            <div className="p-4 bg-slate-100 dark:bg-slate-800 flex items-center gap-3">
+                                                <Paperclip className="w-5 h-5 text-blue-500" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate max-w-[200px]">
+                                                        {msg.fileName || msg.file?.split('/').pop() || 'Fichier'}
+                                                    </span>
+                                                    {msg.file && !msg.file.startsWith('data:') && (
+                                                        <a href={msg.file} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline">
+                                                            Télécharger
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                                 <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                                 {!isUser && msg.type !== 'text' && msg.type !== 'error' && <div className="mt-1">{renderVisualization(msg)}</div>}
                             </div>
@@ -364,17 +391,24 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
 
     const renderInput = () => (
         <div className="shrink-0 p-4 border-t border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur">
-            {imagePreview && (
+            {selectedFile && (
                 <div className="mb-3 relative inline-block">
-                    <img src={imagePreview} className="w-16 h-16 object-cover rounded-xl border-2 border-blue-500" alt="Preview" />
-                    <button onClick={() => { setSelectedImage(null); setImagePreview(null); }} className="absolute -top-2 -right-2 bg-red-500 text-white p-0.5 rounded-full shadow"><X className="w-2.5 h-2.5" /></button>
+                    {filePreview ? (
+                        <img src={filePreview} className="w-16 h-16 object-cover rounded-xl border-2 border-blue-500" alt="Preview" />
+                    ) : (
+                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-xl border-2 border-blue-500 flex flex-col items-center justify-center p-2">
+                            <Paperclip className="w-4 h-4 text-blue-500 mb-1" />
+                            <span className="text-[8px] text-slate-500 truncate w-full text-center">{selectedFile.name}</span>
+                        </div>
+                    )}
+                    <button onClick={() => { setSelectedFile(null); setFilePreview(null); }} className="absolute -top-2 -right-2 bg-red-500 text-white p-0.5 rounded-full shadow"><X className="w-2.5 h-2.5" /></button>
                 </div>
             )}
             <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" className="hidden" />
+                <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
                 <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2.5 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all shrink-0"><Paperclip className="w-4 h-4" /></button>
                 <input ref={inputRef} type="text" value={input} onChange={e => setInput(e.target.value)} placeholder={t('analytics.chat.placeholder')} className="glass-input w-full" disabled={loading} />
-                <button type="submit" disabled={(!input.trim() && !selectedImage) || loading} className="p-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-xl shadow-lg active:scale-95 shrink-0"><Send className="w-4 h-4" /></button>
+                <button type="submit" disabled={(!input.trim() && !selectedFile) || loading} className="p-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-xl shadow-lg active:scale-95 shrink-0"><Send className="w-4 h-4" /></button>
             </form>
         </div>
     );

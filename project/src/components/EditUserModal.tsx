@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Save, User as UserIcon } from 'lucide-react';
+import Button from './ui/Button';
 
 export interface UserItem {
     id: string;
@@ -125,21 +126,19 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSave }) 
                 </form>
 
                 <div className="p-6 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3 bg-slate-50/50 dark:bg-slate-800/50">
-                    <button
-                        type="button"
+                    <Button
+                        variant="ghost"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                     >
                         {t('userManagement.modal.cancel')}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         onClick={handleSubmit}
-                        disabled={isSubmitting}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
+                        isLoading={isSubmitting}
+                        icon={Save}
                     >
-                        <Save className="w-4 h-4" />
                         {isSubmitting ? t('common.saving') || 'Enregistrement...' : t('common.save') || 'Enregistrer'}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>
