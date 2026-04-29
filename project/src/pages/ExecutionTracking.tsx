@@ -11,7 +11,8 @@ import {
     executionService,
     projectService,
     campaignService,
-    aiService
+    aiService,
+    analyticsService
 } from '../services/api';
 import { useSidebar } from '../context/SidebarContext';
 import StatCard from '../components/StatCard';
@@ -29,9 +30,11 @@ import {
     SortAsc,
     LayoutGrid,
     Sparkles,
-    Target,
     Zap,
-    ArrowRight
+    ArrowRight,
+    Medal,
+    Crown,
+    Award
 } from 'lucide-react';
 import CatchupPlanIA from '../components/CatchupPlanIA';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -73,6 +76,7 @@ const ExecutionTracking = () => {
 
     const [projects, setProjects] = useState<any[]>([]);
     const [campaigns, setCampaigns] = useState<any[]>([]);
+    const [topTester, setTopTester] = useState<any>(null);
 
     const stats = useMemo(() => {
         const total = totalItems;
@@ -103,8 +107,22 @@ const ExecutionTracking = () => {
     useEffect(() => {
         fetchExecutions(1);
         fetchFilters();
+        fetchTopTester();
         setCurrentPage(1);
     }, [searchQuery, sortOrder]);
+
+    const fetchTopTester = async () => {
+        try {
+            const res = await analyticsService.getHistoricalTesters('all');
+            const testers = res.data;
+            if (testers && testers.length > 0) {
+                const sorted = [...testers].sort((a, b) => b.latest_pass_rate - a.latest_pass_rate);
+                setTopTester(sorted[0]);
+            }
+        } catch (err) {
+            console.error("Failed to fetch top tester", err);
+        }
+    };
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
@@ -242,7 +260,7 @@ const ExecutionTracking = () => {
                             title="Taux de Réussite"
                             value={`${stats.successRate}%`}
                             icon={CheckCircle}
-                            variant="green"
+                            variant="blue"
                             description="Tests validés"
                             isLoading={loading}
                         />
@@ -255,12 +273,12 @@ const ExecutionTracking = () => {
                             isLoading={loading}
                         />
                         <StatCard
-                            title="En Attente"
-                            value={stats.pending}
-                            icon={Clock}
-                            variant="yellow"
-                            description="Restants"
-                            isLoading={loading}
+                            title="Top Testeur"
+                            value={topTester ? topTester.tester.name : "Chargement..."}
+                            icon={Award}
+                            variant="purple"
+                            description={topTester ? `Score: ${topTester.latest_pass_rate}%` : "Performance IA"}
+                            isLoading={loading || !topTester}
                         />
                     </div>
 
@@ -278,29 +296,35 @@ const ExecutionTracking = () => {
                             </div>
 
                             <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
-                                <div className="relative bg-white/5 rounded-2xl border border-white/10 overflow-hidden min-w-[180px] hover:bg-white/10 transition-all">
-                                    <select
-                                        className="w-full bg-transparent text-white text-[9px] font-bold uppercase tracking-[0.2em] pl-6 pr-10 py-4 outline-none cursor-pointer appearance-none relative z-10"
-                                        value={groupBy}
-                                        onChange={(e) => setGroupBy(e.target.value as 'none' | 'campaign' | 'release')}
-                                    >
-                                        <option value="none" className="bg-slate-900">SANS GROUPEMENT</option>
-                                        <option value="campaign" className="bg-slate-900">PAR CAMPAGNE</option>
-                                        <option value="release" className="bg-slate-900">PAR RELEASE</option>
-                                    </select>
-                                    <LayoutGrid className="absolute right-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                                <div className="relative group min-w-[200px]">
+                                    <div className="absolute inset-0 bg-blue-500/5 rounded-2xl blur-xl group-hover:bg-blue-500/10 transition-all opacity-0 group-hover:opacity-100" />
+                                    <div className="relative bg-white/5 rounded-2xl border border-white/10 hover:border-blue-500/50 transition-all shadow-lg overflow-hidden">
+                                        <select
+                                            className="w-full bg-transparent text-white text-[10px] font-black uppercase tracking-[0.2em] pl-6 pr-12 py-4 outline-none cursor-pointer appearance-none relative z-10"
+                                            value={groupBy}
+                                            onChange={(e) => setGroupBy(e.target.value as 'none' | 'campaign' | 'release')}
+                                        >
+                                            <option value="none" className="bg-slate-950">SANS GROUPEMENT</option>
+                                            <option value="campaign" className="bg-slate-950">PAR CAMPAGNE</option>
+                                            <option value="release" className="bg-slate-950">PAR RELEASE</option>
+                                        </select>
+                                        <LayoutGrid className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-hover:text-blue-400 transition-colors pointer-events-none z-20" />
+                                    </div>
                                 </div>
 
-                                <div className="relative bg-white/5 rounded-2xl border border-white/10 overflow-hidden min-w-[180px] hover:bg-white/10 transition-all">
-                                    <select
-                                        className="w-full bg-transparent text-white text-[9px] font-bold uppercase tracking-[0.2em] pl-6 pr-10 py-4 outline-none cursor-pointer appearance-none relative z-10"
-                                        value={sortOrder}
-                                        onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                                    >
-                                        <option value="newest" className="bg-slate-900">PLUS RÉCENT</option>
-                                        <option value="oldest" className="bg-slate-900">PLUS ANCIEN</option>
-                                    </select>
-                                    <SortAsc className="absolute right-5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                                <div className="relative group min-w-[200px]">
+                                    <div className="absolute inset-0 bg-blue-500/5 rounded-2xl blur-xl group-hover:bg-blue-500/10 transition-all opacity-0 group-hover:opacity-100" />
+                                    <div className="relative bg-white/5 rounded-2xl border border-white/10 hover:border-blue-500/50 transition-all shadow-lg overflow-hidden">
+                                        <select
+                                            className="w-full bg-transparent text-white text-[10px] font-black uppercase tracking-[0.2em] pl-6 pr-12 py-4 outline-none cursor-pointer appearance-none relative z-10"
+                                            value={sortOrder}
+                                            onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                                        >
+                                            <option value="newest" className="bg-slate-950">PLUS RÉCENT</option>
+                                            <option value="oldest" className="bg-slate-950">PLUS ANCIEN</option>
+                                        </select>
+                                        <SortAsc className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-hover:text-blue-400 transition-colors pointer-events-none z-20" />
+                                    </div>
                                 </div>
                             </div>
                         </div>

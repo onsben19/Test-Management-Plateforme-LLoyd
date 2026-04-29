@@ -390,26 +390,59 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
     };
 
     const renderInput = () => (
-        <div className="shrink-0 p-4 border-t border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur">
-            {selectedFile && (
-                <div className="mb-3 relative inline-block">
-                    {filePreview ? (
-                        <img src={filePreview} className="w-16 h-16 object-cover rounded-xl border-2 border-blue-500" alt="Preview" />
-                    ) : (
-                        <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-xl border-2 border-blue-500 flex flex-col items-center justify-center p-2">
-                            <Paperclip className="w-4 h-4 text-blue-500 mb-1" />
-                            <span className="text-[8px] text-slate-500 truncate w-full text-center">{selectedFile.name}</span>
-                        </div>
-                    )}
-                    <button onClick={() => { setSelectedFile(null); setFilePreview(null); }} className="absolute -top-2 -right-2 bg-red-500 text-white p-0.5 rounded-full shadow"><X className="w-2.5 h-2.5" /></button>
-                </div>
-            )}
-            <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2.5 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all shrink-0"><Paperclip className="w-4 h-4" /></button>
-                <input ref={inputRef} type="text" value={input} onChange={e => setInput(e.target.value)} placeholder={t('analytics.chat.placeholder')} className="glass-input w-full" disabled={loading} />
-                <button type="submit" disabled={(!input.trim() && !selectedFile) || loading} className="p-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-xl shadow-lg active:scale-95 shrink-0"><Send className="w-4 h-4" /></button>
-            </form>
+        <div className="shrink-0 p-6 bg-gradient-to-t from-slate-50 to-white/50 dark:from-slate-950 dark:to-slate-900/50 backdrop-blur-xl border-t border-white/5">
+            <div className="max-w-5xl mx-auto relative">
+                {selectedFile && (
+                    <div className="mb-4 relative inline-block group">
+                        {filePreview ? (
+                            <div className="relative">
+                                <img src={filePreview} className="w-20 h-20 object-cover rounded-2xl border-2 border-blue-500/50 shadow-2xl" alt="Preview" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center">
+                                    <X className="text-white w-6 h-6 cursor-pointer" onClick={() => { setSelectedFile(null); setFilePreview(null); }} />
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="w-20 h-20 bg-white/5 rounded-2xl border-2 border-blue-500/50 flex flex-col items-center justify-center p-2 relative">
+                                <Paperclip className="w-6 h-6 text-blue-400 mb-1" />
+                                <span className="text-[10px] font-bold text-slate-400 truncate w-full text-center px-1">{selectedFile.name}</span>
+                                <button onClick={() => { setSelectedFile(null); setFilePreview(null); }} className="absolute -top-2 -right-2 bg-rose-500 text-white p-1 rounded-full shadow-lg hover:bg-rose-400 transition-colors"><X className="w-3 h-3" /></button>
+                            </div>
+                        )}
+                    </div>
+                )}
+                
+                <form onSubmit={handleSendMessage} className="relative flex items-center group/input">
+                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
+                    
+                    <div className="flex-1 relative flex items-center">
+                        <button 
+                            type="button" 
+                            onClick={() => fileInputRef.current?.click()} 
+                            className="absolute left-4 p-2 text-slate-500 hover:text-blue-400 hover:bg-white/5 rounded-xl transition-all"
+                        >
+                            <Paperclip className="w-5 h-5" />
+                        </button>
+                        
+                        <input 
+                            ref={inputRef} 
+                            type="text" 
+                            value={input} 
+                            onChange={e => setInput(e.target.value)} 
+                            placeholder={t('analytics.chat.placeholder')} 
+                            className="w-full bg-white/5 dark:bg-white/[0.03] border border-white/10 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-[2rem] pl-14 pr-16 py-5 text-slate-900 dark:text-white placeholder:text-slate-500 outline-none transition-all shadow-2xl" 
+                            disabled={loading} 
+                        />
+                        
+                        <button 
+                            type="submit" 
+                            disabled={(!input.trim() && !selectedFile) || loading} 
+                            className="absolute right-3 p-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-20 disabled:grayscale text-white rounded-full shadow-xl shadow-blue-500/20 active:scale-95 transition-all"
+                        >
+                            <Send className="w-5 h-5" />
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 
@@ -421,27 +454,27 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                         <Sparkles className="w-7 h-7 text-white" />
                     </div>
                     <div className="text-center">
-                        <h3 className="font-bold text-slate-900 dark:text-slate-200 text-base">{t('analytics.chat.title')}</h3>
-                        <p className="text-slate-500 text-sm mt-1">{t('analytics.subtitle')}</p>
+                        <h3 className="font-bold text-slate-900 dark:text-slate-100 text-xl tracking-tight">{t('analytics.title')}</h3>
+                        <p className="text-slate-500 text-sm mt-2 max-w-xs mx-auto leading-relaxed">{t('analytics.subtitle')}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 mt-4 w-full max-w-lg">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8 w-full max-w-xl">
                         {[
-                            t('analytics.chat.suggestions.quality'),
-                            t('analytics.chat.suggestions.anomalies'),
-                            t('analytics.chat.suggestions.successRate'),
-                            t('analytics.chat.suggestions.trends')
+                            { key: 'quality', icon: Activity },
+                            { key: 'coverage', icon: Database },
+                            { key: 'trends', icon: PieChart },
+                            { key: 'performance', icon: Zap }
                         ].map(s => (
-                            <StarBorder
-                                key={s}
-                                onClick={() => handleSendMessage(undefined, s)}
-                                color="#3b82f6"
-                                speed="4s"
-                                thickness={1}
-                                className="w-full"
-                                innerClassName="relative z-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 hover:border-blue-500/50 text-slate-700 dark:text-slate-300 text-left text-xs p-3 rounded-xl transition-all w-full h-full"
+                            <button
+                                key={s.key}
+                                onClick={() => handleSendMessage(undefined, t(`analytics.chat.suggestions.${s.key}`))}
+                                className="group relative flex items-center gap-4 bg-white/5 dark:bg-white/[0.03] border border-white/10 hover:border-blue-500/50 hover:bg-blue-500/[0.05] p-4 rounded-[1.5rem] transition-all duration-300 text-left overflow-hidden"
                             >
-                                {s}
-                            </StarBorder>
+                                <div className="p-2.5 rounded-xl bg-white/5 dark:bg-white/5 text-blue-400 group-hover:scale-110 group-hover:text-blue-300 transition-all">
+                                    <s.icon size={18} />
+                                </div>
+                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 group-hover:text-white transition-colors">{t(`analytics.chat.suggestions.${s.key}`)}</span>
+                                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/5 to-blue-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                            </button>
                         ))}
                     </div>
                 </div>

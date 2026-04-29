@@ -7,7 +7,8 @@ import {
     Upload, FileSpreadsheet, Calendar, Eye, Trash2, Edit, Search, Filter,
     Layers, X, CheckCircle, ShieldAlert, ShieldCheck, ShieldQuestion,
     Zap, TrendingUp, Clock, AlertTriangle, ArrowRight, LayoutGrid,
-    Sparkles, ChevronRight, History, XCircle
+    Sparkles, ChevronRight, History, XCircle, Briefcase, Activity, Target,
+    Award, Info
 } from 'lucide-react';
 
 import { campaignService, userService, aiService } from '../services/api';
@@ -18,7 +19,6 @@ import ReadinessGauge from '../components/ReadinessGauge';
 import ReadinessDetailModal from '../components/ReadinessDetailModal';
 import AIInsightModal from '../components/AIInsightModal';
 import CatchupPlanIA from '../components/CatchupPlanIA';
-import { Briefcase, Activity, Target, ShieldAlert as ShieldAlertIcon, Award, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageLayout from '../components/PageLayout';
 import Button from '../components/ui/Button';
@@ -48,6 +48,7 @@ interface ImportedFile {
     excel_file?: string;
     assigned_testers_names?: string[];
     assigned_testers?: number[];
+    tester_quotas?: Record<string, number>;
     project_id?: string;
     start_date?: string;
     estimated_end_date?: string;
@@ -64,7 +65,7 @@ interface User {
 const DataDrivenManager = () => {
     const { t } = useTranslation();
     const location = useLocation();
-    const { isOpen } = useSidebar();
+    useSidebar();
     const activeReleaseName = location.state?.releaseName;
     const activeReleaseId = location.state?.releaseId;
 
@@ -96,6 +97,11 @@ const DataDrivenManager = () => {
     const [editingCampaign, setEditingCampaign] = useState<ImportedFile | null>(null);
     const [testers, setTesters] = useState<User[]>([]);
     const [showScheduleSelector, setShowScheduleSelector] = useState(false);
+    const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
+    const [isSingleQuotaModalOpen, setIsSingleQuotaModalOpen] = useState(false);
+    const [pendingTester, setPendingTester] = useState<any | null>(null);
+    const [testerQuotas, setTesterQuotas] = useState<Record<number, number>>({});
+    const [tempQuota, setTempQuota] = useState<number>(0);
 
     const [campaignForm, setCampaignForm] = useState({
         title: '',
@@ -175,6 +181,7 @@ const DataDrivenManager = () => {
                 excel_file: camp.excel_file,
                 assigned_testers_names: camp.assigned_testers_names || [],
                 assigned_testers: camp.assigned_testers || [],
+                tester_quotas: camp.tester_quotas || {},
                 project_id: camp.project,
                 start_date: camp.start_date,
                 estimated_end_date: camp.estimated_end_date,
@@ -272,11 +279,11 @@ const DataDrivenManager = () => {
             estimated_end_date: campaign.estimated_end_date || '',
             scheduled_at: campaign.scheduled_at || ''
         });
-        
+
         // Charger les quotas existants
-        if (campaign.current_quotas) {
+        if (campaign.tester_quotas) {
             const quotas: Record<number, number> = {};
-            Object.entries(campaign.current_quotas).forEach(([id, quota]) => {
+            Object.entries(campaign.tester_quotas).forEach(([id, quota]) => {
                 quotas[Number(id)] = Number(quota);
             });
             setTesterQuotas(quotas);
@@ -293,25 +300,21 @@ const DataDrivenManager = () => {
         }
     };
 
-    const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
-    const [isSingleQuotaModalOpen, setIsSingleQuotaModalOpen] = useState(false);
-    const [pendingTester, setPendingTester] = useState<any | null>(null);
-    const [testerQuotas, setTesterQuotas] = useState<Record<number, number>>({});
-    const [tempQuota, setTempQuota] = useState<number>(0);
+    // State definitions moved to top
 
     const confirmSingleQuota = () => {
         if (!pendingTester) return;
-        
+
         setCampaignForm({
             ...campaignForm,
             assigned_testers: [...campaignForm.assigned_testers, pendingTester.id]
         });
-        
+
         setTesterQuotas({
             ...testerQuotas,
             [pendingTester.id]: tempQuota || 10
         });
-        
+
         setIsSingleQuotaModalOpen(false);
         setPendingTester(null);
         setTempQuota(0);
@@ -422,7 +425,7 @@ const DataDrivenManager = () => {
                     <StatCard
                         title="Risques Critiques"
                         value={stats.critical}
-                        icon={ShieldAlertIcon}
+                        icon={ShieldAlert}
                         variant="red"
                         description="Détecté par ML Guard"
                         change={stats.critical > 0 ? `+${stats.critical}` : undefined}
@@ -481,7 +484,7 @@ const DataDrivenManager = () => {
                                 <div
                                     key={file.id}
                                     style={{ animationDelay: `${index * 100}ms` }}
-                                    className="group bg-[#0f172a]/40 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] p-6 relative overflow-hidden animate-slide-up hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 hover:border-emerald-500/20 flex flex-col h-full"
+                                    className="group bg-[#0f172a]/40 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 hover:border-emerald-500/20 flex flex-col h-full"
                                 >
                                     {/* Top Right Area (Badges + Actions) */}
                                     <div className="absolute top-6 right-6 flex items-center gap-3 z-20">
@@ -817,7 +820,7 @@ const DataDrivenManager = () => {
                                                     type="datetime-local"
                                                     value={campaignForm.scheduled_at}
                                                     onChange={(e) => setCampaignForm({ ...campaignForm, scheduled_at: e.target.value, start_date: e.target.value.split('T')[0] })}
-                                                    className="w-full bg-slate-950 border border-amber-500/30 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-amber-500/50 outline-none outline-none transition-all"
+                                                    className="w-full bg-slate-950 border border-amber-500/30 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-amber-500/50 outline-none transition-all"
                                                 />
                                             </div>
                                         )}
@@ -923,13 +926,13 @@ const DataDrivenManager = () => {
             <AnimatePresence>
                 {isSingleQuotaModalOpen && pendingTester && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             className="absolute inset-0 bg-slate-950/90 backdrop-blur-md"
                         />
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -939,7 +942,7 @@ const DataDrivenManager = () => {
                                 <h3 className="text-3xl font-black text-white uppercase tracking-tight">Assignation</h3>
                                 <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-2">Définissez l'objectif pour {pendingTester.username}</p>
                             </div>
-                            
+
                             <div className="p-10 space-y-6">
                                 <div className="flex items-center justify-between gap-6 p-6 bg-white/5 rounded-[2rem] border border-white/5">
                                     <div className="flex items-center gap-4">
@@ -952,7 +955,7 @@ const DataDrivenManager = () => {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">
-                                        <input 
+                                        <input
                                             type="number"
                                             autoFocus
                                             value={tempQuota || ''}
@@ -967,7 +970,7 @@ const DataDrivenManager = () => {
                             </div>
 
                             <div className="p-10 bg-black/20 flex gap-4">
-                                <button 
+                                <button
                                     type="button"
                                     onClick={() => {
                                         setIsSingleQuotaModalOpen(false);
@@ -977,7 +980,7 @@ const DataDrivenManager = () => {
                                 >
                                     ANNULER
                                 </button>
-                                <button 
+                                <button
                                     type="button"
                                     onClick={confirmSingleQuota}
                                     className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-900/40 flex items-center justify-center gap-3"

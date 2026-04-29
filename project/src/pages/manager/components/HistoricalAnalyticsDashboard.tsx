@@ -6,7 +6,7 @@ import {
 import {
     TrendingUp, Shield, AlertCircle, Download, Layout, Activity,
     TrendingDown, Minus, Crown, Medal, UserCheck, ShieldAlert,
-    BrainCircuit, MoreVertical, AtSign, Clock
+    BrainCircuit, MoreVertical, AtSign, Clock, Target
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { analyticsService } from '../../../services/api';
@@ -142,7 +142,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
             <div className="flex bg-slate-100 dark:bg-[#161e31] p-1.5 rounded-[1.5rem] w-full max-w-md mx-auto border border-slate-200 dark:border-white/5">
                 {[
                     { id: 'quality', label: 'Qualité' },
-                    { id: 'velocity', label: 'Vélocité' },
+                    { id: 'velocity', label: 'Performance' },
                     { id: 'strat', label: 'Stratégie' }
                 ].map(tab => (
                     <button
@@ -165,50 +165,133 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
-                        className="bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-[2.5rem] p-8 space-y-8"
+                        className="bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-[2.5rem] p-8 space-y-10"
                     >
                         <div className="flex items-center gap-3 text-slate-400">
                             <TrendingUp size={16} />
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Taux de réussite par release</h3>
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Comparatif Qualité des Releases</h3>
                         </div>
 
-                        <div className="h-[250px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={releaseData.length ? releaseData : [
-                                    { version: 'R1.0', pass_rate: 65 },
-                                    { version: 'R1.1', pass_rate: 75 },
-                                    { version: 'R1.2', pass_rate: 70 },
-                                    { version: 'R1.3', pass_rate: 85 },
-                                    { version: 'R2.0', pass_rate: 90 },
-                                    { version: 'R2.1', pass_rate: 95 }
-                                ]}>
-                                    <XAxis
-                                        dataKey="version"
-                                        fontSize={8}
-                                        fontWeight="black"
-                                        axisLine={false}
-                                        tickLine={false}
-                                        stroke="#475569"
-                                        interval={0}
-                                        height={80}
-                                        angle={-45}
-                                        textAnchor="end"
-                                        tickFormatter={(value) => value.length > 20 ? `${value.substring(0, 18)}...` : value}
-                                    />
-                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                                    <Bar dataKey="pass_rate" radius={[6, 6, 2, 2]} barSize={50}>
-                                        {(releaseData.length ? releaseData : Array(6)).map((_, index) => (
-                                            <Cell key={`cell-${index}`} fill={['#3b82f6', '#3b82f6', '#f59e0b', '#3b82f6', '#10b981', '#10b981'][index % 6]} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
+                        {/* Release Quality Scoreboard Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {(releaseData.length ? releaseData : [
+                                { version: 'R1.0', pass_rate: 65, anomaly_count: 12 },
+                                { version: 'R1.1', pass_rate: 75, anomaly_count: 8 },
+                                { version: 'R1.2', pass_rate: 70, anomaly_count: 15 },
+                                { version: 'R1.3', pass_rate: 85, anomaly_count: 5 },
+                                { version: 'R2.0', pass_rate: 90, anomaly_count: 2 },
+                                { version: 'R2.1', pass_rate: 95, anomaly_count: 0 }
+                            ]).slice(-6).map((rel, idx) => {
+                                const isHigh = rel.pass_rate >= 80;
+                                const isMid = rel.pass_rate >= 60;
+                                const colorClass = isHigh ? 'text-emerald-500' : isMid ? 'text-amber-500' : 'text-rose-500';
+                                const bgClass = isHigh ? 'bg-emerald-500/10 border-emerald-500/20' : isMid ? 'bg-amber-500/10 border-amber-500/20' : 'bg-rose-500/10 border-rose-500/20';
+                                
+                                return (
+                                    <motion.div
+                                        key={idx}
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: idx * 0.1 }}
+                                        className={`p-6 rounded-[2rem] border transition-all hover:shadow-lg relative overflow-hidden group ${bgClass}`}
+                                    >
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Release</p>
+                                                <h4 className="text-lg font-black text-slate-900 dark:text-white truncate max-w-[120px]">{rel.version}</h4>
+                                            </div>
+                                            <div className={`p-2 rounded-xl bg-white/50 dark:bg-black/20 ${colorClass}`}>
+                                                {isHigh ? <Shield size={16} /> : isMid ? <AlertCircle size={16} /> : <ShieldAlert size={16} />}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-end justify-between">
+                                            <div className="space-y-1">
+                                                <p className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white">
+                                                    {rel.pass_rate}<span className="text-sm opacity-50 ml-0.5">%</span>
+                                                </p>
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight flex items-center gap-1">
+                                                    <Activity size={10} /> {rel.anomaly_count} anomalies
+                                                </p>
+                                            </div>
+                                            
+                                            <div className="h-10 w-16 flex items-end gap-1 mb-1">
+                                                {[40, 70, 55, 90, 85].map((h, i) => (
+                                                    <div key={i} className={`w-1.5 rounded-full ${isHigh ? 'bg-emerald-500/40' : 'bg-blue-500/40'}`} style={{ height: `${h}%` }} />
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-4 h-1.5 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+                                            <motion.div 
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${rel.pass_rate}%` }}
+                                                className={`h-full rounded-full ${isHigh ? 'bg-emerald-500' : isMid ? 'bg-amber-500' : 'bg-rose-500'}`}
+                                            />
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
                         </div>
 
-                        <div className="flex items-center justify-between text-xs font-black">
-                            <span className="text-slate-500 uppercase tracking-widest">Moyenne : {readinessScore}%</span>
-                            <span className="text-emerald-500 uppercase tracking-widest flex items-center gap-2">
-                                Tendance : ↑ +8% / release
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3 text-slate-400">
+                                <BrainCircuit size={16} />
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Trajectoire de Qualité Historique</h3>
+                            </div>
+                            <div className="h-[240px] w-full pt-4 bg-white/[0.01] border border-white/5 rounded-[2rem] p-4">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={releaseData.length ? releaseData : [
+                                        { version: 'R1.0', pass_rate: 65 }, { version: 'R1.1', pass_rate: 75 },
+                                        { version: 'R1.2', pass_rate: 70 }, { version: 'R1.3', pass_rate: 85 },
+                                        { version: 'R2.0', pass_rate: 90 }, { version: 'R2.1', pass_rate: 95 }
+                                    ]}>
+                                        <defs>
+                                            <linearGradient id="colorPass" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <XAxis
+                                            dataKey="version"
+                                            fontSize={9}
+                                            fontWeight="black"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            stroke="#475569"
+                                            interval={Math.floor(releaseData.length / 8) || 0}
+                                            height={50}
+                                            tick={{ fill: '#64748b' }}
+                                        />
+                                        <YAxis hide domain={[0, 100]} />
+                                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                                        <Area 
+                                            type="monotone" 
+                                            dataKey="pass_rate" 
+                                            stroke="#3b82f6" 
+                                            strokeWidth={4}
+                                            fillOpacity={1} 
+                                            fill="url(#colorPass)" 
+                                            animationDuration={2000}
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[10px] font-black p-4 bg-white/5 rounded-2xl border border-white/5">
+                            <div className="flex items-center gap-4">
+                                <span className="text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                    <Target size={12} className="text-blue-500" />
+                                    Moyenne Globale : <span className="text-white">{readinessScore}%</span>
+                                </span>
+                                <div className="w-px h-4 bg-white/10" />
+                                <span className="text-slate-500 uppercase tracking-widest">
+                                    Total : <span className="text-white">{releaseData.length || 6} Releases</span>
+                                </span>
+                            </div>
+                            <span className="text-emerald-500 uppercase tracking-widest flex items-center gap-2 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                                <TrendingUp size={12} /> Tendance : +8% / release
                             </span>
                         </div>
                     </motion.div>
@@ -268,7 +351,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                             )) : (
                                 <div className="p-20 text-center space-y-4">
                                     <Activity className="w-12 h-12 text-slate-700 mx-auto" />
-                                    <p className="text-slate-500 font-bold">Données de vélocité en attente</p>
+                                    <p className="text-slate-500 font-bold">Données de performance en attente</p>
                                 </div>
                             )}
                         </div>
@@ -283,10 +366,10 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                         exit={{ opacity: 0, scale: 0.95 }}
                         className="space-y-12"
                     >
-                        {/* Strategic KPI: Confidence Gauge & Time-to-Quality */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                            {/* Left: Confidence Gauge */}
-                            <div className="bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center space-y-8 relative overflow-hidden">
+                        {/* Strategic KPI: Confidence Gauge */}
+                        <div className="flex justify-center">
+                            {/* Confidence Gauge */}
+                            <div className="bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center space-y-8 relative overflow-hidden max-w-xl w-full">
                                 <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-600/10 rounded-full blur-[80px]" />
                                 <div className="space-y-2">
                                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Indice de Confiance Global</h3>
@@ -327,81 +410,6 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                             <span className="text-[14px] font-black text-slate-900 dark:text-white">{Math.round(releaseData.reduce((acc, r) => acc + r.anomaly_count, 0))}</span>
                                             <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Bugs Historiques</span>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Right: Time-to-Quality (Area Chart) */}
-                            <div className="bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-[2.5rem] p-8 flex flex-col space-y-6">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3 text-slate-400">
-                                        <Clock size={16} />
-                                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Vitesse de Certification</h3>
-                                    </div>
-                                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full">Time-to-Quality (Jours)</span>
-                                </div>
-
-                                <div className="h-[250px] w-full relative">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={releaseData}>
-                                            <defs>
-                                                <linearGradient id="colorDays" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                                                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                                                </linearGradient>
-                                            </defs>
-                                            <XAxis
-                                                dataKey="version"
-                                                fontSize={8}
-                                                fontWeight="black"
-                                                stroke="#475569"
-                                                axisLine={false}
-                                                tickLine={false}
-                                                interval={0}
-                                                angle={-25}
-                                                textAnchor="end"
-                                                height={50}
-                                            />
-                                            <YAxis hide />
-                                            <Tooltip
-                                                content={({ active, payload }) => {
-                                                    if (active && payload && payload.length) {
-                                                        const data = payload[0].payload;
-                                                        return (
-                                                            <div className="bg-white/90 dark:bg-[#1e293b]/90 border border-slate-200 dark:border-white/10 p-4 rounded-2xl shadow-2xl backdrop-blur-xl">
-                                                                <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">{data.version}</p>
-                                                                <p className="text-sm font-black text-slate-900 dark:text-white">{data.duration_days} Jours de Cycle</p>
-                                                                <p className="text-[9px] font-black text-slate-500 uppercase mt-2">Délai de Certification</p>
-                                                            </div>
-                                                        );
-                                                    }
-                                                    return null;
-                                                }}
-                                            />
-                                            <Area
-                                                type="monotone"
-                                                dataKey="duration_days"
-                                                stroke="#8b5cf6"
-                                                strokeWidth={3}
-                                                fillOpacity={1}
-                                                fill="url(#colorDays)"
-                                            />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2 mt-2">
-                                    <div className="p-3 bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl">
-                                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">Moyenne Cycle</p>
-                                        <p className="text-xs font-bold text-slate-900 dark:text-white mt-1">
-                                            {Math.round(releaseData.reduce((acc, r) => acc + r.duration_days, 0) / (releaseData.length || 1))} Jours
-                                        </p>
-                                    </div>
-                                    <div className="p-3 bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl">
-                                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">Dernier Délai</p>
-                                        <p className="text-xs font-bold text-slate-900 dark:text-white mt-1">
-                                            {releaseData[releaseData.length - 1]?.duration_days || 0} Jours
-                                        </p>
                                     </div>
                                 </div>
                             </div>

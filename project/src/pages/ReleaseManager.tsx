@@ -222,7 +222,7 @@ const ReleaseManager = () => {
     return (
         <PageLayout
             title={businessProjectName ? `Releases: ${businessProjectName}` : t('releaseManager.title')}
-            subtitle={businessProjectName ? "PORTFOLIO VIEW" : "RELEASE AUDIT"}
+            subtitle="L'ENSEMBLE DES RELEASES"
             actions={HeaderActions}
         >
             <div className="space-y-10">

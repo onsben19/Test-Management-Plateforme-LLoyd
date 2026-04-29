@@ -55,7 +55,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
     // Generic Status Logic
     const getStatusColor = (status: string) => {
         switch (String(status).toLowerCase()) {
-            case 'passed': return 'text-green-400 bg-green-400/10';
+            case 'passed': return 'text-blue-400 bg-blue-400/10';
             case 'failed': return 'text-red-400 bg-red-400/10';
             case 'running': return 'text-blue-400 bg-blue-400/10';
             case 'pending': return 'text-amber-400 bg-amber-400/10';
@@ -65,7 +65,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
 
     const getStatusIconColor = (status: string) => {
         switch (String(status).toLowerCase()) {
-            case 'passed': return 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]';
+            case 'passed': return 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]';
             case 'failed': return 'bg-rose-500';
             case 'running': return 'bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.5)]';
             default: return 'bg-slate-500';
@@ -117,14 +117,14 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                         <div className="flex items-center gap-3">
                             {canManage && (
                                 <button
-                                    className="p-2 rounded-xl bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white transition-all transform active:scale-95 group-hover:scale-110 shadow-lg shadow-blue-600/20"
+                                    className="p-2.5 rounded-xl bg-blue-500/5 text-blue-400 hover:bg-blue-500 hover:text-white border border-blue-500/20 transition-all transform active:scale-95 group-hover:scale-105 shadow-lg shadow-blue-500/5 group/play"
                                     title="Démarrer l'exécution"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onSelectTest(test);
                                     }}
                                 >
-                                    <PlayCircle className="w-4 h-4" />
+                                    <PlayCircle className="w-4 h-4 group-hover/play:rotate-12 transition-transform" />
                                 </button>
                             )}
                             <div className="flex flex-col gap-1">
@@ -183,9 +183,9 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                                     window.open(fileUrl, '_blank');
                                 }
                             }}
-                            className="p-3 bg-white/5 hover:bg-blue-500/10 text-slate-500 hover:text-blue-400 rounded-xl transition-all border border-white/5"
+                            className="p-3 bg-white/5 hover:bg-blue-500/10 text-slate-500 hover:text-blue-400 rounded-xl transition-all border border-white/10 hover:border-blue-500/30 group/eye"
                         >
-                            <Eye className="w-4 h-4" />
+                            <Eye className="w-4 h-4 group-hover/eye:scale-110 transition-transform" />
                         </button>
                     ) : (
                         <span className="text-slate-600 font-bold uppercase tracking-widest text-[9px] opacity-40">AUCUNE</span>
@@ -193,7 +193,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                 </td>
                 <td className="px-8 py-6">
                     <span className={`inline-flex items-center gap-3 px-6 py-2 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${test.status === 'passed'
-                        ? 'bg-emerald-500/5 text-emerald-400 border border-emerald-500/10'
+                        ? 'bg-blue-500/5 text-blue-400 border border-blue-500/10'
                         : test.status === 'failed'
                             ? 'bg-rose-500/5 text-rose-400 border border-rose-500/10'
                             : 'bg-amber-500/5 text-amber-400 border border-amber-500/10'
@@ -213,10 +213,10 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                                         e.stopPropagation();
                                         onEditTest?.(test);
                                     }}
-                                    className="p-2.5 bg-white/5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl border border-white/10 transition-all"
+                                    className="p-2.5 bg-white/5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl border border-white/10 hover:border-blue-500/30 transition-all group/edit"
                                     title="Modifier"
                                 >
-                                    <Pencil className="w-4 h-4" />
+                                    <Pencil className="w-4 h-4 group-hover/edit:rotate-12 transition-transform" />
                                 </button>
                             )}
                             {canDelete && (
@@ -226,10 +226,10 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                                         setTestToDelete(test);
                                         setIsDeleteModalOpen(true);
                                     }}
-                                    className="p-2.5 bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl border border-white/10 transition-all"
+                                    className="p-2.5 bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl border border-white/10 hover:border-rose-500/30 transition-all group/trash"
                                     title="Supprimer"
                                 >
-                                    <Trash2 className="w-4 h-4" />
+                                    <Trash2 className="w-4 h-4 group-hover/trash:scale-110 transition-transform" />
                                 </button>
                             )}
                         </div>

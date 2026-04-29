@@ -101,7 +101,7 @@ const ProjectPortfolio = () => {
             header: 'Projet',
             accessor: (item: any) => (
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 border border-blue-500/20">
                         <Briefcase size={14} />
                     </div>
                     <span className="font-bold">{item.name}</span>
@@ -120,7 +120,7 @@ const ProjectPortfolio = () => {
     return (
         <PageLayout
             title={isAdmin ? "Audit des Projets" : "Gestion des Projets"}
-            subtitle={isAdmin ? "VUE DÉTAILLÉE DU RÉFÉRENTIEL" : "PILOTAGE DU PORTEFEUILLE APPLICATIF"}
+            subtitle={isAdmin ? "VUE DÉTAILLÉE DU RÉFÉRENTIEL" : "PROJETS DISPONIBLES"}
             actions={HeaderActions}
         >
             <div className="space-y-8">
@@ -137,7 +137,7 @@ const ProjectPortfolio = () => {
                             title="Total Releases"
                             value={projects.reduce((sum, p) => sum + (p.releases_count || 0), 0)}
                             icon={Layers}
-                            variant="green"
+                            variant="blue"
                         />
                         <StatCard
                             title="Nouveaux ce mois"
@@ -216,8 +216,8 @@ const ProjectPortfolio = () => {
                                             >
                                                 {/* Card Header - Icon & Actions */}
                                                 <div className="flex items-start justify-between mb-8">
-                                                    <div className="w-16 h-16 rounded-3xl bg-emerald-50 dark:bg-[#112121] border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                                                        <div className="p-2.5 bg-emerald-500/5 rounded-2xl border border-emerald-500/10">
+                                                    <div className="w-16 h-16 rounded-3xl bg-blue-50 dark:bg-[#111827] border border-blue-200 dark:border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                                        <div className="p-2.5 bg-blue-500/5 rounded-2xl border border-blue-500/10">
                                                             <Briefcase className="w-6 h-6" />
                                                         </div>
                                                     </div>
@@ -240,10 +240,10 @@ const ProjectPortfolio = () => {
                                                 {/* Status & Info */}
                                                 <div className="space-y-2 mb-6">
                                                     <div className="flex items-center gap-2">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                                                        <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest">Actif</span>
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                                                        <span className="text-[10px] font-black text-blue-600 dark:text-blue-500 uppercase tracking-widest">Actif</span>
                                                     </div>
-                                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-blue-600 dark:group-hover:text-emerald-400 transition-colors uppercase">{project.name}</h3>
+                                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase">{project.name}</h3>
                                                     <p className="text-slate-500 dark:text-slate-400 text-xs font-medium leading-relaxed line-clamp-2">{project.description || 'Description du projet métier'}</p>
                                                 </div>
 
@@ -289,7 +289,7 @@ const ProjectPortfolio = () => {
                                                 </div>
 
                                                 {/* Hover indicator */}
-                                                <div className="mt-5 flex items-center gap-2 text-[10px] font-black text-slate-600 group-hover:text-emerald-500 transition-colors uppercase tracking-widest">
+                                                <div className="mt-5 flex items-center gap-2 text-[10px] font-black text-slate-600 group-hover:text-blue-500 transition-colors uppercase tracking-widest">
                                                     <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                                                     Voir les releases
                                                 </div>

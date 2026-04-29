@@ -20,7 +20,7 @@ class Conversation(models.Model):
 class Message(models.Model):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='chat_messages')
-    text = models.TextField()
+    text = models.TextField(blank=True, null=True)
     attachment = models.FileField(upload_to='chat_attachments/', null=True, blank=True)
     is_edited = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

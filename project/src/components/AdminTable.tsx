@@ -142,7 +142,7 @@ const AdminTable = <T extends { id?: string | number }>({
                                     ))}
                                     {actions && (
                                         <td className="px-8 py-5 text-right">
-                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
+                                            <div className="flex justify-end gap-2 transition-all duration-300">
                                                 {actions(item)}
                                             </div>
                                         </td>

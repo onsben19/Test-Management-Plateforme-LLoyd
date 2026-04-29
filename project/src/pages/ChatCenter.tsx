@@ -65,6 +65,7 @@ const ChatCenter = () => {
     const [userSearchTerm, setUserSearchTerm] = useState('');
     const [selectedParticipants, setSelectedParticipants] = useState<number[]>([]);
     const [groupName, setGroupName] = useState('');
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -248,7 +249,7 @@ const ChatCenter = () => {
     }, [messages]);
 
     const handleSendMessage = async () => {
-        if (!chatMessage.trim() || !selectedConv) return;
+        if ((!chatMessage.trim() && !selectedFile) || !selectedConv) return;
 
         const optimisticMessage = {
             id: 'opt-' + Date.now(),
@@ -256,16 +257,23 @@ const ChatCenter = () => {
             created_at: new Date().toISOString(),
             author_name: currentUser?.username || "Moi",
             author: currentUser?.id,
-            isOptimistic: true
+            isOptimistic: true,
+            hasFile: !!selectedFile,
+            fileName: selectedFile?.name
         };
 
         setMessages(prev => [...prev, optimisticMessage]);
+        const currentText = chatMessage;
+        const currentFile = selectedFile;
+
         setChatMessage('');
+        setSelectedFile(null);
 
         try {
             const formData = new FormData();
             formData.append('conversation', selectedConv.id);
-            formData.append('text', optimisticMessage.text);
+            if (currentText) formData.append('text', currentText);
+            if (currentFile) formData.append('attachment', currentFile);
 
             await chatService.sendMessage(formData);
 
@@ -383,33 +391,35 @@ const ChatCenter = () => {
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-2 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-3 custom-scrollbar">
                         {filteredConversations.map((conv) => {
                             const otherUser = conv.type === 'DIRECT' ? conv.participants_details.find((p: any) => p.id !== currentUser?.id) : null;
                             const title = conv.type === 'DIRECT' ? otherUser?.username : conv.name;
                             const subtitle = conv.type === 'DIRECT' ? "Message Direct" : conv.type === 'TEST_CASE' ? "Discussion de Test" : `${conv.participants.length} membres`;
+                            const isActive = selectedConv?.id === conv.id;
 
                             return (
                                 <motion.button
                                     key={conv.id}
                                     layout
                                     onClick={() => setSelectedConv(conv)}
-                                    className={`w-full p-4 rounded-3xl flex items-center gap-4 transition-all overflow-hidden relative ${selectedConv?.id === conv.id ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/20' : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400'}`}
+                                    className={`w-full p-5 rounded-[2rem] flex items-center gap-5 transition-all relative group/item border ${isActive ? 'bg-blue-600/10 border-blue-500/50 shadow-lg shadow-blue-500/5' : 'hover:bg-white/[0.03] border-transparent hover:border-white/10 text-slate-500 dark:text-slate-400'}`}
                                 >
-                                    <div className="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-black border bg-white dark:bg-white/5 border-slate-200 dark:border-white/5">
-                                        {conv.type === 'DIRECT' ? <User size={18} /> : conv.type === 'GROUP' ? <Users size={18} /> : <Hash size={18} />}
+                                    <div className={`shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-blue-600 text-white' : 'bg-white/5 border border-white/5 group-hover/item:border-white/20'}`}>
+                                        {conv.type === 'DIRECT' ? <User size={20} /> : conv.type === 'GROUP' ? <Users size={20} /> : <Hash size={20} />}
                                     </div>
                                     <div className="flex-1 text-left min-w-0">
-                                        <div className="flex justify-between items-center mb-0.5">
-                                            <h4 className={`text-sm font-black truncate ${selectedConv?.id === conv.id ? 'text-white' : 'text-slate-900 dark:text-slate-200'}`}>{title}</h4>
-                                            <span className="text-[9px] font-bold opacity-50">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <h4 className={`text-[13px] font-black tracking-tight truncate ${isActive ? 'text-white' : 'text-slate-900 dark:text-slate-200'}`}>{title}</h4>
+                                            <span className="text-[9px] font-black uppercase opacity-40 tracking-wider">
                                                 {conv.timestamp instanceof Date && !isNaN(conv.timestamp.getTime())
                                                     ? formatDistanceToNow(conv.timestamp, { locale: fr })
                                                     : '...'}
                                             </span>
                                         </div>
-                                        <p className="text-[11px] font-bold truncate opacity-50">{conv.last_message?.text || "Pas de message"}</p>
+                                        <p className="text-[11px] font-bold truncate opacity-50 italic">{conv.last_message?.text || "Commencer à discuter..."}</p>
                                     </div>
+                                    {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_15px_rgba(59,130,246,1)]" />}
                                 </motion.button>
                             );
                         })}
@@ -420,30 +430,37 @@ const ChatCenter = () => {
                 <div className={`flex-1 flex flex-col relative z-20 ${!selectedConv ? 'hidden lg:flex' : 'flex'} bg-white/30 dark:bg-transparent`}>
                     {selectedConv ? (
                         <div className="flex flex-col h-full">
-                            <div className="p-8 border-b border-slate-200 dark:border-white/5 bg-white/50 dark:bg-white/[0.02] flex items-center justify-between">
+                            <div className="px-8 py-6 border-b border-white/5 bg-white/5 dark:bg-white/[0.02] flex items-center justify-between backdrop-blur-md">
                                 <div className="flex items-center gap-6">
-                                    <button onClick={() => setSelectedConv(null)} className="p-2 lg:hidden hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-all text-slate-500 dark:text-slate-400"><ChevronLeft size={20} /></button>
-                                    <div className="w-16 h-16 rounded-[1.5rem] bg-gradient-to-br from-blue-500 to-indigo-600 p-0.5 shadow-xl">
-                                        <div className="w-full h-full bg-white dark:bg-[#0b0e14] rounded-[1.4rem] flex items-center justify-center text-xl font-black text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-white/5">
-                                            {selectedConv.type === 'DIRECT' ? <User size={24} /> : <Users size={24} />}
+                                    <button onClick={() => setSelectedConv(null)} className="p-2 lg:hidden hover:bg-white/10 rounded-xl transition-all text-slate-500"><ChevronLeft size={20} /></button>
+                                    <div className="relative">
+                                        <div className="w-16 h-16 rounded-[1.5rem] bg-gradient-to-br from-blue-500 to-indigo-600 p-0.5 shadow-2xl shadow-blue-500/20">
+                                            <div className="w-full h-full bg-[#0b0e14] rounded-[1.4rem] flex items-center justify-center text-xl font-black text-blue-400 border border-white/5">
+                                                {selectedConv.type === 'DIRECT' ? <User size={24} /> : <Users size={24} />}
+                                            </div>
+                                        </div>
+                                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#0b0e14] rounded-full flex items-center justify-center border-2 border-slate-900">
+                                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
                                         </div>
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{selectedConv.type === 'DIRECT' ? selectedConv.participants_details.find((p: any) => p.id !== currentUser?.id)?.username : selectedConv.name}</h2>
+                                        <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase leading-none mb-1.5">{selectedConv.type === 'DIRECT' ? selectedConv.participants_details.find((p: any) => p.id !== currentUser?.id)?.username : selectedConv.name}</h2>
                                         <div className="flex items-center gap-2">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                                {selectedConv.type === 'GROUP' ? `${selectedConv.participants.length} participants (${onlineUsersCount} en ligne)` : "En ligne"}
+                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                                                {selectedConv.type === 'GROUP' ? `${selectedConv.participants.length} membres • ${onlineUsersCount} online` : "Agent Disponible"}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4">
-                                    <div className="hidden md:flex flex-col items-end">
-                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">STATUT GROUPE</p>
-                                        <p className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest">ACTIF & SÉCURISÉ</p>
+                                    <div className="hidden md:flex flex-col items-end mr-4">
+                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Status Sécurité</p>
+                                        <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 rounded-full border border-green-500/20">
+                                            <div className="w-1 h-1 bg-green-500 rounded-full" />
+                                            <p className="text-[9px] font-black text-green-500 uppercase tracking-widest">Chiffré de bout en bout</p>
+                                        </div>
                                     </div>
-                                    <Button variant="secondary" size="icon" icon={MoreVertical} />
+                                    <Button variant="secondary" size="icon" icon={MoreVertical} className="bg-white/5 border-white/10" />
                                 </div>
                             </div>
 
@@ -481,6 +498,23 @@ const ChatCenter = () => {
                                                         )}
 
                                                         <div className={`p-6 rounded-[2.5rem] shadow-xl transition-all relative ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : isMentioned ? 'bg-indigo-600/10 dark:bg-indigo-600/30 text-slate-900 dark:text-slate-200 border border-indigo-500/30 rounded-tl-none' : 'bg-white dark:bg-white/5 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/5 rounded-tl-none'}`}>
+                                                            {msg.attachment && (
+                                                                <div className={`mb-4 p-4 rounded-2xl flex items-center gap-3 border ${isMe ? 'bg-white/10 border-white/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10'}`}>
+                                                                    <div className={`p-2 rounded-xl ${isMe ? 'bg-white/20' : 'bg-blue-500/10 text-blue-500'}`}>
+                                                                        {msg.attachment.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? <Image size={20} /> : <FileText size={20} />}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className={`text-xs font-black truncate ${isMe ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Fichier Joint</p>
+                                                                        <button
+                                                                            onClick={() => window.open(msg.attachment, '_blank')}
+                                                                            className={`text-[10px] font-bold underline opacity-70 hover:opacity-100 ${isMe ? 'text-white' : 'text-blue-500'}`}
+                                                                        >
+                                                                            Ouvrir le fichier
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
                                                             {isEditing ? (
                                                                 <div className="flex flex-col gap-3 min-w-[250px]">
                                                                     <textarea value={editValue} onChange={(e) => setEditValue(e.target.value)} className="bg-slate-100 dark:bg-black/40 border border-slate-300 dark:border-white/10 rounded-2xl p-4 text-sm focus:outline-none resize-none min-h-[100px]" autoFocus />
@@ -521,80 +555,120 @@ const ChatCenter = () => {
                             </div>
 
                             <div className="p-8 pt-0 relative">
-                                <AnimatePresence>
-                                    {showMentionPopover && (
-                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-8 right-8 mb-4 bg-white dark:bg-[#0b0e14] border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-2xl overflow-hidden z-50">
-                                            <div className="p-4 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/5 flex items-center justify-between">
-                                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Mentionner un collègue</span>
+                                <div className="max-w-5xl mx-auto relative">
+                                    <AnimatePresence>
+                                        {showMentionPopover && (
+                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 right-0 mb-6 bg-[#0b0e14] border border-white/10 rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden z-50 backdrop-blur-3xl">
+                                                <div className="p-5 border-b border-white/5 bg-white/5 flex items-center justify-between">
+                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Mentionner un collègue</span>
+                                                    <AtSign size={14} className="text-blue-500" />
+                                                </div>
+                                                <div className="max-h-64 overflow-y-auto p-3 custom-scrollbar space-y-1">
+                                                    {selectedConv.participants_details.filter(p => p.username.toLowerCase().includes(mentionSearch.toLowerCase())).map((p) => (
+                                                        <button
+                                                            key={p.id}
+                                                            onClick={() => {
+                                                                const before = chatMessage.substring(0, mentionIndex);
+                                                                const after = chatMessage.substring(mentionIndex + mentionSearch.length + 1);
+                                                                setChatMessage(`${before}@${p.username} ${after}`);
+                                                                setShowMentionPopover(false);
+                                                                setMentionSearch('');
+                                                            }}
+                                                            className="w-full p-4 rounded-2xl hover:bg-blue-600 text-white flex items-center gap-4 transition-all group"
+                                                        >
+                                                            <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center text-xs font-black border border-white/5 group-hover:bg-white/20 transition-all text-blue-400 group-hover:text-white">
+                                                                {p.username.charAt(0)}
+                                                            </div>
+                                                            <div className="text-left">
+                                                                <p className="text-sm font-black tracking-tight">{p.username}</p>
+                                                                <p className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em]">{p.first_name || "QA"} {p.last_name || "Engineer"}</p>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+
+                                    <div className="relative group/input">
+                                        <div className="absolute inset-0 bg-blue-500/5 blur-3xl opacity-0 group-focus-within/input:opacity-100 transition-opacity" />
+                                        <div className="relative bg-[#0b0e14]/80 border border-white/10 rounded-[2.5rem] p-4 flex flex-col gap-3 backdrop-blur-2xl shadow-2xl transition-all focus-within:border-blue-500/40 focus-within:ring-4 focus-within:ring-blue-500/5">
+                                            {selectedFile && (
+                                                <div className="px-5 py-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between animate-fade-in">
+                                                    <div className="flex items-center gap-4 overflow-hidden">
+                                                        <div className="p-2.5 bg-blue-500/20 rounded-xl text-blue-400">
+                                                            {selectedFile.type.startsWith('image/') ? <Image size={18} /> : <FileText size={18} />}
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs font-black text-white truncate max-w-[300px]">{selectedFile.name}</span>
+                                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Document prêt à l'envoi</span>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setSelectedFile(null)}
+                                                        className="p-2 hover:bg-rose-500/20 rounded-full text-slate-500 hover:text-rose-500 transition-all"
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center gap-4">
+                                                <button
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    className={`p-4 rounded-2xl transition-all border ${selectedFile ? 'bg-blue-600 border-transparent text-white' : 'bg-white/5 border-white/5 hover:bg-white/10 text-slate-500 hover:text-white'}`}
+                                                >
+                                                    <Paperclip size={20} />
+                                                </button>
+                                                <input
+                                                    type="file"
+                                                    ref={fileInputRef}
+                                                    className="hidden"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) setSelectedFile(file);
+                                                        e.target.value = '';
+                                                    }}
+                                                />
+                                                <div className="flex-1 relative">
+                                                    <textarea
+                                                        value={chatMessage}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            setChatMessage(val);
+
+                                                            const lastAtPos = val.lastIndexOf('@');
+                                                            if (lastAtPos !== -1 && (lastAtPos === 0 || val[lastAtPos - 1] === ' ')) {
+                                                                const search = val.substring(lastAtPos + 1).split(' ')[0];
+                                                                setMentionSearch(search);
+                                                                setMentionIndex(lastAtPos);
+                                                                setShowMentionPopover(true);
+                                                            } else {
+                                                                setShowMentionPopover(false);
+                                                            }
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                                e.preventDefault();
+                                                                handleSendMessage();
+                                                            }
+                                                            if (e.key === 'Escape') setShowMentionPopover(false);
+                                                        }}
+                                                        placeholder="Tapez votre message ici... (@ pour mentionner)"
+                                                        rows={1}
+                                                        className="w-full bg-transparent border-none py-4 text-[14px] font-bold text-white focus:outline-none resize-none placeholder:text-slate-700"
+                                                    />
+                                                </div>
                                                 <div className="flex items-center gap-2">
-                                                    <AtSign size={12} className="text-blue-500" />
+                                                    <Button variant="secondary" size="icon" icon={Sparkles} onClick={handleAIReformulate} disabled={!chatMessage || isAILoading} isLoading={isAILoading} className="bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white" />
+                                                    <Button size="icon" icon={Send} onClick={handleSendMessage} disabled={!chatMessage.trim() && !selectedFile} className="shadow-xl shadow-blue-500/20" />
                                                 </div>
                                             </div>
-                                            <div className="max-h-60 overflow-y-auto p-2 custom-scrollbar">
-                                                {selectedConv.participants_details.filter(p => p.username.toLowerCase().includes(mentionSearch.toLowerCase())).map((p, idx) => (
-                                                    <button
-                                                        key={p.id}
-                                                        onClick={() => {
-                                                            const before = chatMessage.substring(0, mentionIndex);
-                                                            const after = chatMessage.substring(mentionIndex + mentionSearch.length + 1);
-                                                            setChatMessage(`${before}@${p.username} ${after}`);
-                                                            setShowMentionPopover(false);
-                                                            setMentionSearch('');
-                                                        }}
-                                                        className="w-full p-4 rounded-2xl hover:bg-blue-600 hover:text-white flex items-center gap-4 transition-all group"
-                                                    >
-                                                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-xs font-black border border-slate-200 dark:border-white/5 group-hover:bg-white/20 transition-all text-slate-600 dark:text-blue-400">
-                                                            {p.username.charAt(0)}
-                                                        </div>
-                                                        <div className="text-left">
-                                                            <p className="text-sm font-bold text-slate-900 dark:text-white">{p.username}</p>
-                                                            <p className="text-[10px] font-black opacity-50 uppercase tracking-widest">{p.first_name || "Utilisateur"} {p.last_name || ""}</p>
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-
-                                <div className="bg-[#0b0e14] border border-white/10 rounded-[2.5rem] p-4 flex items-center gap-4 backdrop-blur-2xl shadow-2xl transition-all focus-within:border-blue-500/50 focus-within:ring-4 focus-within:ring-blue-500/10">
-                                    <button onClick={() => fileInputRef.current?.click()} className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-500 hover:text-white transition-all"><Paperclip size={20} /></button>
-                                    <input type="file" ref={fileInputRef} className="hidden" />
-                                    <div className="flex-1 relative">
-                                        <textarea
-                                            value={chatMessage}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                setChatMessage(val);
-
-                                                const lastAtPos = val.lastIndexOf('@');
-                                                if (lastAtPos !== -1 && (lastAtPos === 0 || val[lastAtPos - 1] === ' ')) {
-                                                    const search = val.substring(lastAtPos + 1).split(' ')[0];
-                                                    setMentionSearch(search);
-                                                    setMentionIndex(lastAtPos);
-                                                    setShowMentionPopover(true);
-                                                } else {
-                                                    setShowMentionPopover(false);
-                                                }
-                                            }}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter' && !e.shiftKey) {
-                                                    e.preventDefault();
-                                                    handleSendMessage();
-                                                }
-                                                if (e.key === 'Escape') setShowMentionPopover(false);
-                                            }}
-                                            placeholder="Votre message... (@ pour mentionner)"
-                                            rows={1}
-                                            className="w-full bg-transparent border-none py-4 text-sm font-bold text-white focus:outline-none resize-none placeholder:text-slate-600"
-                                        />
+                                        </div>
                                     </div>
-                                    <Button variant="secondary" size="icon" icon={Sparkles} onClick={handleAIReformulate} disabled={!chatMessage || isAILoading} isLoading={isAILoading} className="text-indigo-400" />
-                                    <Button size="icon" icon={Send} onClick={handleSendMessage} disabled={!chatMessage.trim()} />
-                                </div>
                             </div>
                         </div>
-                    ) : (
+                    </div>
+                ) : (
                         <div className="flex-1 flex flex-col items-center justify-center space-y-8">
                             <div className="w-32 h-32 rounded-[3rem] bg-slate-100 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 flex items-center justify-center shadow-inner"><MessageSquare size={48} className="text-slate-300 dark:text-slate-700" /></div>
                             <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-widest text-center">Collaboration Center</h3>

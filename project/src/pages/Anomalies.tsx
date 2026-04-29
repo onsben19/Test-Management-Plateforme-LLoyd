@@ -364,7 +364,7 @@ const Anomalies: React.FC = () => {
               title={t('anomalies.stats.resolved')}
               value={stats.items.resolved}
               icon={CheckCircle2}
-              variant="green"
+              variant="blue"
               description={t('anomalies.stats.resolvedDesc')}
               isLoading={loading}
             />
@@ -519,7 +519,7 @@ const Anomalies: React.FC = () => {
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
+                          <div className="flex items-center justify-end gap-2 transition-all duration-300">
                             <Button
                               variant="secondary"
                               size="icon"
