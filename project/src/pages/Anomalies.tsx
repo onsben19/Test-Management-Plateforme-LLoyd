@@ -380,22 +380,22 @@ const Anomalies: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-8">
-            <div className="bg-white dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
-              <div className="p-6 border-b border-slate-100 dark:border-white/5 flex flex-col xl:flex-row items-center gap-4">
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
+              <div className="p-6 border-b border-white/5 flex flex-col xl:flex-row items-center gap-4">
                 <div className="relative flex-1 group w-full">
                   <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder={t('anomalies.searchPlaceholder')}
-                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[1.5rem] pl-16 pr-8 py-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder-slate-400 dark:placeholder-slate-500"
+                    className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] pl-16 pr-8 py-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder-slate-400 dark:placeholder-slate-500"
                   />
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
                   <div className="relative group/select min-w-[200px]">
                     <div className="absolute inset-0 bg-blue-500/5 blur-xl opacity-0 group-hover/select:opacity-100 transition-opacity duration-500 rounded-full" />
-                    <div className="relative bg-slate-50 dark:bg-white/5 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-white/10 hover:border-blue-500/30 hover:bg-slate-100 dark:hover:bg-white/10 transition-all duration-300 overflow-hidden">
+                    <div className="relative bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 hover:border-blue-500/30 hover:bg-white/10 transition-all duration-300 overflow-hidden">
                       <select
                         value={impactFilter}
                         onChange={(e) => setImpactFilter(e.target.value as any)}
@@ -444,7 +444,7 @@ const Anomalies: React.FC = () => {
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse table-fixed min-w-[1000px]">
                   <thead>
-                    <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.01]">
+                    <tr className="border-b border-white/5 bg-white/[0.01]">
                       <th className="w-[30%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('anomalies.table.anomaly')}</th>
                       <th className="w-[12%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Impact</th>
                       <th className="w-[12%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Priorité</th>
@@ -469,11 +469,11 @@ const Anomalies: React.FC = () => {
                       <tr
                         key={an.id}
                         onClick={() => setSelectedAnomaly(an)}
-                        className="hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-all duration-300 group cursor-pointer border-b border-slate-100 dark:border-white/5 last:border-0"
+                        className="hover:bg-white/[0.04] transition-all duration-300 group cursor-pointer border-b border-white/5 last:border-0"
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-4">
-                            <div className={`p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 group-hover:scale-110 transition-transform ${impactToBadgeColor(an.impact) === 'red' ? 'text-rose-600 dark:text-rose-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                            <div className={`p-2.5 rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform ${impactToBadgeColor(an.impact) === 'red' ? 'text-rose-600 dark:text-rose-400' : 'text-blue-600 dark:text-blue-400'}`}>
                               <ShieldAlert className="w-5 h-5" />
                             </div>
                             <div className="flex flex-col gap-0.5 min-w-0">

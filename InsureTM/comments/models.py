@@ -9,6 +9,12 @@ class Comment(models.Model):
         null=True, blank=True
     )
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='authored_comments')
+    test_case = models.ForeignKey(
+        'testCases.TestCase',
+        on_delete=models.CASCADE,
+        related_name='comments',
+        null=True, blank=True
+    )
     message = models.TextField(blank=True)
     attachment = models.FileField(upload_to='comment_attachments/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

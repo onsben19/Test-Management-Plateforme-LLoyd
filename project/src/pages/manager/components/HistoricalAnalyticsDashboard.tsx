@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-    Cell, ScatterChart, Scatter, ZAxis, AreaChart, Area
+    Cell, ScatterChart, Scatter, ZAxis, AreaChart, Area,
+    ComposedChart, Line, Legend
 } from 'recharts';
 import {
     TrendingUp, Shield, AlertCircle, Download, Layout, Activity,
@@ -11,6 +12,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { analyticsService } from '../../../services/api';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -82,7 +84,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 // ---------------------------------------------------------------------------
 // Main Component
 const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<'quality' | 'velocity' | 'strat'>('quality');
+    const [qualityViewMode, setQualityViewMode] = useState<'table' | 'chart'>('table');
     const [loading, setLoading] = useState(true);
     const [releaseData, setReleaseData] = useState<ReleaseMetrics[]>([]);
     const [testerData, setTesterData] = useState<TesterPerformance[]>([]);
@@ -126,24 +130,24 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
             <div className="flex items-center justify-between">
                 <div className="space-y-1">
                     <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                        {projectId === 'all' ? 'Analytics Plateforme' : 'Analytics Historiques'}
+                        {projectId === 'all' ? t('historicalAnalytics.titleAll') : t('historicalAnalytics.title')}
                     </h2>
                     <p className="text-sm font-bold text-slate-500">
-                        {projectId === 'all' ? 'Consolidation de tous les projets actifs' : `Tendances sur ${releaseData.length || 6} releases`}
+                        {projectId === 'all' ? t('historicalAnalytics.subtitleAll') : t('historicalAnalytics.subtitle', { count: releaseData.length || 6 })}
                     </p>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 rounded-xl border border-blue-500/20 text-blue-600 dark:text-blue-400">
                     <Activity className="w-4 h-4" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Live Aggregation</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">{t('historicalAnalytics.liveAggregation')}</span>
                 </div>
             </div>
 
             {/* Custom Pilled Tabs */}
             <div className="flex bg-slate-100 dark:bg-[#161e31] p-1.5 rounded-[1.5rem] w-full max-w-md mx-auto border border-slate-200 dark:border-white/5">
                 {[
-                    { id: 'quality', label: 'Qualité' },
-                    { id: 'velocity', label: 'Performance' },
-                    { id: 'strat', label: 'Stratégie' }
+                    { id: 'quality', label: t('historicalAnalytics.tabs.quality') },
+                    { id: 'velocity', label: t('historicalAnalytics.tabs.velocity') },
+                    { id: 'strat', label: t('historicalAnalytics.tabs.strat') }
                 ].map(tab => (
                     <button
                         key={tab.id}
@@ -167,91 +171,95 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                         exit={{ opacity: 0, y: -20 }}
                         className="bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-[2.5rem] p-8 space-y-10"
                     >
-                        <div className="flex items-center gap-3 text-slate-400">
-                            <TrendingUp size={16} />
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Comparatif Qualité des Releases</h3>
-                        </div>
-
-                        {/* Release Quality Scoreboard Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {(releaseData.length ? releaseData : [
-                                { version: 'R1.0', pass_rate: 65, anomaly_count: 12 },
-                                { version: 'R1.1', pass_rate: 75, anomaly_count: 8 },
-                                { version: 'R1.2', pass_rate: 70, anomaly_count: 15 },
-                                { version: 'R1.3', pass_rate: 85, anomaly_count: 5 },
-                                { version: 'R2.0', pass_rate: 90, anomaly_count: 2 },
-                                { version: 'R2.1', pass_rate: 95, anomaly_count: 0 }
-                            ]).slice(-6).map((rel, idx) => {
-                                const isHigh = rel.pass_rate >= 80;
-                                const isMid = rel.pass_rate >= 60;
-                                const colorClass = isHigh ? 'text-emerald-500' : isMid ? 'text-amber-500' : 'text-rose-500';
-                                const bgClass = isHigh ? 'bg-emerald-500/10 border-emerald-500/20' : isMid ? 'bg-amber-500/10 border-amber-500/20' : 'bg-rose-500/10 border-rose-500/20';
-                                
-                                return (
-                                    <motion.div
-                                        key={idx}
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ delay: idx * 0.1 }}
-                                        className={`p-6 rounded-[2rem] border transition-all hover:shadow-lg relative overflow-hidden group ${bgClass}`}
-                                    >
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div>
-                                                <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Release</p>
-                                                <h4 className="text-lg font-black text-slate-900 dark:text-white truncate max-w-[120px]">{rel.version}</h4>
-                                            </div>
-                                            <div className={`p-2 rounded-xl bg-white/50 dark:bg-black/20 ${colorClass}`}>
-                                                {isHigh ? <Shield size={16} /> : isMid ? <AlertCircle size={16} /> : <ShieldAlert size={16} />}
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-end justify-between">
-                                            <div className="space-y-1">
-                                                <p className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white">
-                                                    {rel.pass_rate}<span className="text-sm opacity-50 ml-0.5">%</span>
-                                                </p>
-                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight flex items-center gap-1">
-                                                    <Activity size={10} /> {rel.anomaly_count} anomalies
-                                                </p>
-                                            </div>
-                                            
-                                            <div className="h-10 w-16 flex items-end gap-1 mb-1">
-                                                {[40, 70, 55, 90, 85].map((h, i) => (
-                                                    <div key={i} className={`w-1.5 rounded-full ${isHigh ? 'bg-emerald-500/40' : 'bg-blue-500/40'}`} style={{ height: `${h}%` }} />
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-4 h-1.5 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
-                                            <motion.div 
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${rel.pass_rate}%` }}
-                                                className={`h-full rounded-full ${isHigh ? 'bg-emerald-500' : isMid ? 'bg-amber-500' : 'bg-rose-500'}`}
-                                            />
-                                        </div>
-                                    </motion.div>
-                                );
-                            })}
-                        </div>
-
-                        <div className="space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div className="flex items-center gap-3 text-slate-400">
-                                <BrainCircuit size={16} />
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Trajectoire de Qualité Historique</h3>
+                                <TrendingUp size={16} />
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">{t('historicalAnalytics.qualityTab.title')}</h3>
                             </div>
-                            <div className="h-[240px] w-full pt-4 bg-white/[0.01] border border-white/5 rounded-[2rem] p-4">
+                            <div className="flex items-center bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
+                                <button 
+                                    onClick={() => setQualityViewMode('table')}
+                                    className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${qualityViewMode === 'table' ? 'bg-white dark:bg-slate-800 text-blue-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                >
+                                    <Layout size={12} /> {t('historicalAnalytics.qualityTab.table')}
+                                </button>
+                                <button 
+                                    onClick={() => setQualityViewMode('chart')}
+                                    className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${qualityViewMode === 'chart' ? 'bg-white dark:bg-slate-800 text-blue-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                >
+                                    <Activity size={12} /> {t('historicalAnalytics.qualityTab.chart')}
+                                </button>
+                            </div>
+                        </div>
+
+                        {qualityViewMode === 'table' ? (
+                            <div className="overflow-x-auto rounded-[1.5rem] border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/[0.02] max-h-[300px] overflow-y-auto custom-scrollbar">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="sticky top-0 bg-slate-100 dark:bg-slate-900 z-10 shadow-sm">
+                                    <tr className="border-b border-slate-200 dark:border-white/10 text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                                        <th className="p-4 font-bold">{t('historicalAnalytics.qualityTab.release')}</th>
+                                        <th className="p-4 font-bold">{t('historicalAnalytics.qualityTab.successRate')}</th>
+                                        <th className="p-4 font-bold">{t('historicalAnalytics.qualityTab.anomalies')}</th>
+                                        <th className="p-4 font-bold text-right">{t('historicalAnalytics.qualityTab.status')}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {releaseData.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={4} className="p-8 text-center text-slate-500 font-medium text-xs">
+                                                {t('historicalAnalytics.qualityTab.empty')}
+                                            </td>
+                                        </tr>
+                                    ) : [...releaseData].reverse().map((rel, idx) => {
+                                        const isHigh = rel.pass_rate >= 80;
+                                        const isMid = rel.pass_rate >= 60;
+                                        
+                                        return (
+                                            <tr key={idx} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                                <td className="p-4 font-black text-slate-900 dark:text-white">{rel.version}</td>
+                                                <td className="p-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className={`font-black w-10 ${isHigh ? 'text-emerald-500 dark:text-emerald-400' : isMid ? 'text-amber-500 dark:text-amber-400' : 'text-rose-500 dark:text-rose-400'}`}>
+                                                            {rel.pass_rate}%
+                                                        </span>
+                                                        <div className="w-24 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className={`h-full rounded-full ${isHigh ? 'bg-emerald-500' : isMid ? 'bg-amber-500' : 'bg-rose-500'}`} 
+                                                                style={{ width: `${rel.pass_rate}%` }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 text-slate-600 dark:text-slate-300 text-sm font-medium flex items-center gap-2">
+                                                    <Activity size={14} className="opacity-50" />
+                                                    {rel.anomaly_count} <span className="opacity-50 text-xs">{rel.anomaly_count !== 1 ? t('historicalAnalytics.qualityTab.reportedPlural') : t('historicalAnalytics.qualityTab.reported')}</span>
+                                                </td>
+                                                <td className="p-4 text-right">
+                                                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                                                        isHigh 
+                                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' 
+                                                            : isMid 
+                                                                ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20' 
+                                                                : 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'
+                                                    }`}>
+                                                        {isHigh ? t('historicalAnalytics.qualityTab.stable') : isMid ? t('historicalAnalytics.qualityTab.atRisk') : t('historicalAnalytics.qualityTab.critical')}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                            </div>
+                        ) : (
+                            <div className="h-[280px] w-full pt-4 bg-white/[0.01] border border-slate-200 dark:border-white/5 rounded-[2rem] p-4">
+                                {releaseData.length === 0 ? (
+                                    <div className="flex items-center justify-center w-full h-full text-slate-500 font-medium text-xs">
+                                        Aucune donnée graphique disponible
+                                    </div>
+                                ) : (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={releaseData.length ? releaseData : [
-                                        { version: 'R1.0', pass_rate: 65 }, { version: 'R1.1', pass_rate: 75 },
-                                        { version: 'R1.2', pass_rate: 70 }, { version: 'R1.3', pass_rate: 85 },
-                                        { version: 'R2.0', pass_rate: 90 }, { version: 'R2.1', pass_rate: 95 }
-                                    ]}>
-                                        <defs>
-                                            <linearGradient id="colorPass" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
+                                    <ComposedChart data={releaseData}>
                                         <XAxis
                                             dataKey="version"
                                             fontSize={9}
@@ -260,24 +268,21 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                             tickLine={false}
                                             stroke="#475569"
                                             interval={Math.floor(releaseData.length / 8) || 0}
-                                            height={50}
+                                            height={30}
                                             tick={{ fill: '#64748b' }}
+                                            tickFormatter={(val) => val.length > 15 ? val.substring(0, 15) + '...' : val}
                                         />
-                                        <YAxis hide domain={[0, 100]} />
-                                        <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                                        <Area 
-                                            type="monotone" 
-                                            dataKey="pass_rate" 
-                                            stroke="#3b82f6" 
-                                            strokeWidth={4}
-                                            fillOpacity={1} 
-                                            fill="url(#colorPass)" 
-                                            animationDuration={2000}
-                                        />
-                                    </AreaChart>
+                                        <YAxis yAxisId="left" hide domain={[0, 100]} />
+                                        <YAxis yAxisId="right" orientation="right" hide />
+                                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
+                                        <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold' }} />
+                                        <Bar yAxisId="right" name="Anomalies Signalées" dataKey="anomaly_count" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={40} opacity={0.8} />
+                                        <Line yAxisId="left" name="Taux de Succès (%)" type="monotone" dataKey="pass_rate" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                                    </ComposedChart>
                                 </ResponsiveContainer>
+                                )}
                             </div>
-                        </div>
+                        )}
 
                         <div className="flex items-center justify-between text-[10px] font-black p-4 bg-white/5 rounded-2xl border border-white/5">
                             <div className="flex items-center gap-4">

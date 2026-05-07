@@ -388,17 +388,17 @@ const ManagerDashboard = () => {
             subtitle={t('managerDashboard.subtitle')}
             actions={
                 <div className="flex items-center gap-3">
-                    {/* Release filter */}
+                    {/* Project Business filter */}
                     <div className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm">
                         <Layers className="w-4 h-4 text-slate-400 shrink-0" />
                         <select
-                            value={selectedRelease}
-                            onChange={e => setSelectedRelease(e.target.value)}
+                            value={selectedProjectId}
+                            onChange={e => setSelectedProjectId(e.target.value)}
                             className="bg-transparent border-none text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-0 cursor-pointer pr-1"
                         >
-                            <option value="all">Toutes les releases</option>
-                            {filteredData.releaseNames.map((rel: string) => (
-                                <option key={rel} value={rel}>{rel.split(' > ')[1] || rel}</option>
+                            <option value="all">Tous les projets</option>
+                            {rawData.businessProjects.map((bp: any) => (
+                                <option key={bp.id} value={String(bp.id)}>{bp.name}</option>
                             ))}
                         </select>
                     </div>

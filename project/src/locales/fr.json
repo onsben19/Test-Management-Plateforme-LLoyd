@@ -58,7 +58,7 @@
         "logout": "Déconnexion",
         "tester": "Testeur",
         "admin": "Admin",
-        "testerDashboard": "Espace Testeur",
+        "testerDashboard": "Mon Espace",
         "adminDashboard": "Espace Admin",
         "collapse": "Réduire le menu",
         "expand": "Agrandir le menu",
@@ -168,6 +168,7 @@
     "adminAnomalies": {
         "title": "Administration des Anomalies",
         "subtitle": "Gestion globale et suivi des rapports d'erreurs",
+        "searchPlaceholder": "Rechercher une anomalie...",
         "stats": {
             "total": "Anomalies Totales",
             "totalDesc": "Total historique détecté",
@@ -221,6 +222,7 @@
     "adminCampaigns": {
         "title": "Administration des Campagnes",
         "subtitle": "Gestion et suivi des campagnes de tests importées",
+        "searchPlaceholder": "Rechercher une campagne...",
         "stats": {
             "total": "Total Campagnes",
             "totalDesc": "Base de données complète",
@@ -268,6 +270,7 @@
     "adminComments": {
         "title": "Journal des Commentaires",
         "subtitle": "Gérez les échanges et retours d'expérience sur les tests de manière proactive",
+        "searchPlaceholder": "Rechercher un commentaire...",
         "stats": {
             "total": "Commentaires",
             "totalDesc": "Total des échanges",
@@ -300,6 +303,7 @@
     "adminEmails": {
         "title": "Administration des Messageries",
         "subtitle": "Supervision globale de toutes les communications internes",
+        "searchPlaceholder": "Rechercher un message...",
         "stats": {
             "volume": "Volume Messagerie",
             "volumeDesc": "Total historique",
@@ -503,7 +507,7 @@
         "testFallback": "Test #{{id}}"
     },
     "testerDashboard": {
-        "title": "Mon Espace Testeur",
+        "title": "Mon Espace",
         "subtitle": "Suivez vos assignations et rapportez vos résultats avec l'assistance de l'IA",
         "stats": {
             "assignedCampaigns": "Campagnes Assignées",
@@ -513,6 +517,7 @@
         },
         "searchPlaceholder": "Rechercher une campagne...",
         "controls": {
+            "groupByProject": "Groupé par Projets",
             "groupByRelease": "Groupé par Release",
             "simpleGrid": "Grille Simple",
             "recent": "Plus récent",
@@ -905,15 +910,15 @@
         }
     },
     "errors": {
-        "404": {
-            "title": "OUPS ! Page Introuvable",
-            "message": "Il semble que nous ne parvenions pas à trouver la page que vous recherchez !",
-            "back": "Retour à l'accueil"
-        },
         "403": {
             "title": "Accès Refusé",
             "message": "Vous n'avez pas les permissions nécessaires pour accéder à cette page.",
             "back": "Retour au Tableau de bord"
+        },
+        "404": {
+            "title": "OUPS ! Page Introuvable",
+            "message": "Il semble que nous ne parvenions pas à trouver la page que vous recherchez !",
+            "back": "Retour à l'accueil"
         }
     },
     "execution": {
@@ -1060,5 +1065,37 @@
         "failed": "Échec",
         "pending": "En attente",
         "running": "En cours"
+    },
+    "historicalAnalytics": {
+        "title": "Analytics Historiques",
+        "titleAll": "Analytics Plateforme",
+        "subtitle": "Tendances sur {{count}} releases",
+        "subtitleAll": "Consolidation de tous les projets actifs",
+        "liveAggregation": "Live Aggregation",
+        "tabs": {
+            "quality": "Qualité",
+            "velocity": "Performance",
+            "strat": "Stratégie"
+        },
+        "qualityTab": {
+            "title": "Comparatif Qualité des Releases",
+            "table": "Tableau",
+            "chart": "Graphique",
+            "release": "Release",
+            "successRate": "Taux de Succès",
+            "anomalies": "Anomalies",
+            "status": "Statut Qualité",
+            "empty": "Aucune release trouvée pour ce projet.",
+            "emptyChart": "Aucune donnée graphique disponible",
+            "trajectory": "Trajectoire de Qualité Historique",
+            "reported": "signalée",
+            "reportedPlural": "signalées",
+            "stable": "Stable",
+            "atRisk": "À risque",
+            "critical": "Critique",
+            "globalAverage": "Moyenne Globale",
+            "totalReleases": "Total : {{count}} Releases",
+            "trend": "Tendance"
+        }
     }
 }

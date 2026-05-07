@@ -66,7 +66,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({
                                         {subtitle && (
                                             <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-full shadow-sm dark:shadow-none">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                                                <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-widest text-nowrap">
+                                                <span className="text-[9px] font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-widest text-nowrap">
                                                     {subtitle}
                                                 </span>
                                             </div>

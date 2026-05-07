@@ -168,6 +168,7 @@
     "adminAnomalies": {
         "title": "Anomaly Administration",
         "subtitle": "Global management and tracking of error reports",
+        "searchPlaceholder": "Search for an anomaly...",
         "stats": {
             "total": "Total Anomalies",
             "totalDesc": "Total historical detected",
@@ -221,6 +222,7 @@
     "adminCampaigns": {
         "title": "Campaign Administration",
         "subtitle": "Management and tracking of imported test campaigns",
+        "searchPlaceholder": "Search for a campaign...",
         "stats": {
             "total": "Total Campaigns",
             "totalDesc": "Full database",
@@ -268,6 +270,7 @@
     "adminComments": {
         "title": "Comment Log",
         "subtitle": "Proactively manage discussions and testing feedback",
+        "searchPlaceholder": "Search for a comment...",
         "stats": {
             "total": "Comments",
             "totalDesc": "Total messages",
@@ -300,6 +303,7 @@
     "adminEmails": {
         "title": "Email Administration",
         "subtitle": "Global oversight of all internal communications",
+        "searchPlaceholder": "Search for a message...",
         "stats": {
             "volume": "Email Volume",
             "volumeDesc": "Total historical",
@@ -905,15 +909,15 @@
         }
     },
     "errors": {
-        "404": {
-            "title": "OOPS! Page Not Found",
-            "message": "We can't seem to find the page you are looking for!",
-            "back": "Back to homepage"
-        },
         "403": {
             "title": "Access Denied",
             "message": "You don't have the necessary permissions to access this page.",
             "back": "Back to Dashboard"
+        },
+        "404": {
+            "title": "OOPS! Page Not Found",
+            "message": "We can't seem to find the page you are looking for!",
+            "back": "Back to homepage"
         }
     },
     "execution": {
@@ -1060,5 +1064,37 @@
         "failed": "Failed",
         "pending": "Pending",
         "running": "Running"
+    },
+    "historicalAnalytics": {
+        "title": "Historical Analytics",
+        "titleAll": "Platform Analytics",
+        "subtitle": "Trends on {{count}} releases",
+        "subtitleAll": "Consolidation of all active projects",
+        "liveAggregation": "Live Aggregation",
+        "tabs": {
+            "quality": "Quality",
+            "velocity": "Performance",
+            "strat": "Strategy"
+        },
+        "qualityTab": {
+            "title": "Releases Quality Comparison",
+            "table": "Table",
+            "chart": "Chart",
+            "release": "Release",
+            "successRate": "Success Rate",
+            "anomalies": "Anomalies",
+            "status": "Quality Status",
+            "empty": "No release found for this project.",
+            "emptyChart": "No graphical data available",
+            "trajectory": "Historical Quality Trajectory",
+            "reported": "reported",
+            "reportedPlural": "reported",
+            "stable": "Stable",
+            "atRisk": "At Risk",
+            "critical": "Critical",
+            "globalAverage": "Global Average",
+            "totalReleases": "Total: {{count}} Releases",
+            "trend": "Trend"
+        }
     }
 }

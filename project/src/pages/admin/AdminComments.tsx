@@ -171,42 +171,28 @@ const AdminComments = () => {
                     />
                 </div>
 
-                {/* Filters & Table Card */}
-                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl">
-                    <div className="p-8 border-b border-white/5 flex flex-col md:flex-row items-center gap-6">
-                        <div className="relative flex-1 w-full group">
-                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-                            <input
-                                type="text"
-                                placeholder={t('adminComments.searchPlaceholder') || "Search comments..."}
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] pl-16 pr-8 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold placeholder-slate-500"
-                            />
+                <AdminTable
+                    columns={columns}
+                    data={paginatedComments}
+                    isLoading={loading}
+                    searchable
+                    onSearch={setSearchQuery}
+                    variant="transparent"
+                    actions={(item) => (
+                        <div className="flex items-center justify-end pr-8">
+                            <button
+                                onClick={() => {
+                                    setCommentToDelete(item.id);
+                                    setIsDeleteModalOpen(true);
+                                }}
+                                className="p-3 bg-white/5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 rounded-2xl transition-all border border-white/5 group flex items-center justify-center"
+                                title={t('adminComments.modal.delete')}
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
                         </div>
-                    </div>
-
-                    <AdminTable
-                        columns={columns}
-                        data={paginatedComments}
-                        isLoading={loading}
-                        variant="transparent"
-                        actions={(item) => (
-                            <div className="flex items-center justify-end pr-8">
-                                <button
-                                    onClick={() => {
-                                        setCommentToDelete(item.id);
-                                        setIsDeleteModalOpen(true);
-                                    }}
-                                    className="p-3 bg-white/5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 rounded-2xl transition-all border border-white/5 group"
-                                    title={t('adminComments.modal.delete')}
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
-                    />
-                </div>
+                    )}
+                />
 
                 <div className="pt-6">
                     <Pagination

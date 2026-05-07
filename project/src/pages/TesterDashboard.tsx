@@ -85,12 +85,12 @@ const TesterDashboard = () => {
             const campaignIds = data.map((c: any) => c.id);
             if (campaignIds.length > 0) {
                 // Readiness scores
-                Promise.all(campaignIds.map((id: any) => aiService.getReadinessScore(id).catch(() => ({ data: { readiness_score: 0 } }))))
+                Promise.all(campaignIds.map((id: any) => aiService.getReadinessScore(id).catch(() => ({ data: { score: 0 } }))))
                     .then(results => {
                         const scoreMap: Record<string, number> = {};
                         let totalReadiness = 0;
                         results.forEach((res, i) => {
-                            const s = res.data.readiness_score || 0;
+                            const s = res.data.score !== undefined ? res.data.score : (res.data.readiness_score || 0);
                             scoreMap[campaignIds[i]] = s;
                             totalReadiness += s;
                         });

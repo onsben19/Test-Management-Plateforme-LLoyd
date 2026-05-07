@@ -1,0 +1,33 @@
+{
+  "cookies": [
+    {
+      "name": "i18next",
+      "value": "en-US",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Strict"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": [
+        {
+          "name": "i18nextLng",
+          "value": "en-US"
+        },
+        {
+          "name": "access_token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc4MDg5NzgxLCJpYXQiOjE3NzgwODYxODEsImp0aSI6IjhkMmVjYTc4NGIyMzQ3ZjhiNWExZmVhYTQ2N2NiZGExIiwidXNlcl9pZCI6Mn0.MZJkcwPv8AT2OCrsGioyQuQawY4uFEPA1Kqi84jd9ag"
+        },
+        {
+          "name": "refresh_token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc3ODE3MjU4MSwiaWF0IjoxNzc4MDg2MTgxLCJqdGkiOiIzYTc4NzEyN2M5NDU0Y2NiOTEyNjBiZDZiM2I0MTI5NyIsInVzZXJfaWQiOjJ9.Ddtyn9uQshEvsdNQA9pTeQYyUcOTcwr4iysAGw3rR9k"
+        }
+      ]
+    }
+  ]
+}

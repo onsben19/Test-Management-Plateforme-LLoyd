@@ -233,19 +233,13 @@ const AdminAnomalies = () => {
                     />
                 </div>
 
-                {/* Filters & Table Card */}
-                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl">
-                    <div className="p-8 border-b border-white/5 flex flex-col xl:flex-row items-center gap-6">
-                        <div className="relative flex-1 w-full group">
-                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-                            <input
-                                type="text"
-                                placeholder={t('adminAnomalies.searchPlaceholder') || "Search anomalies..."}
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] pl-16 pr-8 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold placeholder-slate-500"
-                            />
-                        </div>
+                <AdminTable
+                    columns={columns}
+                    data={paginatedAnomalies}
+                    isLoading={loading}
+                    searchable
+                    onSearch={setSearchQuery}
+                    filters={
                         <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
                             <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-[1.5rem] border border-white/5 flex-1 xl:flex-none">
                                 <div className="p-2 bg-rose-500/10 rounded-full border border-rose-500/20">
@@ -276,81 +270,75 @@ const AdminAnomalies = () => {
                                 </select>
                             </div>
                         </div>
-                    </div>
-
-                    <AdminTable
-                        columns={columns}
-                        data={paginatedAnomalies}
-                        isLoading={loading}
-                        variant="transparent"
-                        onRowClick={(item) => setSelectedAnomaly({
-                            ...item,
-                            title: item.titre,
-                            severity: item.criticite === 'CRITIQUE' ? 'Critique' : item.criticite === 'MOYENNE' ? 'Moyenne' : 'Faible',
-                            author_name: item.cree_par_nom,
-                            created_at: item.cree_le,
-                            campaign: item.campaign_title || 'N/A',
-                            release: item.project_name || 'N/A',
-                            relatedTest: item.test_case_ref
-                        })}
-                        actions={(item) => (
-                            <div className="flex items-center gap-2 pr-4">
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedAnomaly({
-                                            ...item,
-                                            title: item.titre,
-                                            severity: item.criticite === 'CRITIQUE' ? 'Critique' : item.criticite === 'MOYENNE' ? 'Moyenne' : 'Faible',
-                                            author_name: item.cree_par_nom,
-                                            created_at: item.cree_le,
-                                            campaign: item.campaign_title || 'N/A',
-                                            release: item.project_name || 'N/A',
-                                            relatedTest: item.test_case_ref
-                                        });
-                                    }}
-                                    className="p-2.5 bg-white/5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all border border-white/5"
-                                    title="Voir détails"
-                                >
-                                    <Info className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        const mapSeverity = (s: string) => {
-                                            if (s === 'CRITIQUE' || s === 'URGENT' || s === 'HAUTE') return 'Critique';
-                                            if (s === 'MOYENNE') return 'Moyenne';
-                                            return 'Faible';
-                                        };
-                                        setEditingAnomaly({
-                                            ...item,
-                                            id: item.id.toString(),
-                                            title: item.titre,
-                                            severity: mapSeverity(item.criticite),
-                                            status: t('adminAnomalies.badges.open'),
-                                            relatedTest: item.test_case_ref
-                                        });
-                                    }}
-                                    className="p-2.5 bg-white/5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-xl transition-all border border-white/5"
-                                    title={t('adminAnomalies.actions.edit')}
-                                >
-                                    <Pencil className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setAnomalyToDelete(item.id);
-                                        setIsDeleteModalOpen(true);
-                                    }}
-                                    className="p-2.5 bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all border border-white/5"
-                                    title={t('adminAnomalies.actions.delete')}
-                                >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
-                        )}
-                    />
-                </div>
+                    }
+                    variant="transparent"
+                    onRowClick={(item) => setSelectedAnomaly({
+                        ...item,
+                        title: item.titre,
+                        severity: item.criticite === 'CRITIQUE' ? 'Critique' : item.criticite === 'MOYENNE' ? 'Moyenne' : 'Faible',
+                        author_name: item.cree_par_nom,
+                        created_at: item.cree_le,
+                        campaign: item.campaign_title || 'N/A',
+                        release: item.project_name || 'N/A',
+                        relatedTest: item.test_case_ref
+                    })}
+                    actions={(item) => (
+                        <div className="flex items-center gap-2 pr-4">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedAnomaly({
+                                        ...item,
+                                        title: item.titre,
+                                        severity: item.criticite === 'CRITIQUE' ? 'Critique' : item.criticite === 'MOYENNE' ? 'Moyenne' : 'Faible',
+                                        author_name: item.cree_par_nom,
+                                        created_at: item.cree_le,
+                                        campaign: item.campaign_title || 'N/A',
+                                        release: item.project_name || 'N/A',
+                                        relatedTest: item.test_case_ref
+                                    });
+                                }}
+                                className="p-2.5 bg-white/5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all border border-white/5 flex items-center justify-center"
+                                title="Voir détails"
+                            >
+                                <Info className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const mapSeverity = (s: string) => {
+                                        if (s === 'CRITIQUE' || s === 'URGENT' || s === 'HAUTE') return 'Critique';
+                                        if (s === 'MOYENNE') return 'Moyenne';
+                                        return 'Faible';
+                                    };
+                                    setEditingAnomaly({
+                                        ...item,
+                                        id: item.id.toString(),
+                                        title: item.titre,
+                                        severity: mapSeverity(item.criticite),
+                                        status: t('adminAnomalies.badges.open'),
+                                        relatedTest: item.test_case_ref
+                                    });
+                                }}
+                                className="p-2.5 bg-white/5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-xl transition-all border border-white/5 flex items-center justify-center"
+                                title={t('adminAnomalies.actions.edit')}
+                            >
+                                <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setAnomalyToDelete(item.id);
+                                    setIsDeleteModalOpen(true);
+                                }}
+                                className="p-2.5 bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all border border-white/5 flex items-center justify-center"
+                                title={t('adminAnomalies.actions.delete')}
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    )}
+                />
 
                 <div className="pt-6">
                     <Pagination

@@ -107,7 +107,9 @@ const ExecutionTracking = () => {
     useEffect(() => {
         fetchExecutions(1);
         fetchFilters();
-        fetchTopTester();
+        if (!isTester) {
+            fetchTopTester();
+        }
         setCurrentPage(1);
     }, [searchQuery, sortOrder]);
 
@@ -272,14 +274,16 @@ const ExecutionTracking = () => {
                             description="Anomalies"
                             isLoading={loading}
                         />
-                        <StatCard
-                            title="Top Testeur"
-                            value={topTester ? topTester.tester.name : "Chargement..."}
-                            icon={Award}
-                            variant="purple"
-                            description={topTester ? `Score: ${topTester.latest_pass_rate}%` : "Performance IA"}
-                            isLoading={loading || !topTester}
-                        />
+                        {!isTester && (
+                            <StatCard
+                                title="Top Testeur"
+                                value={topTester ? topTester.tester.name : "Chargement..."}
+                                icon={Award}
+                                variant="purple"
+                                description={topTester ? `Score: ${topTester.latest_pass_rate}%` : "Performance IA"}
+                                isLoading={loading || !topTester}
+                            />
+                        )}
                     </div>
 
                     {/* Search/Filter Bar */}
