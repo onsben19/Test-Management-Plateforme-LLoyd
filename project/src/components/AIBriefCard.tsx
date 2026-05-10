@@ -87,64 +87,57 @@ const AIBriefCard: React.FC<AIBriefCardProps> = ({
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden group mb-10"
+            className="relative mb-8"
         >
-            {/* Background Layers */}
-            <div className="absolute inset-0 bg-white/40 dark:bg-[#0f1423]/80 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-[2.5rem]" />
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-[2.5rem] blur-xl opacity-0 group-hover:opacity-100 transition duration-1000" />
-
-            <div className="relative p-8 flex flex-col md:flex-row items-center gap-8">
-                <div className="flex-shrink-0 relative">
-                    <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-blue-500 to-indigo-600 p-[1px] shadow-lg shadow-blue-500/20">
-                        <div className="w-full h-full rounded-[2rem] bg-white dark:bg-slate-900 flex items-center justify-center">
-                            {loading ? (
-                                <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
-                            ) : (
-                                <BrainCircuit className="w-10 h-10 text-blue-500 animate-pulse" />
-                            )}
-                        </div>
+            {/* Clean, elegant card background */}
+            <div className="absolute inset-0 bg-white dark:bg-[#111625] border border-slate-100 dark:border-white/[0.05] rounded-2xl shadow-sm" />
+            
+            <div className="relative p-5 flex flex-col md:flex-row items-center gap-5">
+                {/* Minimal Icon Container */}
+                <div className="flex-shrink-0">
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/5 dark:bg-blue-500/10 flex items-center justify-center border border-blue-500/10">
+                        {loading ? (
+                            <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                        ) : (
+                            <BrainCircuit className="w-4 h-4 text-blue-500" />
+                        )}
                     </div>
-                    {!loading && <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-4 border-white dark:border-slate-950 animate-pulse" />}
                 </div>
 
+                {/* Content */}
                 <div className="flex-1 text-center md:text-left">
-                    <div className="flex items-center justify-center md:justify-start gap-2 mb-3">
-                        <Sparkles className="w-4 h-4 text-amber-500" />
-                        <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.3em]">
+                    <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                             {t('adminDashboard.aiExpertOpinion')}
                         </span>
                         {isTyping && (
-                            <span className="flex gap-1 ml-2">
-                                <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                                <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                                <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" />
+                            <span className="flex gap-0.5 ml-1">
+                                <span className="w-0.5 h-0.5 bg-slate-400 rounded-full animate-pulse" />
+                                <span className="w-0.5 h-0.5 bg-slate-400 rounded-full animate-pulse [animation-delay:0.2s]" />
+                                <span className="w-0.5 h-0.5 bg-slate-400 rounded-full animate-pulse [animation-delay:0.4s]" />
                             </span>
                         )}
                     </div>
-                    <div className="min-h-[4rem] flex flex-col justify-center">
-                        <p className="text-xl font-bold text-slate-900 dark:text-slate-100 leading-tight tracking-tight">
+                    <div className="min-h-[2rem] flex flex-col justify-center">
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-relaxed">
                             {displayText}
-                            {isTyping && <span className="inline-block w-2.5 h-6 ml-1.5 bg-blue-500 animate-pulse align-middle" />}
+                            {isTyping && <span className="inline-block w-1 h-3.5 ml-1 bg-slate-400 dark:bg-slate-500 animate-pulse align-middle" />}
                         </p>
                     </div>
                 </div>
 
+                {/* Action Button */}
                 <div className="flex-shrink-0">
                     <button
                         onClick={scrollToAnomalies}
-                        className="flex items-center gap-3 px-8 py-4 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black text-sm transition-all hover:scale-105 active:scale-95 shadow-xl shadow-blue-500/10 group/btn"
+                        className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-bold text-sm transition-colors group"
                     >
                         <span>{t('adminDashboard.viewDetails')}</span>
-                        <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                        <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
                     </button>
                 </div>
-            </div>
-
-            {/* Decorative Stars */}
-            <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-10 transition-opacity pointer-events-none">
-                <Sparkles className="w-32 h-32 text-blue-400" />
             </div>
         </motion.div>
     );

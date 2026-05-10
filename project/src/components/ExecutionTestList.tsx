@@ -77,7 +77,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
         if (displayTests.length === 0) return [];
         const first = displayTests[0];
         const keys = Object.keys(first);
-        const excluded = ['id', 'status', 'assigned_to', 'realized_by', 'lastRun', 'duration', 'name', 'module', 'captures', 'release', 'manual', 'rawDate'];
+        const excluded = ['id', 'status', 'assigned_to', 'realized_by', 'lastRun', 'duration', 'name', 'module', 'captures', 'release', 'manual', 'rawDate', 'businessProject', 'releaseType'];
         return keys.filter(k =>
             !excluded.includes(k) &&
             !k.toLowerCase().includes('titre') &&
@@ -245,7 +245,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                 <thead className="border-b border-white/5 bg-white/[0.01]">
                     <tr>
                         <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">TEST & CAMPAGNE</th>
-                        <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">RELEASE</th>
+                        <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">PROJET & RELEASE</th>
 
                         {/* Dynamic Headers */}
                         {dynamicColumns.map(col => (
@@ -259,6 +259,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                         )}
                         <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">CAPTURES</th>
                         <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">STATUT</th>
+                        <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">DATE</th>
                         <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] text-right">
                             {(canManage || canDelete) ? 'ACTIONS' : ''}
                         </th>

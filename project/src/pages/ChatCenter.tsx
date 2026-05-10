@@ -52,6 +52,7 @@ const ChatCenter = () => {
     const [chatMessage, setChatMessage] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [isAILoading, setIsAILoading] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
 
     // Actions State
     const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
@@ -67,6 +68,7 @@ const ChatCenter = () => {
     const [groupName, setGroupName] = useState('');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+    const [showArchived, setShowArchived] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -317,6 +319,31 @@ const ChatCenter = () => {
         }
     };
 
+    const handleArchiveConversation = async () => {
+        if (!selectedConv) return;
+        try {
+            const isArchiving = !selectedConv.isArchived;
+            setConversations(prev => prev.map(c => c.id === selectedConv.id ? { ...c, isArchived: isArchiving } : c));
+            setSelectedConv(null);
+            setShowMenu(false);
+            toast.success(isArchiving ? "Conversation archivée" : "Conversation désarchivée");
+        } catch (err) {
+            toast.error("Opération échouée");
+        }
+    };
+
+    const handleDeleteConversation = async () => {
+        if (!selectedConv) return;
+        try {
+            setConversations(prev => prev.filter(c => c.id !== selectedConv.id));
+            setSelectedConv(null);
+            setShowMenu(false);
+            toast.success("Conversation supprimée");
+        } catch (err) {
+            toast.error("Suppression échouée");
+        }
+    };
+
     const handleCreateDirect = async (userId: number) => {
         try {
             const res = await chatService.createConversation({ type: 'DIRECT', participants: [userId] });
@@ -360,6 +387,10 @@ const ChatCenter = () => {
     };
 
     const filteredConversations = conversations.filter(c => {
+        // Filter by archive status
+        if (showArchived && !c.isArchived) return false;
+        if (!showArchived && c.isArchived) return false;
+
         const title = c.type === 'DIRECT'
             ? c.participants_details.find((p: any) => p.id !== currentUser?.id)?.username || "Chat Privé"
             : c.name || "Groupe";
@@ -379,15 +410,28 @@ const ChatCenter = () => {
                 <div className={`w-full lg:w-96 flex flex-col glass-sidebar relative z-20 ${selectedConv ? 'hidden lg:flex' : 'flex'}`}>
                     <div className="p-8 space-y-6">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Conversations</h3>
+                            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">{showArchived ? "Archivées" : "Conversations"}</h3>
                             <div className="flex gap-2">
+                                <Button 
+                                    variant={showArchived ? "primary" : "secondary"} 
+                                    size="icon" 
+                                    onClick={() => setShowArchived(!showArchived)} 
+                                    title={showArchived ? "Voir actives" : "Voir archivées"} 
+                                    icon={Archive} 
+                                />
                                 <Button variant="secondary" size="icon" onClick={() => setShowNewChatModal('group')} title="Nouveau groupe" icon={Users} />
                                 <Button variant="secondary" size="icon" onClick={() => setShowNewChatModal('direct')} title="Message direct" icon={Plus} />
                             </div>
                         </div>
-                        <div className="relative group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500" />
-                            <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Rechercher..." className="glass-input w-full pl-12" />
+                        <div className="relative group bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
+                            <Search className="w-4 h-4 text-slate-400 ml-2" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Rechercher..."
+                                className="flex-1 bg-transparent border-none text-sm text-white focus:ring-0 outline-none placeholder-slate-400"
+                            />
                         </div>
                     </div>
 
@@ -460,7 +504,34 @@ const ChatCenter = () => {
                                             <p className="text-[9px] font-black text-green-500 uppercase tracking-widest">Chiffré de bout en bout</p>
                                         </div>
                                     </div>
-                                    <Button variant="secondary" size="icon" icon={MoreVertical} className="bg-white/5 border-white/10" />
+                                    <div className="relative">
+                                        <Button
+                                            variant="secondary"
+                                            size="icon"
+                                            icon={MoreVertical}
+                                            className="bg-white/5 border-white/10"
+                                            onClick={() => setShowMenu(!showMenu)}
+                                        />
+                                        {showMenu && (
+                                            <>
+                                                <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)}></div>
+                                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-white/5 z-20 p-2">
+                                                    <button
+                                                        onClick={handleArchiveConversation}
+                                                        className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg flex items-center gap-2"
+                                                    >
+                                                        <Archive size={14} /> {selectedConv?.isArchived ? "Désarchiver" : "Archiver"}
+                                                    </button>
+                                                    <button
+                                                        onClick={handleDeleteConversation}
+                                                        className="w-full text-left px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg flex items-center gap-2"
+                                                    >
+                                                        <Trash2 size={14} /> Supprimer
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -497,7 +568,7 @@ const ChatCenter = () => {
                                                             </div>
                                                         )}
 
-                                                        <div className={`p-6 rounded-[2.5rem] shadow-xl transition-all relative ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : isMentioned ? 'bg-indigo-600/10 dark:bg-indigo-600/30 text-slate-900 dark:text-slate-200 border border-indigo-500/30 rounded-tl-none' : 'bg-white dark:bg-white/5 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/5 rounded-tl-none'}`}>
+                                                        <div className={`p-4 rounded-3xl shadow-xl transition-all relative ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : isMentioned ? 'bg-indigo-600/10 dark:bg-indigo-600/30 text-slate-900 dark:text-slate-200 border border-indigo-500/30 rounded-tl-none' : 'bg-white dark:bg-white/5 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/5 rounded-tl-none'}`}>
                                                             {msg.attachment && (
                                                                 <div className={`mb-4 p-4 rounded-2xl flex items-center gap-3 border ${isMe ? 'bg-white/10 border-white/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10'}`}>
                                                                     <div className={`p-2 rounded-xl ${isMe ? 'bg-white/20' : 'bg-blue-500/10 text-blue-500'}`}>
@@ -524,7 +595,7 @@ const ChatCenter = () => {
                                                                     </div>
                                                                 </div>
                                                             ) : (
-                                                                <div className="text-[15px] font-bold leading-relaxed">
+                                                                <div className="text-sm font-bold leading-relaxed">
                                                                     {renderMessageContent(msg.text)}
                                                                 </div>
                                                             )}
@@ -544,7 +615,7 @@ const ChatCenter = () => {
                                                         <div className={`flex items-center gap-2 mt-3 px-6 ${isMe ? 'opacity-40' : 'opacity-20 transition-opacity group-hover:opacity-60'}`}>
                                                             <span className="text-[9px] font-black uppercase tracking-widest">{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                             {msg.is_edited && <span className="text-[9px] font-black uppercase tracking-widest">• MODIFIÉ</span>}
-                                                            {isMe && <CheckCheck size={10} className="text-blue-200" />}
+                                                            {isMe && <CheckCheck size={10} className={msg.is_read ? "text-emerald-500" : "text-blue-200"} />}
                                                         </div>
                                                     </div>
                                                 </motion.div>
@@ -689,11 +760,25 @@ const ChatCenter = () => {
                                 </div>
                                 <div className="p-8 space-y-6">
                                     {showNewChatModal === 'group' && (
-                                        <input type="text" value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="Nom du groupe..." className="glass-input w-full" />
+                                        <div className="relative group bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
+                                            <input
+                                                type="text"
+                                                value={groupName}
+                                                onChange={(e) => setGroupName(e.target.value)}
+                                                placeholder="Nom du groupe..."
+                                                className="flex-1 bg-transparent border-none text-sm text-white focus:ring-0 outline-none placeholder-slate-700"
+                                            />
+                                        </div>
                                     )}
-                                    <div className="relative group">
-                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <input type="text" value={userSearchTerm} onChange={(e) => setUserSearchTerm(e.target.value)} placeholder="Chercher des membres..." className="glass-input w-full pl-12" />
+                                    <div className="relative group bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
+                                        <Search className="w-4 h-4 text-slate-400 ml-2" />
+                                        <input
+                                            type="text"
+                                            value={userSearchTerm}
+                                            onChange={(e) => setUserSearchTerm(e.target.value)}
+                                            placeholder="Chercher des membres..."
+                                            className="flex-1 bg-transparent border-none text-sm text-white focus:ring-0 outline-none placeholder-slate-700"
+                                        />
                                     </div>
                                     <div className="max-h-64 overflow-y-auto custom-scrollbar space-y-2">
                                         {filteredUsers.map((u: any) => {

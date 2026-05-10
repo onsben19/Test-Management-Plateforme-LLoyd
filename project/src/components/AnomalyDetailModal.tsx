@@ -43,25 +43,19 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
             >
                 {/* Header Backdrop Pattern */}
                 <div className={`absolute top-0 left-0 right-0 h-48 ${styles.bg} opacity-20`} />
-                <div className="absolute top-0 right-0 p-12 opacity-[0.03]">
-                    <ShieldAlert className="w-64 h-64" />
-                </div>
 
                 <div className="relative">
                     {/* Header */}
                     <div className="p-8 border-b border-white/5 flex justify-between items-start">
                         <div className="space-y-3">
-                            <div className="flex items-center gap-3">
-                                <div className={`p-2.5 ${styles.bg} ${styles.color} rounded-xl border ${styles.border}`}>
-                                    <ImpactIcon className="w-5 h-5" />
-                                </div>
-                                <div className={`px-4 py-1 rounded-full ${styles.bg} ${styles.color} border ${styles.border} text-[10px] font-black uppercase tracking-[0.2em]`}>
+                            <div className="flex items-center gap-2">
+                                <div className={`px-3 py-0.5 rounded-md ${styles.bg} ${styles.color} border ${styles.border} text-[10px] font-bold uppercase tracking-wider`}>
                                     {anomaly.impact}
                                 </div>
-                                <div className="px-4 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-black uppercase tracking-[0.2em]">
+                                <div className="px-3 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold uppercase tracking-wider">
                                     {anomaly.priority} Priority
                                 </div>
-                                <div className={`px-4 py-1 rounded-full bg-white/5 text-slate-400 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em]`}>
+                                <div className={`px-3 py-0.5 rounded-md bg-white/5 text-slate-400 border border-white/10 text-[10px] font-bold uppercase tracking-wider`}>
                                     {anomaly.visibility}
                                 </div>
                             </div>

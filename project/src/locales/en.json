@@ -78,7 +78,9 @@
             "comments": "Comments",
             "messages": "Messaging",
             "aiDiscussions": "AI Discussions",
-            "aiAnalytics": "AI Analytics"
+            "aiAnalytics": "AI Analytics",
+            "projects": "Available Projects",
+            "chat": "Chat Center"
         }
     },
     "header": {
@@ -142,7 +144,9 @@
             "activeProjects": "Active Projects",
             "activeProjectsDesc": "Monitored campaigns",
             "openAnomalies": "Open Anomalies",
-            "openAnomaliesDesc": "Action required"
+            "openAnomaliesDesc": "Action required",
+            "totalCampaigns": "Total Campaigns",
+            "totalTests": "Total Tests"
         },
         "widgets": {
             "trend": "Quality Trend",
@@ -152,7 +156,11 @@
             "mlGuardEmpty": "No alerts predicted for now.",
             "distributionSubtitle": "SEVERITY",
             "activity": "Recent Activity",
-            "activitySubtitle": "MONITORING"
+            "activitySubtitle": "MONITORING",
+            "weeklyActivity": "Weekly Activity",
+            "weeklyActivitySubtitle": "Last 7 days — passed vs failed tests",
+            "anomalies": "Anomalies",
+            "anomaliesSubtitle": "Distribution by severity"
         },
         "tabs": {
             "overview": "Overview",
@@ -160,9 +168,30 @@
             "aiInsights": "AI Insights",
             "activity": "Activity"
         },
+        "actions": {
+            "downloadReport": "Download closure report"
+        },
         "projectFilter": {
             "label": "Project:",
             "all": "All Projects"
+        },
+        "realtime": {
+            "title": "Dashboard Live",
+            "updated": "Updated {{count}}s ago",
+            "disconnected": "Disconnected — Reconnecting...",
+            "activeTesters": "Active Testers",
+            "liveVelocity": "Live Velocity (2h)",
+            "blockedTesters": "Blocked Testers",
+            "team": "Test Team",
+            "activityFeed": "Activity Feed",
+            "waitingForActivity": "Waiting for activity...",
+            "objective": "Objective",
+            "contact": "Contact",
+            "up": "Up",
+            "down": "Down",
+            "blocked": "Blocked",
+            "unitTestsH": "tests/h",
+            "unitTestsJ": "T/J"
         }
     },
     "adminAnomalies": {
@@ -1095,6 +1124,29 @@
             "globalAverage": "Global Average",
             "totalReleases": "Total: {{count}} Releases",
             "trend": "Trend"
+        },
+        "velocityTab": {
+            "title": "Tester Performance • {{count}} releases"
+        },
+        "stratTab": {
+            "title": "Global Confidence Index",
+            "subtitle": "Release Readiness"
+        }
+    },
+    "portfolio": {
+        "title": "Project Management",
+        "titleAdmin": "Project Audit",
+        "subtitle": "AVAILABLE PROJECTS",
+        "subtitleAdmin": "DETAILED VIEW OF THE REPOSITORY",
+        "stats": {
+            "active": "Active Projects",
+            "totalReleases": "Total Releases"
+        },
+        "table": {
+            "description": "Description",
+            "releases": "Releases",
+            "createdAt": "Created on",
+            "owner": "Owner"
         }
     }
 }

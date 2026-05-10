@@ -74,7 +74,7 @@ class MLTimelineGuard:
                 # Sécurité : si on est proche de la fin, le calcul linéaire est parfois plus précis
                 remaining_cases = total_cases - finished_count
                 linear_days = math.ceil(remaining_cases / velocity)
-                # On prend le min pour éviter les prédictions trop pessimistes du modèle sur les petites données 
+                # On prend le min pour éviter les prédictions trop pessimistes du modèle sur les petites données C'est une sécurité
                 days_needed = min(days_needed, linear_days)
             else:
                 # Fallback sur calcul linéaire si pas de modèle ou pas de données

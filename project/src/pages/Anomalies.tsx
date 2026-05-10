@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   ShieldAlert,
   User,
+  MoreVertical,
   Info,
   Edit,
   Eye,
@@ -70,34 +71,23 @@ interface Anomaly {
   created_at: string;
 }
 
-const impactToBadgeColor = (i: Anomaly['impact']) => {
-  switch (i) {
-    case 'BLOQUANTES':
-    case 'CRITIQUE':
-      return 'red';
-    case 'MAJEUR':
-      return 'orange';
-    case 'MINEURS':
-      return 'yellow';
-    case 'FONCTIONNALITE':
-      return 'blue';
-    default:
-      return 'gray';
-  }
+const impactStyles: Record<string, { bg: string, text: string, border: string, dot: string }> = {
+  BLOQUANTES: { bg: 'bg-rose-500/10', text: 'text-rose-600 dark:text-rose-400', border: 'border-rose-500/20', dot: 'bg-rose-500' },
+  CRITIQUE: { bg: 'bg-red-500/10', text: 'text-red-600 dark:text-red-400', border: 'border-red-500/20', dot: 'bg-red-500' },
+  MAJEUR: { bg: 'bg-orange-500/10', text: 'text-orange-600 dark:text-orange-400', border: 'border-orange-500/20', dot: 'bg-orange-500' },
+  MINEURS: { bg: 'bg-yellow-500/10', text: 'text-yellow-600 dark:text-yellow-400', border: 'border-yellow-500/20', dot: 'bg-yellow-500' },
+  FONCTIONNALITE: { bg: 'bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-500/20', dot: 'bg-blue-500' },
+  SIMPLE: { bg: 'bg-slate-500/10', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-500/20', dot: 'bg-slate-500' },
+  TEXTE: { bg: 'bg-purple-500/10', text: 'text-purple-600 dark:text-purple-400', border: 'border-purple-500/20', dot: 'bg-purple-500' },
+  COSMETIQUE: { bg: 'bg-pink-500/10', text: 'text-pink-600 dark:text-pink-400', border: 'border-pink-500/20', dot: 'bg-pink-500' }
 };
 
-const priorityToBadgeColor = (p: Anomaly['priority']) => {
-  switch (p) {
-    case 'IMMEDIATE':
-    case 'URGENTE':
-      return 'red';
-    case 'ELEVEE':
-      return 'orange';
-    case 'NORMALE':
-      return 'blue';
-    default:
-      return 'gray';
-  }
+const priorityStyles: Record<string, { bg: string, text: string, border: string }> = {
+  IMMEDIATE: { bg: 'bg-red-600/10', text: 'text-red-600 dark:text-red-400', border: 'border-red-500/20' },
+  URGENTE: { bg: 'bg-orange-600/10', text: 'text-orange-600 dark:text-orange-400', border: 'border-orange-500/20' },
+  ELEVEE: { bg: 'bg-yellow-600/10', text: 'text-yellow-600 dark:text-yellow-400', border: 'border-yellow-500/20' },
+  NORMALE: { bg: 'bg-blue-600/10', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-500/20' },
+  BASSE: { bg: 'bg-slate-600/10', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-500/20' }
 };
 
 const Anomalies: React.FC = () => {
@@ -129,6 +119,8 @@ const Anomalies: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [anomalyToDelete, setAnomalyToDelete] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [isImpactMenuOpen, setIsImpactMenuOpen] = useState(false);
   const [viewingList, setViewingList] = useState<{ type: 'priorities' | 'ageing', items: any[] } | null>(null);
 
   React.useEffect(() => {
@@ -380,66 +372,76 @@ const Anomalies: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-8">
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
-              <div className="p-6 border-b border-white/5 flex flex-col xl:flex-row items-center gap-4">
-                <div className="relative flex-1 group w-full">
-                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-                  <input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder={t('anomalies.searchPlaceholder')}
-                    className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] pl-16 pr-8 py-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder-slate-400 dark:placeholder-slate-500"
-                  />
+            <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
+              <div className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
+                <Search className="w-4 h-4 text-slate-400 ml-2" />
+                <input
+                  type="text"
+                  placeholder={t('anomalies.searchPlaceholder')}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="flex-1 bg-transparent border-none text-sm text-foreground focus:ring-0 outline-none placeholder-slate-400"
+                />
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-1 flex gap-1">
+                  <div className="relative flex items-center">
+                    <button
+                      className="bg-transparent text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-[0.2em] pl-4 pr-10 py-2 outline-none cursor-pointer flex items-center gap-2"
+                      onClick={() => setIsImpactMenuOpen(!isImpactMenuOpen)}
+                    >
+                      {impactFilter === 'Tout' ? 'TOUT IMPACT' : impactFilter}
+                      <Filter className="w-3.5 h-3.5 text-slate-500" />
+                    </button>
+                    {isImpactMenuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setIsImpactMenuOpen(false)}></div>
+                        <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-white/5 z-20 p-2">
+                          <button onClick={() => { setImpactFilter('Tout'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">TOUT IMPACT</button>
+                          <button onClick={() => { setImpactFilter('BLOQUANTES'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">BLOQUANTES</button>
+                          <button onClick={() => { setImpactFilter('CRITIQUE'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">CRITIQUE</button>
+                          <button onClick={() => { setImpactFilter('MAJEUR'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">MAJEUR</button>
+                          <button onClick={() => { setImpactFilter('MINEURS'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">MINEURS</button>
+                          <button onClick={() => { setImpactFilter('FONCTIONNALITE'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">FONCTIONNALITÉ</button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
-                  <div className="relative group/select min-w-[200px]">
-                    <div className="absolute inset-0 bg-blue-500/5 blur-xl opacity-0 group-hover/select:opacity-100 transition-opacity duration-500 rounded-full" />
-                    <div className="relative bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 hover:border-blue-500/30 hover:bg-white/10 transition-all duration-300 overflow-hidden">
-                      <select
-                        value={impactFilter}
-                        onChange={(e) => setImpactFilter(e.target.value as any)}
-                        className="w-full bg-transparent text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-[0.25em] pl-12 pr-10 py-4 outline-none cursor-pointer appearance-none relative z-10"
-                      >
-                        <option value="Tout" className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white">TOUT IMPACT</option>
-                        <option value="BLOQUANTES" className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white">BLOQUANTES</option>
-                        <option value="CRITIQUE" className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white">CRITIQUE</option>
-                        <option value="MAJEUR" className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white">MAJEUR</option>
-                        <option value="MINEURS" className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white">MINEURS</option>
-                        <option value="FONCTIONNALITE" className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white">FONCTIONNALITÉ</option>
-                      </select>
-                      <Filter className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500/50 group-hover/select:text-blue-500 transition-colors pointer-events-none" />
-                      <ArrowRight className="absolute right-5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-600 rotate-90 pointer-events-none" />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      onClick={() => fetchAnomalies(currentPage)}
-                      icon={RefreshCcw}
-                      isLoading={loading}
-                      title={t('anomalies.actions.refresh')}
-                    />
-                    <Button
-                      variant="secondary"
-                      onClick={handleDownload}
-                      disabled={isDownloading}
-                      isLoading={isDownloading}
-                    >
-                      {t('anomalies.actions.exportCsv')}
-                    </Button>
-                    <Button
-                      onClick={handleDownloadPdf}
-                      disabled={isPdfDownloading}
-                      isLoading={isPdfDownloading}
-                    >
-                      {t('anomalies.actions.exportPdf')}
-                    </Button>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    onClick={() => fetchAnomalies(currentPage)}
+                    icon={RefreshCcw}
+                    isLoading={loading}
+                    title={t('anomalies.actions.refresh')}
+                    className="rounded-xl"
+                  />
+                  <Button
+                    variant="secondary"
+                    onClick={handleDownload}
+                    disabled={isDownloading}
+                    isLoading={isDownloading}
+                    className="rounded-xl text-[10px] font-bold"
+                  >
+                    CSV
+                  </Button>
+                  <Button
+                    onClick={handleDownloadPdf}
+                    disabled={isPdfDownloading}
+                    isLoading={isPdfDownloading}
+                    className="rounded-xl text-[10px] font-bold"
+                  >
+                    PDF
+                  </Button>
                 </div>
               </div>
+            </div>
+
+            <div className="bg-slate-900/40 border border-white/5 rounded-xl overflow-hidden shadow-2xl">
 
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse table-fixed min-w-[1000px]">
@@ -469,11 +471,11 @@ const Anomalies: React.FC = () => {
                       <tr
                         key={an.id}
                         onClick={() => setSelectedAnomaly(an)}
-                        className="hover:bg-white/[0.04] transition-all duration-300 group cursor-pointer border-b border-white/5 last:border-0"
+                        className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-all duration-300 group cursor-pointer border-b border-slate-100 dark:border-white/5 last:border-0"
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-4">
-                            <div className={`p-2.5 rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform ${impactToBadgeColor(an.impact) === 'red' ? 'text-rose-600 dark:text-rose-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                            <div className={`p-2.5 rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform ${impactStyles[an.impact]?.text || 'text-slate-400'}`}>
                               <ShieldAlert className="w-5 h-5" />
                             </div>
                             <div className="flex flex-col gap-0.5 min-w-0">
@@ -490,14 +492,14 @@ const Anomalies: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className={`inline-flex items-center gap-2 px-3 py-1 bg-${impactToBadgeColor(an.impact)}-500/10 rounded-full border border-${impactToBadgeColor(an.impact)}-500/20`}>
-                            <div className={`w-1.5 h-1.5 rounded-full bg-${impactToBadgeColor(an.impact)}-500`} />
-                            <span className={`text-[9px] font-black uppercase tracking-widest text-${impactToBadgeColor(an.impact)}-400`}>{an.impact}</span>
+                          <div className={`inline-flex items-center gap-2 px-3 py-1 ${impactStyles[an.impact]?.bg || 'bg-slate-500/10'} rounded-lg border ${impactStyles[an.impact]?.border || 'border-slate-500/20'}`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${impactStyles[an.impact]?.dot || 'bg-slate-500'}`} />
+                            <span className={`text-[9px] font-black uppercase tracking-widest ${impactStyles[an.impact]?.text || 'text-slate-400'}`}>{an.impact}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className={`inline-flex items-center gap-2 px-3 py-1 bg-${priorityToBadgeColor(an.priority)}-500/10 rounded-full border border-${priorityToBadgeColor(an.priority)}-500/20`}>
-                            <span className={`text-[9px] font-black uppercase tracking-widest text-${priorityToBadgeColor(an.priority)}-400`}>{an.priority}</span>
+                          <div className={`inline-flex items-center gap-2 px-3 py-1 ${priorityStyles[an.priority]?.bg || 'bg-slate-500/10'} rounded-lg border ${priorityStyles[an.priority]?.border || 'border-slate-500/20'}`}>
+                            <span className={`text-[9px] font-black uppercase tracking-widest ${priorityStyles[an.priority]?.text || 'text-slate-400'}`}>{an.priority}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -511,9 +513,10 @@ const Anomalies: React.FC = () => {
                               }}
                               icon={Eye}
                               title="Voir la capture"
+                              className="rounded-xl"
                             />
                           ) : (
-                            <div className="w-12 h-12 rounded-lg bg-white/5 border border-dashed border-white/10 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-xl bg-white/5 border border-dashed border-white/10 flex items-center justify-center">
                               <Info className="w-4 h-4 text-slate-700" />
                             </div>
                           )}
@@ -529,27 +532,48 @@ const Anomalies: React.FC = () => {
                               }}
                               icon={Info}
                               title="Voir détails"
+                              className="rounded-xl"
                             />
-                            <Button
-                              variant="secondary"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditAnomaly(an);
-                              }}
-                              icon={Edit}
-                              title={t('anomalies.actions.edit')}
-                            />
-                            <Button
-                              variant="danger"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteAnomaly(an.id);
-                              }}
-                              icon={Trash2}
-                              title={t('anomalies.actions.delete')}
-                            />
+                            <div className="relative">
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(openMenuId === an.id ? null : an.id);
+                                }}
+                                icon={MoreVertical}
+                                title="Actions"
+                                className="rounded-xl"
+                              />
+                              {openMenuId === an.id && (
+                                <>
+                                  <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)}></div>
+                                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-white/5 z-20 p-2">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditAnomaly(an);
+                                        setOpenMenuId(null);
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg flex items-center gap-2"
+                                    >
+                                      <Edit size={14} /> Modifier
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteAnomaly(an.id);
+                                        setOpenMenuId(null);
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg flex items-center gap-2"
+                                    >
+                                      <Trash2 size={14} /> Supprimer
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </td>
                       </tr>

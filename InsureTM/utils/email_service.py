@@ -1,7 +1,4 @@
-"""
-InsureTM - Centralized Email Notification Service
-Sends professional SMTP emails for platform events.
-"""
+
 import logging
 from django.core.mail import send_mail
 from django.conf import settings

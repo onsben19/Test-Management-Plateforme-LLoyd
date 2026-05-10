@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   BarChart3, AlertTriangle, Brain, Settings,
   Users, LogOut, MessageSquare, List, Mail, Layers,
@@ -10,6 +11,7 @@ import { useSidebar } from '../context/SidebarContext';
 import { useTheme } from '../context/ThemeContext';
 
 const Sidebar = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const { user, logout } = useAuth();
   const { isOpen, toggle } = useSidebar();
@@ -19,31 +21,31 @@ const Sidebar = () => {
 
   const groups = [
     {
-      title: 'PRINCIPAL',
+      title: t('sidebar.groups.principal'),
       items: [
-        { name: 'Tableau de bord', href: isAdmin ? '/admin/dashboard' : '/manager/dashboard', icon: Layout, roles: ['ADMIN', 'MANAGER'] },
-        { name: 'Gestion des utilisateurs', href: '/users', icon: Users, roles: ['ADMIN'] },
-        { name: 'Gestions des emails', href: '/management/messages', icon: Mail, roles: ['ADMIN'] },
+        { name: t('sidebar.dashboard'), href: isAdmin ? '/admin/dashboard' : '/manager/dashboard', icon: Layout, roles: ['ADMIN', 'MANAGER'] },
+        { name: t('sidebar.items.users'), href: '/users', icon: Users, roles: ['ADMIN'] },
+        { name: t('sidebar.items.emails'), href: '/management/messages', icon: Mail, roles: ['ADMIN'] },
       ]
     },
     {
-      title: 'GESTION DES TESTS',
+      title: t('sidebar.groups.tests'),
       items: [
-        { name: 'Projets Disponibles', href: '/portfolio', icon: Layout, roles: ['ADMIN', 'MANAGER', 'manager'] },
-        { name: 'Campagne de Tests', href: isAdmin ? '/admin/campaigns' : '/manager', icon: Brain, roles: ['ADMIN'] },
-        { name: 'Campagne des tests', href: '/tester-dashboard', icon: List, roles: ['tester', 'TESTER'] },
-        { name: "Suivi d'Exécution", href: isAdmin ? '/admin/executions' : '/execution', icon: BarChart3, roles: ['ADMIN', 'tester', 'TESTER', 'MANAGER', 'manager'] },
-        { name: 'Anomalies', href: isAdmin ? '/admin/anomalies' : '/anomalies', icon: AlertTriangle, roles: ['ADMIN', 'tester', 'TESTER', 'MANAGER', 'manager'] },
+        { name: t('sidebar.items.projects'), href: '/portfolio', icon: Layout, roles: ['ADMIN', 'MANAGER', 'manager'] },
+        { name: t('sidebar.items.campaigns'), href: isAdmin ? '/admin/campaigns' : '/manager', icon: Brain, roles: ['ADMIN'] },
+        { name: t('sidebar.items.testerDashboard'), href: '/tester-dashboard', icon: List, roles: ['tester', 'TESTER'] },
+        { name: t('sidebar.items.executions'), href: isAdmin ? '/admin/executions' : '/execution', icon: BarChart3, roles: ['ADMIN', 'tester', 'TESTER', 'MANAGER', 'manager'] },
+        { name: t('sidebar.items.anomalies'), href: isAdmin ? '/admin/anomalies' : '/anomalies', icon: AlertTriangle, roles: ['ADMIN', 'tester', 'TESTER', 'MANAGER', 'manager'] },
       ]
     },
     {
-      title: 'COMMUNICATION & IA',
+      title: t('sidebar.groups.communication'),
       items: [
-        { name: 'Commentaires', href: '/admin/comments', icon: MessageSquare, roles: ['ADMIN'] },
-        { name: 'Emails', href: '/messages', icon: Mail, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
-        { name: 'Chat Center', href: '/chat', icon: MessageSquare, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
-        { name: 'Gestion des discussions AI', href: '/management/analytics', icon: MessageSquare, roles: ['ADMIN'] },
-        { name: 'Analytics IA', href: '/analytics', icon: Sparkles, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+        { name: t('sidebar.items.comments'), href: '/admin/comments', icon: MessageSquare, roles: ['ADMIN'] },
+        { name: t('sidebar.items.messages'), href: '/messages', icon: Mail, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+        { name: t('sidebar.items.chat'), href: '/chat', icon: MessageSquare, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+        { name: t('sidebar.items.aiDiscussions'), href: '/management/analytics', icon: MessageSquare, roles: ['ADMIN'] },
+        { name: t('sidebar.items.aiAnalytics'), href: '/analytics', icon: Sparkles, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
       ]
     }
   ];

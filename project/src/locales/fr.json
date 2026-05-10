@@ -78,7 +78,9 @@
             "comments": "Commentaires",
             "messages": "Messagerie",
             "aiDiscussions": "Gestion des discussions AI",
-            "aiAnalytics": "Analytics IA"
+            "aiAnalytics": "Analytics IA",
+            "projects": "Projets Disponibles",
+            "chat": "Chat Center"
         }
     },
     "header": {
@@ -142,7 +144,9 @@
             "activeProjects": "Projets Actifs",
             "activeProjectsDesc": "Campagnes monitorées",
             "openAnomalies": "Anomalies Ouvertes",
-            "openAnomaliesDesc": "Action requise"
+            "openAnomaliesDesc": "Action requise",
+            "totalCampaigns": "Campagnes Totales",
+            "totalTests": "Tests total"
         },
         "widgets": {
             "trend": "Tendance Qualité",
@@ -152,7 +156,11 @@
             "mlGuardEmpty": "Aucune alerte prédite pour le moment.",
             "distributionSubtitle": "SÉVÉRITÉ",
             "activity": "Dernières Actions",
-            "activitySubtitle": "MONITORING"
+            "activitySubtitle": "MONITORING",
+            "weeklyActivity": "Activité hebdomadaire",
+            "weeklyActivitySubtitle": "7 derniers jours — tests passés vs échoués",
+            "anomalies": "Anomalies",
+            "anomaliesSubtitle": "Répartition par criticité"
         },
         "tabs": {
             "overview": "Vue d'ensemble",
@@ -160,9 +168,30 @@
             "aiInsights": "IA Insights",
             "activity": "Activité"
         },
+        "actions": {
+            "downloadReport": "Télécharger la fiche de clôture"
+        },
         "projectFilter": {
             "label": "Projet :",
             "all": "Tous les projets"
+        },
+        "realtime": {
+            "title": "Dashboard Live",
+            "updated": "Mis à jour il y a {{count}}s",
+            "disconnected": "Déconnecté — Reconnexion...",
+            "activeTesters": "Testeurs Actifs",
+            "liveVelocity": "Vélocité Live (2h)",
+            "blockedTesters": "Testeurs Bloqués",
+            "team": "Équipe de Test",
+            "activityFeed": "Flux d'activité",
+            "waitingForActivity": "En attente d'activité...",
+            "objective": "Objectif",
+            "contact": "Contacter",
+            "up": "Hausse",
+            "down": "Baisse",
+            "blocked": "Bloqué",
+            "unitTestsH": "tests/h",
+            "unitTestsJ": "T/J"
         }
     },
     "adminAnomalies": {
@@ -1096,6 +1125,29 @@
             "globalAverage": "Moyenne Globale",
             "totalReleases": "Total : {{count}} Releases",
             "trend": "Tendance"
+        },
+        "velocityTab": {
+            "title": "Performance testeurs • {{count}} releases"
+        },
+        "stratTab": {
+            "title": "Indice de Confiance Global",
+            "subtitle": "Release Readiness"
+        }
+    },
+    "portfolio": {
+        "title": "Gestion des Projets",
+        "titleAdmin": "Audit des Projets",
+        "subtitle": "PROJETS DISPONIBLES",
+        "subtitleAdmin": "VUE DÉTAILLÉE DU RÉFÉRENTIEL",
+        "stats": {
+            "active": "Projets Actifs",
+            "totalReleases": "Total Releases"
+        },
+        "table": {
+            "description": "Description",
+            "releases": "Releases",
+            "createdAt": "Créé le",
+            "owner": "Propriétaire"
         }
     }
 }

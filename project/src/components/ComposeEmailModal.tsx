@@ -121,7 +121,7 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
     const modalTitle = initialData?.mode === 'reply' ? t('email.compose.reply') : initialData?.mode === 'forward' ? t('email.compose.forward') : t('email.compose.title');
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -145,9 +145,7 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                             </div>
                             {modalTitle}
                         </h2>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-60">
-                            {t('email.compose.subtitle') || 'NOUVEAU MESSAGE DIRECT'}
-                        </p>
+
                     </div>
                     <button
                         onClick={onClose}
@@ -157,7 +155,7 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
                     {/* Recipients */}
                     <div className="relative">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t('email.compose.recipients')}</label>

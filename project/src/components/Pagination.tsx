@@ -53,8 +53,8 @@ const Pagination: React.FC<PaginationProps> = ({
     };
 
     return (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-8 px-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="text-sm text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700/50">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-8 py-6 px-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="text-sm text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700/50 whitespace-nowrap">
                 Affichage de <span className="text-slate-900 dark:text-white">{(currentPage - 1) * pageSize + 1}</span> à <span className="text-slate-900 dark:text-white">{Math.min(currentPage * pageSize, totalItems)}</span> sur <span className="text-slate-900 dark:text-white">{totalItems}</span> résultats
             </div>
 

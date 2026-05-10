@@ -54,12 +54,12 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
             </div>
 
             {/* Content Body - Minimalist & Informative */}
-            <div className="flex-1 overflow-y-auto p-12 space-y-12 custom-scrollbar">
-                <section className="space-y-6">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Informations Générales</h3>
+            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+                <section className="space-y-4">
+                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-1">Informations Générales</h3>
                     <div className="grid grid-cols-1 gap-4">
-                        <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 flex items-center gap-6">
-                            <div className="w-12 h-12 bg-blue-600/10 rounded-2xl flex items-center justify-center text-blue-400 border border-blue-500/10">
+                        <div className="bg-gradient-to-r from-blue-600/5 to-transparent border border-white/5 rounded-2xl p-6 flex items-center gap-6 hover:from-blue-600/10 transition-all duration-300 group">
+                            <div className="w-12 h-12 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-400 border border-blue-500/10 group-hover:scale-110 transition-transform">
                                 <User size={20} />
                             </div>
                             <div className="flex-1">
@@ -68,8 +68,8 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                             </div>
                         </div>
 
-                        <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 flex items-center gap-6">
-                            <div className="w-12 h-12 bg-indigo-600/10 rounded-2xl flex items-center justify-center text-indigo-400 border border-indigo-500/10">
+                        <div className="bg-gradient-to-r from-indigo-600/5 to-transparent border border-white/5 rounded-2xl p-6 flex items-center gap-6 hover:from-indigo-600/10 transition-all duration-300 group">
+                            <div className="w-12 h-12 bg-indigo-600/10 rounded-xl flex items-center justify-center text-indigo-400 border border-indigo-500/10 group-hover:scale-110 transition-transform">
                                 <Calendar size={20} />
                             </div>
                             <div className="flex-1">
@@ -78,13 +78,13 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                             </div>
                         </div>
 
-                        <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 flex items-center gap-6">
-                            <div className="w-12 h-12 bg-emerald-600/10 rounded-2xl flex items-center justify-center text-emerald-400 border border-emerald-500/10">
+                        <div className="bg-gradient-to-r from-emerald-600/5 to-transparent border border-white/5 rounded-2xl p-6 flex items-center gap-6 hover:from-emerald-600/10 transition-all duration-300 group">
+                            <div className="w-12 h-12 bg-emerald-600/10 rounded-xl flex items-center justify-center text-emerald-400 border border-emerald-500/10 group-hover:scale-110 transition-transform">
                                 <Layers size={20} />
                             </div>
                             <div className="flex-1">
                                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Contexte Release</p>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-3">
                                     <p className="text-sm font-bold text-white">{test.businessProject} &gt; {test.release}</p>
                                     {test.releaseType && (
                                         <span className={`text-[8px] px-2 py-0.5 rounded-md font-black uppercase tracking-widest ${test.releaseType === 'PREPROD' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/20 text-emerald-400'}`}>

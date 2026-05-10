@@ -227,35 +227,34 @@ const ReleaseManager = () => {
         >
             <div className="space-y-10">
                 {/* Search & Sort Toolbar */}
-                <div className="glass-card p-4 flex flex-col md:flex-row items-center gap-4 shadow-2xl">
-                    <div className="relative flex-1 w-full group">
-                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
+                    {/* Search Bar */}
+                    <div className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
+                        <Search className="w-4 h-4 text-slate-400 ml-2" />
                         <input
                             type="text"
                             placeholder={t('releaseManager.searchPlaceholder')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl pl-14 pr-6 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-medium placeholder-slate-400"
+                            className="flex-1 bg-transparent border-none text-sm text-white focus:ring-0 outline-none placeholder-slate-400"
                         />
                     </div>
-                    <div className="flex items-center gap-4 w-full md:w-auto">
-                        <div className="flex items-center gap-3 bg-slate-50 dark:bg-white/5 p-1.5 rounded-2xl border border-slate-200 dark:border-white/5 pr-4 w-full md:w-auto">
-                            <div className="p-2 bg-blue-500/10 rounded-full border border-blue-500/20">
-                                <Filter className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            <select
-                                value={sortOrder}
-                                onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                                className="bg-transparent text-slate-900 dark:text-white text-[10px] font-bold outline-none cursor-pointer appearance-none uppercase tracking-widest"
-                            >
-                                <option value="newest" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{t('releaseManager.sort.newest')}</option>
-                                <option value="oldest" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{t('releaseManager.sort.oldest')}</option>
-                            </select>
-                        </div>
+
+                    {/* Sort Select */}
+                    <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
+                        <Filter className="w-4 h-4 text-slate-400 ml-2" />
+                        <select
+                            value={sortOrder}
+                            onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                            className="bg-transparent text-white text-xs font-bold outline-none cursor-pointer appearance-none uppercase tracking-widest"
+                        >
+                            <option value="newest" className="bg-slate-900 text-white">{t('releaseManager.sort.newest')}</option>
+                            <option value="oldest" className="bg-slate-900 text-white">{t('releaseManager.sort.oldest')}</option>
+                        </select>
                     </div>
 
                     {/* Release Type Tabs */}
-                    <div className="flex items-center gap-2 p-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl w-fit">
+                    <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-1 flex gap-1">
                         {[
                             { id: 'ALL', label: 'Toutes' },
                             { id: 'RECETTE', label: 'Recette' },
@@ -264,9 +263,9 @@ const ReleaseManager = () => {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveReleaseType(tab.id as any)}
-                                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeReleaseType === tab.id
-                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-300 hover:bg-white/10 dark:hover:bg-white/5'
+                                className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${activeReleaseType === tab.id
+                                    ? 'bg-blue-500 text-white'
+                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
                                     }`}
                             >
                                 {tab.label}
@@ -349,11 +348,8 @@ const ReleaseManager = () => {
                                     </div>
 
                                     <div className="flex flex-col h-full">
-                                        {/* Header: Icon + Status */}
-                                        <div className="flex items-center gap-4 mb-6">
-                                            <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-600/30 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-all duration-500 shrink-0 shadow-lg shadow-indigo-500/10">
-                                                <Layers className="w-7 h-7" />
-                                            </div>
+                                        {/* Header: Status & Type (No icon) */}
+                                        <div className="flex items-center gap-2 mb-6">
                                             <div className="flex flex-col gap-2">
                                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black border ${getStatusStyles(release.status)}`}>
                                                     <div className={`w-1 h-1 rounded-full ${release.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : 'bg-current'}`} />
@@ -393,7 +389,7 @@ const ReleaseManager = () => {
                                                 <span className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.15em] group-hover/audit:text-blue-600 dark:group-hover/audit:text-blue-400 transition-colors">
                                                     Progression
                                                 </span>
-                                                <span className="text-xs font-black text-orange-600 dark:text-orange-500 tracking-wider group-hover/audit:scale-110 transition-transform">
+                                                <span className={`text-xs font-black tracking-wider group-hover/audit:scale-110 transition-transform ${(readinessScores[release.id]?.score || 0) >= 80 ? 'text-emerald-500' : (readinessScores[release.id]?.score || 0) >= 40 ? 'text-blue-500' : 'text-rose-500'}`}>
                                                     {readinessScores[release.id]?.score || 0}%
                                                 </span>
                                             </div>
@@ -402,7 +398,7 @@ const ReleaseManager = () => {
                                                     initial={{ width: 0 }}
                                                     animate={{ width: `${readinessScores[release.id]?.score || 0}%` }}
                                                     transition={{ duration: 1, ease: 'easeOut' }}
-                                                    className="h-full bg-gradient-to-r from-orange-600 to-orange-400 rounded-full"
+                                                    className={`h-full rounded-full ${(readinessScores[release.id]?.score || 0) >= 80 ? 'bg-emerald-500' : (readinessScores[release.id]?.score || 0) >= 40 ? 'bg-blue-500' : 'bg-rose-500'}`}
                                                 />
                                             </div>
                                         </div>
@@ -460,16 +456,16 @@ const ReleaseManager = () => {
             {/* Add/Edit Modal */}
             <AnimatePresence>
                 {isModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 backdrop-blur-2xl bg-black/60">
+                    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 backdrop-blur-2xl bg-black/60 overflow-y-auto">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative w-full max-w-xl bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-[3rem] overflow-hidden shadow-2xl"
+                            className="relative w-full max-w-xl bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-[2rem] overflow-y-auto shadow-2xl flex flex-col max-h-[70vh]"
                         >
-                            <div className="p-8 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-gradient-to-r from-blue-600/10 to-transparent">
+                            <div className="px-6 py-8 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-gradient-to-r from-blue-600/10 to-transparent flex-shrink-0">
                                 <div>
-                                    <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{editingRelease ? t('releaseManager.modal.editTitle') : t('releaseManager.modal.createTitle')}</h2>
+                                    <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{editingRelease ? t('releaseManager.modal.editTitle') : t('releaseManager.modal.createTitle')}</h2>
                                     <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-[0.2em]">Release Management Terminal</p>
                                 </div>
                                 <Button
@@ -480,13 +476,13 @@ const ReleaseManager = () => {
                                 />
                             </div>
 
-                            <div className="p-8 space-y-6">
+                            <div className="p-6 space-y-4 flex-1">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('releaseManager.modal.name')}</label>
                                     <input
                                         type="text"
                                         required
-                                        className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600/50 outline-none transition-all font-bold"
+                                        className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600/50 outline-none transition-all font-bold"
                                         placeholder={t('releaseManager.modal.namePlaceholder')}
                                         value={newRelease.name}
                                         onChange={(e) => setNewRelease({ ...newRelease, name: e.target.value })}
@@ -496,7 +492,7 @@ const ReleaseManager = () => {
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('releaseManager.modal.description')}</label>
                                     <textarea
-                                        className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600/50 outline-none transition-all font-bold h-32 resize-none"
+                                        className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600/50 outline-none transition-all font-bold h-24 resize-none"
                                         placeholder={t('releaseManager.modal.descriptionPlaceholder')}
                                         value={newRelease.description}
                                         onChange={(e) => setNewRelease({ ...newRelease, description: e.target.value })}
@@ -509,7 +505,7 @@ const ReleaseManager = () => {
                                         <div className="relative bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden group">
                                             <Activity className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-500 transition-colors" />
                                             <select
-                                                className="w-full bg-transparent pl-16 pr-6 py-4 text-slate-900 dark:text-white font-bold outline-none cursor-pointer appearance-none"
+                                                className="w-full bg-transparent pl-16 pr-6 py-3 text-slate-900 dark:text-white font-bold outline-none cursor-pointer appearance-none"
                                                 value={newRelease.status}
                                                 onChange={(e) => setNewRelease({ ...newRelease, status: e.target.value })}
                                             >
@@ -524,7 +520,7 @@ const ReleaseManager = () => {
                                         <div className="relative bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden group">
                                             <Layers className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-500 transition-colors" />
                                             <select
-                                                className="w-full bg-transparent pl-16 pr-6 py-4 text-slate-900 dark:text-white font-bold outline-none cursor-pointer appearance-none"
+                                                className="w-full bg-transparent pl-16 pr-6 py-3 text-slate-900 dark:text-white font-bold outline-none cursor-pointer appearance-none"
                                                 value={newRelease.release_type}
                                                 onChange={(e) => setNewRelease({ ...newRelease, release_type: e.target.value })}
                                             >
@@ -540,7 +536,7 @@ const ReleaseManager = () => {
                                     <div className="relative bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden group">
                                         <BookOpen className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-500 transition-colors" />
                                         <select
-                                            className="w-full bg-transparent pl-16 pr-6 py-4 text-slate-900 dark:text-white font-bold outline-none cursor-pointer appearance-none"
+                                            className="w-full bg-transparent pl-16 pr-6 py-3 text-slate-900 dark:text-white font-bold outline-none cursor-pointer appearance-none"
                                             value={newRelease.business_project}
                                             onChange={(e) => setNewRelease({ ...newRelease, business_project: e.target.value })}
                                         >
@@ -551,8 +547,9 @@ const ReleaseManager = () => {
                                         </select>
                                     </div>
                                 </div>
-
-                                <div className="flex items-center justify-end gap-5 pt-6 border-t border-slate-100 dark:border-white/5">
+                                </div>
+                                
+                                <div className="p-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-end gap-5 flex-shrink-0">
                                     <Button
                                         variant="ghost"
                                         onClick={resetForm}
@@ -567,7 +564,6 @@ const ReleaseManager = () => {
                                         {editingRelease ? t('releaseManager.modal.save') : t('releaseManager.modal.create')}
                                     </Button>
                                 </div>
-                            </div>
                         </motion.div>
                     </div>
                 )

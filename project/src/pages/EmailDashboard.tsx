@@ -251,7 +251,7 @@ const EmailDashboard = () => {
                                                 </>
                                             )}
                                             <Button
-                                                variant="danger"
+                                                variant="secondary"
                                                 size="icon"
                                                 onClick={() => handleDeleteEmail(selectedEmail)}
                                                 icon={Trash2}

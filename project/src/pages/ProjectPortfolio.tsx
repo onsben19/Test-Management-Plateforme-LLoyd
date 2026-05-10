@@ -36,6 +36,7 @@ const ProjectPortfolio = () => {
     const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
 
     const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
+    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
     const fetchProjects = async () => {
         try {
@@ -91,6 +92,7 @@ const ProjectPortfolio = () => {
         <Button
             onClick={() => { setEditingProject(null); setNewProject({ name: '', description: '' }); setIsModalOpen(true); }}
             icon={Plus}
+            className="text-[10px] font-bold tracking-wider rounded-lg"
         >
             NOUVEAU PROJET
         </Button>
@@ -108,10 +110,10 @@ const ProjectPortfolio = () => {
                 </div>
             )
         },
-        { header: 'Description', accessor: (item: any) => <span className="text-xs truncate max-w-xs block text-slate-500 dark:text-slate-400">{item.description || 'N/A'}</span> },
-        { header: 'Releases', accessor: (item: any) => <span className="font-bold text-blue-600 dark:text-blue-400">{item.releases_count || 0}</span> },
-        { header: 'Créé le', accessor: (item: any) => new Date(item.created_at).toLocaleDateString() },
-        { header: 'Propriétaire', accessor: 'created_by_username' }
+        { header: t('portfolio.table.description'), accessor: (item: any) => <span className="text-xs truncate max-w-xs block text-slate-500 dark:text-slate-400">{item.description || 'N/A'}</span> },
+        { header: t('portfolio.table.releases'), accessor: (item: any) => <span className="font-bold text-blue-600 dark:text-blue-400">{item.releases_count || 0}</span> },
+        { header: t('portfolio.table.createdAt'), accessor: (item: any) => new Date(item.created_at).toLocaleDateString() },
+        { header: t('portfolio.table.owner'), accessor: 'created_by_username' }
     ];
 
     const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
@@ -119,8 +121,8 @@ const ProjectPortfolio = () => {
 
     return (
         <PageLayout
-            title={isAdmin ? "Audit des Projets" : "Gestion des Projets"}
-            subtitle={isAdmin ? "VUE DÉTAILLÉE DU RÉFÉRENTIEL" : "PROJETS DISPONIBLES"}
+            title={isAdmin ? t('portfolio.titleAdmin') : t('portfolio.title')}
+            subtitle={isAdmin ? t('portfolio.subtitleAdmin') : t('portfolio.subtitle')}
             actions={HeaderActions}
         >
             <div className="space-y-8">
@@ -159,8 +161,8 @@ const ProjectPortfolio = () => {
                         >
                             {/* Search & Sort Bar */}
                             <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
-                                <div className="flex-1 glass-card p-4 flex items-center gap-4">
-                                    <Search className="w-5 h-5 text-slate-400 ml-4" />
+                                <div className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
+                                    <Search className="w-4 h-4 text-slate-400 ml-2" />
                                     <input
                                         type="text"
                                         placeholder="Rechercher un projet..."
@@ -169,12 +171,13 @@ const ProjectPortfolio = () => {
                                         className="flex-1 bg-transparent border-none text-sm text-foreground focus:ring-0 outline-none placeholder-slate-400"
                                     />
                                 </div>
-                                <div className="glass-card p-2 flex gap-1">
+                                <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-1 flex gap-1">
                                     <Button
                                         variant={sortBy === 'newest' ? 'primary' : 'ghost'}
                                         size="sm"
                                         onClick={() => setSortBy('newest')}
                                         icon={SortDesc}
+                                        className="rounded-lg text-[10px] font-bold"
                                     >
                                         RÉCENTS
                                     </Button>
@@ -183,6 +186,7 @@ const ProjectPortfolio = () => {
                                         size="sm"
                                         onClick={() => setSortBy('oldest')}
                                         icon={SortAsc}
+                                        className="rounded-lg text-[10px] font-bold"
                                     >
                                         ANCIENS
                                     </Button>
@@ -214,36 +218,56 @@ const ProjectPortfolio = () => {
                                                 onClick={() => navigate('/releases', { state: { businessProjectId: project.id, businessProjectName: project.name } })}
                                                 className="group relative glass-card rounded-[2.5rem] p-8 overflow-hidden shadow-xl hover:shadow-2xl cursor-pointer"
                                             >
-                                                {/* Card Header - Icon & Actions */}
-                                                <div className="flex items-start justify-between mb-8">
-                                                    <div className="w-16 h-16 rounded-3xl bg-blue-50 dark:bg-[#111827] border border-blue-200 dark:border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                                                        <div className="p-2.5 bg-blue-500/5 rounded-2xl border border-blue-500/10">
-                                                            <Briefcase className="w-6 h-6" />
+                                                {/* Card Header - Title & Status & Actions */}
+                                                <div className="flex items-start justify-between mb-6">
+                                                    <div className="space-y-2 flex-1 min-w-0 pr-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                                                            <span className="text-[10px] font-black text-blue-600 dark:text-blue-500 uppercase tracking-widest">Actif</span>
                                                         </div>
+                                                        <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase truncate">{project.name}</h3>
                                                     </div>
-                                                    <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                                                    <div className="relative shrink-0" onClick={e => e.stopPropagation()}>
                                                         <Button
                                                             variant="secondary"
                                                             size="icon"
-                                                            onClick={() => { setEditingProject(project); setNewProject({ name: project.name, description: project.description }); setIsModalOpen(true); }}
-                                                            icon={Pencil}
+                                                            onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === project.id ? null : project.id); }}
+                                                            icon={MoreVertical}
                                                         />
-                                                        <Button
-                                                            variant="danger"
-                                                            size="icon"
-                                                            onClick={() => { setProjectToDelete(project.id); setIsDeleteModalOpen(true); }}
-                                                            icon={Trash}
-                                                        />
+
+                                                        <AnimatePresence>
+                                                            {openMenuId === project.id && (
+                                                                <motion.div
+                                                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                                    className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                                                                >
+                                                                    <div className="p-2 space-y-1">
+                                                                        <button
+                                                                            onClick={() => { setEditingProject(project); setNewProject({ name: project.name, description: project.description }); setIsModalOpen(true); setOpenMenuId(null); }}
+                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-all"
+                                                                        >
+                                                                            <Pencil className="w-3.5 h-3.5 text-blue-600 dark:text-blue-500/70" />
+                                                                            {t('releaseManager.menu.edit') || 'Modifier'}
+                                                                        </button>
+                                                                        <div className="h-px bg-slate-100 dark:bg-white/5 mx-2 my-1" />
+                                                                        <button
+                                                                            onClick={() => { setProjectToDelete(project.id); setIsDeleteModalOpen(true); setOpenMenuId(null); }}
+                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-rose-600 dark:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all"
+                                                                        >
+                                                                            <Trash className="w-3.5 h-3.5" />
+                                                                            {t('releaseManager.menu.delete') || 'Supprimer'}
+                                                                        </button>
+                                                                    </div>
+                                                                </motion.div>
+                                                            )}
+                                                        </AnimatePresence>
                                                     </div>
                                                 </div>
 
-                                                {/* Status & Info */}
+                                                {/* Description */}
                                                 <div className="space-y-2 mb-6">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                                                        <span className="text-[10px] font-black text-blue-600 dark:text-blue-500 uppercase tracking-widest">Actif</span>
-                                                    </div>
-                                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase">{project.name}</h3>
                                                     <p className="text-slate-500 dark:text-slate-400 text-xs font-medium leading-relaxed line-clamp-2">{project.description || 'Description du projet métier'}</p>
                                                 </div>
 

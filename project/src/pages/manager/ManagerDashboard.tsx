@@ -34,7 +34,8 @@ import {
     ArrowRight,
     Pencil,
     Trash,
-    Clock
+    Clock,
+    ShieldAlert
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -165,9 +166,23 @@ const ManagerDashboard = () => {
         const { projects, campaigns, anomalies } = rawData;
 
         // --- Project-level filter ---
+        // The dropdown selects a BusinessProject ID. Campaigns are linked to Projects (Releases).
+        // We must find campaigns whose project belongs to the selected BusinessProject.
+        const validReleaseIds = selectedProjectId === 'all'
+            ? []
+            : projects
+                .filter((p: any) => {
+                    const bpId = p.business_project_id ?? (typeof p.business_project === 'object' ? p.business_project.id : p.business_project);
+                    return String(bpId) === selectedProjectId;
+                })
+                .map((p: any) => p.id);
+
         const filteredCamps = selectedProjectId === 'all'
             ? campaigns
-            : campaigns.filter((c: any) => String(c.project_id ?? c.project) === selectedProjectId);
+            : campaigns.filter((c: any) => {
+                const pId = c.project_id ?? (typeof c.project === 'object' ? c.project.id : c.project);
+                return validReleaseIds.includes(pId);
+            });
 
         const filteredAnoms = anomalies.filter((a: any) => {
             if (selectedProjectId === 'all') return true;
@@ -317,13 +332,13 @@ const ManagerDashboard = () => {
                 whileHover={{ y: -4, scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
                 onClick={() => openCampaignDrawer(camp)}
-                className="group p-5 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-[2rem] hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-500/20 dark:hover:border-blue-500/20 transition-all cursor-pointer relative"
+                className="group p-5 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-500/20 dark:hover:border-blue-500/20 transition-all cursor-pointer relative"
             >
                 {/* PDF Shortcut */}
                 <button
                     onClick={(e) => downloadReport(e, camp.id)}
                     className="absolute top-4 right-4 p-2 bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-xl text-slate-400 hover:text-emerald-500 hover:border-emerald-500/30 transition-all opacity-0 group-hover:opacity-100 z-10"
-                    title="Télécharger la fiche de clôture"
+                    title={t('managerDashboard.actions.downloadReport')}
                 >
                     <FileText className="w-3.5 h-3.5" />
                 </button>
@@ -406,7 +421,7 @@ const ManagerDashboard = () => {
                     {/* Refresh */}
                     <button
                         onClick={() => { setIsRefreshing(true); fetchData(); }}
-                        title="Rafraîchir"
+                        title={t('adminDashboard.refresh')}
                         className={`p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white transition-all shadow-sm ${isRefreshing ? 'animate-spin' : ''}`}
                     >
                         <RefreshCw className="w-4 h-4" />
@@ -453,15 +468,15 @@ const ManagerDashboard = () => {
                                 <StatCard
                                     title={t('managerDashboard.stats.successRate') || 'Taux de réussite'}
                                     value={`${filteredData.stats.successRate}%`}
-                                    icon={TrendingUp}
+                                    icon={Award}
                                     variant="green"
                                     description={`${filteredData.stats.totalPassed} / ${filteredData.stats.totalTestCases} tests`}
                                     isLoading={loading}
                                 />
                                 <StatCard
-                                    title="Campagnes Totales"
+                                    title={t('managerDashboard.stats.totalCampaigns')}
                                     value={filteredData.stats.totalCampaigns}
-                                    icon={Layers}
+                                    icon={Briefcase}
                                     variant="purple"
                                     description={`${filteredData.stats.activeProjects} projet(s) actif(s)`}
                                     isLoading={loading}
@@ -469,15 +484,15 @@ const ManagerDashboard = () => {
                                 <StatCard
                                     title={t('managerDashboard.stats.openAnomalies') || 'Anomalies ouvertes'}
                                     value={filteredData.stats.openAnomalies}
-                                    icon={AlertTriangle}
+                                    icon={ShieldAlert}
                                     variant="red"
                                     description="Non résolues"
                                     isLoading={loading}
                                 />
                                 <StatCard
-                                    title="Tests total"
+                                    title={t('managerDashboard.stats.totalTests')}
                                     value={filteredData.stats.totalTestCases}
-                                    icon={Target}
+                                    icon={FileText}
                                     variant="blue"
                                     description={`${filteredData.stats.totalPassed} réussis`}
                                     isLoading={loading}
@@ -489,14 +504,13 @@ const ManagerDashboard = () => {
                                 <HistoricalAnalyticsDashboard projectId={selectedProjectId} />
                             </div>
 
-                            {selectedProjectId === 'all' && (
                                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                                     {/* Weekly bar chart */}
                                     <div className="lg:col-span-8">
                                         <DashboardWidget
                                             id="weekly-activity"
-                                            title="Activité hebdomadaire"
-                                            subtitle="7 derniers jours — tests passés vs échoués"
+                                            title={t('managerDashboard.widgets.weeklyActivity')}
+                                            subtitle={t('managerDashboard.widgets.weeklyActivitySubtitle')}
                                             icon={Activity}
                                             isLoading={loading}
                                             onSettingsClick={() => { setIsRefreshing(true); fetchData(); }}
@@ -524,8 +538,8 @@ const ManagerDashboard = () => {
                                     <div className="lg:col-span-4">
                                         <DashboardWidget
                                             id="manager-anomaly-dist"
-                                            title="Anomalies"
-                                            subtitle="Répartition par criticité"
+                                            title={t('managerDashboard.widgets.anomalies')}
+                                            subtitle={t('managerDashboard.widgets.anomaliesSubtitle')}
                                             icon={PieChartIcon}
                                             isLoading={loading}
                                             onSettingsClick={() => { setIsRefreshing(true); fetchData(); }}
@@ -553,7 +567,6 @@ const ManagerDashboard = () => {
                                         </DashboardWidget>
                                     </div>
                                 </div>
-                            )}
                         </div>
                     )}
 

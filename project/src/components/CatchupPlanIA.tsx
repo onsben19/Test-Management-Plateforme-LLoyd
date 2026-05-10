@@ -133,38 +133,34 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
     return (
         <div className="space-y-8 animate-fade-in">
             {/* Header Strategy */}
-            <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-12 opacity-5 group-hover:opacity-10 transition-opacity">
-                    <Zap size={120} className="fill-white" />
-                </div>
-                
+            <div className="bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden group">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 relative z-10">
                     <div className="max-w-2xl">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full flex items-center gap-2">
-                                <Brain size={14} className="text-blue-400" />
-                                <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">STRATÉGIE IA</span>
+                            <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center gap-2">
+                                <Brain size={12} className="text-blue-400" />
+                                <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Stratégie IA</span>
                             </div>
-                            <div className="px-3 py-1 bg-amber-500/20 border border-amber-500/30 rounded-full flex items-center gap-2">
-                                <Clock size={14} className="text-amber-400" />
-                                <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest">RETARD : {plan.delay_days || 0} JOURS</span>
+                            <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center gap-2">
+                                <Clock size={12} className="text-amber-400" />
+                                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Retard : {plan.delay_days || 0} jours</span>
                             </div>
                         </div>
-                        <h2 className="text-3xl font-black text-white uppercase tracking-tight mb-4">{plan.campaign_title || 'Optimisation de Campagne'}</h2>
-                        <p className="text-slate-300 text-sm leading-relaxed italic border-l-2 border-blue-500/50 pl-6">
+                        <h2 className="text-2xl font-bold text-white uppercase tracking-tight mb-3">{plan.campaign_title || 'Optimisation de Campagne'}</h2>
+                        <p className="text-slate-400 text-sm leading-relaxed italic border-l-2 border-blue-500/30 pl-4">
                             "{plan.recommendation_engine || "Analyse des performances en cours..."}"
                         </p>
                     </div>
 
-                    <div className="flex flex-col items-center gap-4 bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-3xl min-w-[240px]">
+                    <div className="flex flex-col items-center gap-4 bg-white/[0.03] backdrop-blur-xl border border-white/5 p-6 rounded-2xl min-w-[200px]">
                         <div className="text-center">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">VÉLOCITÉ REQUISE</span>
-                            <div className="text-4xl font-black text-white">{plan.required_velocity || 0} <span className="text-xs text-blue-500">t/j</span></div>
+                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Vélocité requise</span>
+                            <div className="text-3xl font-bold text-white">{plan.required_velocity || 0} <span className="text-xs text-blue-500">t/j</span></div>
                         </div>
-                        <div className="w-full h-px bg-white/10" />
+                        <div className="w-full h-px bg-white/5" />
                         <div className="text-center">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">VÉLOCITÉ ACTUELLE</span>
-                            <div className="text-2xl font-bold text-slate-400">{plan.current_velocity || 0} <span className="text-[10px]">t/j</span></div>
+                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Vélocité actuelle</span>
+                            <div className="text-xl font-bold text-slate-400">{plan.current_velocity || 0} <span className="text-[10px]">t/j</span></div>
                         </div>
                     </div>
                 </div>
@@ -184,66 +180,63 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: idx * 0.1 }}
                             onClick={() => toggleTesterSelection(rec.id)}
-                            className={`relative cursor-pointer bg-slate-900/40 border-2 rounded-3xl p-6 transition-all group overflow-hidden ${
+                            className={`relative cursor-pointer bg-white/[0.02] border rounded-3xl p-6 transition-all group overflow-hidden ${
                                 isSelected 
-                                    ? 'border-blue-500 bg-blue-500/5 shadow-lg shadow-blue-500/10' 
-                                    : 'border-white/5 hover:border-white/20'
+                                    ? 'border-blue-500 bg-blue-500/[0.02] shadow-lg shadow-blue-500/5' 
+                                    : 'border-white/5 hover:border-white/10'
                             }`}
                         >
                             {/* Selection Indicator */}
-                            <div className={`absolute top-4 right-4 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                            <div className={`absolute top-4 right-4 w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
                                 isSelected ? 'bg-blue-500 border-blue-500' : 'border-white/10'
                             }`}>
-                                {isSelected && <CheckCircle size={14} className="text-white" />}
+                                {isSelected && <CheckCircle size={12} className="text-white" />}
                             </div>
 
-                            <div className="flex items-start justify-between mb-6">
+                            <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center gap-4">
-                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl transition-all group-hover:scale-110 ${
-                                        isSelected ? 'bg-blue-500 shadow-blue-500/20' : 'bg-slate-800'
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white transition-all ${
+                                        isSelected ? 'bg-blue-500' : 'bg-white/5'
                                     }`}>
-                                        <UserPlus size={24} />
+                                        <UserPlus size={20} />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <h3 className="text-xl font-black text-white uppercase tracking-tight truncate">{rec.name}</h3>
+                                            <h3 className="text-lg font-bold text-white uppercase tracking-tight truncate">{rec.name}</h3>
                                             {isAlreadyIn && (
-                                                <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-md text-[7px] font-black text-blue-400 uppercase tracking-widest">DÉJÀ ASSIGNÉ</span>
+                                                <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-md text-[7px] font-bold text-blue-400 uppercase tracking-widest">Déjà assigné</span>
                                             )}
                                         </div>
                                         <div className="flex items-center gap-2 mt-1">
                                             <ShieldCheck size={12} className={isRecommended ? "text-emerald-500" : "text-slate-500"} />
-                                            <span className={`text-[10px] font-black uppercase tracking-widest ${isRecommended ? "text-emerald-500" : "text-slate-500"}`}>
-                                                FIT SCORE : {rec.ml_score}%
+                                            <span className={`text-[9px] font-bold uppercase tracking-widest ${isRecommended ? "text-emerald-500" : "text-slate-500"}`}>
+                                                Fit Score : {rec.ml_score}%
                                             </span>
                                         </div>
                                     </div>
                                 </div>
                                 {rec.recommended_extra > 0 && (
-                                    <div className={`rounded-2xl p-3 text-right transition-colors ${isSelected ? 'bg-blue-500/10' : 'bg-white/5'}`}>
-                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">CHARGE ADDITIONNELLE</span>
-                                        <span className="text-lg font-black text-white">+{rec.recommended_extra} <span className="text-[10px] text-blue-500">tests</span></span>
+                                    <div className="text-right">
+                                        <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest block mb-0.5">Charge additionnelle</span>
+                                        <span className="text-lg font-bold text-white">+{rec.recommended_extra} <span className="text-[10px] text-blue-500">tests</span></span>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 mb-6 relative overflow-hidden">
-                                <div className="absolute top-2 right-2 text-blue-500/10">
-                                    <Brain size={40} />
-                                </div>
-                                <p className="text-[11px] text-slate-400 leading-relaxed relative z-10">
+                            <div className="bg-white/[0.01] border border-white/5 rounded-xl p-3 mb-4">
+                                <p className="text-[10px] text-slate-400 leading-relaxed">
                                     {rec.ml_label || "Ressource qualifiée pour cette campagne."}
                                 </p>
                             </div>
 
-                            <div className="space-y-3">
-                                <div className="flex justify-between text-[8px] font-black text-slate-500 uppercase tracking-widest">
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-[8px] font-bold text-slate-500 uppercase tracking-widest">
                                     <span>Charge actuelle</span>
                                     <span className={rec.current_load > 8 ? 'text-rose-500' : 'text-emerald-500'}>
                                         {rec.current_load} units/jour
                                     </span>
                                 </div>
-                                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                                     <div 
                                         className={`h-full rounded-full ${rec.current_load > 8 ? 'bg-rose-500' : 'bg-blue-500'}`}
                                         style={{ width: `${Math.min((rec.current_load / 10) * 100, 100)}%` }}
@@ -256,22 +249,22 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
             </div>
 
             {/* Action Footer */}
-            <div className="flex items-center justify-between bg-white/[0.02] border border-white/5 p-8 rounded-[2rem]">
+            <div className="flex items-center justify-between bg-white/[0.01] border border-white/5 p-6 rounded-[2rem]">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                        <Activity size={24} />
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                        <Activity size={20} />
                     </div>
                     <div>
-                        <h4 className="text-lg font-black text-white uppercase tracking-tight">
+                        <h4 className="text-base font-bold text-white uppercase tracking-tight">
                             {selectedTesterIds.length} Testeur(s) sélectionné(s)
                         </h4>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">
                             Impact estimé : +{((plan.current_velocity || 0) * (1 + selectedTesterIds.length * 0.25)).toFixed(1)} tests/jour
                         </p>
                     </div>
                 </div>
                 
-                <div className="flex gap-4">
+                <div className="flex gap-3">
                     <Button 
                         variant="secondary"
                         size="icon"
@@ -286,9 +279,9 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
                         isLoading={applying}
                         disabled={applying || !plan || selectedTesterIds.length === 0}
                         icon={ArrowRight}
-                        className="px-8"
+                        className="px-6 text-xs font-bold"
                     >
-                        {applying ? 'APPLICATION...' : 'APPLIQUER LA STRATÉGIE'}
+                        {applying ? 'Application...' : 'Appliquer la stratégie'}
                     </Button>
                 </div>
             </div>

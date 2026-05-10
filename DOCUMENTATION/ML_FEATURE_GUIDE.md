@@ -55,7 +55,48 @@ Tous les appels LLM utilisent le modèle **`llama-3.3-70b-versatile`** via l'API
 
 ---
 
-## 3. Composant 1 : ML Timeline Guard
+## 3. Cycle de Vie des Modèles ML (Lifecycle)
+
+L'architecture s'appuie sur deux approches distinctes pour ses deux modèles prédictifs : un apprentissage hors-ligne (Offline) pour la prédiction temporelle, et un apprentissage analytique en ligne (Online) pour la recommandation.
+
+### 3.1 Modèle de Prédiction de Timeline (Random Forest)
+Ce modèle suit un cycle de vie classique de Machine Learning **"hors-ligne" (Offline Learning)** :
+* **Étape 1 : Ingénierie des Caractéristiques (Feature Engineering)** :
+  * Sélection des variables d'entrée : `total_cases`, `finished_cases`, `days_elapsed`, et calcul de la `velocity`.
+  * Cible (Target) : `days_remaining` (nombre de jours restants avant la fin réelle).
+* **Étape 2 : Entraînement (`research/train_model.py`)** :
+  * Génération d'un dataset synthétique de 1000 échantillons simulant des historiques de projets QA chez Lloyd Assurances.
+  * Séparation des données en **Train set** (80%) et **Test set** (20%).
+  * Entraînement via `RandomForestRegressor(n_estimators=100)`.
+* **Étape 3 : Persistance** :
+  * Sauvegarde du modèle entraîné au format binaire `.joblib` pour un chargement instantané en RAM.
+* **Étape 4 : Inférence Temps Réel (`MLTimelineGuard.get_campaign_status`)** :
+  * Au chargement du dashboard, le service backend récupère les données réelles de la campagne.
+  * Il injecte ces données dans le modèle chargé en mémoire pour obtenir la prédiction immédiate.
+
+### 3.2 Modèle de Scoring de Testeurs (Weighted Scoring)
+Ce modèle est un système de Machine Learning **"en ligne" (Online Scoring)** qui s'adapte en temps réel au comportement des utilisateurs :
+* **Étape 1 : Extraction des Logs de Performance** :
+  * Le système requête la table `testCases_testcase` pour extraire l'historique complet de chaque testeur.
+* **Étape 2 : Calcul des Métriques (Feature Extraction)** :
+  * **Qualité** : Calcul du ratio `PASSED / TOTAL`.
+  * **Vélocité** : Calcul de la moyenne glissante des tests/jour sur les 7 derniers jours.
+  * **Engagement** : Comptage des jours d'activité sur les 14 derniers jours.
+* **Étape 3 : Application de la Fonction de Scoring** :
+  * Normalisation des valeurs (mise sur une échelle commune de 0 à 100).
+  * Application des coefficients de pondération (0.4, 0.3, 0.3) pour obtenir le score final.
+* **Étape 4 : Classification Dynamique** :
+  * Le score final passe par une fonction de seuillage (Thresholding) pour classer le testeur dans l'une des catégories de fitness (Expert / Stable / Apprenti).
+* **Étape 5 : Intégration Business (`CatchupRecommendationManager`)** :
+  * Le moteur de recommandation trie les testeurs selon ce score ML et leur charge actuelle pour suggérer la meilleure réaffectation possible.
+
+### 3.3 Résumé de l'Architecture
+* **Timeline** = Machine Learning Statistique (Prédiction de valeur continue).
+* **Recommandation** = Machine Learning Analytique (Scoring & Ranking de performance).
+
+---
+
+## 4. Composant 1 : ML Timeline Guard
 
 ### Fichier : `analytics/ml_service.py` — Classe `MLTimelineGuard`
 

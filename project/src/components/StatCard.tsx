@@ -38,13 +38,13 @@ const StatCard: React.FC<StatCardProps> = ({
   const currentVariant = variants[variant] || variants.blue;
 
   if (isLoading) {
-    return <div className="h-32 bg-slate-100 dark:bg-white/5 animate-pulse rounded-3xl" />;
+    return <div className="h-32 bg-slate-100 dark:bg-white/5 animate-pulse rounded-2xl" />;
   }
 
   return (
     <div 
       onClick={onClick}
-      className={`relative p-6 rounded-3xl border ${currentVariant.border} ${currentVariant.bg} ${onClick ? 'cursor-pointer hover:scale-[1.02] active:scale-95' : ''} transition-all duration-300 group overflow-hidden`}
+      className={`relative p-6 rounded-2xl border ${currentVariant.border} ${currentVariant.bg} ${onClick ? 'cursor-pointer hover:scale-[1.02] active:scale-95' : ''} transition-all duration-300 group overflow-hidden`}
     >
       <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full ${currentVariant.accent} opacity-[0.05] blur-2xl`} />
       

@@ -219,9 +219,33 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
             const textLines = doc.splitTextToSize(msg.text, contentWidth);
             doc.text(textLines, margin, y);
             y += (textLines.length * 6) + 5;
-
             if (msg.data && Array.isArray(msg.data) && msg.data.length > 0) {
-                const head = [Object.keys(msg.data[0])];
+                const keys = Object.keys(msg.data[0]);
+                const labelKey = keys[0];
+                const valueKey = keys.find(k => k !== labelKey && !isNaN(Number(msg.data[0][k])));
+
+                // Draw a simple bar chart if type is bar
+                if ((msg.type === 'bar' || !msg.type) && valueKey) {
+                    const chartHeight = 40;
+                    const chartWidth = contentWidth - 20;
+                    const barWidth = (chartWidth / msg.data.length) * 0.6;
+                    const maxValue = Math.max(...msg.data.map((d: any) => Number(d[valueKey]) || 0));
+                    
+                    doc.setDrawColor(220, 220, 220);
+                    doc.line(margin, y + chartHeight, margin + chartWidth, y + chartHeight); // X axis
+                    
+                    msg.data.forEach((d: any, i: number) => {
+                        const val = Number(d[valueKey]) || 0;
+                        const h = maxValue > 0 ? (val / maxValue) * chartHeight : 0;
+                        const x = margin + (i * (chartWidth / msg.data.length)) + 5;
+                        
+                        doc.setFillColor(59, 130, 246); // Blue
+                        doc.rect(x, y + chartHeight - h, barWidth, h, 'F');
+                    });
+                    y += chartHeight + 10;
+                }
+
+                const head = [keys];
                 const body = msg.data.map(row => Object.values(row));
                 autoTable(doc, {
                     startY: y,
@@ -429,7 +453,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                             value={input} 
                             onChange={e => setInput(e.target.value)} 
                             placeholder={t('analytics.chat.placeholder')} 
-                            className="w-full bg-white/5 dark:bg-white/[0.03] border border-white/10 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-[2rem] pl-14 pr-16 py-5 text-slate-900 dark:text-white placeholder:text-slate-500 outline-none transition-all shadow-2xl" 
+                            className="w-full bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-xl pl-14 pr-16 py-4 text-slate-900 dark:text-white placeholder:text-slate-500 outline-none transition-all shadow-lg" 
                             disabled={loading} 
                         />
                         
@@ -457,7 +481,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                         <h3 className="font-bold text-slate-900 dark:text-slate-100 text-xl tracking-tight">{t('analytics.title')}</h3>
                         <p className="text-slate-500 text-sm mt-2 max-w-xs mx-auto leading-relaxed">{t('analytics.subtitle')}</p>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8 w-full max-w-xl">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8 w-full max-w-2xl">
                         {[
                             { key: 'quality', icon: Activity },
                             { key: 'coverage', icon: Database },
@@ -467,12 +491,15 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                             <button
                                 key={s.key}
                                 onClick={() => handleSendMessage(undefined, t(`analytics.chat.suggestions.${s.key}`))}
-                                className="group relative flex items-center gap-4 bg-white/5 dark:bg-white/[0.03] border border-white/10 hover:border-blue-500/50 hover:bg-blue-500/[0.05] p-4 rounded-[1.5rem] transition-all duration-300 text-left overflow-hidden"
+                                className="group relative flex items-center gap-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] hover:border-blue-500/30 hover:bg-blue-500/[0.02] p-5 rounded-xl transition-all duration-300 text-left overflow-hidden shadow-sm"
                             >
-                                <div className="p-2.5 rounded-xl bg-white/5 dark:bg-white/5 text-blue-400 group-hover:scale-110 group-hover:text-blue-300 transition-all">
-                                    <s.icon size={18} />
+                                <div className="p-3 rounded-xl bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform">
+                                    <s.icon size={20} />
                                 </div>
-                                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 group-hover:text-white transition-colors">{t(`analytics.chat.suggestions.${s.key}`)}</span>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-blue-500 transition-colors">{t(`analytics.chat.suggestions.${s.key}`)}</span>
+                                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">Cliquez pour lancer l'analyse</span>
+                                </div>
                                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/5 to-blue-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                             </button>
                         ))}

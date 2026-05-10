@@ -8,6 +8,7 @@ import { campaignService } from '../../../services/api';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -57,6 +58,7 @@ interface ManagerRealtimeDashboardProps {
 
 const ManagerRealtimeDashboard: React.FC<ManagerRealtimeDashboardProps> = ({ campaignId }) => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [kpis, setKpis] = useState<DashboardKPIs>({
         activeTesters: 0,
         velocity2h: 0,
@@ -239,10 +241,10 @@ const ManagerRealtimeDashboard: React.FC<ManagerRealtimeDashboardProps> = ({ cam
                     </div>
                     <div>
                         <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                            Dashboard Live <Radio size={16} className={isConnected ? "text-emerald-500" : "text-slate-400"} />
+                            {t('managerDashboard.realtime.title')} <Radio size={16} className={isConnected ? "text-emerald-500" : "text-slate-400"} />
                         </h2>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
-                            {isConnected ? `Mis à jour il y a ${updateTimer}s` : 'Déconnecté — Reconnexion...'}
+                            {isConnected ? t('managerDashboard.realtime.updated', { count: updateTimer }) : t('managerDashboard.realtime.disconnected')}
                         </p>
                     </div>
                 </div>
@@ -254,13 +256,13 @@ const ManagerRealtimeDashboard: React.FC<ManagerRealtimeDashboardProps> = ({ cam
             {/* KPI Stack */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <KPIComponent
-                    label="Testeurs Actifs"
+                    label={t('managerDashboard.realtime.activeTesters')}
                     value={testers.filter(t => t.status === 'active').length}
                     icon={Users}
                     color="blue"
                 />
                 <KPIComponent
-                    label="Vélocité Live (2h)"
+                    label={t('managerDashboard.realtime.liveVelocity')}
                     value={kpis.velocity2h.toFixed(1)}
                     unit="tests/h"
                     icon={TrendingUp}
@@ -269,7 +271,7 @@ const ManagerRealtimeDashboard: React.FC<ManagerRealtimeDashboardProps> = ({ cam
                     color="emerald"
                 />
                 <KPIComponent
-                    label="Testeurs Bloqués"
+                    label={t('managerDashboard.realtime.blockedTesters')}
                     value={testers.filter(t => t.status === 'idle').length}
                     icon={AlertTriangle}
                     color="rose"
@@ -281,7 +283,7 @@ const ManagerRealtimeDashboard: React.FC<ManagerRealtimeDashboardProps> = ({ cam
                 {/* Testers List */}
                 <div className="xl:col-span-7 space-y-4">
                     <div className="flex items-center justify-between px-4">
-                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Équipe de Test</h3>
+                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">{t('managerDashboard.realtime.team')}</h3>
                         <span className="text-[10px] font-bold text-slate-500 uppercase">{testers.length} membres</span>
                     </div>
 
@@ -297,7 +299,7 @@ const ManagerRealtimeDashboard: React.FC<ManagerRealtimeDashboardProps> = ({ cam
                 {/* Activity Feed */}
                 <div className="xl:col-span-5 space-y-4">
                     <div className="flex items-center justify-between px-4">
-                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Flux d'activité</h3>
+                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">{t('managerDashboard.realtime.activityFeed')}</h3>
                         <div className="flex h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
                     </div>
 
@@ -312,7 +314,7 @@ const ManagerRealtimeDashboard: React.FC<ManagerRealtimeDashboardProps> = ({ cam
                                         <div className="p-4 rounded-full bg-white/5">
                                             <Zap size={24} className="opacity-20" />
                                         </div>
-                                        <p className="text-xs font-bold uppercase tracking-widest opacity-40">En attente d'activité...</p>
+                                        <p className="text-xs font-bold uppercase tracking-widest opacity-40">{t('managerDashboard.realtime.waitingForActivity')}</p>
                                     </div>
                                 )}
                             </AnimatePresence>
@@ -329,6 +331,7 @@ const ManagerRealtimeDashboard: React.FC<ManagerRealtimeDashboardProps> = ({ cam
 // ---------------------------------------------------------------------------
 
 const KPIComponent = ({ label, value, unit, icon: Icon, delta, deltaType, color, pulse }: any) => {
+    const { t } = useTranslation();
     const colorClasses: any = {
         blue: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
         emerald: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
@@ -352,7 +355,7 @@ const KPIComponent = ({ label, value, unit, icon: Icon, delta, deltaType, color,
             </div>
             {delta && (
                 <div className={`mt-4 text-[10px] font-black flex items-center gap-1.5 uppercase ${deltaType === 'up' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                    {deltaType === 'up' ? '↑' : '↓'} {delta} {deltaType === 'up' ? 'Hausse' : 'Baisse'}
+                    {deltaType === 'up' ? '↑' : '↓'} {delta} {deltaType === 'up' ? t('managerDashboard.realtime.up') : t('managerDashboard.realtime.down')}
                 </div>
             )}
         </div>
@@ -361,6 +364,7 @@ const KPIComponent = ({ label, value, unit, icon: Icon, delta, deltaType, color,
 
 const TesterRow = ({ tester }: { tester: TesterLiveStatus }) => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const isIdle = tester.status === 'idle';
     const isOffline = tester.status === 'offline';
 
@@ -406,7 +410,7 @@ const TesterRow = ({ tester }: { tester: TesterLiveStatus }) => {
                         />
                     </div>
                     <div className="text-[8px] font-black text-center text-slate-400 uppercase tracking-widest">
-                        Objectif
+                        {t('managerDashboard.realtime.objective')}
                     </div>
                 </div>
 
@@ -416,7 +420,7 @@ const TesterRow = ({ tester }: { tester: TesterLiveStatus }) => {
                         onClick={() => navigate(`/chat?userId=${tester.id}`)}
                         className="px-3 py-1.5 bg-blue-600 rounded-xl text-[9px] font-black text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/40 uppercase tracking-widest"
                     >
-                        Contacter
+                        {t('managerDashboard.realtime.contact')}
                     </button>
                 </div>
             </div>

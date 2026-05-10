@@ -201,7 +201,7 @@ const AdminEmails = () => {
                                             </div>
                                             <button
                                                 onClick={() => handleDeleteEmail(selectedEmail)}
-                                                className="p-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all border border-red-500/20 shadow-sm"
+                                                className="p-2.5 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/10 rounded-xl transition-all shadow-xl"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>

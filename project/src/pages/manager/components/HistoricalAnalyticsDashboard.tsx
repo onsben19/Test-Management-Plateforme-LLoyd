@@ -85,7 +85,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 // Main Component
 const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState<'quality' | 'velocity' | 'strat'>('quality');
+    const [activeTab, setActiveTab] = useState<'quality' | 'velocity'>('quality');
     const [qualityViewMode, setQualityViewMode] = useState<'table' | 'chart'>('table');
     const [loading, setLoading] = useState(true);
     const [releaseData, setReleaseData] = useState<ReleaseMetrics[]>([]);
@@ -116,9 +116,11 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
         fetchData();
     }, [projectId]);
 
-    const readinessScore = releaseData.length > 0
-        ? Math.round(releaseData.reduce((acc, curr) => acc + curr.pass_rate, 0) / releaseData.length)
-        : 67;
+    const healthyReleases = releaseData.filter(r => r.pass_rate >= 80).length;
+    const totalReleases = releaseData.length;
+    const readinessScore = totalReleases > 0
+        ? Math.round((healthyReleases / totalReleases) * 100)
+        : 85;
 
     if (loading) {
         return <div className="p-10 text-slate-500 font-bold animate-pulse">Chargement des analytics...</div>;
@@ -146,8 +148,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
             <div className="flex bg-slate-100 dark:bg-[#161e31] p-1.5 rounded-[1.5rem] w-full max-w-md mx-auto border border-slate-200 dark:border-white/5">
                 {[
                     { id: 'quality', label: t('historicalAnalytics.tabs.quality') },
-                    { id: 'velocity', label: t('historicalAnalytics.tabs.velocity') },
-                    { id: 'strat', label: t('historicalAnalytics.tabs.strat') }
+                    { id: 'velocity', label: t('historicalAnalytics.tabs.velocity') }
                 ].map(tab => (
                     <button
                         key={tab.id}
@@ -193,7 +194,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                         </div>
 
                         {qualityViewMode === 'table' ? (
-                            <div className="overflow-x-auto rounded-[1.5rem] border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/[0.02] max-h-[300px] overflow-y-auto custom-scrollbar">
+                            <div className="overflow-x-auto rounded-[1.5rem] border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/[0.02] max-h-[300px] overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
                             <table className="w-full text-left border-collapse">
                                 <thead className="sticky top-0 bg-slate-100 dark:bg-slate-900 z-10 shadow-sm">
                                     <tr className="border-b border-slate-200 dark:border-white/10 text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400">
@@ -312,7 +313,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                     >
                         <div className="flex items-center gap-3 text-slate-400 mb-4">
                             <Activity size={16} />
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">Performance testeurs • {releaseData.length || 6} releases</h3>
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">{t('historicalAnalytics.velocityTab.title', { count: releaseData.length || 6 })}</h3>
                         </div>
 
                         <div className="divide-y divide-white/5">
@@ -363,65 +364,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                     </motion.div>
                 )}
 
-                {activeTab === 'strat' && (
-                    <motion.div
-                        key="strat"
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="space-y-12"
-                    >
-                        {/* Strategic KPI: Confidence Gauge */}
-                        <div className="flex justify-center">
-                            {/* Confidence Gauge */}
-                            <div className="bg-slate-50/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center space-y-8 relative overflow-hidden max-w-xl w-full">
-                                <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-600/10 rounded-full blur-[80px]" />
-                                <div className="space-y-2">
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Indice de Confiance Global</h3>
-                                    <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest bg-blue-400/10 px-3 py-1 rounded-full inline-block">Release Readiness</p>
-                                </div>
 
-                                <div className="relative w-56 h-32 flex items-center justify-center">
-                                    <svg className="w-full h-full transform transition-all duration-1000">
-                                        <circle cx="112" cy="112" r="100" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="20" strokeDasharray="314 314" strokeDashoffset="0" />
-                                        <circle
-                                            cx="112" cy="112" r="100" fill="none"
-                                            stroke={readinessScore > 80 ? "#10b981" : readinessScore > 60 ? "#f59e0b" : "#f43f5e"}
-                                            strokeWidth="20"
-                                            strokeDasharray="314 314"
-                                            strokeDashoffset={314 - (314 * (readinessScore / 100))}
-                                            strokeLinecap="round"
-                                            className="transition-all duration-1000 ease-out"
-                                        />
-                                    </svg>
-                                    <div className="absolute bottom-0 text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
-                                        {readinessScore}<span className="text-xl text-slate-500">%</span>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4 pt-4">
-                                    <p className="text-sm font-bold text-slate-400 leading-relaxed max-w-[200px]">
-                                        {readinessScore > 80 ? "Plateforme stable. Release recommandée en toute sécurité." :
-                                            readinessScore > 60 ? "Stabilité modérée. Des tests ciblés sur les régressions sont nécessaires." :
-                                                "Risque élevé. Une phase de stabilisation majeure est recommandée."}
-                                    </p>
-                                    <div className="flex items-center gap-4 justify-center">
-                                        <div className="flex flex-col">
-                                            <span className="text-[14px] font-black text-slate-900 dark:text-white">{moduleData.length}</span>
-                                            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Fonctions Analysis</span>
-                                        </div>
-                                        <div className="w-px h-8 bg-white/5" />
-                                        <div className="flex flex-col">
-                                            <span className="text-[14px] font-black text-slate-900 dark:text-white">{Math.round(releaseData.reduce((acc, r) => acc + r.anomaly_count, 0))}</span>
-                                            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Bugs Historiques</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </motion.div>
-                )}
             </AnimatePresence>
         </div>
     );

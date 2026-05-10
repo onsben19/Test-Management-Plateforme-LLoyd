@@ -242,41 +242,41 @@ const ExecutionTracking = () => {
 
     return (
         <PageLayout
-            title="Liste des cas de tests exécutés"
-            subtitle="AUDIT & PERFORMANCE"
+            title={t('execution.title')}
+            subtitle={t('execution.subtitle')}
         >
             <div className="flex flex-col lg:flex-row gap-8 min-h-[calc(100vh-280px)] relative">
                 {/* Left List Panel */}
-                <div className="flex-1 space-y-8">
+                <div className="flex-1 space-y-8 w-full">
                     {/* ... (stats and list remain same) */}
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                         <StatCard
-                            title="Total Exécutions"
+                            title={t('execution.stats.total')}
                             value={stats.total}
                             icon={PlayCircle}
                             variant="blue"
-                            description="Toutes campagnes"
+                            description={t('execution.stats.totalDesc')}
                             isLoading={loading}
                         />
                         <StatCard
-                            title="Taux de Réussite"
+                            title={t('execution.stats.successRate')}
                             value={`${stats.successRate}%`}
                             icon={CheckCircle}
                             variant="blue"
-                            description="Tests validés"
+                            description={t('execution.stats.successDesc')}
                             isLoading={loading}
                         />
                         <StatCard
-                            title="Tests Échoués"
+                            title={t('execution.stats.failed')}
                             value={stats.failed}
                             icon={XCircle}
                             variant="red"
-                            description="Anomalies"
+                            description={t('execution.stats.failedDesc')}
                             isLoading={loading}
                         />
                         {!isTester && (
                             <StatCard
-                                title="Top Testeur"
+                                title={t('execution.stats.topTester') || "Top Testeur"}
                                 value={topTester ? topTester.tester.name : "Chargement..."}
                                 icon={Award}
                                 variant="purple"
@@ -287,53 +287,46 @@ const ExecutionTracking = () => {
                     </div>
 
                     {/* Search/Filter Bar */}
-                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[3.5rem] overflow-hidden shadow-2xl shadow-blue-900/10">
-                        <div className="p-8 border-b border-white/5 flex flex-col xl:flex-row items-center gap-6">
-                            <div className="relative flex-1 group w-full">
-                                <Search className="absolute left-8 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-                                <input
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Rechercher une exécution..."
-                                    className="w-full bg-white/5 border border-white/10 rounded-full pl-16 pr-8 py-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-medium placeholder-slate-500"
-                                />
+                    <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
+                        <div className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
+                            <Search className="w-4 h-4 text-slate-400 ml-2" />
+                            <input
+                                type="text"
+                                placeholder={t('execution.filters.search') || "Rechercher une exécution..."}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="flex-1 bg-transparent border-none text-sm text-foreground focus:ring-0 outline-none placeholder-slate-400"
+                            />
+                        </div>
+                        <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-1 flex gap-1">
+                            <div className="relative flex items-center">
+                                <select
+                                    className="bg-transparent text-white text-[10px] font-black uppercase tracking-[0.2em] pl-4 pr-10 py-2 outline-none cursor-pointer appearance-none relative z-10"
+                                    value={groupBy}
+                                    onChange={(e) => setGroupBy(e.target.value as 'none' | 'campaign' | 'release')}
+                                >
+                                    <option value="none" className="bg-slate-950">{t('execution.filters.groupNone') || "SANS GROUPEMENT"}</option>
+                                    <option value="campaign" className="bg-slate-950">{t('execution.filters.groupCampaign') || "PAR CAMPAGNE"}</option>
+                                    <option value="release" className="bg-slate-950">{t('execution.filters.groupRelease') || "PAR RELEASE"}</option>
+                                </select>
+                                <LayoutGrid className="absolute right-3 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
                             </div>
-
-                            <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
-                                <div className="relative group min-w-[200px]">
-                                    <div className="absolute inset-0 bg-blue-500/5 rounded-2xl blur-xl group-hover:bg-blue-500/10 transition-all opacity-0 group-hover:opacity-100" />
-                                    <div className="relative bg-white/5 rounded-2xl border border-white/10 hover:border-blue-500/50 transition-all shadow-lg overflow-hidden">
-                                        <select
-                                            className="w-full bg-transparent text-white text-[10px] font-black uppercase tracking-[0.2em] pl-6 pr-12 py-4 outline-none cursor-pointer appearance-none relative z-10"
-                                            value={groupBy}
-                                            onChange={(e) => setGroupBy(e.target.value as 'none' | 'campaign' | 'release')}
-                                        >
-                                            <option value="none" className="bg-slate-950">SANS GROUPEMENT</option>
-                                            <option value="campaign" className="bg-slate-950">PAR CAMPAGNE</option>
-                                            <option value="release" className="bg-slate-950">PAR RELEASE</option>
-                                        </select>
-                                        <LayoutGrid className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-hover:text-blue-400 transition-colors pointer-events-none z-20" />
-                                    </div>
-                                </div>
-
-                                <div className="relative group min-w-[200px]">
-                                    <div className="absolute inset-0 bg-blue-500/5 rounded-2xl blur-xl group-hover:bg-blue-500/10 transition-all opacity-0 group-hover:opacity-100" />
-                                    <div className="relative bg-white/5 rounded-2xl border border-white/10 hover:border-blue-500/50 transition-all shadow-lg overflow-hidden">
-                                        <select
-                                            className="w-full bg-transparent text-white text-[10px] font-black uppercase tracking-[0.2em] pl-6 pr-12 py-4 outline-none cursor-pointer appearance-none relative z-10"
-                                            value={sortOrder}
-                                            onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                                        >
-                                            <option value="newest" className="bg-slate-950">PLUS RÉCENT</option>
-                                            <option value="oldest" className="bg-slate-950">PLUS ANCIEN</option>
-                                        </select>
-                                        <SortAsc className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-hover:text-blue-400 transition-colors pointer-events-none z-20" />
-                                    </div>
-                                </div>
+                            <div className="relative flex items-center">
+                                <select
+                                    className="bg-transparent text-white text-[10px] font-black uppercase tracking-[0.2em] pl-4 pr-10 py-2 outline-none cursor-pointer appearance-none relative z-10"
+                                    value={sortOrder}
+                                    onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                                >
+                                    <option value="newest" className="bg-slate-950">{t('execution.filters.sortNewest') || "PLUS RÉCENT"}</option>
+                                    <option value="oldest" className="bg-slate-950">{t('execution.filters.sortOldest') || "PLUS ANCIEN"}</option>
+                                </select>
+                                <SortAsc className="absolute right-3 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
                             </div>
                         </div>
+                    </div>
 
-                        <div className="bg-slate-900/40">
+                    <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden">
+                        <div className="max-h-[60vh] overflow-auto custom-scrollbar">
                             <ExecutionTestList
                                 tests={filteredTests}
                                 onSelectTest={handleSelectTest}
@@ -347,16 +340,18 @@ const ExecutionTracking = () => {
                                 groupBy={groupBy}
                             />
                         </div>
+                        <div className="border-t border-white/5 bg-slate-900/20">
+                            <Pagination
+                                currentPage={currentPage}
+                                totalItems={totalItems}
+                                pageSize={pageSize}
+                                onPageChange={handlePageChange}
+                                loading={loading}
+                            />
+                        </div>
                     </div>
-
-                    <Pagination
-                        currentPage={currentPage}
-                        totalItems={totalItems}
-                        pageSize={pageSize}
-                        onPageChange={handlePageChange}
-                        loading={loading}
-                    />
                 </div>
+            </div>
 
                 {typeof document !== 'undefined' && createPortal(
                     <AnimatePresence>
@@ -389,7 +384,6 @@ const ExecutionTracking = () => {
                     </AnimatePresence>,
                     document.body
                 )}
-            </div>
 
             {typeof document !== 'undefined' && editingTest && createPortal(
                 <EditExecutionModal

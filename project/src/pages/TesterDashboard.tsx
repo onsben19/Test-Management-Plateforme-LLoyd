@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import PageLayout from '../components/PageLayout';
 import { useAuth } from '../context/AuthContext';
@@ -22,6 +22,7 @@ const TesterDashboard = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
     const [groupMode, setGroupMode] = useState<'none' | 'release' | 'project'>('release');
+    const [releaseTypeFilter, setReleaseTypeFilter] = useState<'all' | 'PREPROD' | 'RECETTE'>('all');
     const pageSize = 12;
 
     const [validationModal, setValidationModal] = useState<{ isOpen: boolean; campaign: any | null }>({
@@ -119,7 +120,14 @@ const TesterDashboard = () => {
         setCurrentPage(page);
     };
 
-    const groupedCampaigns = (campaigns || []).reduce((acc, camp) => {
+    const filteredCampaigns = useMemo(() => {
+        return (campaigns || []).filter(camp => {
+            if (releaseTypeFilter === 'all') return true;
+            return camp.release_type === releaseTypeFilter;
+        });
+    }, [campaigns, releaseTypeFilter]);
+
+    const groupedCampaigns = filteredCampaigns.reduce((acc, camp) => {
         if (groupMode === 'none') return acc;
 
         let key = '';
@@ -245,13 +253,10 @@ const TesterDashboard = () => {
             >
                 <div className="flex justify-between items-start mb-8">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-400 border border-blue-500/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-                            <List className="w-7 h-7" />
-                        </div>
                         {score !== undefined && (
                             <button
                                 onClick={() => handleOpenReadiness(camp)}
-                                className="relative w-14 h-14 group/readiness active:scale-95 transition-all"
+                                className="relative w-14 h-14 group/readiness active:scale-95 group-hover:scale-110 transition-all duration-500"
                             >
                                 <svg className="w-full h-full transform -rotate-90">
                                     <circle
@@ -294,11 +299,6 @@ const TesterDashboard = () => {
                                     {camp.release_type}
                                 </div>
                             )}
-                            {ml && (
-                                <div className={`px-3 py-1 rounded-full border text-[8px] font-black tracking-[0.2em] uppercase ${getMLStatusStyle(ml.status)}`}>
-                                    AI: {ml.status}
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -318,7 +318,7 @@ const TesterDashboard = () => {
                         {new Date(camp.created_at).toLocaleDateString(t('common.dateLocale'))}
                     </div>
                     {ml?.projected_end_date && (
-                        <div className="flex items-center gap-3 text-[10px] font-black text-amber-400/70 uppercase tracking-widest">
+                        <div className="flex items-center gap-3 text-[10px] font-black text-blue-400/70 uppercase tracking-widest">
                             <Clock className="w-4 h-4 opacity-70" />
                             AI Forecast: {new Date(ml.projected_end_date).toLocaleDateString()}
                         </div>
@@ -340,7 +340,7 @@ const TesterDashboard = () => {
                             e.stopPropagation();
                             handleOpenValidation(camp);
                         }}
-                        className="px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 active:scale-95 cursor-pointer z-10"
+                        className="px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 shadow-lg shadow-blue-500/20 active:scale-95 cursor-pointer z-10"
                     >
                         <CheckCircle className="w-4 h-4" />
                         {t('testerDashboard.card.validateTask')}
@@ -404,28 +404,30 @@ const TesterDashboard = () => {
                             />
                         </div>
 
-                        <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/10">
-                            <button
-                                onClick={() => setGroupMode('project')}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black tracking-widest uppercase transition-all ${groupMode === 'project' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:text-white'}`}
+                        <div className="flex items-center gap-3 bg-white/5 px-6 rounded-2xl border border-white/10 min-w-[200px]">
+                            <LayoutGrid className="w-4 h-4 text-slate-500" />
+                            <select
+                                value={groupMode}
+                                onChange={(e) => setGroupMode(e.target.value as 'project' | 'release' | 'none')}
+                                className="bg-transparent border-none py-4 text-sm font-bold text-white focus:ring-0 w-full cursor-pointer"
                             >
-                                <Target className="w-4 h-4" />
-                                {t('testerDashboard.controls.groupByProject') || 'GROUPÉ PAR PROJET'}
-                            </button>
-                            <button
-                                onClick={() => setGroupMode('release')}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black tracking-widest uppercase transition-all ${groupMode === 'release' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-white'}`}
+                                <option value="none" className="bg-slate-900">{t('testerDashboard.controls.simpleGrid')}</option>
+                                <option value="project" className="bg-slate-900">{t('testerDashboard.controls.groupByProject')}</option>
+                                <option value="release" className="bg-slate-900">{t('testerDashboard.controls.groupByRelease')}</option>
+                            </select>
+                        </div>
+
+                        <div className="flex items-center gap-3 bg-white/5 px-6 rounded-2xl border border-white/10 min-w-[200px]">
+                            <Layers className="w-4 h-4 text-slate-500" />
+                            <select
+                                value={releaseTypeFilter}
+                                onChange={(e) => setReleaseTypeFilter(e.target.value as 'all' | 'PREPROD' | 'RECETTE')}
+                                className="bg-transparent border-none py-4 text-sm font-bold text-white focus:ring-0 w-full cursor-pointer"
                             >
-                                <Layers className="w-4 h-4" />
-                                {t('testerDashboard.controls.groupByRelease')}
-                            </button>
-                            <button
-                                onClick={() => setGroupMode('none')}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black tracking-widest uppercase transition-all ${groupMode === 'none' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-white'}`}
-                            >
-                                <LayoutGrid className="w-4 h-4" />
-                                {t('testerDashboard.controls.simpleGrid')}
-                            </button>
+                                <option value="all" className="bg-slate-900">Toutes les releases</option>
+                                <option value="PREPROD" className="bg-slate-900">Preprod</option>
+                                <option value="RECETTE" className="bg-slate-900">Recette</option>
+                            </select>
                         </div>
 
                         <div className="flex items-center gap-3 bg-white/5 px-6 rounded-2xl border border-white/10 min-w-[200px]">
@@ -486,7 +488,7 @@ const TesterDashboard = () => {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {(campaigns || []).map(camp => renderCampaignCard(camp))}
+                            {filteredCampaigns.map(camp => renderCampaignCard(camp))}
                         </div>
                     )}
 
@@ -543,8 +545,9 @@ const TesterDashboard = () => {
                                     </button>
                                 </div>
 
-                                <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <form onSubmit={handleSubmit}>
+                                    <div className="p-8 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('testerDashboard.modal.testRefLabel')}</label>
                                             <input
@@ -688,14 +691,17 @@ const TesterDashboard = () => {
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
+                                    </div>
 
-                                    <button
-                                        type="submit"
-                                        className="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-[2rem] font-black tracking-[0.2em] uppercase transition-all shadow-xl shadow-blue-900/40 active:scale-95 group flex items-center justify-center gap-3 mt-4"
-                                    >
-                                        <CheckCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                        {t('testerDashboard.modal.save')}
-                                    </button>
+                                    <div className="p-8 border-t border-white/5 bg-white/[0.01]">
+                                        <button
+                                            type="submit"
+                                            className="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-[2rem] font-black tracking-[0.2em] uppercase transition-all shadow-xl shadow-blue-900/40 active:scale-95 group flex items-center justify-center gap-3"
+                                        >
+                                            <CheckCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                            {t('testerDashboard.modal.save')}
+                                        </button>
+                                    </div>
                                 </form>
                             </motion.div>
                         </div>

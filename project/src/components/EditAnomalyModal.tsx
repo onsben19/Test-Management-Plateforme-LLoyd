@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Upload, FileText, Trash2, AlertTriangle, Bug, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { executionService } from '../services/api';
+import { executionService, campaignService } from '../services/api';
 
 export interface AnomalyItem {
     id: string;
@@ -31,29 +31,27 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
     const [impact, setImpact] = useState<string>(anomaly?.impact || 'MINEURS');
     const [priority, setPriority] = useState<string>(anomaly?.priority || 'NORMALE');
     const [visibility, setVisibility] = useState<string>(anomaly?.visibility || 'PUBLIQUE');
-    const [selectedTestCaseId, setSelectedTestCaseId] = useState<string>('');
+    const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
     const [status, setStatus] = useState<AnomalyItem['status']>(anomaly?.status || 'OUVERTE');
     const [file, setFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [testCases, setTestCases] = useState<any[]>([]);
+    const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loadingTests, setLoadingTests] = useState(false);
 
     useEffect(() => {
         if (!isEditing && user) {
-            fetchUserTestCases();
+            fetchCampaigns();
         }
     }, [isEditing, user]);
 
-    const fetchUserTestCases = async () => {
+    const fetchCampaigns = async () => {
         setLoadingTests(true);
         try {
-            const response = await executionService.getExecutions();
+            const response = await campaignService.getCampaigns();
             const data = response.data.results || response.data;
-            // Filter by current user
-            const userTests = data.filter((tc: any) => tc.tester === user?.id || tc.tester_id === user?.id);
-            setTestCases(userTests);
+            setCampaigns(data);
         } catch (error) {
-            console.error("Failed to fetch test cases", error);
+            console.error("Failed to fetch campaigns", error);
         } finally {
             setLoadingTests(false);
         }
@@ -71,8 +69,8 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
             formData.append('statut', status);
             formData.append('description', description);
 
-            if (!isEditing && selectedTestCaseId) {
-                formData.append('test_case', selectedTestCaseId);
+            if (!isEditing && selectedCampaignId) {
+                formData.append('campaign', selectedCampaignId);
             }
 
             if (file) {
@@ -219,23 +217,23 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
                     {!isEditing && (
                         <div className="space-y-2">
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Test Lié (Précédemment validé)
+                                Campagne Liée
                             </label>
                             {loadingTests ? (
                                 <div className="flex items-center gap-2 text-slate-500 text-sm py-2">
                                     <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                                    Chargement de vos tests...
+                                    Chargement des campagnes...
                                 </div>
                             ) : (
                                 <select
-                                    value={selectedTestCaseId}
-                                    onChange={(e) => setSelectedTestCaseId(e.target.value)}
+                                    value={selectedCampaignId}
+                                    onChange={(e) => setSelectedCampaignId(e.target.value)}
                                     className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                                 >
-                                    <option value="">-- Sélectionner un test (Optionnel) --</option>
-                                    {testCases.map((tc) => (
-                                        <option key={tc.id} value={tc.id}>
-                                            [{tc.test_case_ref}] {tc.data_json?.titre || tc.data_json?.Title || 'Sans titre'}
+                                    <option value="">-- Sélectionner une campagne (Optionnel) --</option>
+                                    {campaigns.map((c) => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.title}
                                         </option>
                                     ))}
                                 </select>

@@ -429,7 +429,7 @@ class HistoricalReleasesView(APIView):
         try:
             project_id = request.query_params.get('project_id')
             if project_id and project_id != 'all':
-                campaigns = Campaign.objects.filter(project_id=project_id).order_by('created_at')
+                campaigns = Campaign.objects.filter(project__business_project_id=project_id).order_by('created_at')
             else:
                 campaigns = Campaign.objects.all().order_by('-created_at')[:10] # Top 10 récentes globalement
             
@@ -482,7 +482,7 @@ class HistoricalTestersView(APIView):
             
             # Identification des testeurs ayant participé
             if project_id and project_id != 'all':
-                testers = TestCase.objects.filter(campaign__project_id=project_id).values('tester').distinct()
+                testers = TestCase.objects.filter(campaign__project__business_project_id=project_id).values('tester').distinct()
             else:
                 testers = TestCase.objects.all().values('tester').distinct()
             
@@ -560,7 +560,7 @@ class HistoricalModulesView(APIView):
             project_id = request.query_params.get('project_id')
             
             if project_id and project_id != 'all':
-                tcs = TestCase.objects.filter(campaign__project_id=project_id)
+                tcs = TestCase.objects.filter(campaign__project__business_project_id=project_id)
             else:
                 tcs = TestCase.objects.all()
             

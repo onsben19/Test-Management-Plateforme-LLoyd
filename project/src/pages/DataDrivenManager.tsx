@@ -4,11 +4,11 @@ import { toast } from 'react-toastify';
 import { useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import {
-    Upload, FileSpreadsheet, Calendar, Eye, Trash2, Edit, Search, Filter,
+    Upload, FileSpreadsheet, Calendar, Eye, Trash2, Edit, Search, Filter, MoreVertical,
     Layers, X, CheckCircle, ShieldAlert, ShieldCheck, ShieldQuestion,
     Zap, TrendingUp, Clock, AlertTriangle, ArrowRight, LayoutGrid,
     Sparkles, ChevronRight, History, XCircle, Briefcase, Activity, Target,
-    Award, Info
+    Award, Info, SortAsc
 } from 'lucide-react';
 
 import { campaignService, userService, aiService } from '../services/api';
@@ -87,6 +87,7 @@ const DataDrivenManager = () => {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [testerFilter, setTesterFilter] = useState('');
+    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; fileId: string | null }>({
         isOpen: false,
@@ -100,6 +101,8 @@ const DataDrivenManager = () => {
     const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
     const [isSingleQuotaModalOpen, setIsSingleQuotaModalOpen] = useState(false);
     const [pendingTester, setPendingTester] = useState<any | null>(null);
+    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const [openTestersId, setOpenTestersId] = useState<string | null>(null);
     const [testerQuotas, setTesterQuotas] = useState<Record<number, number>>({});
     const [tempQuota, setTempQuota] = useState<number>(0);
 
@@ -175,6 +178,7 @@ const DataDrivenManager = () => {
                 name: camp.title,
                 description: camp.description || '',
                 date: new Date(camp.created_at).toLocaleDateString('fr-FR'),
+                rawDate: camp.created_at,
                 size: 'N/A',
                 rowCount: camp.nb_test_cases || 0,
                 data: [],
@@ -200,6 +204,31 @@ const DataDrivenManager = () => {
             setLoading(false);
         }
     };
+
+    const filteredAndSortedFiles = React.useMemo(() => {
+        let result = [...importedFiles];
+        
+        if (testerFilter) {
+            result = result.filter(file => 
+                file.assigned_testers_names?.some(name => 
+                    name.toLowerCase().includes(testerFilter.toLowerCase())
+                )
+            );
+        }
+        
+        result.sort((a, b) => {
+            const dateA = new Date(a.rawDate || 0).getTime();
+            const dateB = new Date(b.rawDate || 0).getTime();
+            
+            if (sortOrder === 'newest') {
+                return dateB - dateA;
+            } else {
+                return dateA - dateB;
+            }
+        });
+        
+        return result;
+    }, [importedFiles, testerFilter, sortOrder]);
 
     const fetchTimelineGuard = async (campaignId: string) => {
         try {
@@ -411,21 +440,21 @@ const DataDrivenManager = () => {
                     <StatCard
                         title="Total Campagnes"
                         value={stats.total}
-                        icon={Briefcase}
+                        icon={Layers}
                         variant="blue"
                         description="Toutes les campagnes"
                     />
                     <StatCard
                         title="Campagnes Actives"
                         value={stats.active}
-                        icon={Activity}
+                        icon={Zap}
                         variant="purple"
                         description="En cours d'exécution"
                     />
                     <StatCard
                         title="Risques Critiques"
                         value={stats.critical}
-                        icon={ShieldAlert}
+                        icon={AlertTriangle}
                         variant="red"
                         description="Détecté par ML Guard"
                         change={stats.critical > 0 ? `+${stats.critical}` : undefined}
@@ -434,33 +463,46 @@ const DataDrivenManager = () => {
                     <StatCard
                         title="Terminées"
                         value={stats.finished}
-                        icon={Target}
+                        icon={CheckCircle}
                         variant="green"
                         description="Tests clôturés"
                     />
                 </div>
 
                 {/* Search & Filter Bar */}
-                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[3.5rem] p-6 shadow-2xl shadow-blue-900/10 flex flex-col md:flex-row gap-6 items-center">
-                    <div className="relative flex-1 w-full group">
-                        <Search className="absolute left-8 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
+                    <div className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
+                        <Search className="w-4 h-4 text-slate-400 ml-2" />
                         <input
                             type="text"
                             placeholder="Rechercher une campagne..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-full pl-16 pr-8 py-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-medium placeholder-slate-500"
+                            className="flex-1 bg-transparent border-none text-sm text-white focus:ring-0 outline-none placeholder-slate-400"
                         />
                     </div>
-                    <div className="relative w-full md:w-80 group">
-                        <Filter className="absolute left-8 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                    <div className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
+                        <Filter className="w-4 h-4 text-slate-400 ml-2" />
                         <input
                             type="text"
                             placeholder="Filtrer par testeur..."
                             value={testerFilter}
                             onChange={(e) => setTesterFilter(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-full pl-16 pr-8 py-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-medium placeholder-slate-500"
+                            className="flex-1 bg-transparent border-none text-sm text-white focus:ring-0 outline-none placeholder-slate-400"
                         />
+                    </div>
+                    <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-1 flex items-center gap-1">
+                        <div className="relative flex items-center">
+                            <select
+                                className="bg-transparent text-white text-[10px] font-black uppercase tracking-[0.2em] pl-4 pr-10 py-2 outline-none cursor-pointer appearance-none relative z-10"
+                                value={sortOrder}
+                                onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                            >
+                                <option value="newest" className="bg-slate-950">PLUS RÉCENT</option>
+                                <option value="oldest" className="bg-slate-950">PLUS ANCIEN</option>
+                            </select>
+                            <SortAsc className="absolute right-3 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                        </div>
                     </div>
                 </div>
 
@@ -472,7 +514,7 @@ const DataDrivenManager = () => {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {(importedFiles || []).map((file, index) => {
+                        {(filteredAndSortedFiles || []).map((file, index) => {
                             const guard = timelineGuards[file.id];
                             const readiness = readinessScores[file.id];
                             const total = file.rowCount || 0;
@@ -493,34 +535,60 @@ const DataDrivenManager = () => {
                                             className="px-4 py-2 bg-white/[0.03] hover:bg-blue-500/10 border border-white/10 hover:border-blue-500/30 rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer group/readiness relative overflow-hidden shrink-0"
                                         >
                                             <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover/readiness:opacity-100 transition-opacity" />
-                                            <span className="text-sm font-black text-white leading-none relative z-10">
-                                                {readiness?.score || 0}<span className="text-[9px] opacity-40 ml-0.5">%</span>
+                                            <span className="text-base font-black text-white leading-none relative z-10">
+                                                {readiness?.score || 0}<span className="text-xs opacity-40 ml-0.5">%</span>
                                             </span>
                                             <div className="mt-1 flex items-center gap-1 relative z-10">
                                                 <div className={`w-1 h-1 rounded-full animate-pulse ${readiness?.score >= 80 ? 'bg-emerald-500' : readiness?.score >= 40 ? 'bg-amber-500' : 'bg-rose-500'}`} />
-                                                <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest group-hover/readiness:text-blue-400 transition-colors">READY</span>
+                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover/readiness:text-blue-400 transition-colors">READY</span>
                                             </div>
                                         </button>
 
-                                        {/* Hover Actions */}
-                                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                                            <button onClick={(e) => openEditModal(file, e)} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 text-slate-500 hover:text-white transition-all">
-                                                <Edit size={14} />
+                                        {/* Dropdown Menu */}
+                                        <div className="relative" onClick={e => e.stopPropagation()}>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === file.id ? null : file.id); }}
+                                                className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 text-slate-500 hover:text-white transition-all"
+                                            >
+                                                <MoreVertical size={14} />
                                             </button>
-                                            <button onClick={(e) => handleDeleteFile(file.id, e)} className="p-2.5 bg-white/5 hover:bg-red-500/10 rounded-xl border border-white/5 text-slate-500 hover:text-red-400 transition-all">
-                                                <Trash2 size={14} />
-                                            </button>
+
+                                            <AnimatePresence>
+                                                {openMenuId === file.id && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                        className="absolute right-0 mt-2 w-48 bg-[#0f172a] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                                                    >
+                                                        <div className="p-2 space-y-1">
+                                                            <button
+                                                                onClick={(e) => { openEditModal(file, e); setOpenMenuId(null); }}
+                                                                className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                                                            >
+                                                                <Edit className="w-3.5 h-3.5 text-blue-500/70" />
+                                                                Modifier
+                                                            </button>
+                                                            <div className="h-px bg-white/5 mx-2 my-1" />
+                                                            <button
+                                                                onClick={(e) => { handleDeleteFile(file.id, e); setOpenMenuId(null); }}
+                                                                className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                                Supprimer
+                                                            </button>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
                                         </div>
                                     </div>
 
-                                    {/* Top Left Icon & Status */}
+                                    {/* Top Left Status (No Icon) */}
                                     <div className="flex items-start justify-between mb-6">
                                         <div className="flex flex-col gap-4">
-                                            <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-                                                <FileSpreadsheet size={22} />
-                                            </div>
                                             {guard?.status === 'CRITICAL' && (
-                                                <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center gap-1.5 text-[8px] font-black text-amber-500 uppercase tracking-widest w-fit">
+                                                <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center gap-1.5 text-[10px] font-black text-amber-500 uppercase tracking-widest w-fit">
                                                     <AlertTriangle size={10} />
                                                     DÉRIVE
                                                 </div>
@@ -530,22 +598,22 @@ const DataDrivenManager = () => {
 
                                     {/* Title & Metas */}
                                     <div className="mb-6">
-                                        <h3 className="text-xl font-black text-white leading-tight tracking-tight mb-2 line-clamp-2 min-h-[3rem] group-hover:text-emerald-400 transition-colors">
+                                        <h3 className="text-xl font-black text-white leading-tight tracking-tight mb-2 line-clamp-2 min-h-[3rem] group-hover:text-blue-400 transition-colors pr-32">
                                             {file.name}
                                         </h3>
                                         {file.description && (
-                                            <p className="text-[11px] text-slate-300 leading-relaxed line-clamp-3 mb-5 opacity-70">
+                                            <p className="text-xs text-slate-300 leading-relaxed line-clamp-3 mb-5 opacity-70">
                                                 {file.description}
                                             </p>
                                         )}
                                         <div className="flex items-center gap-3">
                                             <div className="px-3 py-1.5 bg-white/5 border border-white/5 rounded-lg flex items-center gap-2">
                                                 <Calendar size={12} className="text-slate-500" />
-                                                <span className="text-[10px] font-bold text-slate-300">{file.date}</span>
+                                                <span className="text-xs font-bold text-slate-300">{file.date}</span>
                                             </div>
                                             <div className="px-3 py-1.5 bg-white/5 border border-white/5 rounded-lg flex items-center gap-2">
                                                 <Clock size={12} className="text-slate-500" />
-                                                <span className="text-[10px] font-bold text-slate-300">
+                                                <span className="text-xs font-bold text-slate-300">
                                                     Deadline {guard?.projected_end_date ? new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
                                                 </span>
                                             </div>
@@ -556,7 +624,7 @@ const DataDrivenManager = () => {
 
                                     {/* Progression Section */}
                                     <div className="bg-[#131b26]/60 backdrop-blur-md border border-white/10 rounded-[1.5rem] p-5 mb-4">
-                                        <div className="flex items-center gap-2 text-[8px] font-black text-slate-600 uppercase tracking-widest mb-6">
+                                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest mb-6">
                                             <TrendingUp size={12} />
                                             PROGRESSION & CADENCE
                                         </div>
@@ -567,7 +635,7 @@ const DataDrivenManager = () => {
                                                     <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="10" />
                                                     <motion.circle
                                                         cx="50" cy="50" r="42" fill="none"
-                                                        stroke={rate >= 80 ? '#10b981' : rate >= 40 ? '#f59e0b' : '#ef4444'}
+                                                        stroke={rate >= 80 ? '#10b981' : rate >= 40 ? '#3b82f6' : '#ef4444'}
                                                         strokeWidth="10"
                                                         strokeDasharray={2 * Math.PI * 42}
                                                         initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
@@ -585,21 +653,21 @@ const DataDrivenManager = () => {
                                                 <div className="flex flex-col gap-2 mb-3">
                                                     <div className="flex items-center gap-2">
                                                         <CheckCircle size={12} className="text-emerald-500" />
-                                                        <span className="text-[10px] font-black text-emerald-400">{passed} validés</span>
+                                                        <span className="text-xs font-black text-emerald-400">{passed} validés</span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
-                                                        <XCircle size={12} className="text-orange-500" />
-                                                        <span className="text-[10px] font-black text-orange-400">{failed} restants</span>
+                                                        <XCircle size={12} className="text-blue-500" />
+                                                        <span className="text-xs font-black text-blue-400">{failed} restants</span>
                                                     </div>
                                                 </div>
                                                 <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden mb-2">
                                                     <motion.div
                                                         initial={{ width: 0 }}
                                                         animate={{ width: `${rate}%` }}
-                                                        className="h-full bg-orange-500 rounded-full"
+                                                        className={`h-full rounded-full ${rate >= 80 ? 'bg-emerald-500' : rate >= 40 ? 'bg-blue-500' : 'bg-rose-500'}`}
                                                     />
                                                 </div>
-                                                <div className="flex justify-between text-[7px] font-black text-slate-600 uppercase tracking-widest">
+                                                <div className="flex justify-between text-[10px] font-black text-slate-600 uppercase tracking-widest">
                                                     <span>{passed} TESTS VALIDÉS</span>
                                                     <span>CIBLE : {total}</span>
                                                 </div>
@@ -608,18 +676,18 @@ const DataDrivenManager = () => {
 
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
-                                                <div className="flex items-center gap-2 text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">
+                                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">
                                                     <History size={10} />
                                                     CADENCE IA
                                                 </div>
-                                                <div className="text-sm font-black text-white">{guard?.velocity || 0} <span className="text-[10px] text-slate-500">tests/j</span></div>
+                                                <div className="text-sm font-black text-white">{guard?.velocity || 0} <span className="text-xs text-slate-500">tests/j</span></div>
                                             </div>
                                             <div className={`border rounded-xl p-3 ${guard?.status === 'CRITICAL' ? 'bg-rose-500/5 border-rose-500/10' : 'bg-white/[0.02] border-white/5'}`}>
-                                                <div className={`flex items-center gap-2 text-[8px] font-black uppercase tracking-widest mb-1 ${guard?.status === 'CRITICAL' ? 'text-rose-500/50' : 'text-slate-600'}`}>
+                                                <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest mb-1 ${guard?.status === 'CRITICAL' ? 'text-rose-500/50' : 'text-slate-600'}`}>
                                                     <Clock size={10} />
                                                     FIN ESTIMÉE
                                                 </div>
-                                                <div className={`text-sm font-black ${guard?.status === 'CRITICAL' ? 'text-rose-500' : 'text-white'}`}>
+                                                <div className="text-sm font-black text-white">
                                                     {guard?.projected_end_date ? new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
                                                 </div>
                                             </div>
@@ -632,14 +700,14 @@ const DataDrivenManager = () => {
                                             <div className="w-6 h-6 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
                                                 <Zap size={14} className="fill-blue-400/20" />
                                             </div>
-                                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">INSIGHT IA</span>
+                                            <span className="text-xs font-black text-blue-400 uppercase tracking-widest">INSIGHT IA</span>
                                         </div>
-                                        <p className="text-[11px] text-slate-400 leading-relaxed mb-4 line-clamp-2 italic">
+                                        <p className="text-xs text-slate-400 leading-relaxed mb-4 line-clamp-2 italic">
                                             {guard?.message || "Il est essentiel d'accélérer le rythme des tests pour respecter la date limite."}
                                         </p>
                                         <button
                                             onClick={() => handleOpenAIInsight(file.id, file.name)}
-                                            className="px-4 py-2 bg-white/5 hover:bg-white hover:text-black border border-white/10 rounded-lg text-[9px] font-black uppercase tracking-widest text-white transition-all flex items-center gap-2 group/btn"
+                                            className="px-4 py-2 bg-white/5 hover:bg-white hover:text-black border border-white/10 rounded-lg text-xs font-black uppercase tracking-widest text-white transition-all flex items-center gap-2 group/btn"
                                         >
                                             Lire la suite
                                             <ArrowRight size={12} className="group-hover/btn:translate-x-1 transition-transform" />
@@ -650,21 +718,57 @@ const DataDrivenManager = () => {
                                     <div className="pt-4 border-t border-white/5 space-y-4">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                <div className="flex -space-x-2">
-                                                    {(file.assigned_testers_names || []).slice(0, 2).map((name, i) => (
-                                                        <div key={i} className="w-8 h-8 rounded-full bg-slate-800 border-2 border-[#0b0e14] flex items-center justify-center text-[10px] font-black text-white" title={name}>
-                                                            {name.charAt(0).toUpperCase()}
-                                                        </div>
-                                                    ))}
-                                                    {(file.assigned_testers_names || []).length > 2 && (
-                                                        <div className="w-8 h-8 rounded-full bg-slate-900 border-2 border-[#0b0e14] flex items-center justify-center text-[8px] font-black text-slate-500">
-                                                            +{(file.assigned_testers_names || []).length - 2}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-xs font-black text-white">{(file.assigned_testers_names || []).length}</span>
-                                                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">TESTEURS</span>
+                                                <div 
+                                                    className="flex items-center gap-3 cursor-pointer relative"
+                                                    onClick={(e) => { e.stopPropagation(); setOpenTestersId(openTestersId === file.id ? null : file.id); }}
+                                                >
+                                                    <div className="flex -space-x-2">
+                                                        {(file.assigned_testers_names || []).slice(0, 2).map((name, i) => (
+                                                            <div key={i} className="w-8 h-8 rounded-full bg-slate-800 border-2 border-[#0b0e14] flex items-center justify-center text-[10px] font-black text-white" title={name}>
+                                                                {name.charAt(0).toUpperCase()}
+                                                            </div>
+                                                        ))}
+                                                        {(file.assigned_testers_names || []).length > 2 && (
+                                                            <div className="w-8 h-8 rounded-full bg-slate-900 border-2 border-[#0b0e14] flex items-center justify-center text-[8px] font-black text-slate-500">
+                                                                +{(file.assigned_testers_names || []).length - 2}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-black text-white">{(file.assigned_testers_names || []).length}</span>
+                                                        <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">TESTEURS</span>
+                                                    </div>
+
+                                                    {/* Popover with names */}
+                                                    <AnimatePresence>
+                                                        {openTestersId === file.id && (
+                                                            <motion.div
+                                                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                                className="absolute bottom-full left-0 mb-2 w-48 bg-[#0f172a] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                                                            >
+                                                                <div className="p-3 space-y-2">
+                                                                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5 pb-1">
+                                                                        Testeurs Assignés
+                                                                    </div>
+                                                                    {(file.assigned_testers_names || []).map((name, i) => (
+                                                                        <div key={i} className="flex items-center gap-2 text-xs font-bold text-white">
+                                                                            <div className="w-5 h-5 rounded-full bg-blue-500/10 flex items-center justify-center text-[8px] font-black text-blue-400">
+                                                                                {name.charAt(0).toUpperCase()}
+                                                                            </div>
+                                                                            <span>{name}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                    {(file.assigned_testers_names || []).length === 0 && (
+                                                                        <div className="text-xs font-bold text-slate-500 italic">
+                                                                            Aucun testeur assigné
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
                                                 </div>
                                             </div>
                                             <div className="px-5 py-3 bg-white/5 border border-white/5 rounded-xl flex flex-col items-center">
@@ -745,22 +849,22 @@ const DataDrivenManager = () => {
 
             {/* Campaign Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xl p-4 animate-in fade-in">
-                    <div className="bg-slate-900 border border-white/10 rounded-[3rem] w-full max-w-2xl shadow-[0_0_100px_rgba(37,99,235,0.1)] overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
-                        <div className="px-10 py-8 border-b border-white/5 flex justify-between items-center bg-white/5">
+                <div className="fixed inset-0 z-[99999] flex items-start justify-center bg-slate-950/80 backdrop-blur-xl p-4 overflow-y-auto pt-24">
+                    <div className="bg-slate-900 border border-white/10 rounded-[2rem] w-full max-w-3xl shadow-[0_0_100px_rgba(37,99,235,0.1)] overflow-hidden flex flex-col max-h-[85vh]">
+                        <div className="px-6 py-6 border-b border-white/5 flex justify-between items-center bg-white/5 flex-shrink-0">
                             <div>
-                                <h2 className="text-2xl font-black text-white uppercase tracking-tight">
+                                <h2 className="text-xl font-black text-white uppercase tracking-tight">
                                     {editingCampaign ? 'Modifier Campagne' : 'Nouvelle Campagne'}
                                 </h2>
                                 <p className="text-blue-500 font-bold uppercase tracking-widest text-[10px] mt-1">Gérer les cahiers de tests</p>
                             </div>
-                            <button onClick={() => setIsModalOpen(false)} className="bg-white/5 p-3 rounded-full text-slate-400 hover:text-white hover:bg-white/10 border border-white/10 transition-all">
-                                <X className="w-6 h-6" />
+                            <button onClick={() => setIsModalOpen(false)} className="bg-white/5 p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 border border-white/10 transition-all">
+                                <X className="w-5 h-5" />
                             </button>
                         </div>
 
                         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-                            <div className="p-10 space-y-8 overflow-y-auto custom-scrollbar">
+                            <div className="p-6 space-y-4 overflow-y-auto flex-1">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                     <div className="md:col-span-2 space-y-2">
                                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Titre de la campagne</label>
@@ -768,7 +872,7 @@ const DataDrivenManager = () => {
                                             type="text"
                                             value={campaignForm.title}
                                             onChange={(e) => setCampaignForm({ ...campaignForm, title: e.target.value })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all placeholder:text-slate-700"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-3 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all placeholder:text-slate-700 font-bold"
                                             placeholder="Ex: Regression Sprint 42"
                                             required
                                         />
@@ -779,7 +883,7 @@ const DataDrivenManager = () => {
                                             type="number"
                                             value={campaignForm.nb_test_cases}
                                             onChange={(e) => setCampaignForm({ ...campaignForm, nb_test_cases: parseInt(e.target.value) || 0 })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-3 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
                                             min="0"
                                         />
                                     </div>
@@ -790,37 +894,37 @@ const DataDrivenManager = () => {
                                     <textarea
                                         value={campaignForm.description}
                                         onChange={(e) => setCampaignForm({ ...campaignForm, description: e.target.value })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-[2rem] px-6 py-5 text-white focus:ring-2 focus:ring-blue-500/50 outline-none min-h-[120px] resize-none transition-all placeholder:text-slate-700"
+                                        className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-6 py-3 text-white focus:ring-2 focus:ring-blue-500/50 outline-none min-h-[100px] resize-none transition-all placeholder:text-slate-700 font-bold"
                                         placeholder="Décrivez les objectifs de cette campagne..."
                                     />
                                 </div>
 
-                                <div className={`p-8 rounded-[2.5rem] border transition-all duration-500 ${showScheduleSelector ? 'bg-amber-500/5 border-amber-500/20' : 'bg-white/5 border-white/10'}`}>
-                                    <div className="flex items-center justify-between mb-6">
+                                <div className={`p-5 rounded-[1.5rem] border transition-all duration-500 ${showScheduleSelector ? 'bg-indigo-500/5 border-indigo-500/20' : 'bg-white/5 border-white/10'}`}>
+                                    <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-xl border ${showScheduleSelector ? 'bg-amber-500/20 border-amber-500/20 text-amber-500' : 'bg-white/5 border-white/10 text-slate-500'}`}>
-                                                <Clock className="w-5 h-5" />
+                                            <div className={`p-1.5 rounded-xl border ${showScheduleSelector ? 'bg-indigo-500/20 border-indigo-500/20 text-indigo-500' : 'bg-white/5 border-white/10 text-slate-500'}`}>
+                                                <Clock className="w-4 h-4" />
                                             </div>
-                                            <span className="text-sm font-black text-white uppercase tracking-widest">Planification</span>
+                                            <span className="text-xs font-black text-white uppercase tracking-widest">Planification</span>
                                         </div>
                                         <button
                                             type="button"
                                             onClick={() => setShowScheduleSelector(!showScheduleSelector)}
-                                            className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full border transition-all ${showScheduleSelector ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}
+                                            className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border transition-all ${showScheduleSelector ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}
                                         >
                                             {showScheduleSelector ? 'Annuler le différé' : 'Programmer'}
                                         </button>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {showScheduleSelector && (
                                             <div className="space-y-2 animate-in slide-in-from-top-2">
-                                                <label className="text-[9px] font-bold text-amber-500 uppercase tracking-[0.2em] ml-1">Date de lancement</label>
+                                                <label className="text-[9px] font-bold text-indigo-500 uppercase tracking-[0.2em] ml-1">Date de lancement</label>
                                                 <input
                                                     type="datetime-local"
                                                     value={campaignForm.scheduled_at}
                                                     onChange={(e) => setCampaignForm({ ...campaignForm, scheduled_at: e.target.value, start_date: e.target.value.split('T')[0] })}
-                                                    className="w-full bg-slate-950 border border-amber-500/30 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-amber-500/50 outline-none transition-all"
+                                                    className="w-full bg-slate-950 border border-indigo-500/30 rounded-2xl px-6 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all font-bold"
                                                 />
                                             </div>
                                         )}
@@ -830,7 +934,7 @@ const DataDrivenManager = () => {
                                                 type="date"
                                                 value={campaignForm.estimated_end_date}
                                                 onChange={(e) => setCampaignForm({ ...campaignForm, estimated_end_date: e.target.value })}
-                                                className="w-full bg-slate-950 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all"
+                                                className="w-full bg-slate-950 border border-white/10 rounded-2xl px-6 py-3 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
                                                 required
                                             />
                                         </div>
@@ -839,19 +943,19 @@ const DataDrivenManager = () => {
 
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Import Excel (.xlsx)</label>
-                                    <div className={`relative border-2 border-dashed rounded-[2.5rem] p-12 flex flex-col items-center justify-center transition-all ${campaignForm.file ? 'border-blue-500 bg-blue-500/5' : 'border-white/10 hover:border-white/20 bg-white/5'}`}>
+                                    <div className={`relative border-2 border-dashed rounded-[1.5rem] p-6 flex flex-col items-center justify-center transition-all ${campaignForm.file ? 'border-blue-500 bg-blue-500/5' : 'border-white/10 hover:border-white/20 bg-white/5'}`}>
                                         <input type="file" onChange={handleFileChange} accept=".xlsx, .xls" className="absolute inset-0 opacity-0 cursor-pointer" required={!editingCampaign} />
-                                        <Upload className={`w-10 h-10 mb-4 ${campaignForm.file ? 'text-blue-500 animate-bounce' : 'text-slate-600'}`} />
-                                        <p className={`text-sm font-bold uppercase tracking-widest ${campaignForm.file ? 'text-white' : 'text-slate-500'}`}>
+                                        <Upload className={`w-8 h-8 mb-2 ${campaignForm.file ? 'text-blue-500 animate-bounce' : 'text-slate-600'}`} />
+                                        <p className={`text-xs font-bold uppercase tracking-widest ${campaignForm.file ? 'text-white' : 'text-slate-500'}`}>
                                             {campaignForm.file ? campaignForm.file.name : 'Déposez votre cahier de tests'}
                                         </p>
-                                        <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest mt-2">{editingCampaign ? 'Optionnel: Cliquez pour remplacer' : 'Maximum 10 Mo'}</p>
+                                        <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest mt-1">{editingCampaign ? 'Optionnel: Cliquez pour remplacer' : 'Maximum 10 Mo'}</p>
                                     </div>
                                 </div>
 
                                 <div className="space-y-4">
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Équipe assignée</label>
-                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 bg-white/5 p-6 rounded-[2rem] border border-white/10 max-h-56 overflow-y-auto custom-scrollbar">
+                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 bg-white/5 p-4 rounded-[1.5rem] border border-white/10 max-h-56 overflow-y-auto custom-scrollbar">
                                         {(testers || []).map(tester => (
                                             <label key={tester.id} className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all border ${campaignForm.assigned_testers.includes(tester.id) ? 'bg-blue-600/20 border-blue-500 text-white' : 'bg-transparent border-white/5 text-slate-500 hover:border-white/20'}`}>
                                                 <input
@@ -925,7 +1029,7 @@ const DataDrivenManager = () => {
             {/* Single Quota Modal */}
             <AnimatePresence>
                 {isSingleQuotaModalOpen && pendingTester && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+                    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-6">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}

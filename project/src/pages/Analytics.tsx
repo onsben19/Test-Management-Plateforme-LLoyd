@@ -99,7 +99,7 @@ const Analytics = () => {
                     {/* Edge tab — always visible */}
                     <button
                         onClick={() => setIsHistorySidebarOpen(v => !v)}
-                        className="absolute right-0 translate-x-1/2 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-6 h-12 bg-blue-600 hover:bg-blue-500 border border-blue-400/30 rounded-full shadow-xl shadow-blue-900/40 transition-all group scale-75 lg:scale-100"
+                        className={`absolute ${isHistorySidebarOpen ? 'right-0 translate-x-1/2' : 'left-2'} top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-6 h-12 bg-blue-600 hover:bg-blue-500 border border-blue-400/30 rounded-full shadow-xl shadow-blue-900/40 transition-all group scale-75 lg:scale-100`}
                         title={isHistorySidebarOpen ? t('common.close') : t('common.open')}
                     >
                         {isHistorySidebarOpen
@@ -110,7 +110,7 @@ const Analytics = () => {
                 </div>
 
                 {/* Chat area */}
-                <div className="flex-1 h-full overflow-hidden flex flex-col relative z-10">
+                <div className={`flex-1 h-full overflow-hidden flex flex-col relative z-10 ${isHistorySidebarOpen ? '' : 'pl-8'}`}>
                     <AnalyticsChatWidget
                         embedded={true}
                         conversationId={currentConversationId}

@@ -91,9 +91,6 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                         <div className="relative p-6 border-b border-white/5 bg-[#0b0e14]">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 flex items-center justify-center border border-blue-500/20">
-                                        <Layers className="w-6 h-6 text-blue-400" />
-                                    </div>
                                     <div>
                                         <h2 className="text-xl font-black text-white tracking-tight uppercase">
                                             {title}
@@ -161,29 +158,7 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                 </div>
                             </div>
 
-                            {/* MÉTRIQUES DE SCORE */}
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2 text-[8px] font-black text-slate-600 uppercase tracking-[0.2em]">
-                                    <TrendingUp size={12} />
-                                    MÉTRIQUES DE SCORE
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    {Object.entries(data.breakdown).map(([key, val], idx) => (
-                                        <div key={key} className="bg-white/[0.01] border border-white/5 rounded-[1.2rem] p-4 relative overflow-hidden">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div className="flex items-center gap-2 text-[8px] font-black text-slate-500 uppercase tracking-widest">
-                                                    <div className={`w-2 h-2 rounded-full ${idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-blue-500' : idx === 2 ? 'bg-amber-500' : 'bg-rose-500'}`} />
-                                                    {key.replace(/_/g, ' ')}
-                                                </div>
-                                            </div>
-                                            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden mb-3">
-                                                <div className="h-full bg-blue-500 rounded-full" style={{ width: `${val}%` }} />
-                                            </div>
-                                            <div className="text-xl font-black text-white">{val}%</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+
 
                             {/* AUDIT TRAIL — JOURNAL DE TRANSPARENCE */}
                             <div className="space-y-4">
@@ -203,6 +178,9 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                             <>
                                                 <div className="text-xl font-black text-white mb-0.5">{data.source_data.tests.passed} / {data.source_data.tests.total}</div>
                                                 <div className="text-[9px] font-bold text-slate-500">tests validés · taux réel {data.source_data.tests.percent}%</div>
+                                                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden my-2">
+                                                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${data.breakdown.test_pass_rate}%` }} />
+                                                </div>
                                             </>
                                         ) : (
                                             <>
@@ -222,6 +200,9 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                             <>
                                                 <div className="text-xl font-black text-rose-500 mb-0.5">{data.source_data.anomalies.total} actives</div>
                                                 <div className="text-[9px] font-bold text-slate-500">{data.source_data.anomalies.critical} critiques · pénalité -{data.source_data.anomalies.penalty} pts</div>
+                                                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden my-2">
+                                                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${data.breakdown.anomalies_health}%` }} />
+                                                </div>
                                             </>
                                         ) : (
                                             <>
@@ -241,6 +222,9 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                             <>
                                                 <div className="text-xl font-black text-rose-500 mb-0.5">{data.source_data.ml.status}</div>
                                                 <div className="text-[9px] font-bold text-slate-500">+{data.source_data.ml.delay_days}j retard · IA à {Math.round(data.source_data.ml.confidence * 100)}%</div>
+                                                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden my-2">
+                                                    <div className="h-full bg-amber-500 rounded-full" style={{ width: `${data.breakdown.ml_stability}%` }} />
+                                                </div>
                                             </>
                                         ) : (
                                             <>
@@ -261,14 +245,13 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                                 <div className={`text-xl font-black mb-0.5 ${data.source_data.anomalies.blocking ? "text-rose-500" : "text-emerald-500"}`}>
                                                     {data.source_data.anomalies.blocking} BLOQUANT
                                                 </div>
-                                                <div className="text-[9px] font-bold text-slate-500">
-                                                    {data.source_data.anomalies.blocking > 0 ? "⚠️ Arrêt immédiat requis" : "✅ Aucun point de blocage"}
+                                                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden my-2">
+                                                    <div className="h-full bg-rose-500 rounded-full" style={{ width: `${data.breakdown.blocking_guard}%` }} />
                                                 </div>
                                             </>
                                         ) : (
                                             <>
                                                 <div className="text-xl font-black text-white mb-0.5">0</div>
-                                                <div className="text-[9px] font-bold text-slate-500">Aucun identifié</div>
                                             </>
                                         )}
                                     </div>
