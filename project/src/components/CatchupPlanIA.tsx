@@ -42,6 +42,7 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
     const [selectedTesterIds, setSelectedTesterIds] = useState<number[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [assignments, setAssignments] = useState<Record<number, number>>({});
+    const [notifying, setNotifying] = useState(false);
 
     const fetchPlan = async () => {
         try {
@@ -110,6 +111,18 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
             toast.error("Erreur lors de l'application du plan");
         } finally {
             setApplying(false);
+        }
+    };
+
+    const handleNotifyN8N = async () => {
+        try {
+            setNotifying(true);
+            await aiService.notifyCatchupPlan(campaignId, selectedTesterIds);
+            toast.success("Notification envoyée à n8n pour les renforts !");
+        } catch (error) {
+            toast.error("Erreur lors de l'envoi de la notification");
+        } finally {
+            setNotifying(false);
         }
     };
 
@@ -270,18 +283,18 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
                         size="icon"
                         onClick={fetchPlan}
                         isLoading={loading}
-                        disabled={applying}
+                        disabled={applying || notifying}
                         icon={RefreshCw}
                     />
                     <Button 
                         variant="primary"
-                        onClick={handleApplyPlan}
-                        isLoading={applying}
-                        disabled={applying || !plan || selectedTesterIds.length === 0}
-                        icon={ArrowRight}
+                        onClick={handleNotifyN8N}
+                        isLoading={notifying}
+                        disabled={applying || notifying || !plan || selectedTesterIds.length === 0}
+                        icon={Sparkles}
                         className="px-6 text-xs font-bold"
                     >
-                        {applying ? 'Application...' : 'Appliquer la stratégie'}
+                        {notifying ? 'Envoi...' : 'Informer le testeur'}
                     </Button>
                 </div>
             </div>

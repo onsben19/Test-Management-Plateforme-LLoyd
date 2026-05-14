@@ -113,6 +113,37 @@
     },
     "adminDashboard": {
         "welcome": "Bienvenue dans votre centre de contrôle.",
+        "stats": {
+            "users": "Utilisateurs",
+            "usersDesc": "Membres actifs de la plateforme",
+            "successRate": "Taux de Succès",
+            "successRateDesc": "Sur l'ensemble des tests exécutés",
+            "activeProjects": "Projets Actifs",
+            "activeProjectsDesc": "Releases en cours de test",
+            "openAnomalies": "Anomalies Ouvertes",
+            "openAnomaliesDesc": "Nécessitant une attention"
+        },
+        "subtitles": {
+            "liveMonitoring": "Live Monitoring",
+            "sevenDays": "7 DERNIERS JOURS",
+            "distribution": "RÉPARTITION ACTUELLE",
+            "team": "COMPOSITION DE L'ÉQUIPE",
+            "display": "VOTRE AFFICHAGE",
+            "actions": "DERNIÈRES ACTIONS"
+        },
+        "roles": {
+            "admins": "Administrateurs",
+            "managers": "Managers",
+            "testers": "Testeurs"
+        },
+        "config": {
+            "title": "Configuration",
+            "trend": "Tendance des exécutions",
+            "distribution": "Répartition des anomalies",
+            "mlGuard": "ML Timeline Guard",
+            "activity": "Activité récente",
+            "users": "Répartition des rôles"
+        },
         "customize": "Personnaliser",
         "refresh": "Actualiser",
         "widgets": {

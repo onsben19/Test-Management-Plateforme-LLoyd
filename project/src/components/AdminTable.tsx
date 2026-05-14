@@ -85,44 +85,44 @@ const AdminTable = <T extends { id?: string | number }>({
                 </div>
             )}
 
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl transition-all hover:shadow-blue-900/10">
-                <table className="w-full text-left border-collapse">
+            <div className="">
+                <table className="w-full text-left border-separate border-spacing-y-3">
                     <thead>
-                        <tr className="border-b border-white/5 bg-white/[0.01]">
+                        <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                             {columns.map((col, idx) => (
                                 <th
                                     key={idx}
-                                    className={`px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest ${col.className || ''}`}
+                                    className={`px-8 py-2 ${col.className || ''}`}
                                 >
                                     {col.header}
                                 </th>
                             ))}
                             {actions && (
-                                <th className="px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">
+                                <th className="px-8 py-2 text-right">
                                     Actions
                                 </th>
                             )}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody>
                         {isLoading ? (
                             Array.from({ length: 5 }).map((_, i) => (
                                 <tr key={i} className="animate-pulse">
                                     {columns.map((_, idx) => (
-                                        <td key={idx} className="px-6 py-4">
-                                            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded-full w-full" />
+                                        <td key={idx} className="px-8 py-5 bg-[#0b0e14]/40 first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-white/[0.02]">
+                                            <div className="h-4 bg-slate-700/50 rounded-full w-full" />
                                         </td>
                                     ))}
                                     {actions && (
-                                        <td className="px-6 py-4">
-                                            <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded-lg w-20 ml-auto" />
+                                        <td className="px-8 py-5 bg-[#0b0e14]/40 first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-white/[0.02]">
+                                            <div className="h-8 bg-slate-700/50 rounded-lg w-20 ml-auto" />
                                         </td>
                                     )}
                                 </tr>
                             ))
                         ) : data.length === 0 ? (
                             <tr>
-                                <td colSpan={columns.length + (actions ? 1 : 0)} className="px-6 py-12 text-center text-slate-500 transition-colors">
+                                <td colSpan={columns.length + (actions ? 1 : 0)} className="px-8 py-12 text-center text-slate-500 bg-[#0b0e14]/40 rounded-2xl border border-white/[0.02]">
                                     Aucune donnée disponible.
                                 </td>
                             </tr>
@@ -131,18 +131,21 @@ const AdminTable = <T extends { id?: string | number }>({
                                 <tr
                                     key={item.id || rowIdx}
                                     onClick={() => onRowClick && onRowClick(item)}
-                                    className={`hover:bg-white/[0.04] transition-all duration-300 group border-b border-white/5 last:border-0 ${onRowClick ? 'cursor-pointer' : ''}`}
+                                    className={`group transition-all duration-300 ${onRowClick ? 'cursor-pointer' : ''}`}
                                 >
                                     {columns.map((col, colIdx) => (
-                                        <td key={colIdx} className="px-8 py-5 text-sm text-slate-300 group-hover:text-white transition-colors">
+                                        <td
+                                            key={colIdx}
+                                            className="px-8 py-5 text-sm text-slate-300 bg-[#0b0e14]/60 group-hover:bg-white/[0.02] transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-white/[0.03] group-hover:border-white/[0.05]"
+                                        >
                                             {typeof col.accessor === 'function'
                                                 ? col.accessor(item)
                                                 : (item[col.accessor] as React.ReactNode)}
                                         </td>
                                     ))}
                                     {actions && (
-                                        <td className="px-8 py-5 text-right">
-                                            <div className="flex justify-end gap-2 transition-all duration-300">
+                                        <td className="px-8 py-5 text-right bg-[#0b0e14]/60 group-hover:bg-white/[0.02] transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-white/[0.03] group-hover:border-white/[0.05]">
+                                            <div className="flex justify-end gap-2">
                                                 {actions(item)}
                                             </div>
                                         </td>

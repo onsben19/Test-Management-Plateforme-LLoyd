@@ -404,6 +404,74 @@ class CatchupPlanView(APIView):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+class NotifyCatchupView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, campaign_id):
+        if request.user.role not in ['ADMIN', 'MANAGER']:
+            return Response({'error': 'Accès réservé aux managers.'}, status=status.HTTP_403_FORBIDDEN)
+            
+        tester_ids = request.data.get('tester_ids', [])
+        if not tester_ids:
+            return Response({'error': 'Aucun testeur sélectionné.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        testers = User.objects.filter(id__in=tester_ids)
+        
+        campaign = get_object_or_404(Campaign, id=campaign_id)
+        
+        tester_distribution = []
+        for t in testers:
+            tester_distribution.append({
+                "tester_id": t.id,
+                "tester_name": t.get_full_name() or t.username,
+                "email": t.email,
+                "ml_score": 100
+            })
+            
+        plan_data = {
+            "campaign_id": campaign.id,
+            "campaign_title": campaign.title,
+            "delay_days": 5,
+            "tester_distribution": tester_distribution,
+            "manager_email": request.user.email
+        }
+        
+        from .recommendation_service import CatchupRecommendationManager
+        success = CatchupRecommendationManager().send_to_n8n(plan_data)
+        
+        if success:
+            return Response({'status': 'success', 'message': 'Notification envoyée à n8n.'})
+        return Response({'error': "Erreur lors de l'envoi à n8n."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class AcceptReinforcementView(APIView):
+    from rest_framework.permissions import AllowAny
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        campaign_id = request.data.get('campaign_id') or request.query_params.get('campaign_id')
+        tester_id = request.data.get('tester_id') or request.query_params.get('tester_id')
+        
+        if not campaign_id or not tester_id:
+            print("ERROR: Missing parameters")
+            return Response({'error': 'Missing parameters'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            from campaigns.models import Campaign, CampaignAssignment
+            campaign = get_object_or_404(Campaign, id=campaign_id)
+            
+            # Create or update the assignment
+            CampaignAssignment.objects.update_or_create(
+                campaign=campaign,
+                tester_id=tester_id,
+                defaults={'test_quota': 0}
+            )
+            
+            return Response({'status': 'success', 'message': f'Tester {tester_id} assigned to campaign {campaign_id}'})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class ApplyRecommendationActionView(APIView):
     permission_classes = [IsAuthenticated]
 

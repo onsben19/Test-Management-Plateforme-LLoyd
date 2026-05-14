@@ -6,6 +6,7 @@ from campaigns.models import Campaign
 from testCases.models import TestCase
 from .ml_service import MLTimelineGuard
 from .groq_service import GroqService
+import requests
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -14,6 +15,25 @@ class CatchupRecommendationManager:
     def __init__(self):
         self.ml_guard = MLTimelineGuard()
         self.groq_service = GroqService()
+
+    def send_to_n8n(self, plan_data):
+        """
+        Envoie le plan de rattrapage à n8n via un Webhook.
+        """
+        # URL de n8n en local (webhook-test pour le mode test dans l'UI n8n)
+        n8n_url = "http://host.docker.internal:5678/webhook-test/catchup-plan"
+        try:
+            logger.info(f"Tentative d'envoi du plan à n8n: {n8n_url}")
+            response = requests.post(n8n_url, json=plan_data, timeout=5)
+            if response.status_code == 200:
+                logger.info("Plan envoyé avec succès à n8n.")
+                return True
+            else:
+                logger.warning(f"Erreur n8n. Code: {response.status_code}")
+                return False
+        except Exception as e:
+            logger.error(f"Erreur appel n8n: {e}")
+            return False
 
     def get_catchup_plan(self, campaign_id):
         try:
@@ -75,6 +95,7 @@ class CatchupRecommendationManager:
                 tester_stats.append({
                     "id": tester.id,
                     "name": f"{tester.first_name} {tester.last_name[0]}." if tester.first_name and tester.last_name else tester.username,
+                    "email": tester.email,
                     "current_load": round(tester_load, 1),
                     "is_overloaded": tester_load > 8,
                     "is_already_in": is_already_in,
@@ -117,7 +138,7 @@ class CatchupRecommendationManager:
             if not final_distribution:
                 final_distribution = [t for t in tester_stats if t['is_already_in']]
 
-            return {
+            plan_data = {
                 "campaign_id": campaign_id,
                 "campaign_title": campaign.title,
                 "delay_days": delay_days,
@@ -130,6 +151,11 @@ class CatchupRecommendationManager:
                 "deadline": target_date.isoformat(),
                 "recommendation_engine": "ML Performance Model v1.0"
             }
+
+            # Étape 2 : Envoi automatique à n8n
+            self.send_to_n8n(plan_data)
+
+            return plan_data
         except Exception as e:
             logger.exception("Error in CatchupRecommendationManager")
             return {"error": str(e)}

@@ -20,6 +20,7 @@ const AdminComments = () => {
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
+    const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
     const fetchComments = async () => {
         try {
@@ -49,6 +50,22 @@ const AdminComments = () => {
             (c.author_name || c.author_username || '').toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [comments, searchQuery]);
+
+    const groupedConversations = useMemo(() => {
+        const groups: Record<string, any[]> = {};
+        filteredComments.forEach(c => {
+            const key = c.test_case_id || 'general';
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(c);
+        });
+        return Object.entries(groups).map(([key, msgs]) => ({
+            id: key,
+            test_case_id: key === 'general' ? null : key,
+            messages: msgs.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+            lastMessage: msgs[msgs.length - 1],
+            count: msgs.length
+        })).sort((a, b) => new Date(b.lastMessage.created_at).getTime() - new Date(a.lastMessage.created_at).getTime());
+    }, [filteredComments]);
 
     const paginatedComments = useMemo(() => {
         const startIndex = (currentPage - 1) * pageSize;
@@ -80,52 +97,7 @@ const AdminComments = () => {
         }
     };
 
-    const columns = [
-        {
-            header: t('adminComments.table.message'),
-            accessor: (item: any) => (
-                <div className="flex items-start gap-4 max-w-2xl group">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20 group-hover:scale-110 transition-all shrink-0">
-                        <MessageSquare className="w-5 h-5" />
-                    </div>
-                    <div className="space-y-1 py-1">
-                        <span className="text-white text-sm font-bold leading-relaxed block group-hover:text-blue-400 transition-colors" title={item.message}>
-                            {item.message}
-                        </span>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-500 font-black uppercase tracking-widest">
-                            <Clock className="w-3 h-3" />
-                            {new Date(item.created_at).toLocaleTimeString(t('common.dateLocale'))}
-                        </div>
-                    </div>
-                </div>
-            )
-        },
-        {
-            header: t('adminComments.table.author'),
-            accessor: (item: any) => (
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400">
-                        <User className="w-4 h-4" />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-white text-xs font-black uppercase tracking-tighter">
-                            {item.author_name || item.author_username || item.author || t('adminComments.unknown')}
-                        </span>
-                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Auditor</span>
-                    </div>
-                </div>
-            )
-        },
-        {
-            header: t('adminComments.table.date'),
-            accessor: (item: any) => (
-                <div className="flex flex-col">
-                    <span className="text-white text-xs font-bold">{new Date(item.created_at).toLocaleDateString(t('common.dateLocale'))}</span>
-                    <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Signed</span>
-                </div>
-            )
-        }
-    ];
+
 
     return (
         <PageLayout
@@ -171,50 +143,83 @@ const AdminComments = () => {
                     />
                 </div>
 
-                <AdminTable
-                    columns={columns}
-                    data={paginatedComments}
-                    isLoading={loading}
-                    searchable
-                    onSearch={setSearchQuery}
-                    variant="transparent"
-                    actions={(item) => (
-                        <div className="flex items-center justify-end pr-8">
-                            <button
-                                onClick={() => {
-                                    setCommentToDelete(item.id);
-                                    setIsDeleteModalOpen(true);
-                                }}
-                                className="p-3 bg-white/5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 rounded-2xl transition-all border border-white/5 group flex items-center justify-center"
-                                title={t('adminComments.modal.delete')}
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
+                <div className="grid grid-cols-12 gap-6 h-[600px]">
+                    {/* Sidebar: List of conversations */}
+                    <div className="col-span-4 bg-[#0b0e14]/60 border border-white/[0.03] rounded-[2rem] overflow-hidden flex flex-col">
+                        <div className="p-4 border-b border-white/5 bg-white/[0.01]">
+                            <h3 className="text-sm font-black text-white uppercase tracking-widest">Discussions</h3>
                         </div>
-                    )}
-                />
+                        <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                            {groupedConversations.map(conv => (
+                                <div
+                                    key={conv.id}
+                                    onClick={() => setActiveConversationId(conv.id)}
+                                    className={`p-4 rounded-xl cursor-pointer transition-all ${activeConversationId === conv.id ? 'bg-blue-500/10 border border-blue-500/20' : 'hover:bg-white/5 border border-transparent'}`}
+                                >
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-xs font-black text-white uppercase truncate">
+                                            {conv.id === 'general' ? 'Général' : `Cas de Test #${conv.id}`}
+                                        </span>
+                                        <span className="text-[10px] text-slate-500 font-bold">
+                                            {new Date(conv.lastMessage.created_at).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-slate-400 truncate">"{conv.lastMessage.message}"</p>
+                                    <div className="flex justify-between items-center mt-2">
+                                        <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">
+                                            {conv.lastMessage.author_name || conv.lastMessage.author_username}
+                                        </span>
+                                        <span className="px-2 py-0.5 bg-white/5 rounded-full text-[9px] font-bold text-slate-400">
+                                            {conv.count} msg
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
 
-                <div className="pt-6">
-                    <Pagination
-                        currentPage={currentPage}
-                        totalItems={filteredComments.length}
-                        pageSize={pageSize}
-                        onPageChange={setCurrentPage}
-                        loading={loading}
-                    />
+                    {/* Main Area: Messages */}
+                    <div className="col-span-8 bg-[#0b0e14]/60 border border-white/[0.03] rounded-[2rem] overflow-hidden flex flex-col">
+                        {activeConversationId ? (
+                            <>
+                                <div className="p-4 border-b border-white/5 bg-white/[0.01] flex justify-between items-center">
+                                    <div>
+                                        <h3 className="text-sm font-black text-white uppercase tracking-widest">
+                                            {activeConversationId === 'general' ? 'Général' : `Cas de Test #${activeConversationId}`}
+                                        </h3>
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Fil de discussion</p>
+                                    </div>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                    {groupedConversations.find(c => c.id === activeConversationId)?.messages.map((msg, idx) => (
+                                        <div key={idx} className="flex gap-4 items-start">
+                                            <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 shrink-0">
+                                                <User className="w-4 h-4" />
+                                            </div>
+                                            <div className="flex-1 bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-1">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-xs font-black text-white uppercase">
+                                                        {msg.author_name || msg.author_username || msg.author}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-500 font-bold">
+                                                        {new Date(msg.created_at).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-slate-300 leading-relaxed">{msg.message}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-4">
+                                <MessageSquare className="w-12 h-12 opacity-20" />
+                                <p className="text-sm font-bold uppercase tracking-widest opacity-50">Sélectionnez une discussion</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
-
-            {/* Modals */}
-            <ConfirmModal
-                isOpen={isDeleteModalOpen}
-                title={t('adminComments.modal.deleteTitle')}
-                message={t('adminComments.modal.deleteConfirm')}
-                onConfirm={confirmDelete}
-                onCancel={() => setIsDeleteModalOpen(false)}
-                confirmText={t('adminComments.modal.delete')}
-                type="danger"
-            />
         </PageLayout>
     );
 };

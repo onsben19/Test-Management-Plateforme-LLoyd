@@ -113,6 +113,37 @@
     },
     "adminDashboard": {
         "welcome": "Welcome to your control center.",
+        "stats": {
+            "users": "Users",
+            "usersDesc": "Active members of the platform",
+            "successRate": "Success Rate",
+            "successRateDesc": "Across all executed tests",
+            "activeProjects": "Active Projects",
+            "activeProjectsDesc": "Releases currently being tested",
+            "openAnomalies": "Open Anomalies",
+            "openAnomaliesDesc": "Requiring attention"
+        },
+        "subtitles": {
+            "liveMonitoring": "Live Monitoring",
+            "sevenDays": "LAST 7 DAYS",
+            "distribution": "CURRENT DISTRIBUTION",
+            "team": "TEAM COMPOSITION",
+            "display": "YOUR DISPLAY",
+            "actions": "LATEST ACTIONS"
+        },
+        "roles": {
+            "admins": "Administrators",
+            "managers": "Managers",
+            "testers": "Testers"
+        },
+        "config": {
+            "title": "Configuration",
+            "trend": "Execution Trend",
+            "distribution": "Anomaly Distribution",
+            "mlGuard": "ML Timeline Guard",
+            "activity": "Recent Activity",
+            "users": "Role Distribution"
+        },
         "customize": "Customize",
         "refresh": "Refresh",
         "widgets": {

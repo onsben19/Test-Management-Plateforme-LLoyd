@@ -1,0 +1,86 @@
+{
+    "name": "Plan de Rattrapage InsureTM SMTP",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "catchup-plan",
+                "options": {}
+            },
+            "id": "1",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "keepOnlySet": true,
+                "values": {
+                    "string": [
+                        {
+                            "name": "alerte_message",
+                            "value": "=📢 *Alerte Retard* sur la campagne : {{ $json.body.campaign_title }}\n⚠️ Retard estimé : {{ $json.body.delay_days }} jours.\n\n🎯 *Testeurs recommandés pour le renfort* :\n{{ $json.body.tester_distribution.map(t => `- ${t.tester_name} (Score: ${t.ml_score})`).join('\\n') }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "2",
+            "name": "Formater le Message",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                320,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "fromEmail": "onsbenmassoud7@gmail.com",
+                "toEmail": "maissa.drira1@gmail.com",
+                "subject": "=Alerte Retard - {{ $node[\"Webhook\"].json[\"body\"][\"campaign_title\"] }}",
+                "html": "=Bonjour,<br><br>{{ $json.alerte_message.replace(/\\n/g, '<br>') }}",
+                "options": {}
+            },
+            "id": "3",
+            "name": "Envoyer Email",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 1,
+            "position": [
+                540,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Formater le Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Formater le Message": {
+            "main": [
+                [
+                    {
+                        "node": "Envoyer Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {},
+    "tags": []
+}

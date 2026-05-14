@@ -30,6 +30,8 @@ services:
       dockerfile: Dockerfile
     container_name: insuretm-backend
     restart: unless-stopped
+    ports:
+      - "8000:8000"
     env_file:
       - ./InsureTM/.env.docker
     volumes:

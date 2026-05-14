@@ -163,8 +163,8 @@ const AdminDashboard = () => {
 
     return (
         <PageLayout
-            title={t('sidebar.items.dashboard')}
-            subtitle="Live Monitoring"
+            title={t('sidebar.dashboard')}
+            subtitle={t('adminDashboard.subtitles.liveMonitoring')}
             actions={
                 <button
                     onClick={() => { setIsRefreshing(true); fetchData(); }}
@@ -187,37 +187,37 @@ const AdminDashboard = () => {
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                 <StatCard
-                    title="Utilisateurs"
+                    title={t('adminDashboard.stats.users')}
                     value={stats.totalUsers}
                     icon={Users}
                     variant="blue"
-                    description="Membres actifs de la plateforme"
+                    description={t('adminDashboard.stats.usersDesc')}
                     isLoading={loading}
                 />
                 <StatCard
-                    title="Taux de Succès"
+                    title={t('adminDashboard.stats.successRate')}
                     value={`${stats.successRate}%`}
                     icon={TrendingUp}
                     variant="green"
-                    description="Sur l'ensemble des tests exécutés"
+                    description={t('adminDashboard.stats.successRateDesc')}
                     change="+2.4%"
                     changeType="positive"
                     isLoading={loading}
                 />
                 <StatCard
-                    title="Projets Actifs"
+                    title={t('adminDashboard.stats.activeProjects')}
                     value={stats.activeProjects}
                     icon={Layers}
                     variant="purple"
-                    description="Releases en cours de test"
+                    description={t('adminDashboard.stats.activeProjectsDesc')}
                     isLoading={loading}
                 />
                 <StatCard
-                    title="Anomalies Ouvertes"
+                    title={t('adminDashboard.stats.openAnomalies')}
                     value={stats.pendingAnomalies}
                     icon={AlertTriangle}
                     variant="red"
-                    description="Nécessitant une attention"
+                    description={t('adminDashboard.stats.openAnomaliesDesc')}
                     changeType="negative"
                     isLoading={loading}
                 />
@@ -230,8 +230,8 @@ const AdminDashboard = () => {
                 <div className="lg:col-span-8 space-y-8">
                     {visibleWidgets.trend && (
                         <DashboardWidget
-                            title="Tendance des Exécutions"
-                            subtitle="7 DERNIERS JOURS"
+                            title={t('adminDashboard.widgets.trend')}
+                            subtitle={t('adminDashboard.subtitles.sevenDays')}
                             icon={Activity}
                             isLoading={loading}
                         >
@@ -288,35 +288,50 @@ const AdminDashboard = () => {
                             icon={Sparkles}
                             isLoading={loading}
                         >
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="max-h-[400px] overflow-auto custom-scrollbar pr-2">
+                            <div className="space-y-3">
+                                {/* Header */}
+                                <div className="grid grid-cols-12 gap-4 px-6 py-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                    <div className="col-span-3">Campagne</div>
+                                    <div className="col-span-2">Statut</div>
+                                    <div className="col-span-3">Progression</div>
+                                    <div className="col-span-4">Analyse ML</div>
+                                </div>
+                                {/* Rows */}
                                 {timelineRisks.map((risk, i) => (
-                                    <div key={i} className="p-5 rounded-[1.5rem] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 relative overflow-hidden group/risk">
-                                        <div className={`absolute top-0 right-0 w-16 h-16 blur-3xl opacity-20 ${risk.status === 'CRITICAL' ? 'bg-rose-500' : risk.status === 'WARNING' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                                        <div className="flex justify-between items-start mb-4">
-                                            <h4 className="text-sm font-black text-slate-900 dark:text-white truncate pr-2">{risk.title}</h4>
-                                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${risk.status === 'CRITICAL' ? 'bg-rose-500/10 text-rose-500' : risk.status === 'WARNING' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                                    <div key={i} className="grid grid-cols-12 gap-4 items-center px-6 py-4 bg-[#0b0e14]/60 border border-white/[0.03] rounded-2xl hover:bg-white/[0.02] transition-all duration-300">
+                                        <div className="col-span-3 flex items-center gap-3">
+                                            <div className="w-9 h-9 rounded-full bg-blue-600/10 flex items-center justify-center text-blue-400 font-bold text-sm border border-blue-600/20">
+                                                {risk.title.charAt(0)}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-bold text-white truncate" title={risk.title}>{risk.title}</p>
+                                                <p className="text-[10px] text-slate-600 font-medium">Campagne</p>
+                                            </div>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <span className={`text-[9px] px-3 py-1 rounded-lg font-black tracking-wider uppercase border ${risk.status === 'CRITICAL' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' : risk.status === 'WARNING' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
                                                 {risk.status}
                                             </span>
                                         </div>
-                                        <div className="space-y-3">
-                                            <div className="flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
-                                                <span>Progression</span>
-                                                <span className="text-slate-900 dark:text-white">{risk.progress?.percentage}%</span>
+                                        <div className="col-span-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-1.5 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full ${risk.status === 'CRITICAL' ? 'bg-rose-500' : risk.status === 'WARNING' ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                                                        style={{ width: `${risk.progress?.percentage}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-xs font-bold text-slate-400">{risk.progress?.percentage}%</span>
                                             </div>
-                                            <div className="h-1.5 w-full bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
-                                                <motion.div
-                                                    initial={{ width: 0 }}
-                                                    animate={{ width: `${risk.progress?.percentage}%` }}
-                                                    className={`h-full ${risk.status === 'CRITICAL' ? 'bg-rose-500' : risk.status === 'WARNING' ? 'bg-amber-500' : 'bg-emerald-500'}`}
-                                                />
-                                            </div>
-                                            <p className="text-[10px] leading-relaxed text-slate-600 dark:text-slate-400 italic py-1 border-t border-slate-200/50 dark:border-white/5 mt-2">
-                                                "{risk.message}"
-                                            </p>
+                                        </div>
+                                        <div className="col-span-4 text-xs text-slate-400 italic truncate" title={risk.message}>
+                                            "{risk.message}"
                                         </div>
                                     </div>
                                 ))}
                             </div>
+                        </div>
                         </DashboardWidget>
                     )}
 
@@ -324,8 +339,8 @@ const AdminDashboard = () => {
                         {visibleWidgets.distribution && (
                             <DashboardWidget
                                 id="anomaly-distribution"
-                                title="Sévérité des Anomalies"
-                                subtitle="RÉPARTITION ACTUELLE"
+                                title={t('adminDashboard.widgets.distribution')}
+                                subtitle={t('adminDashboard.subtitles.distribution')}
                                 icon={PieChartIcon}
                                 isLoading={loading}
                             >
@@ -362,16 +377,16 @@ const AdminDashboard = () => {
 
                         {visibleWidgets.users && (
                             <DashboardWidget
-                                title="Utilisateurs par Rôle"
-                                subtitle="COMPOSITION DE L'ÉQUIPE"
+                                title={t('adminDashboard.widgets.users')}
+                                subtitle={t('adminDashboard.subtitles.team')}
                                 icon={Users}
                                 isLoading={loading}
                             >
                                 <div className="space-y-6">
                                     {[
-                                        { role: 'Administrateurs', count: stats.totalUsers > 0 ? 1 : 0, total: stats.totalUsers, color: 'bg-blue-500' },
-                                        { role: 'Managers', count: Math.ceil(stats.totalUsers * 0.3), total: stats.totalUsers, color: 'bg-purple-500' },
-                                        { role: 'Testeurs', count: Math.floor(stats.totalUsers * 0.6), total: stats.totalUsers, color: 'bg-emerald-500' }
+                                        { role: t('adminDashboard.roles.admins'), count: stats.totalUsers > 0 ? 1 : 0, total: stats.totalUsers, color: 'bg-blue-500' },
+                                        { role: t('adminDashboard.roles.managers'), count: Math.ceil(stats.totalUsers * 0.3), total: stats.totalUsers, color: 'bg-purple-500' },
+                                        { role: t('adminDashboard.roles.testers'), count: Math.floor(stats.totalUsers * 0.6), total: stats.totalUsers, color: 'bg-emerald-500' }
                                     ].map((item, i) => (
                                         <div key={i} className="space-y-2">
                                             <div className="flex justify-between text-sm font-bold">
@@ -397,8 +412,37 @@ const AdminDashboard = () => {
                 {/* Right Side: Activity & Customization */}
                 <div className="lg:col-span-4 space-y-8">
                     <DashboardWidget
-                        title="Activité Récente"
-                        subtitle="DERNIÈRES ACTIONS"
+                        title={t('adminDashboard.config.title')}
+                        subtitle={t('adminDashboard.subtitles.display')}
+                        icon={Layout}
+                    >
+                        <div className="space-y-3">
+                            {[
+                                { id: 'trend', label: t('adminDashboard.config.trend') },
+                                { id: 'distribution', label: t('adminDashboard.config.distribution') },
+                                { id: 'mlGuard', label: t('adminDashboard.config.mlGuard') },
+                                { id: 'activity', label: t('adminDashboard.config.activity') },
+                                { id: 'users', label: t('adminDashboard.config.users') }
+                            ].map(w => (
+                                <label key={w.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors border border-transparent hover:border-slate-200 dark:hover:border-white/5">
+                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{w.label}</span>
+                                    <div className="relative">
+                                        <input
+                                            type="checkbox"
+                                            checked={visibleWidgets[w.id as keyof typeof visibleWidgets]}
+                                            onChange={() => toggleWidget(w.id)}
+                                            className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    </DashboardWidget>
+
+                    <DashboardWidget
+                        title={t('adminDashboard.widgets.activity')}
+                        subtitle={t('adminDashboard.subtitles.actions')}
                         icon={Activity}
                         isLoading={loading}
                     >
@@ -417,35 +461,6 @@ const AdminDashboard = () => {
                                 </div>
                             ))}
                             {recentActivities.length === 0 && <p className="text-center text-slate-400 py-8">Aucune activité récente</p>}
-                        </div>
-                    </DashboardWidget>
-
-                    <DashboardWidget
-                        title="Configuration"
-                        subtitle="VOTRE AFFICHAGE"
-                        icon={Layout}
-                    >
-                        <div className="space-y-3">
-                            {[
-                                { id: 'trend', label: 'Tendance des exécutions' },
-                                { id: 'distribution', label: 'Répartition des anomalies' },
-                                { id: 'mlGuard', label: 'ML Timeline Guard' },
-                                { id: 'activity', label: 'Activité récente' },
-                                { id: 'users', label: 'Répartition des rôles' }
-                            ].map(w => (
-                                <label key={w.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors border border-transparent hover:border-slate-200 dark:hover:border-white/5">
-                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{w.label}</span>
-                                    <div className="relative">
-                                        <input
-                                            type="checkbox"
-                                            checked={visibleWidgets[w.id as keyof typeof visibleWidgets]}
-                                            onChange={() => toggleWidget(w.id)}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                    </div>
-                                </label>
-                            ))}
                         </div>
                     </DashboardWidget>
                 </div>
