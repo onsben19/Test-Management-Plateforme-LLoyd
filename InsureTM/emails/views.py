@@ -77,20 +77,38 @@ class EmailViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def _send_smtp_email(self, instance, recipient):
-        """Send the email via SMTP. Logs failures without raising to avoid breaking the request."""
+        """Send the email via SMTP with HTML formatting."""
         try:
-            email = EmailMessage(
+            from utils.email_service import _base_html, _info_row
+            content = f"""
+            <p style="margin:0 0 20px 0;font-size:15px;line-height:1.6;color:#475569;">
+                Bonjour <strong>{recipient.first_name or recipient.username}</strong>,<br><br>
+                Vous avez reçu un nouveau message de <strong>{instance.sender.get_full_name() or instance.sender.username}</strong> via la plateforme InsureTM.
+            </p>
+            <div style="background-color:#f1f5f9;border-left:4px solid #3b82f6;padding:20px;border-radius:0 8px 8px 0;margin-bottom:24px;">
+                <p style="margin:0;font-size:14px;color:#334155;line-height:1.7;">{instance.body}</p>
+            </div>"""
+            html_body = _base_html(
+                title=instance.subject,
+                badge="Message Interne",
+                badge_color="#6366f1",
+                content_html=content
+            )
+            from django.core.mail import EmailMultiAlternatives
+            msg = EmailMultiAlternatives(
                 subject=instance.subject,
                 body=instance.body,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 to=[recipient.email],
             )
+            msg.attach_alternative(html_body, "text/html")
             if instance.attachment:
+                import mimetypes
                 instance.attachment.open('rb')
                 content_type, _ = mimetypes.guess_type(instance.attachment.name)
-                email.attach(instance.attachment.name, instance.attachment.read(), content_type or 'application/octet-stream')
+                msg.attach(instance.attachment.name, instance.attachment.read(), content_type or 'application/octet-stream')
                 instance.attachment.close()
-            email.send(fail_silently=False)
+            msg.send(fail_silently=False)
         except Exception:
             logger.exception("Failed to send email via SMTP for instance %s", instance.id)
 

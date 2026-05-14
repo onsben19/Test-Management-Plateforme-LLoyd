@@ -20,8 +20,8 @@ class CatchupRecommendationManager:
         """
         Envoie le plan de rattrapage à n8n via un Webhook.
         """
-        # URL de n8n en local (webhook-test pour le mode test dans l'UI n8n)
-        n8n_url = "http://host.docker.internal:5678/webhook-test/catchup-plan"
+        # URL de n8n via le réseau Docker interne (production webhook)
+        n8n_url = "http://insuretm-n8n:5678/webhook/catchup-plan"
         try:
             logger.info(f"Tentative d'envoi du plan à n8n: {n8n_url}")
             response = requests.post(n8n_url, json=plan_data, timeout=5)
