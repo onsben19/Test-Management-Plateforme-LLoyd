@@ -20,6 +20,11 @@ class TestCase(models.Model):
     # Contenu variable de l'Excel (Etape, Résultat, etc.)
     data_json = models.JSONField(default=dict)
     
+    # --- Champs IA et Automatisation ---
+    is_automated = models.BooleanField(default=False, help_text="Vrai si ce test a vocation à être automatisé")
+    automation_code = models.TextField(blank=True, null=True, help_text="Code Playwright généré par l'IA")
+    automation_script_path = models.CharField(max_length=255, blank=True, null=True, help_text="Chemin physique du script .py/.ts")
+    
     # État actuel du test pour le testeur
     status = models.CharField(
         max_length=20, 

@@ -104,29 +104,29 @@ class CampaignViewSet(viewsets.ModelViewSet):
         testers = campaign.assigned_testers.all()
         active_testers_count = testers.count() # Simplified
         
-        # Velocity last 2h (tests per hour)
-        tests_2h = TestCase.objects.filter(campaign=campaign, execution_date__gte=two_hours_ago).count()
+        # Velocity last 2h (tests per hour, excluding PENDING)
+        tests_2h = TestCase.objects.filter(campaign=campaign, execution_date__gte=two_hours_ago).exclude(status='PENDING').count()
         v_2h = tests_2h / 2.0
 
-        # Velocity yesterday
+        # Velocity yesterday (excluding PENDING)
         tests_yesterday = TestCase.objects.filter(
             campaign=campaign, 
             execution_date__gte=yesterday,
             execution_date__lt=now
-        ).count()
+        ).exclude(status='PENDING').count()
         v_yesterday = tests_yesterday / 24.0
 
         # Blocked testers (no activity in 1h)
         blocked_testers = 0
         for tester in testers:
-            last_test = TestCase.objects.filter(campaign=campaign, tester=tester).order_by('-execution_date').first()
+            last_test = TestCase.objects.filter(campaign=campaign, tester=tester).exclude(status='PENDING').order_by('-execution_date').first()
             if last_test and last_test.execution_date < (now - timedelta(hours=1)):
                 blocked_testers += 1
 
         # Testers list
         tester_list = []
         for tester in testers:
-            last_test = TestCase.objects.filter(campaign=campaign, tester=tester).order_by('-execution_date').first()
+            last_test = TestCase.objects.filter(campaign=campaign, tester=tester).exclude(status='PENDING').order_by('-execution_date').first()
             status = 'offline'
             action_str = 'Inactif'
             
@@ -138,8 +138,8 @@ class CampaignViewSet(viewsets.ModelViewSet):
                     status = 'idle'
                     action_str = "Inactif"
             
-            # Daily progress (mocked: 10 tests/day goal)
-            daily_count = TestCase.objects.filter(campaign=campaign, tester=tester, execution_date__date=now.date()).count()
+            # Daily progress (mocked: 10 tests/day goal, excluding PENDING)
+            daily_count = TestCase.objects.filter(campaign=campaign, tester=tester, execution_date__date=now.date()).exclude(status='PENDING').count()
             daily_progress = min(100, int((daily_count / 10.0) * 100))
             
             tester_list.append({
@@ -152,8 +152,8 @@ class CampaignViewSet(viewsets.ModelViewSet):
                 "idleSince": last_test.execution_date.isoformat() if last_test else None
             })
 
-        # Recent activities
-        recent_tests = TestCase.objects.filter(campaign=campaign).order_by('-execution_date')[:20]
+        # Recent activities (excluding PENDING)
+        recent_tests = TestCase.objects.filter(campaign=campaign).exclude(status='PENDING').order_by('-execution_date')[:20]
         recent_activity = []
         for t in recent_tests:
             recent_activity.append({

@@ -40,7 +40,7 @@ class ReleaseReadinessManager:
                 c_db_passed = c_test_cases.filter(status='PASSED').count()
                 c_db_failed = c_test_cases.filter(status='FAILED').count()
                 
-                c_total = camp.nb_test_cases if camp.nb_test_cases and camp.nb_test_cases > 0 else c_db_total
+                c_total = max(camp.nb_test_cases or 0, c_db_total)
                 total_tests += c_total
                 passed_tests += c_db_passed
                 failed_tests += c_db_failed
@@ -50,15 +50,15 @@ class ReleaseReadinessManager:
                     c_ml = self.ml_guard.get_campaign_status(camp.id)
                     c_status = c_ml.get('status', 'INITIAL')
                     
-                    # Order of severity: CRITICAL > WARNING > INITIAL/WAITING > OPTIMAL
-                    if c_status == 'CRITICAL' or worst_ml_status == 'INITIAL':
-                        worst_ml_status = 'CRITICAL'
-                    elif c_status == 'WARNING' and worst_ml_status not in ['CRITICAL']:
-                        worst_ml_status = 'WARNING'
-                    elif c_status in ['INITIAL', 'WAITING'] and worst_ml_status not in ['CRITICAL', 'WARNING']:
-                         worst_ml_status = 'WAITING'
-                    elif c_status == 'OPTIMAL' and worst_ml_status not in ['CRITICAL', 'WARNING', 'WAITING']:
-                        worst_ml_status = 'OPTIMAL'
+                    # Order of severity: CRITICAL (4) > WARNING (3) > WAITING/INITIAL (2) > OPTIMAL (0)
+                    status_severity = {'CRITICAL': 4, 'WARNING': 3, 'WAITING': 2, 'INITIAL': 2, 'OPTIMAL': 0}
+                    c_status_clean = 'WAITING' if c_status in ['INITIAL', 'WAITING'] else c_status
+                    
+                    if worst_ml_status == 'INITIAL':
+                        worst_ml_status = c_status_clean
+                    else:
+                        if status_severity.get(c_status_clean, 0) > status_severity.get(worst_ml_status, 0):
+                            worst_ml_status = c_status_clean
                     
                     highest_delay = max(highest_delay, c_ml.get('delay_days', 0))
                     highest_confidence = max(highest_confidence, c_ml.get('confidence_score', 0))

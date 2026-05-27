@@ -21,7 +21,8 @@ const AdminCampaigns = () => {
         const params = new URLSearchParams(location.search);
         return params.get('search') || '';
     });
-    const [statusFilter, setStatusFilter] = useState('ALL');
+    const [businessProjectFilter, setBusinessProjectFilter] = useState('ALL');
+    const [releaseFilter, setReleaseFilter] = useState('ALL');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 12;
@@ -53,20 +54,31 @@ const AdminCampaigns = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, statusFilter]);
+    }, [searchQuery, businessProjectFilter, releaseFilter]);
+
+    const uniqueBusinessProjects = useMemo(() => {
+        const projects = campaigns.map(c => c.business_project_name).filter(Boolean);
+        return Array.from(new Set(projects));
+    }, [campaigns]);
+
+    const uniqueReleases = useMemo(() => {
+        const releases = campaigns.map(c => c.project_name).filter(Boolean);
+        return Array.from(new Set(releases));
+    }, [campaigns]);
 
     const filteredCampaigns = useMemo(() => {
         return campaigns.filter(campaign => {
             const matchesSearch = campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (campaign.description && campaign.description.toLowerCase().includes(searchQuery.toLowerCase()));
-            const matchesStatus = statusFilter === 'ALL' || (statusFilter === 'active' ? campaign.project : !campaign.project);
-            return matchesSearch && matchesStatus;
+            const matchesBusinessProject = businessProjectFilter === 'ALL' || campaign.business_project_name === businessProjectFilter;
+            const matchesRelease = releaseFilter === 'ALL' || campaign.project_name === releaseFilter;
+            return matchesSearch && matchesBusinessProject && matchesRelease;
         }).sort((a, b) => {
             const dateA = new Date(a.created_at || 0).getTime();
             const dateB = new Date(b.created_at || 0).getTime();
             return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
         });
-    }, [campaigns, searchQuery, sortOrder, statusFilter]);
+    }, [campaigns, searchQuery, sortOrder, businessProjectFilter, releaseFilter]);
 
     const paginatedCampaigns = useMemo(() => {
         const startIndex = (currentPage - 1) * pageSize;
@@ -126,28 +138,41 @@ const AdminCampaigns = () => {
         }
     };
 
+    const DescriptionCell = ({ text }: { text: string }) => {
+        const [expanded, setExpanded] = useState(false);
+        if (!text) return <span className="text-xs text-slate-500 italic opacity-50">{t('common.noDescription')}</span>;
+        
+        const isLong = text.length > 60;
+        
+        return (
+            <div className="text-xs text-slate-500 max-w-xs">
+                <span className={expanded ? "whitespace-normal break-words italic" : "line-clamp-1 italic"}>
+                    {text}
+                </span>
+                {isLong && (
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+                        className="text-blue-500 hover:text-blue-400 font-bold mt-1 text-[10px] uppercase tracking-widest transition-colors"
+                    >
+                        {expanded ? "Réduire" : "Lire la suite"}
+                    </button>
+                )}
+            </div>
+        );
+    };
+
     const columns = [
         {
             header: t('adminCampaigns.table.title'),
             accessor: (item: any) => (
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/20 group-hover:scale-110 transition-transform">
-                        <BookOpen className="w-5 h-5" />
-                    </div>
-                    <div className="flex flex-col gap-0.5">
-                        <span className="font-bold text-white group-hover:text-purple-400 transition-colors tracking-tight text-base">{item.title}</span>
-                        <span className="text-[10px] text-slate-500 font-medium tracking-widest">REF: #{String(item.id).substring(0, 8)}</span>
-                    </div>
+                <div className="flex items-center gap-3">
+                    <span className="font-bold text-white group-hover:text-blue-400 transition-colors tracking-tight text-base">{item.title}</span>
                 </div>
             )
         },
         {
             header: t('adminCampaigns.table.description'),
-            accessor: (item: any) => (
-                <span className="text-slate-500 text-xs italic line-clamp-1 max-w-xs" title={item.description}>
-                    {item.description || t('common.noDescription')}
-                </span>
-            )
+            accessor: (item: any) => <DescriptionCell text={item.description} />
         },
         {
             header: t('adminCampaigns.table.project'),
@@ -204,7 +229,7 @@ const AdminCampaigns = () => {
                         title={t('adminCampaigns.stats.projects')}
                         value={stats.uniqueProjects}
                         icon={Layers}
-                        variant="purple"
+                        variant="blue"
                         description={t('adminCampaigns.stats.projectsDesc')}
                         isLoading={loading}
                     />
@@ -228,13 +253,24 @@ const AdminCampaigns = () => {
                     filters={
                         <div className="flex items-center gap-4">
                             <select
-                                className="bg-transparent text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-white/5 transition-all rounded-xl"
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
+                                className="bg-transparent text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-white/5 transition-all rounded-xl"
+                                value={businessProjectFilter}
+                                onChange={(e) => setBusinessProjectFilter(e.target.value)}
                             >
-                                <option value="ALL" className="bg-slate-900">{t('adminCampaigns.filters.all')}</option>
-                                <option value="active" className="bg-slate-900">{t('adminCampaigns.filters.active')}</option>
-                                <option value="inactive" className="bg-slate-900">{t('adminCampaigns.filters.inactive')}</option>
+                                <option value="ALL" className="bg-slate-900">{t('adminCampaigns.filters.allProjects', 'TOUS LES PROJETS')}</option>
+                                {uniqueBusinessProjects.map(project => (
+                                    <option key={project} value={project} className="bg-slate-900">{project}</option>
+                                ))}
+                            </select>
+                            <select
+                                className="bg-transparent text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-white/5 transition-all rounded-xl"
+                                value={releaseFilter}
+                                onChange={(e) => setReleaseFilter(e.target.value)}
+                            >
+                                <option value="ALL" className="bg-slate-900">{t('adminCampaigns.filters.allReleases', 'TOUTES LES RELEASES')}</option>
+                                {uniqueReleases.map(release => (
+                                    <option key={release} value={release} className="bg-slate-900">{release}</option>
+                                ))}
                             </select>
                             <select
                                 className="bg-transparent text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-white/5 transition-all rounded-xl"

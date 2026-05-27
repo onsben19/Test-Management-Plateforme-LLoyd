@@ -74,12 +74,25 @@ const AIBriefCard: React.FC<AIBriefCardProps> = ({
         return () => clearInterval(interval);
     }, [fullText]);
 
+    const dynamicAnchor = useMemo(() => {
+        if (loading || (stats.totalUsers === 0 && stats.activeProjects === 0)) {
+            return anchorId;
+        }
+        if (stats.successRate < 70 && stats.successRate > 0) {
+            return 'execution-trend';
+        }
+        if (stats.openAnomalies > 10) {
+            return 'anomaly-distribution';
+        }
+        return anchorId;
+    }, [stats, loading, anchorId]);
+
     const scrollToAnomalies = () => {
         if (onViewAnalysis) {
-            onViewAnalysis(); // We'll keep it simple for now as the parent already has the ID in state, but usually passing it is better.
+            onViewAnalysis();
             return;
         }
-        const element = document.getElementById(anchorId);
+        const element = document.getElementById(dynamicAnchor);
         if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }

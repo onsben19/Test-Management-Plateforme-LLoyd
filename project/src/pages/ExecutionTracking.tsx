@@ -37,6 +37,7 @@ import {
     Award
 } from 'lucide-react';
 import CatchupPlanIA from '../components/CatchupPlanIA';
+import AIAutomationModal from '../components/AIAutomationModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import Pagination from '../components/Pagination';
@@ -59,6 +60,7 @@ const ExecutionTracking = () => {
     const [activeTab, setActiveTab] = useState<'list' | 'performance'>('list');
     const [selectedTest, setSelectedTest] = useState<TestItem | null>(null);
     const [editingTest, setEditingTest] = useState<TestItem | null>(null);
+    const [testToAutomate, setTestToAutomate] = useState<TestItem | null>(null);
     const [tests, setTests] = useState<TestItem[]>([]);
     const [viewingCaptures, setViewingCaptures] = useState<TestItem | null>(null);
     const [loading, setLoading] = useState(true);
@@ -72,7 +74,7 @@ const ExecutionTracking = () => {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-    const [groupBy, setGroupBy] = useState<'none' | 'campaign' | 'release'>('none');
+    const [groupBy, setGroupBy] = useState<'none' | 'campaign' | 'release' | 'project'>('none');
 
     const [projects, setProjects] = useState<any[]>([]);
     const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -143,9 +145,10 @@ const ExecutionTracking = () => {
         } else if (!selectedTest || selectedTest.id !== testId) {
             executionService.getExecution(testId).then(res => {
                 const t = res.data;
+                const rawName = t.test_case_ref || `Test ${t.id}`;
                 setSelectedTest({
                     id: t.id.toString(),
-                    name: t.test_case_ref || `Test ${t.id}`,
+                    name: rawName.length > 45 ? rawName.substring(0, 45) + '...' : rawName,
                     module: t.campaign_title || `Campagne #${t.campaign}`,
                     assigned_to: t.assigned_tester_name || 'Non assigné',
                     realized_by: t.tester_name || 'Non assigné',
@@ -194,21 +197,27 @@ const ExecutionTracking = () => {
 
             setTotalItems(count);
 
-            const mappedTests: TestItem[] = data.map((t: any, index: number) => ({
-                id: (t.id || index).toString(),
-                name: t.test_case_ref || `Test ${t.id}`,
-                module: t.campaign_title || `Campagne #${t.campaign}`,
-                assigned_to: t.assigned_tester_name || 'Non assigné',
-                realized_by: t.tester_name || 'Non assigné',
-                status: t.status.toLowerCase(),
-                duration: 'N/A',
-                lastRun: new Date(t.execution_date || Date.now()).toLocaleString('fr-FR'),
+            const mappedTests: TestItem[] = data.map((t: any, index: number) => {
+                const rawName = t.test_case_ref || `Test ${t.id}`;
+                const displayName = rawName.length > 45 ? rawName.substring(0, 45) + '...' : rawName;
+                return {
+                    id: (t.id || index).toString(),
+                    name: displayName,
+                    module: t.campaign_title || `Campagne #${t.campaign}`,
+                    assigned_to: t.assigned_tester_name || 'Non assigné',
+                    realized_by: t.tester_name || 'Non assigné',
+                    status: t.status.toLowerCase(),
+                    duration: 'N/A',
+                    lastRun: new Date(t.execution_date || Date.now()).toLocaleString('fr-FR'),
                 rawDate: t.execution_date,
                 captures: t.proof_file ? [t.proof_file] : [],
                 release: t.project_name || 'Release A',
                 businessProject: t.business_project_name || 'Global',
-                releaseType: t.release_type
-            }));
+                releaseType: t.release_type,
+                execution_logs: t.data_json?.execution_logs,
+                automation_code: t.automation_code
+            };
+        });
             setTests(mappedTests);
         } catch (error) {
             console.error('Failed to load executions', error);
@@ -303,9 +312,10 @@ const ExecutionTracking = () => {
                                 <select
                                     className="bg-transparent text-white text-[10px] font-black uppercase tracking-[0.2em] pl-4 pr-10 py-2 outline-none cursor-pointer appearance-none relative z-10"
                                     value={groupBy}
-                                    onChange={(e) => setGroupBy(e.target.value as 'none' | 'campaign' | 'release')}
+                                    onChange={(e) => setGroupBy(e.target.value as 'none' | 'campaign' | 'release' | 'project')}
                                 >
                                     <option value="none" className="bg-slate-950">{t('execution.filters.groupNone') || "SANS GROUPEMENT"}</option>
+                                    <option value="project" className="bg-slate-950">{t('execution.filters.groupProject') || "PAR PROJET"}</option>
                                     <option value="campaign" className="bg-slate-950">{t('execution.filters.groupCampaign') || "PAR CAMPAGNE"}</option>
                                     <option value="release" className="bg-slate-950">{t('execution.filters.groupRelease') || "PAR RELEASE"}</option>
                                 </select>
@@ -334,6 +344,7 @@ const ExecutionTracking = () => {
                                 onViewCaptures={setViewingCaptures}
                                 onEditTest={setEditingTest}
                                 onDeleteTest={handleDeleteTest}
+                                onAutomateTest={setTestToAutomate}
                                 isTester={isTester}
                                 canManage={canManage}
                                 canDelete={canDelete}
@@ -448,6 +459,16 @@ const ExecutionTracking = () => {
                         />
                     </div>
                 </div>,
+                document.body
+            )}
+
+            {/* AI Automation Modal */}
+            {typeof document !== 'undefined' && testToAutomate && createPortal(
+                <AIAutomationModal
+                    test={testToAutomate}
+                    onClose={() => setTestToAutomate(null)}
+                    onUpdate={() => fetchExecutions(currentPage)}
+                />,
                 document.body
             )}
         </PageLayout>

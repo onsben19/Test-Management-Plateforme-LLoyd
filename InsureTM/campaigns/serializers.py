@@ -110,6 +110,14 @@ class CampaignSerializer(serializers.ModelSerializer):
         
         return instance
 
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        from testCases.models import TestCase
+        db_count = TestCase.objects.filter(campaign=instance).count()
+        ret['nb_test_cases'] = max(instance.nb_test_cases, db_count)
+        return ret
+
+
     class Meta:
         model = Campaign
         fields = [

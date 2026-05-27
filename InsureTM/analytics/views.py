@@ -16,11 +16,12 @@ from datetime import datetime
 from campaigns.models import Campaign
 from anomalies.models import Anomalie
 from testCases.models import TestCase
+from .models import Conversation, Message
 from .groq_service import GroqService
 from .ml_service import MLTimelineGuard
 from .readiness_service import ReleaseReadinessManager
-from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
+from .ollama_service import OllamaService
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +102,49 @@ class AskAgentView(APIView):
             return Response({'error': 'An internal error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class OllamaChatView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        query = request.data.get('query')
+        context = request.data.get('context', '')
+        
+        if not query:
+            return Response({'error': 'Query is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            # Using Groq instead of Ollama for immediate functionality
+            groq = GroqService()
+            # More general-purpose system prompt
+            system_prompt = """
+            Tu es un assistant IA universel et omniscient intégré à la plateforme InsureTM.
+            TES MISSIONS :
+            1. Répondre avec expertise à TOUTE question sur la plateforme InsureTM (tests, QA, anomalies).
+            2. Répondre de manière polyvalente à TOUTE question hors-plateforme (culture générale, météo, conseils, e-mails, cuisine, etc.).
+            3. Si tu ne connais pas une information en temps réel (comme la météo exacte à l'instant T), fournis une estimation basée sur tes connaissances ou guide l'utilisateur, mais ne refuse jamais d'aider.
+            
+            TON STYLE : Professionnel, chaleureux, concis et extrêmement intelligent. Réponds en Français.
+            """
+            
+            completion = groq.client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "system", "content": f"Contexte de navigation : {context}"},
+                    {"role": "user", "content": query}
+                ],
+                model="llama-3.3-70b-versatile",
+                temperature=0.7,
+            )
+            answer = completion.choices[0].message.content
+            
+            return Response({
+                'answer': answer,
+                'model': 'Llama 3.3 (Groq)'
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class CampaignTimelineGuardView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -125,12 +169,13 @@ class ReformulateMessageView(APIView):
     def post(self, request):
         message = request.data.get('message')
         is_subject = request.data.get('is_subject', False)
+        is_test_steps = request.data.get('is_test_steps', False)
 
         if not message:
             return Response({'error': 'Message is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            reformulated = GroqService().reformulate_message(message, is_subject=is_subject)
+            reformulated = GroqService().reformulate_message(message, is_subject=is_subject, is_test_steps=is_test_steps)
             return Response({'reformulated_message': reformulated})
         except Exception:
             logger.exception("Error reformulating message for user %s", request.user.username)
@@ -442,6 +487,14 @@ class NotifyCatchupView(APIView):
         success = CatchupRecommendationManager().send_to_n8n(plan_data)
         
         if success:
+            # Track each notification in the DB
+            from .models import ReinforcementNotification
+            for t in testers:
+                ReinforcementNotification.objects.update_or_create(
+                    campaign=campaign,
+                    tester=t,
+                    defaults={'status': 'PENDING'}
+                )
             return Response({'status': 'success', 'message': 'Notification envoyée à n8n.'})
         return Response({'error': "Erreur lors de l'envoi à n8n."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -450,6 +503,13 @@ class AcceptReinforcementView(APIView):
     permission_classes = [AllowAny]
     
     def post(self, request):
+        # --- Token security check ---
+        import os
+        expected_token = os.environ.get('N8N_WEBHOOK_TOKEN', '')
+        received_token = request.data.get('token') or request.query_params.get('token', '')
+        if expected_token and received_token != expected_token:
+            return Response({'error': 'Unauthorized: invalid token'}, status=status.HTTP_403_FORBIDDEN)
+
         campaign_id = request.data.get('campaign_id') or request.query_params.get('campaign_id')
         tester_id = request.data.get('tester_id') or request.query_params.get('tester_id')
         
@@ -459,6 +519,7 @@ class AcceptReinforcementView(APIView):
             
         try:
             from campaigns.models import Campaign, CampaignAssignment
+            from django.utils import timezone
             campaign = get_object_or_404(Campaign, id=campaign_id)
             
             # Create or update the assignment
@@ -467,10 +528,77 @@ class AcceptReinforcementView(APIView):
                 tester_id=tester_id,
                 defaults={'test_quota': 0}
             )
+
+            # Update monitoring status → ACCEPTED
+            from .models import ReinforcementNotification
+            ReinforcementNotification.objects.filter(
+                campaign=campaign, tester_id=tester_id
+            ).update(status='ACCEPTED', replied_at=timezone.now())
             
             return Response({'status': 'success', 'message': f'Tester {tester_id} assigned to campaign {campaign_id}'})
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+class RefuseReinforcementView(APIView):
+    """Called by n8n when a tester clicks 'Refuser' — updates status to REFUSED."""
+    from rest_framework.permissions import AllowAny
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return self.post(request)
+
+    def post(self, request):
+        from django.utils import timezone
+        campaign_id = request.data.get('campaign_id') or request.query_params.get('campaign_id')
+        tester_id = request.data.get('tester_id') or request.query_params.get('tester_id')
+
+        if not campaign_id or not tester_id:
+            return Response({'error': 'Missing parameters'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from campaigns.models import Campaign
+            campaign = get_object_or_404(Campaign, id=campaign_id)
+
+            from .models import ReinforcementNotification
+            updated = ReinforcementNotification.objects.filter(
+                campaign=campaign, tester_id=tester_id
+            ).update(status='REFUSED', replied_at=timezone.now())
+
+            return Response({'status': 'refused', 'updated': updated})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ReinforcementStatusView(APIView):
+    """Returns the reinforcement notification status for a campaign (for dashboard monitoring)."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, campaign_id):
+        from .models import ReinforcementNotification
+        notifications = ReinforcementNotification.objects.filter(
+            campaign_id=campaign_id
+        ).select_related('tester')
+
+        data = []
+        for n in notifications:
+            data.append({
+                'tester_id':   n.tester.id,
+                'tester_name': n.tester.get_full_name() or n.tester.username,
+                'tester_email': n.tester.email,
+                'status':      n.status,
+                'sent_at':     n.sent_at.strftime('%d/%m %H:%M') if n.sent_at else None,
+                'replied_at':  n.replied_at.strftime('%d/%m %H:%M') if n.replied_at else None,
+            })
+
+        summary = {
+            'total':    len(data),
+            'pending':  sum(1 for d in data if d['status'] == 'PENDING'),
+            'accepted': sum(1 for d in data if d['status'] == 'ACCEPTED'),
+            'refused':  sum(1 for d in data if d['status'] == 'REFUSED'),
+        }
+        return Response({'notifications': data, 'summary': summary})
 
 class ApplyRecommendationActionView(APIView):
     permission_classes = [IsAuthenticated]
@@ -504,8 +632,8 @@ class HistoricalReleasesView(APIView):
             data = []
             for camp in campaigns:
                 tcs = TestCase.objects.filter(campaign=camp)
-                # On utilise nb_test_cases défini dans le modèle ou le count réel
-                total = camp.nb_test_cases or tcs.count()
+                # On utilise le count réel en base de préférence, ou nb_test_cases défini dans le modèle
+                total = tcs.count() or camp.nb_test_cases
                 passed = tcs.filter(status='PASSED').count()
                 
                 anomalies = Anomalie.objects.filter(test_case__campaign=camp).count()
@@ -575,8 +703,9 @@ class HistoricalTestersView(APIView):
                     tc_set = TestCase.objects.filter(campaign=camp, tester=user)
                     if not tc_set.exists(): continue
                     
-                    passed = tc_set.filter(status='PASSED').count()
-                    total = tc_set.count()
+                    executed_tc_set = tc_set.exclude(status='PENDING')
+                    passed = executed_tc_set.filter(status='PASSED').count()
+                    total = executed_tc_set.count()
                     
                     exec_dates = tc_set.filter(execution_date__isnull=False).values_list('execution_date', flat=True)
                     velocity = 0
@@ -675,3 +804,38 @@ class HistoricalModulesView(APIView):
         except Exception as e:
             logger.exception("Error in HistoricalModulesView")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class QANewsListView(APIView):
+    """View to list QA news and tips, with an option to trigger scraping."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .models import QANews
+        from .scraping_service import QAScrapingService
+        
+        # Optionnel: scraper si on a moins de 3 news
+        if QANews.objects.count() < 3:
+            try:
+                QAScrapingService().scrape_and_update()
+            except:
+                pass
+            
+        news = QANews.objects.all()[:5]
+        data = []
+        for n in news:
+            data.append({
+                'id': n.id,
+                'title': n.title,
+                'url': n.url,
+                'source': n.source,
+                'ai_tip': n.ai_tip,
+                'created_at': n.created_at.strftime('%d/%m/%Y')
+            })
+        return Response(data)
+
+    def post(self, request):
+        """Manually trigger scraping."""
+        from .scraping_service import QAScrapingService
+        new_count = QAScrapingService().scrape_and_update()
+        return Response({'status': 'success', 'new_items': new_count})
+

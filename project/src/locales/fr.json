@@ -301,6 +301,8 @@
         },
         "filters": {
             "all": "Tous les statuts",
+            "allProjects": "Tous les projets",
+            "allReleases": "Toutes les releases",
             "active": "Actif",
             "inactive": "Désactivé"
         },
@@ -328,8 +330,8 @@
         }
     },
     "adminComments": {
-        "title": "Journal des Commentaires",
-        "subtitle": "Gérez les échanges et retours d'expérience sur les tests de manière proactive",
+        "title": "Gestion des Échanges",
+        "subtitle": "AUDIT LOGS & DISCUSSIONS",
         "searchPlaceholder": "Rechercher un commentaire...",
         "stats": {
             "total": "Commentaires",
@@ -430,6 +432,7 @@
             "oldest": "Plus anciens",
             "group": "Grouper :",
             "none": "Aucun",
+            "project": "Projet",
             "campaign": "Campagne",
             "release": "Release"
         },
@@ -999,6 +1002,7 @@
             "sortNewest": "Plus récent",
             "sortOldest": "Plus ancien",
             "groupNone": "Aucun groupement",
+            "groupProject": "Par Projet",
             "groupCampaign": "Par Campagne",
             "groupRelease": "Par Release"
         },
@@ -1167,14 +1171,15 @@
     },
     "portfolio": {
         "title": "Gestion des Projets",
-        "titleAdmin": "Audit des Projets",
+        "titleAdmin": "Gestion des Projets",
         "subtitle": "PROJETS DISPONIBLES",
-        "subtitleAdmin": "VUE DÉTAILLÉE DU RÉFÉRENTIEL",
+        "subtitleAdmin": "VUE DÉTAILLÉE DES PROJETS",
         "stats": {
             "active": "Projets Actifs",
             "totalReleases": "Total Releases"
         },
         "table": {
+            "project": "Projet",
             "description": "Description",
             "releases": "Releases",
             "createdAt": "Créé le",

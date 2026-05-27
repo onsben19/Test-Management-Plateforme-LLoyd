@@ -1,19 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PageLayout from '../components/PageLayout';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
 import { campaignService, executionService, anomalyService, aiService } from '../services/api';
-import { CheckCircle, XCircle, AlertTriangle, Eye, List, Calendar, Layers, LayoutGrid, Search, Filter, User, Sparkles, TrendingUp, Clock, ChevronRight } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Eye, List, Calendar, Layers, LayoutGrid, Search, Filter, User, Sparkles, TrendingUp, Clock, ChevronRight, Play, Code } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Pagination from '../components/Pagination';
 import { motion, AnimatePresence } from 'framer-motion';
 import StatCard from '../components/StatCard';
 import { Target, Activity, FileText as FileIcon } from 'lucide-react';
 import ReadinessDetailModal from '../components/ReadinessDetailModal';
+import QANewsHub from '../components/QANewsHub';
+import ValidateCasDeTest from '../components/ValidateCasDeTest';
 
 const TesterDashboard = () => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -47,8 +51,14 @@ const TesterDashboard = () => {
         anomaly_impact: 'MINEURS',
         anomaly_priority: 'NORMALE',
         anomaly_visibility: 'PUBLIQUE',
-        anomaly_file: null as File | null
+        anomaly_file: null as File | null,
+        executionType: 'ai' as 'manual' | 'ai',
+        manualData: '',
+        code: ''
     });
+    const [generatingCode, setGeneratingCode] = useState(false);
+    const [executingCode, setExecutingCode] = useState(false);
+    const [executionResult, setExecutionResult] = useState<{ status: string; logs: string } | null>(null);
 
     useEffect(() => {
         if (user) {
@@ -154,13 +164,81 @@ const TesterDashboard = () => {
             anomaly_impact: 'MINEURS',
             anomaly_priority: 'NORMALE',
             anomaly_visibility: 'PUBLIQUE',
-            anomaly_file: null
+            anomaly_file: null,
+            executionType: 'ai',
+            manualData: '',
+            code: ''
         });
+    };
+
+    const handleGenerateScript = async () => {
+        if (!testCaseForm.test_case_ref || !testCaseForm.manualData) {
+            toast.error("Veuillez saisir la référence et les étapes du test.");
+            return;
+        }
+        setGeneratingCode(true);
+        try {
+            const res = await executionService.generateScriptStandalone({
+                title: testCaseForm.test_case_ref,
+                manual_data: testCaseForm.manualData
+            });
+            setTestCaseForm(prev => ({ ...prev, code: res.data.code }));
+            toast.success("Code généré avec succès");
+        } catch (error) {
+            toast.error("Erreur lors de la génération du code");
+        } finally {
+            setGeneratingCode(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validationModal.campaign || !user) return;
+
+        if (testCaseForm.executionType === 'ai') {
+            if (!testCaseForm.code) {
+                toast.error("Veuillez d'abord générer le code Playwright.");
+                return;
+            }
+            setExecutingCode(true);
+            try {
+                // 1. Create TestCase with status PENDING
+                const executionData = new FormData();
+                executionData.append('campaign', validationModal.campaign.id);
+                executionData.append('test_case_ref', testCaseForm.test_case_ref);
+                executionData.append('status', 'PASSED');
+                executionData.append('tester', user.id.toString());
+                executionData.append('data_json', JSON.stringify({ manualData: testCaseForm.manualData }));
+
+                const execResponse = await executionService.createExecution(executionData);
+                const testId = execResponse.data.id;
+
+                // 2. Save script
+                await executionService.saveScript(testId, testCaseForm.code);
+
+                // 3. Execute script (backend handles PASSED/FAILED and Anomaly creation)
+                const execRes = await executionService.executeScript(testId);
+
+                if (execRes.data.status === 'FAILED') {
+                    toast.warning(`Test échoué. Une anomalie a été déclarée automatiquement.`);
+                } else {
+                    toast.success(`Test réussi !`);
+                }
+
+                setExecutionResult({
+                    status: execRes.data.status,
+                    logs: execRes.data.logs
+                });
+
+                fetchAssignedCampaigns(currentPage);
+            } catch (error) {
+                console.error("AI Execution failed", error);
+                toast.error("Erreur lors de l'exécution automatique");
+            } finally {
+                setExecutingCode(false);
+            }
+            return;
+        }
 
         try {
             const executionData = new FormData();
@@ -357,6 +435,31 @@ const TesterDashboard = () => {
             subtitle={t('testerDashboard.subtitle')}
         >
             <div className="space-y-12">
+                {/* QA Intelligence Hub Teaser - NEW */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="relative overflow-hidden bg-gradient-to-r from-indigo-600/20 to-cyan-600/20 border border-white/10 rounded-[2.5rem] p-8 group cursor-pointer"
+                    onClick={() => navigate('/qa-intelligence')}
+                >
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="flex items-center gap-6">
+                            <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 border border-indigo-500/30">
+                                <Sparkles size={32} />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">QA Intelligence Hub</h2>
+                                <p className="text-sm text-slate-400 font-medium">Découvrez les dernières tendances et conseils IA pour booster vos tests.</p>
+                            </div>
+                        </div>
+                        <button className="px-8 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all border border-white/10 group-hover:scale-105 active:scale-95">
+                            Accéder au Hub →
+                        </button>
+                    </div>
+                    {/* Background decoration */}
+                    <div className="absolute top-0 right-0 w-64 h-full bg-white/5 skew-x-[-20deg] translate-x-20 group-hover:translate-x-10 transition-transform duration-700" />
+                </motion.div>
+
                 {/* Stats Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatCard
@@ -505,206 +608,19 @@ const TesterDashboard = () => {
 
                 <AnimatePresence>
                     {validationModal.isOpen && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                onClick={() => setValidationModal({ isOpen: false, campaign: null })}
-                                className="absolute inset-0 bg-black/60 backdrop-blur-md"
-                            />
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                                className="relative w-full max-w-2xl bg-[#0f172a] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl"
-                            >
-                                <div className="p-8 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-blue-600/10 to-transparent">
-                                    <div>
-                                        <h2 className="text-2xl font-black text-white tracking-widest uppercase">{t('testerDashboard.modal.title')}</h2>
-                                        <div className="flex flex-wrap gap-4 mt-3">
-                                            <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                                <Layers className="w-3 h-3 text-blue-400" />
-                                                {validationModal.campaign?.project_name}
-                                            </div>
-                                            <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                                <Calendar className="w-3 h-3 text-blue-400" />
-                                                {validationModal.campaign?.title}
-                                            </div>
-                                            <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                                <User className="w-3 h-3 text-blue-400" />
-                                                {t('testerDashboard.modal.manager')} {validationModal.campaign?.manager_name}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => setValidationModal({ isOpen: false, campaign: null })}
-                                        className="p-3 bg-white/5 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-all border border-white/5"
-                                    >
-                                        <XCircle className="w-6 h-6" />
-                                    </button>
-                                </div>
-
-                                <form onSubmit={handleSubmit}>
-                                    <div className="p-8 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('testerDashboard.modal.testRefLabel')}</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                value={testCaseForm.test_case_ref}
-                                                onChange={e => setTestCaseForm({ ...testCaseForm, test_case_ref: e.target.value })}
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
-                                                placeholder={t('testerDashboard.modal.testRefPlaceholder')}
-                                            />
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('testerDashboard.modal.proofLabel')}</label>
-                                            <div className="flex items-center gap-3">
-                                                <label className={`flex-1 cursor-pointer border-2 border-dashed rounded-2xl p-4 text-center transition-all ${testCaseForm.anomaly_file ? 'border-blue-500 bg-blue-500/10' : 'border-white/10 hover:bg-white/5'}`}>
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*, .pdf, .docx"
-                                                        onChange={e => {
-                                                            if (e.target.files && e.target.files[0]) {
-                                                                setTestCaseForm({ ...testCaseForm, anomaly_file: e.target.files[0] });
-                                                            }
-                                                        }}
-                                                        className="hidden"
-                                                    />
-                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate block">
-                                                        {testCaseForm.anomaly_file ? testCaseForm.anomaly_file.name : t('testerDashboard.modal.addCapture')}
-                                                    </span>
-                                                </label>
-                                                {testCaseForm.anomaly_file && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setTestCaseForm({ ...testCaseForm, anomaly_file: null })}
-                                                        className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-2xl transition-all"
-                                                    >
-                                                        <XCircle className="w-5 h-5" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('testerDashboard.modal.statusLabel')}</label>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <button
-                                                type="button"
-                                                onClick={() => setTestCaseForm({ ...testCaseForm, status: 'PASSED' })}
-                                                className={`p-6 rounded-3xl border-2 flex items-center justify-center gap-3 transition-all ${testCaseForm.status === 'PASSED' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 shadow-lg shadow-emerald-500/10' : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/10'}`}
-                                            >
-                                                <CheckCircle className="w-6 h-6" />
-                                                <span className="text-xs font-black tracking-widest uppercase">{t('testerDashboard.modal.success')}</span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setTestCaseForm({ ...testCaseForm, status: 'FAILED' })}
-                                                className={`p-6 rounded-3xl border-2 flex items-center justify-center gap-3 transition-all ${testCaseForm.status === 'FAILED' ? 'bg-rose-500/10 border-rose-500 text-rose-400 shadow-lg shadow-rose-500/10' : 'bg-white/5 border-white/5 text-slate-500 hover:border-white/10'}`}
-                                            >
-                                                <AlertTriangle className="w-6 h-6" />
-                                                <span className="text-xs font-black tracking-widest uppercase">{t('testerDashboard.modal.failure')}</span>
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <AnimatePresence>
-                                        {testCaseForm.status === 'FAILED' && (
-                                            <motion.div
-                                                initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                                                animate={{ opacity: 1, height: 'auto', marginTop: 24 }}
-                                                exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                                                className="bg-rose-500/5 border border-rose-500/20 rounded-3xl p-6 space-y-6 overflow-hidden"
-                                            >
-                                                <div className="flex items-center gap-3 text-rose-500 animate-pulse">
-                                                    <AlertTriangle className="w-5 h-5" />
-                                                    <h3 className="text-xs font-black tracking-widest uppercase">{t('testerDashboard.modal.anomalyTitle')}</h3>
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('testerDashboard.modal.anomalyNameLabel')}</label>
-                                                    <input
-                                                        type="text"
-                                                        required
-                                                        value={testCaseForm.anomaly_title}
-                                                        onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_title: e.target.value })}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-rose-500/50 outline-none transition-all font-bold"
-                                                    />
-                                                </div>
-
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Impact</label>
-                                                        <select
-                                                            value={testCaseForm.anomaly_impact}
-                                                            onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_impact: e.target.value })}
-                                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-rose-500/50 outline-none transition-all font-bold appearance-none cursor-pointer"
-                                                        >
-                                                            <option value="BLOQUANTES" className="bg-slate-900">BLOQUANTES</option>
-                                                            <option value="CRITIQUE" className="bg-slate-900">CRITIQUE</option>
-                                                            <option value="MAJEUR" className="bg-slate-900">MAJEUR</option>
-                                                            <option value="MINEURS" className="bg-slate-900">MINEURS</option>
-                                                            <option value="SIMPLE" className="bg-slate-900">SIMPLE</option>
-                                                            <option value="FONCTIONNALITE" className="bg-slate-900">FONCTIONNALITÉ</option>
-                                                        </select>
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Priorité</label>
-                                                        <select
-                                                            value={testCaseForm.anomaly_priority}
-                                                            onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_priority: e.target.value })}
-                                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-rose-500/50 outline-none transition-all font-bold appearance-none cursor-pointer"
-                                                        >
-                                                            <option value="IMMEDIATE" className="bg-slate-900">IMMÉDIATE</option>
-                                                            <option value="URGENTE" className="bg-slate-900">URGENTE</option>
-                                                            <option value="ELEVEE" className="bg-slate-900">ÉLEVÉE</option>
-                                                            <option value="NORMALE" className="bg-slate-900">NORMALE</option>
-                                                            <option value="BASSE" className="bg-slate-900">BASSE</option>
-                                                        </select>
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Visibilité</label>
-                                                        <select
-                                                            value={testCaseForm.anomaly_visibility}
-                                                            onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_visibility: e.target.value })}
-                                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-rose-500/50 outline-none transition-all font-bold appearance-none cursor-pointer"
-                                                        >
-                                                            <option value="PUBLIQUE" className="bg-slate-900">PUBLIQUE</option>
-                                                            <option value="PRIVEE" className="bg-slate-900">PRIVÉE</option>
-                                                        </select>
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('testerDashboard.modal.anomalyDescLabel')}</label>
-                                                        <textarea
-                                                            required
-                                                            value={testCaseForm.anomaly_description}
-                                                            onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_description: e.target.value })}
-                                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-rose-500/50 outline-none transition-all font-bold min-h-[100px]"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                    </div>
-
-                                    <div className="p-8 border-t border-white/5 bg-white/[0.01]">
-                                        <button
-                                            type="submit"
-                                            className="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-[2rem] font-black tracking-[0.2em] uppercase transition-all shadow-xl shadow-blue-900/40 active:scale-95 group flex items-center justify-center gap-3"
-                                        >
-                                            <CheckCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                            {t('testerDashboard.modal.save')}
-                                        </button>
-                                    </div>
-                                </form>
-                            </motion.div>
-                        </div>
+                        <ValidateCasDeTest
+                            isOpen={validationModal.isOpen}
+                            onClose={() => setValidationModal({ isOpen: false, campaign: null })}
+                            campaign={validationModal.campaign}
+                            testCaseForm={testCaseForm}
+                            setTestCaseForm={setTestCaseForm}
+                            handleGenerateScript={handleGenerateScript}
+                            handleSubmit={handleSubmit}
+                            executingCode={executingCode}
+                            generatingCode={generatingCode}
+                            executionResult={executionResult}
+                            setExecutionResult={setExecutionResult}
+                        />
                     )}
                 </AnimatePresence>
 

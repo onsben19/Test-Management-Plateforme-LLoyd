@@ -410,7 +410,24 @@ const ChatCenter = () => {
                 <div className={`w-full lg:w-96 flex flex-col glass-sidebar relative z-20 ${selectedConv ? 'hidden lg:flex' : 'flex'}`}>
                     <div className="p-8 space-y-6">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">{showArchived ? "Archivées" : "Conversations"}</h3>
+                            <div className="flex items-center gap-3">
+                                {showArchived && (
+                                    <button 
+                                        onClick={() => setShowArchived(false)}
+                                        className="p-2 bg-blue-500/10 text-blue-500 rounded-xl hover:bg-blue-500/20 transition-all"
+                                    >
+                                        <ChevronLeft size={16} />
+                                    </button>
+                                )}
+                                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
+                                    {showArchived ? "Archivées" : "Conversations"}
+                                </h3>
+                                {showArchived && (
+                                    <span className="text-[8px] font-black bg-blue-500/10 text-blue-500 px-2 py-1 rounded-md uppercase tracking-widest animate-pulse">
+                                        Mode Archive
+                                    </span>
+                                )}
+                            </div>
                             <div className="flex gap-2">
                                 <Button 
                                     variant={showArchived ? "primary" : "secondary"} 

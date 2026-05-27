@@ -11,10 +11,14 @@ from .views import (
     CatchupPlanView,
     NotifyCatchupView,
     AcceptReinforcementView,
+    RefuseReinforcementView,
     ApplyRecommendationActionView,
     HistoricalReleasesView,
     HistoricalTestersView,
-    HistoricalModulesView
+    HistoricalModulesView,
+    ReinforcementStatusView,
+    QANewsListView,
+    OllamaChatView,
 )
 
 router = DefaultRouter()
@@ -36,4 +40,8 @@ urlpatterns = [
     path('testers/', HistoricalTestersView.as_view(), name='historical-testers'),
     path('modules/', HistoricalModulesView.as_view(), name='historical-modules'),
     path('accept-reinforcement/', AcceptReinforcementView.as_view(), name='accept-reinforcement'),
+    path('refuse-reinforcement/', RefuseReinforcementView.as_view(), name='refuse-reinforcement'),
+    path('reinforcement-status/<int:campaign_id>/', ReinforcementStatusView.as_view(), name='reinforcement-status'),
+    path('qa-news/', QANewsListView.as_view(), name='qa-news'),
+    path('ollama-chat/', OllamaChatView.as_view(), name='ollama-chat'),
 ]

@@ -90,6 +90,10 @@ export const executionService = {
     updateExecution: (id: string, data: FormData | Record<string, unknown>) =>
         api.patch(`/testcases/${id}/`, data, { headers: multipartHeaders(data) }),
     deleteExecution: (id: string) => api.delete(`/testcases/${id}/`),
+    generateScript: (id: string | number, manual_data?: string) => api.post(`/testcases/${id}/generate-script/`, { manual_data }),
+    generateScriptStandalone: (data: { title: string, manual_data: string }) => api.post('/testcases/generate-script-standalone/', data),
+    saveScript: (id: string | number, code: string) => api.post(`/testcases/${id}/save-script/`, { code }),
+    executeScript: (id: string | number) => api.post(`/testcases/${id}/execute-script/`),
 };
 
 export const anomalyService = {
@@ -137,8 +141,8 @@ export const userService = {
 };
 
 export const aiService = {
-    reformulate: (message: string, isSubject = false) =>
-        api.post('/analytics/reformulate/', { message, is_subject: isSubject }),
+    reformulate: (message: string, isSubject = false, isTestSteps = false) =>
+        api.post('/analytics/reformulate/', { message, is_subject: isSubject, is_test_steps: isTestSteps }),
     getTimelineGuard: (campaignId: string) =>
         api.get(`/analytics/timeline-guard/${campaignId}/`),
     getMessages: (conversationId: string) =>
@@ -161,12 +165,17 @@ export const aiService = {
         api.post(`/analytics/catchup-plan/${campaignId}/`, { tester_ids: testerIds }),
     applyRecommendation: (campaignId: string | number, actionId: string) =>
         api.post('/analytics/apply-recommendation/', { campaign_id: campaignId, action_id: actionId }),
+    getReinforcementStatus: (campaignId: string | number) =>
+        api.get(`/analytics/reinforcement-status/${campaignId}/`),
+    ollamaChat: (query: string, context?: string) =>
+        api.post('/analytics/ollama-chat/', { query, context }),
 };
 
 export const analyticsService = {
     getHistoricalReleases: (projectId: string | number) => api.get('/analytics/releases/', { params: { project_id: projectId } }),
     getHistoricalTesters: (projectId: string | number) => api.get('/analytics/testers/', { params: { project_id: projectId, period: '6_releases' } }),
     getHistoricalModules: (projectId: string | number) => api.get('/analytics/modules/', { params: { project_id: projectId } }),
+    getQANews: () => api.get('/analytics/qa-news/'),
 };
 
 export default api;

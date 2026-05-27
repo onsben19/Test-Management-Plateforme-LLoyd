@@ -4,6 +4,7 @@ import { Theme } from '@radix-ui/themes';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import GlobalAIChat from './src/components/GlobalAIChat';
 
 import Home from './src/pages/Home';
 import Login from './src/pages/Login';
@@ -17,6 +18,7 @@ import ProjectPortfolio from './src/pages/ProjectPortfolio';
 import TesterDashboard from './src/pages/TesterDashboard';
 import NotFound from './src/pages/NotFound';
 import Analytics from './src/pages/Analytics';
+import QANewsPage from './src/pages/QANewsPage';
 
 
 import UserManagement from './src/pages/UserManagement';
@@ -111,6 +113,12 @@ const App: React.FC = () => {
                       </RoleGuard>
                     } />
 
+                    <Route path="/qa-intelligence" element={
+                      <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
+                        <QANewsPage />
+                      </RoleGuard>
+                    } />
+
                     <Route path="/users" element={
                       <RoleGuard allowedRoles={['ADMIN']}>
                         <UserManagement />
@@ -194,6 +202,7 @@ const App: React.FC = () => {
                   pauseOnHover
                   theme="dark"
                 />
+                <GlobalAIChat />
               </main>
             </Router>
           </SidebarProvider>

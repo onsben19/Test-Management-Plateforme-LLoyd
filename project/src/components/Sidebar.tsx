@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import {
   BarChart3, AlertTriangle, Brain, Settings,
   Users, LogOut, MessageSquare, List, Mail, Layers,
-  ChevronLeft, ChevronRight, TestTube, Sparkles, Layout
+  ChevronLeft, ChevronRight, TestTube, Sparkles, Layout,
+  LayoutDashboard, Briefcase, Wand2, Activity, Cpu
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -23,7 +24,7 @@ const Sidebar = () => {
     {
       title: t('sidebar.groups.principal'),
       items: [
-        { name: t('sidebar.dashboard'), href: isAdmin ? '/admin/dashboard' : '/manager/dashboard', icon: Layout, roles: ['ADMIN', 'MANAGER'] },
+        { name: t('sidebar.dashboard'), href: isAdmin ? '/admin/dashboard' : '/manager/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER'] },
         { name: t('sidebar.items.users'), href: '/users', icon: Users, roles: ['ADMIN'] },
         { name: t('sidebar.items.emails'), href: '/management/messages', icon: Mail, roles: ['ADMIN'] },
       ]
@@ -31,7 +32,7 @@ const Sidebar = () => {
     {
       title: t('sidebar.groups.tests'),
       items: [
-        { name: t('sidebar.items.projects'), href: '/portfolio', icon: Layout, roles: ['ADMIN', 'MANAGER', 'manager'] },
+        { name: t('sidebar.items.projects'), href: '/portfolio', icon: Briefcase, roles: ['ADMIN', 'MANAGER', 'manager'] },
         { name: t('sidebar.items.campaigns'), href: isAdmin ? '/admin/campaigns' : '/manager', icon: Brain, roles: ['ADMIN'] },
         { name: t('sidebar.items.testerDashboard'), href: '/tester-dashboard', icon: List, roles: ['tester', 'TESTER'] },
         { name: t('sidebar.items.executions'), href: isAdmin ? '/admin/executions' : '/execution', icon: BarChart3, roles: ['ADMIN', 'tester', 'TESTER', 'MANAGER', 'manager'] },
@@ -44,9 +45,10 @@ const Sidebar = () => {
         { name: t('sidebar.items.comments'), href: '/admin/comments', icon: MessageSquare, roles: ['ADMIN'] },
         { name: t('sidebar.items.messages'), href: '/messages', icon: Mail, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
         { name: t('sidebar.items.chat'), href: '/chat', icon: MessageSquare, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
-        { name: t('sidebar.items.aiDiscussions'), href: '/management/analytics', icon: MessageSquare, roles: ['ADMIN'] },
+        { name: 'Intelligence Hub', href: '/qa-intelligence', icon: Wand2, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
         { name: t('sidebar.items.aiAnalytics'), href: '/analytics', icon: Sparkles, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
       ]
+
     }
   ];
 

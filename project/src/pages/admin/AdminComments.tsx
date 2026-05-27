@@ -99,10 +99,48 @@ const AdminComments = () => {
 
 
 
+    const conversationColumns = [
+        {
+            header: 'Discussion / Contexte',
+            accessor: (conv: any) => (
+                <div className="flex flex-col gap-0.5">
+                    <span className="text-[14px] font-bold text-white tracking-tight uppercase">
+                        {conv.id === 'general' ? 'Fil de discussion Général' : `Cas de Test #${conv.id}`}
+                    </span>
+                    <p className="text-[11px] text-slate-500 font-medium line-clamp-1 italic">
+                        "{conv.lastMessage.message}"
+                    </p>
+                </div>
+            )
+        },
+        {
+            header: 'Dernier Intervenant',
+            accessor: (conv: any) => (
+                <div className="flex flex-col">
+                    <span className="text-[11px] font-bold text-slate-300 uppercase tracking-widest">
+                        {conv.lastMessage.author_name || conv.lastMessage.author_username}
+                    </span>
+                    <span className="text-[9px] text-slate-500 font-medium">
+                        {new Date(conv.lastMessage.created_at).toLocaleString()}
+                    </span>
+                </div>
+            )
+        },
+        {
+            header: 'Volume',
+            accessor: (conv: any) => (
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-white/5 rounded-full border border-white/5">
+                    <span className="text-[10px] font-bold text-blue-400">{conv.count}</span>
+                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter">Messages</span>
+                </div>
+            )
+        }
+    ];
+
     return (
         <PageLayout
             title={t('adminComments.title')}
-            subtitle="AUDIT LOGS & DISCUSSIONS"
+            subtitle={t('adminComments.subtitle')}
         >
             <div className="space-y-10">
                 {/* Stats Summary */}
@@ -110,7 +148,6 @@ const AdminComments = () => {
                     <StatCard
                         title={t('adminComments.stats.total')}
                         value={stats.total}
-                        icon={MessageSquare}
                         variant="blue"
                         description={t('adminComments.stats.totalDesc')}
                         isLoading={loading}
@@ -118,7 +155,6 @@ const AdminComments = () => {
                     <StatCard
                         title={t('adminComments.stats.authors')}
                         value={stats.uniqueAuthors}
-                        icon={Users}
                         variant="purple"
                         description={t('adminComments.stats.authorsDesc')}
                         isLoading={loading}
@@ -126,7 +162,6 @@ const AdminComments = () => {
                     <StatCard
                         title={t('adminComments.stats.activity')}
                         value={stats.recent}
-                        icon={TrendingUp}
                         variant="green"
                         description={t('adminComments.stats.activityDesc')}
                         change={stats.recent > 0 ? `+${stats.recent}` : undefined}
@@ -136,89 +171,81 @@ const AdminComments = () => {
                     <StatCard
                         title={t('adminComments.stats.health')}
                         value="STABLE"
-                        icon={ShieldCheck}
                         variant="blue"
                         description={t('adminComments.stats.healthDesc')}
                         isLoading={loading}
                     />
                 </div>
 
-                <div className="grid grid-cols-12 gap-6 h-[600px]">
-                    {/* Sidebar: List of conversations */}
-                    <div className="col-span-4 bg-[#0b0e14]/60 border border-white/[0.03] rounded-[2rem] overflow-hidden flex flex-col">
-                        <div className="p-4 border-b border-white/5 bg-white/[0.01]">
-                            <h3 className="text-sm font-black text-white uppercase tracking-widest">Discussions</h3>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                            {groupedConversations.map(conv => (
-                                <div
-                                    key={conv.id}
-                                    onClick={() => setActiveConversationId(conv.id)}
-                                    className={`p-4 rounded-xl cursor-pointer transition-all ${activeConversationId === conv.id ? 'bg-blue-500/10 border border-blue-500/20' : 'hover:bg-white/5 border border-transparent'}`}
-                                >
-                                    <div className="flex justify-between items-center mb-1">
-                                        <span className="text-xs font-black text-white uppercase truncate">
-                                            {conv.id === 'general' ? 'Général' : `Cas de Test #${conv.id}`}
-                                        </span>
-                                        <span className="text-[10px] text-slate-500 font-bold">
-                                            {new Date(conv.lastMessage.created_at).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-slate-400 truncate">"{conv.lastMessage.message}"</p>
-                                    <div className="flex justify-between items-center mt-2">
-                                        <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">
-                                            {conv.lastMessage.author_name || conv.lastMessage.author_username}
-                                        </span>
-                                        <span className="px-2 py-0.5 bg-white/5 rounded-full text-[9px] font-bold text-slate-400">
-                                            {conv.count} msg
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                <div className="bg-[#0b0e14]/40 border border-white/[0.03] rounded-[2.5rem] overflow-hidden">
+                    <AdminTable
+                        columns={conversationColumns}
+                        data={groupedConversations}
+                        isLoading={loading}
+                        searchable
+                        onSearch={setSearchQuery}
+                        onRowClick={(conv) => setActiveConversationId(conv.id)}
+                        variant="transparent"
+                    />
+                </div>
 
-                    {/* Main Area: Messages */}
-                    <div className="col-span-8 bg-[#0b0e14]/60 border border-white/[0.03] rounded-[2rem] overflow-hidden flex flex-col">
-                        {activeConversationId ? (
-                            <>
-                                <div className="p-4 border-b border-white/5 bg-white/[0.01] flex justify-between items-center">
+                {/* Conversation Modal */}
+                <AnimatePresence>
+                    {activeConversationId && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-900/40 backdrop-blur-sm">
+                            <motion.div
+                                initial={{ x: '100%' }}
+                                animate={{ x: 0 }}
+                                exit={{ x: '100%' }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                className="w-full max-w-2xl h-full bg-[#0b0e14] border-l border-white/5 shadow-2xl flex flex-col"
+                            >
+                                <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
                                     <div>
-                                        <h3 className="text-sm font-black text-white uppercase tracking-widest">
-                                            {activeConversationId === 'general' ? 'Général' : `Cas de Test #${activeConversationId}`}
-                                        </h3>
-                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Fil de discussion</p>
+                                        <h2 className="text-xl font-black text-white uppercase tracking-tighter">
+                                            {activeConversationId === 'general' ? 'Discussion Générale' : `Audit Cas de Test #${activeConversationId}`}
+                                        </h2>
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">
+                                            Fil de discussion complet
+                                        </p>
                                     </div>
+                                    <button
+                                        onClick={() => setActiveConversationId(null)}
+                                        className="p-3 hover:bg-white/5 rounded-full text-slate-400 transition-colors"
+                                    >
+                                        <XCircle className="w-6 h-6" />
+                                    </button>
                                 </div>
-                                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+                                <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide">
                                     {groupedConversations.find(c => c.id === activeConversationId)?.messages.map((msg, idx) => (
-                                        <div key={idx} className="flex gap-4 items-start">
-                                            <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 shrink-0">
-                                                <User className="w-4 h-4" />
+                                        <div key={idx} className="flex flex-col gap-2">
+                                            <div className="flex justify-between items-end px-2">
+                                                <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">
+                                                    {msg.author_name || msg.author_username || msg.author}
+                                                </span>
+                                                <span className="text-[9px] text-slate-600 font-medium">
+                                                    {new Date(msg.created_at).toLocaleString()}
+                                                </span>
                                             </div>
-                                            <div className="flex-1 bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-1">
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-xs font-black text-white uppercase">
-                                                        {msg.author_name || msg.author_username || msg.author}
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-500 font-bold">
-                                                        {new Date(msg.created_at).toLocaleString()}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm text-slate-300 leading-relaxed">{msg.message}</p>
+                                            <div className="bg-white/[0.02] border border-white/5 rounded-[1.5rem] p-5 shadow-sm">
+                                                <p className="text-sm text-slate-300 leading-relaxed font-medium">
+                                                    {msg.message}
+                                                </p>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
-                            </>
-                        ) : (
-                            <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-4">
-                                <MessageSquare className="w-12 h-12 opacity-20" />
-                                <p className="text-sm font-bold uppercase tracking-widest opacity-50">Sélectionnez une discussion</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
+
+                                <div className="p-8 border-t border-white/5 bg-white/[0.01]">
+                                    <p className="text-center text-[10px] text-slate-600 font-bold uppercase tracking-widest italic">
+                                        Mode consultation admin - discussions archivées & actives
+                                    </p>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
             </div>
         </PageLayout>
     );

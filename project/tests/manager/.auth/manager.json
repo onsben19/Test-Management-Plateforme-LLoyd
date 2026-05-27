@@ -18,6 +18,14 @@
         {
           "name": "i18nextLng",
           "value": "en-US"
+        },
+        {
+          "name": "access_token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc5MjAwNjcxLCJpYXQiOjE3NzkxOTcwNzEsImp0aSI6IjQ1MjljMTRlMDIzMjQzODNiOGVkZGJiOWMzMjI5MTE5IiwidXNlcl9pZCI6M30.XFBx9HQhHNU6A6-Ek_hb5nsmf66o8jBp9k32JreP32M"
+        },
+        {
+          "name": "refresh_token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc3OTI4MzQ3MSwiaWF0IjoxNzc5MTk3MDcxLCJqdGkiOiJiZTRhMWFkZDU3NTg0ZWFhOGU1ZmM3OTk0YWY0OTRhNiIsInVzZXJfaWQiOjN9.qcGnc6m0aayK4vw3n32uTNG9OJgy5FKZMJuE7HgUT7s"
         }
       ]
     }

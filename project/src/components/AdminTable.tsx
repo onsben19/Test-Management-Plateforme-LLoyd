@@ -63,21 +63,17 @@ const AdminTable = <T extends { id?: string | number }>({
                 <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 flex flex-col md:flex-row items-center gap-6 shadow-2xl">
                     {searchable && (
                         <div className="relative flex-1 w-full group">
-                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                             <input
                                 type="text"
                                 placeholder="Rechercher..."
-                                className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] pl-16 pr-8 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder-slate-500"
+                                className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder-slate-500"
                                 onChange={(e) => onSearch && onSearch(e.target.value)}
                             />
                         </div>
                     )}
                     {filters && (
                         <div className="flex items-center gap-4 w-full md:w-auto">
-                            <div className="flex items-center gap-3 bg-white/5 p-2 rounded-[1.5rem] border border-white/5 pr-4">
-                                <div className="p-2 bg-blue-500/10 rounded-full border border-blue-500/20">
-                                    <Filter className="w-4 h-4 text-blue-500" />
-                                </div>
+                            <div className="flex items-center gap-3 bg-white/5 p-2 rounded-[1.5rem] border border-white/5">
                                 {filters}
                             </div>
                         </div>

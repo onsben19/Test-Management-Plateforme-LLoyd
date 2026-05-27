@@ -293,6 +293,9 @@ def send_anomaly_updated_email(recipient, updater, anomalie):
 # 2FA OTP
 # ---------------------------------------------------------------------------
 def send_otp_email(user, otp):
+    # Affichage explicite dans la console backend pour faciliter le test E2E / local
+    print(f"\n🔑 [2FA OTP] Code de sécurité généré pour '{user.username}' : {otp} 🔑\n")
+    
     subject = f"[InsureTM] Votre code de sécurité : {otp}"
     name = user.first_name or user.username
     content = f"""

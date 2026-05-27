@@ -12,7 +12,7 @@ Le système utilise plusieurs couches de calcul pour transformer les données br
 Le score final d'un testeur est une moyenne pondérée de trois indicateurs clés.
 
 **Équation Finale :**
-`Score_Final = (Rate_Success * 0.4) + (Score_Velocity * 0.3) + (Score_Reliability * 0.3)`
+`Score_Final = (Rate_Success * 0.25) + (Score_Velocity * 0.25) + (Score_Reliability * 0.50)`
 
 1.  **Taux de Succès (Rate_Success)** :
     `Rate_Success = (Tests PASSED / Total Tests) * 100`

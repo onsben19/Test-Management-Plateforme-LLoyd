@@ -1,10 +1,17 @@
 import logging
+import os
+import subprocess
 from django.utils import timezone
 
 from django.db.models import Q
 from django.contrib.auth import get_user_model
 from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from django.conf import settings
+from analytics.groq_service import GroqService
+from anomalies.models import Anomalie
 
 from notifications.models import Notification
 from utils.email_service import send_execution_validated_email
@@ -119,3 +126,140 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                 type='info'
             )
         instance.delete()
+
+    @action(detail=True, methods=['post'], url_path='generate-script')
+    def generate_script(self, request, pk=None):
+        test_case = self.get_object()
+        groq_service = GroqService()
+        title = test_case.test_case_ref
+        
+        manual_data = request.data.get('manual_data')
+        data = manual_data if manual_data else test_case.data_json
+        
+        generated_code = groq_service.generate_playwright_test(title, data)
+        test_case.automation_code = generated_code
+        test_case.save()
+        return Response({"code": generated_code})
+
+    @action(detail=False, methods=['post'], url_path='generate-script-standalone')
+    def generate_script_standalone(self, request):
+        title = request.data.get('title', 'Test')
+        manual_data = request.data.get('manual_data')
+        if not manual_data:
+            return Response({"error": "manual_data is required"}, status=400)
+            
+        groq_service = GroqService()
+        generated_code = groq_service.generate_playwright_test(title, manual_data)
+        return Response({"code": generated_code})
+
+    @action(detail=True, methods=['post'], url_path='save-script')
+    def save_script(self, request, pk=None):
+        test_case = self.get_object()
+        code = request.data.get('code')
+        if not code:
+            return Response({"error": "No code provided"}, status=400)
+            
+        test_case.automation_code = code
+        test_case.is_automated = True
+        
+        tests_dir = os.path.abspath(os.path.join(settings.BASE_DIR, '..', 'project', 'tests', 'generated'))
+        os.makedirs(tests_dir, exist_ok=True)
+        filename = f"test_{test_case.id}_{test_case.test_case_ref}.spec.ts".replace(" ", "_").replace("/", "_")
+        filepath = os.path.join(tests_dir, filename)
+        
+        # Inject screenshot and baseURL config
+        frontend_url = os.environ.get('FRONTEND_URL', 'http://nginx')
+        config_injection = f"test.use({{ screenshot: 'only-on-failure', baseURL: '{frontend_url}' }});\n"
+        
+        if 'test.use' not in code:
+            code = code.replace("from '@playwright/test';", f"from '@playwright/test';\n\n{config_injection}")
+
+        with open(filepath, 'w') as f:
+            f.write(code)
+            
+        test_case.automation_script_path = filepath
+        test_case.save()
+        return Response({"status": "success", "path": filepath})
+
+    @action(detail=True, methods=['post'], url_path='execute-script')
+    def execute_script(self, request, pk=None):
+        test_case = self.get_object()
+        path = test_case.automation_script_path
+        if not path or not os.path.exists(path):
+            return Response({"error": "Script not found"}, status=404)
+            
+        project_dir = os.path.abspath(os.path.join(settings.BASE_DIR, '..', 'project'))
+        output_dir = os.path.join(project_dir, 'test-results', f'test_{test_case.id}')
+        
+        try:
+            import shutil
+            if os.path.exists(output_dir):
+                shutil.rmtree(output_dir)
+                
+            result = subprocess.run(
+                ['npx', 'playwright', 'test', path, f'--output={output_dir}'],
+                cwd=project_dir,
+                capture_output=True,
+                text=True
+            )
+            logs = result.stdout + result.stderr
+            status = 'PASSED' if result.returncode == 0 else 'FAILED'
+            
+            # Save logs to TestCase data_json
+            tc_data = test_case.data_json or {}
+            if not isinstance(tc_data, dict):
+                tc_data = {}
+            tc_data['execution_logs'] = logs
+            test_case.data_json = tc_data
+            
+            test_case.status = status
+            test_case.execution_date = timezone.now()
+            test_case.tester = request.user
+            test_case.save()
+            
+            if status == 'FAILED':
+                from anomalies.models import Anomalie
+                from django.core.files import File
+                
+                groq_service = GroqService()
+                anomaly_title, anomaly_desc = groq_service.generate_anomaly_from_logs(test_case.test_case_ref, logs)
+                
+                # Sanitize to prevent DB errors and append raw logs
+                safe_title = str(anomaly_title).replace('\x00', '')[:250]
+                safe_desc = str(anomaly_desc).replace('\x00', '') + f"\n\n--- LOGS D'EXÉCUTION ---\n{logs.replace(chr(0), '')}"
+                
+                anomaly = Anomalie(
+                    test_case=test_case,
+                    titre=safe_title,
+                    description=safe_desc,
+                    impact='MAJEUR',
+                    priorite='ELEVEE',
+                    visibilite='PUBLIQUE',
+                    statut='OUVERTE',
+                    cree_par=request.user
+                )
+                
+                # Look for the screenshot
+                screenshot_path = None
+                for root, _, files in os.walk(output_dir):
+                    for file in files:
+                        if file.endswith('.png'):
+                            screenshot_path = os.path.join(root, file)
+                            break
+                    if screenshot_path: break
+                
+                if screenshot_path and os.path.exists(screenshot_path):
+                    with open(screenshot_path, 'rb') as f:
+                        file_obj = File(f)
+                        anomaly.preuve_image.save(f'screenshot_tc_{test_case.id}.png', file_obj, save=False)
+                        test_case.proof_file.save(f'screenshot_tc_{test_case.id}.png', file_obj, save=False)
+                        
+                anomaly.save()
+                test_case.save()
+
+            return Response({
+                "status": test_case.status,
+                "logs": logs
+            })
+        except Exception as e:
+            import traceback; traceback.print_exc(); return Response({"error": str(e)}, status=500)

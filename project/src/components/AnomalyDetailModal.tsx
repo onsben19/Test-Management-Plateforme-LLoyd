@@ -11,6 +11,7 @@ interface AnomalyDetailModalProps {
 
 const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClose }) => {
     const { t } = useTranslation();
+    const [showFullDesc, setShowFullDesc] = React.useState(false);
 
     if (!anomaly) return null;
 
@@ -59,8 +60,8 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                                     {anomaly.visibility}
                                 </div>
                             </div>
-                            <h2 className="text-3xl font-black text-white tracking-tight leading-tight max-w-md">
-                                {anomaly.title}
+                            <h2 className="text-3xl font-black text-white tracking-tight leading-tight max-w-2xl break-words">
+                                {anomaly.title.length > 150 ? anomaly.title.substring(0, 150) + '...' : anomaly.title}
                             </h2>
                         </div>
                         <button
@@ -95,13 +96,19 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                             </div>
                         </div>
 
-                        {/* Description */}
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-slate-400">
-                                <FileText className="w-4 h-4" />
-                                <h4 className="text-[10px] font-black uppercase tracking-widest">Détails de l'Anomalie</h4>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-slate-400">
+                                    <FileText className="w-4 h-4" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest">Détails de l'Anomalie</h4>
+                                </div>
+                                {anomaly.description && anomaly.description.length > 200 && (
+                                    <button onClick={() => setShowFullDesc(!showFullDesc)} className="text-[10px] font-black uppercase tracking-widest text-blue-500 hover:text-blue-400">
+                                        {showFullDesc ? 'Réduire' : 'Lire plus'}
+                                    </button>
+                                )}
                             </div>
-                            <div className="bg-white/[0.03] border border-white/5 rounded-3xl p-6 italic leading-relaxed text-slate-300 text-base shadow-inner">
+                            <div className={`bg-white/[0.03] border border-white/5 rounded-3xl p-6 italic leading-relaxed text-slate-300 text-base shadow-inner overflow-y-auto transition-all ${showFullDesc ? 'max-h-[500px]' : 'max-h-32'}`}>
                                 {anomaly.description || "Aucune description détaillée n'a été fournie pour cette anomalie."}
                             </div>
                         </div>

@@ -11,7 +11,7 @@ import {
     Award, Info, SortAsc
 } from 'lucide-react';
 
-import { campaignService, userService, aiService } from '../services/api';
+import { campaignService, userService, aiService, projectService } from '../services/api';
 import Pagination from '../components/Pagination';
 import StarBorder from '../components/bits/StarBorder';
 import StatCard from '../components/StatCard';
@@ -66,8 +66,27 @@ const DataDrivenManager = () => {
     const { t } = useTranslation();
     const location = useLocation();
     useSidebar();
-    const activeReleaseName = location.state?.releaseName;
-    const activeReleaseId = location.state?.releaseId;
+
+    const [activeReleaseId, setActiveReleaseId] = useState<string | undefined>(location.state?.releaseId?.toString());
+    const [activeReleaseName, setActiveReleaseName] = useState<string | undefined>(location.state?.releaseName);
+
+    useEffect(() => {
+        if (!activeReleaseId) {
+            projectService.getProjects()
+                .then(res => {
+                    const data = res.data.results ?? res.data;
+                    if (data && data.length > 0) {
+                        setActiveReleaseId(data[0].id.toString());
+                        setActiveReleaseName(data[0].name);
+                    } else {
+                        setLoading(false);
+                    }
+                })
+                .catch(() => {
+                    setLoading(false);
+                });
+        }
+    }, [activeReleaseId]);
 
     const [importedFiles, setImportedFiles] = useState<ImportedFile[]>([]);
     const [timelineGuards, setTimelineGuards] = useState<Record<string, TimelineGuardData>>({});
@@ -517,9 +536,9 @@ const DataDrivenManager = () => {
                         {(filteredAndSortedFiles || []).map((file, index) => {
                             const guard = timelineGuards[file.id];
                             const readiness = readinessScores[file.id];
-                            const total = file.rowCount || 0;
+                            const total = guard?.progress?.total || file.rowCount || 0;
                             const passed = guard?.progress?.finished || 0;
-                            const failed = total - passed;
+                            const failed = Math.max(0, total - passed);
                             const rate = guard?.progress?.percentage || 0;
 
                             return (
@@ -587,7 +606,7 @@ const DataDrivenManager = () => {
                                     {/* Top Left Status (No Icon) */}
                                     <div className="flex items-start justify-between mb-6">
                                         <div className="flex flex-col gap-4">
-                                            {guard?.status === 'CRITICAL' && (
+                                            {['CRITICAL', 'WARNING'].includes(guard?.status) && (
                                                 <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center gap-1.5 text-[10px] font-black text-amber-500 uppercase tracking-widest w-fit">
                                                     <AlertTriangle size={10} />
                                                     DÉRIVE
@@ -682,8 +701,8 @@ const DataDrivenManager = () => {
                                                 </div>
                                                 <div className="text-sm font-black text-white">{guard?.velocity || 0} <span className="text-xs text-slate-500">tests/j</span></div>
                                             </div>
-                                            <div className={`border rounded-xl p-3 ${guard?.status === 'CRITICAL' ? 'bg-rose-500/5 border-rose-500/10' : 'bg-white/[0.02] border-white/5'}`}>
-                                                <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest mb-1 ${guard?.status === 'CRITICAL' ? 'text-rose-500/50' : 'text-slate-600'}`}>
+                                            <div className={`border rounded-xl p-3 ${['CRITICAL', 'WARNING'].includes(guard?.status) ? 'bg-rose-500/5 border-rose-500/10' : 'bg-white/[0.02] border-white/5'}`}>
+                                                <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest mb-1 ${['CRITICAL', 'WARNING'].includes(guard?.status) ? 'text-rose-500/50' : 'text-slate-600'}`}>
                                                     <Clock size={10} />
                                                     FIN ESTIMÉE
                                                 </div>
@@ -824,7 +843,7 @@ const DataDrivenManager = () => {
                     title={selectedEntityName}
                     insight={selectedAIInsight || "Analyse en attente..."}
                     onOptimize={() => setIsCatchupPlanOpen(true)}
-                    showOptimizeButton={activeCampaignId ? timelineGuards[activeCampaignId.toString()]?.status === 'CRITICAL' : false}
+                    showOptimizeButton={activeCampaignId ? ['CRITICAL', 'WARNING'].includes(timelineGuards[activeCampaignId.toString()]?.status) : false}
                 />
 
                 {/* AI Catchup Plan Modal via Portal */}

@@ -107,7 +107,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
 
     const total = campaign.nb_test_cases || 0;
     const passed = campaign.passed_count || 0;
-    const failed = total - passed;
+    const failed = Math.max(0, total - passed);
     const rate = total > 0 ? Math.round((passed / total) * 100) : 0;
     const velocity = 4; // Mock or from AI service
 

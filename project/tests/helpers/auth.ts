@@ -7,7 +7,7 @@ import { Page } from '@playwright/test';
 const CREDENTIALS = {
   admin: { username: 'admin', password: 'admin123' },
   manager: { username: 'manager', password: '+WpKuC3Rt@O*' },
-  tester: { username: 'tester', password: 'qpB&II@SzA7Q' },
+  laaa: { username: 'laaa', password: '!*GY8&Rkd-L' },
 };
 
 // ─── Connexion simple (sans attente 2FA) ─────────────────────────────────────
@@ -46,12 +46,12 @@ async function loginAsWithManual2FA(page: Page, role: keyof typeof CREDENTIALS) 
 // ─── Exports par rôle — Version simple ───────────────────────────────────────
 export async function loginAsAdmin(page: Page) { await loginAs(page, 'admin'); }
 export async function loginAsManager(page: Page) { await loginAs(page, 'manager'); }
-export async function loginAsTester(page: Page) { await loginAs(page, 'tester'); }
+export async function loginAsTester(page: Page) { await loginAs(page, 'laaa'); }
 
 // ─── Exports par rôle — Version avec pause 2FA manuelle ──────────────────────
 export async function loginAsManagerWith2FA(page: Page) { await loginAsWithManual2FA(page, 'manager'); }
 export async function loginAsAdminWith2FA(page: Page) { await loginAsWithManual2FA(page, 'admin'); }
-export async function loginAsTesterWith2FA(page: Page) { await loginAsWithManual2FA(page, 'tester'); }
+export async function loginAsTesterWith2FA(page: Page) { await loginAsWithManual2FA(page, 'laaa'); }
 
 // ─── Utilitaire : vérifie si la connexion a réussi ────────────────────────────
 export async function expectLoginSuccess(page: Page) {

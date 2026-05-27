@@ -230,6 +230,7 @@ const AdminDashboard = () => {
                 <div className="lg:col-span-8 space-y-8">
                     {visibleWidgets.trend && (
                         <DashboardWidget
+                            id="execution-trend"
                             title={t('adminDashboard.widgets.trend')}
                             subtitle={t('adminDashboard.subtitles.sevenDays')}
                             icon={Activity}

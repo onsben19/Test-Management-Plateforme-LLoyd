@@ -43,6 +43,7 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [assignments, setAssignments] = useState<Record<number, number>>({});
     const [notifying, setNotifying] = useState(false);
+    const [monitoring, setMonitoring] = useState<any>(null);
 
     const fetchPlan = async () => {
         try {
@@ -78,6 +79,19 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
         if (campaignId) {
             fetchPlan();
         }
+    }, [campaignId]);
+
+    // Poll monitoring status every 15 seconds
+    useEffect(() => {
+        const fetchStatus = async () => {
+            try {
+                const res = await aiService.getReinforcementStatus(campaignId);
+                setMonitoring(res.data);
+            } catch {}
+        };
+        fetchStatus();
+        const interval = setInterval(fetchStatus, 15000);
+        return () => clearInterval(interval);
     }, [campaignId]);
 
     const toggleTesterSelection = (id: number) => {
@@ -168,12 +182,12 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
                     <div className="flex flex-col items-center gap-4 bg-white/[0.03] backdrop-blur-xl border border-white/5 p-6 rounded-2xl min-w-[200px]">
                         <div className="text-center">
                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Vélocité requise</span>
-                            <div className="text-3xl font-bold text-white">{plan.required_velocity || 0} <span className="text-xs text-blue-500">t/j</span></div>
+                            <div className="text-3xl font-bold text-white">{Math.round(plan.required_velocity || 0)} <span className="text-xs text-blue-500">t/j</span></div>
                         </div>
                         <div className="w-full h-px bg-white/5" />
                         <div className="text-center">
                             <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Vélocité actuelle</span>
-                            <div className="text-xl font-bold text-slate-400">{plan.current_velocity || 0} <span className="text-[10px]">t/j</span></div>
+                            <div className="text-xl font-bold text-slate-400">{Math.round(plan.current_velocity || 0)} <span className="text-[10px]">t/j</span></div>
                         </div>
                     </div>
                 </div>
@@ -261,6 +275,86 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
                 })}
             </div>
 
+            {/* N8N Monitoring Panel */}
+            {monitoring && monitoring.notifications?.length > 0 && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white/[0.02] border border-white/10 rounded-3xl p-6"
+                >
+                    <div className="flex items-center justify-between mb-5">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                                <Activity size={16} className="text-blue-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-white uppercase tracking-widest">Suivi des Notifications</h3>
+                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Mise à jour automatique toutes les 15s</p>
+                            </div>
+                        </div>
+                        {/* Summary badges */}
+                        <div className="flex items-center gap-2">
+                            {monitoring.summary.accepted > 0 && (
+                                <span className="px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-[9px] font-bold text-emerald-400 uppercase tracking-widest">
+                                    ✓ {monitoring.summary.accepted} Accepté
+                                </span>
+                            )}
+                            {monitoring.summary.pending > 0 && (
+                                <span className="px-2 py-1 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[9px] font-bold text-amber-400 uppercase tracking-widest">
+                                    ⏳ {monitoring.summary.pending} En attente
+                                </span>
+                            )}
+                            {monitoring.summary.refused > 0 && (
+                                <span className="px-2 py-1 bg-rose-500/10 border border-rose-500/20 rounded-lg text-[9px] font-bold text-rose-400 uppercase tracking-widest">
+                                    ✗ {monitoring.summary.refused} Refusé
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        {monitoring.notifications.map((n: any) => (
+                            <div key={n.tester_id} className="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-xl px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white ${
+                                        n.status === 'ACCEPTED' ? 'bg-emerald-500/20' :
+                                        n.status === 'REFUSED'  ? 'bg-rose-500/20' :
+                                        'bg-amber-500/20'
+                                    }`}>
+                                        {n.tester_name?.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-white">{n.tester_name}</p>
+                                        <p className="text-[9px] text-slate-500 font-mono">{n.tester_email}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <div className="text-right">
+                                        <p className="text-[8px] text-slate-600 uppercase tracking-widest">Envoyé</p>
+                                        <p className="text-[10px] font-bold text-slate-400">{n.sent_at}</p>
+                                    </div>
+                                    {n.replied_at && (
+                                        <div className="text-right">
+                                            <p className="text-[8px] text-slate-600 uppercase tracking-widest">Répondu</p>
+                                            <p className="text-[10px] font-bold text-slate-400">{n.replied_at}</p>
+                                        </div>
+                                    )}
+                                    <div className={`px-3 py-1.5 rounded-lg border text-[9px] font-bold uppercase tracking-widest ${
+                                        n.status === 'ACCEPTED'
+                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                            : n.status === 'REFUSED'
+                                            ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                                            : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                                    }`}>
+                                        {n.status === 'ACCEPTED' ? '✓ Accepté' : n.status === 'REFUSED' ? '✗ Refusé' : '⏳ En attente'}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </motion.div>
+            )}
+
             {/* Action Footer */}
             <div className="flex items-center justify-between bg-white/[0.01] border border-white/5 p-6 rounded-[2rem]">
                 <div className="flex items-center gap-4">
@@ -272,7 +366,7 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
                             {selectedTesterIds.length} Testeur(s) sélectionné(s)
                         </h4>
                         <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">
-                            Impact estimé : +{((plan.current_velocity || 0) * (1 + selectedTesterIds.length * 0.25)).toFixed(1)} tests/jour
+                            Impact estimé : +{Math.round((plan.current_velocity || 0) * (selectedTesterIds.length * 0.25))} tests/jour
                         </p>
                     </div>
                 </div>

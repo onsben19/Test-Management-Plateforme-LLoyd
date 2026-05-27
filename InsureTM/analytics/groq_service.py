@@ -32,6 +32,7 @@ class GroqService:
         Rules:
         - Return ONLY the SQL query.
         - Ensure table names are double-quoted if they contain mixed case or special characters.
+        - CRITICAL: When filtering by string columns like 'title' or 'name', ALWAYS use ILIKE '%keyword%' instead of strict '=' equality to avoid case-sensitivity issues.
         """
         return base_schema
 
@@ -205,9 +206,7 @@ class GroqService:
             # Case 2: Readiness Score Intent
             readiness_keywords = ['score', 'readiness', 'prêt', 'déploiement', 'confiance', 'readynace']
             if any(kw in question.lower() for kw in readiness_keywords):
-                campaign = Campaign.objects.filter(status='ACTIVE').order_by('-created_at').first()
-                if not campaign:
-                    campaign = Campaign.objects.order_by('-created_at').first()
+                campaign = Campaign.objects.order_by('-created_at').first()
                 
                 if campaign:
                     from .readiness_service import ReleaseReadinessManager
@@ -242,20 +241,59 @@ class GroqService:
                         "data": readiness
                     }
 
-            # Case 3: Data query
+            # Case 3: Email / General Chat Intent
+            general_keywords = ['rédige', 'écris', 'mail', 'e-mail', 'conseil', 'lettre', 'explique', 'bonjour', 'salut']
+            if any(kw in question.lower() for kw in general_keywords):
+                prompt = f"Tu es un Manager QA Senior de la plateforme InsureTM. Réponds de manière très professionnelle à cette demande : {question}"
+                completion = self.client.chat.completions.create(
+                    messages=[{"role": "user", "content": prompt}],
+                    model="llama-3.3-70b-versatile",
+                    temperature=0.7,
+                )
+                return {
+                    "answer": completion.choices[0].message.content,
+                    "type": "text", 
+                    "sql": "N/A (Génération de texte)", 
+                    "data": []
+                }
+
+            # Case 4: Advanced Data query with Expert Interpretation
             sql_query = self.generate_sql(question, user)
             data = self.execute_query(sql_query)
             
+            if len(data) > 0:
+                # Secondary Cognitive Step: Interpret results
+                interpretation_prompt = f"""
+                Tu es un Directeur QA Senior. Analyse ces résultats de données extraits de la plateforme pour répondre à la question de l'utilisateur.
+                
+                QUESTION : {question}
+                DONNÉES BRUTES : {data[:20]} (échantillon)
+                
+                CONSIGNES :
+                1. Ne te contente pas de lister les chiffres. Identifie une CORRÉLATION, une TENDANCE ou un RISQUE caché.
+                2. Utilise un ton de "Conseiller Stratégique".
+                3. Propose une ACTION immédiate basée sur cette analyse technique.
+                4. Réponds en 2-3 phrases percutantes en Français.
+                """
+                interpretation = self.client.chat.completions.create(
+                    messages=[{"role": "user", "content": interpretation_prompt}],
+                    model="llama-3.3-70b-versatile",
+                    temperature=0.5,
+                )
+                expert_answer = f"Voici l'analyse des données :\n\n{interpretation.choices[0].message.content.strip()}"
+            else:
+                expert_answer = "Aucune donnée n'a été trouvée pour cette période ou ces critères. Un audit plus large est conseillé."
+
             # Decide if we use Plotly for complex requests
             complex_keywords = ['radar', 'scatter', 'bulles', 'comparative', 'avancé', 'plotly', 'graphique', 'chart', 'graphe', 'graphical']
             is_complex = any(kw in question.lower() for kw in complex_keywords)
             
             if is_complex and len(data) > 0:
-                plotly_config = self.generate_plotly_config(data, question)
+                plotly_config = self.generate_plotly_config(data, expert_answer) # Pass expert answer as context
                 return {
-                    "answer": "Voici l'analyse visuelle avancée :",
+                    "answer": expert_answer,
                     "sql": sql_query,
-                    "data": plotly_config, # For plotly, data is the JSON config string
+                    "data": plotly_config,
                     "type": "plotly"
                 }
             
@@ -263,11 +301,11 @@ class GroqService:
             chart_type = "table"
             if len(data) > 0:
                 if len(data) == 1 and len(data[0]) == 1: chart_type = "metric"
-                elif any(k in data[0] for k in ["count", "total"]): chart_type = "bar"
-                elif any(k in str(data[0].keys()) for k in ["date", "time"]): chart_type = "line"
+                elif any(k in str(data[0].keys()).lower() for k in ["count", "total", "nb"]): chart_type = "bar"
+                elif any(k in str(data[0].keys()).lower() for k in ["date", "time", "day", "mois"]): chart_type = "line"
             
             return {
-                "answer": "Voici les résultats de l'analyse :",
+                "answer": expert_answer,
                 "sql": sql_query,
                 "data": data,
                 "type": chart_type
@@ -278,8 +316,19 @@ class GroqService:
                 "type": "error", "sql": "", "data": []
             }
 
-    def reformulate_message(self, text, is_subject=False):
-        system_prompt = f"Expert QA Platform Analyser. Rewrite as professional {'SUBJECT (Single line, NO markdown, NO newlines)' if is_subject else 'BODY'}. French. Clear, concise."
+    def reformulate_message(self, text, is_subject=False, is_test_steps=False):
+        if is_test_steps:
+            system_prompt = (
+                "Tu es un expert QA (Quality Assurance). Reformule les étapes de test suivantes en respectant EXACTEMENT ce format strict (en français) :\n\n"
+                "Objectif : [Résumé clair et concis de ce qu'on teste en une phrase]\n\n"
+                "Étapes :\n"
+                "1. [Action détaillée (ex: Ouvrir l'URL : https://...)]\n"
+                "2. [Action détaillée (ex: Saisir la valeur...)]\n"
+                "3. [Vérification (ex: Vérifier que...)]\n\n"
+                "Ne retourne QUE ce texte avec 'Objectif :' et 'Étapes :', rien d'autre. Pas de blabla d'introduction."
+            )
+        else:
+            system_prompt = f"Expert QA Platform Analyser. Rewrite as professional {'SUBJECT (Single line, NO markdown, NO newlines)' if is_subject else 'BODY'}. French. Clear, concise."
         try:
             completion = self.client.chat.completions.create(
                 messages=[
@@ -358,3 +407,74 @@ class GroqService:
                 "target_id": None,
                 "theme_name": "Inconnu"
             }
+
+    def generate_playwright_test(self, test_title, test_data_json):
+        """
+        Génère un script de test Playwright à partir de données JSON extraites d'Excel.
+        """
+        prompt = f"""
+        Tu es un expert QA en Automatisation avec Playwright (TypeScript).
+        Ton objectif est de générer un script de test exécutable à partir de données brutes extraites d'un fichier Excel.
+        
+        Titre du Cas de Test : {test_title}
+        
+        DONNÉES BRUTES DU TEST (Format JSON) :
+        {test_data_json}
+        
+        CONSIGNES STRICTES :
+        1. Analyse les clés et les valeurs du JSON ou texte fourni. Déduis le rôle de chaque valeur.
+        2. Construit une séquence d'actions Playwright logique.
+        3. Génère un script Playwright complet avec `import {{ test, expect }} from '@playwright/test';` et un bloc `test('{test_title}', async ({{ page }}) => {{ ... }});`.
+        4. Si le test indique d'aller sur une URL de la plateforme (ex: `/login`), laisse l'URL en relatif (ex: `await page.goto('/login');`). Ne mets pas de domaine, l'URL de base est injectée automatiquement.
+        5. Sois TRES ROBUSTE : Les sites publics ont souvent des popups "Accepter les cookies". Avant chaque première interaction importante, ajoute : `await page.locator('#L2AGLb, button:has-text("Tout accepter")').first().click({{ timeout: 5000 }}).catch(() => {{}});`.
+        6. Déduis des sélecteurs très flexibles (ex: `page.locator('textarea[name="q"], input[name="q"], [title="Rechercher"]').first()` pour la barre de recherche Google). Préfère `locator` avec plusieurs sélecteurs CSS séparés par des virgules, ET AJOUTE TOUJOURS `.first()` à la fin de tes locators génériques.
+        7. Gère correctement les conditions ("si... apparait"). Exemple : si le texte dit "si la popup apparait", génère : `await page.waitForTimeout(2000); if (await page.locator('...').isVisible()) {{ await page.locator('...').click(); }}`.
+        8. Inclus les assertions pour les 'Attendus'. Par exemple, `await expect(locator.first()).toBeVisible({{ timeout: 10000 }});` ou `await expect(page).not.toHaveURL(/.*login/, {{ timeout: 10000 }});`. Attention à la syntaxe stricte de Playwright (ex: `toHaveURL` prend une string/regex en premier argument).
+        9. NE RENVOIE QUE LE CODE SOURCE. Pas d'explications avant ni après.
+        """
+        
+        try:
+            completion = self.client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model="llama-3.3-70b-versatile",
+                temperature=0.1,
+            )
+            code = completion.choices[0].message.content.strip()
+            if code.startswith("```"):
+                code = "\n".join(code.split("\n")[1:-1])
+            return code
+        except Exception as e:
+            return f"// Erreur lors de la génération IA : {str(e)}"
+
+    def generate_anomaly_from_logs(self, test_title, logs):
+        """
+        Génère un titre et une description d'anomalie pertinents à partir des logs d'erreur Playwright.
+        """
+        prompt = f"""
+        Tu es un expert QA. Un test Playwright automatisé vient d'échouer.
+        Titre du Cas de Test : {test_title}
+        
+        LOGS D'ERREUR PLAYWRIGHT :
+        {logs[-2000:]}
+        
+        Analyse l'erreur et retourne UNIQUEMENT un JSON strict avec ce format :
+        {{"titre": "Un titre court et explicite de l'anomalie", "description": "Une description détaillée de l'échec et des causes probables basées sur les logs."}}
+        Ne renvoie rien d'autre que le JSON valide.
+        """
+        try:
+            completion = self.client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model="llama-3.3-70b-versatile",
+                temperature=0.1,
+            )
+            response = completion.choices[0].message.content.strip()
+            if response.startswith("```json"):
+                response = response.replace("```json", "").replace("```", "").strip()
+            if response.startswith("```"):
+                response = response.replace("```", "").strip()
+                
+            import json
+            data = json.loads(response)
+            return data.get("titre", f"Échec automatique : {test_title}"), data.get("description", logs[-1000:])
+        except Exception as e:
+            return f"Échec d'exécution : {test_title}", f"Le test automatisé a échoué. \n\nLogs d'erreur:\n{logs[-1000:]}"

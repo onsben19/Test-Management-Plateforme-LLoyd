@@ -7,7 +7,7 @@ interface StatCardProps {
   value: string | number;
   change?: string;
   changeType?: 'positive' | 'negative' | 'neutral';
-  icon: LucideIcon;
+  icon?: LucideIcon;
   variant?: string;
   description?: string;
   isLoading?: boolean;
@@ -59,9 +59,11 @@ const StatCard: React.FC<StatCardProps> = ({
           )}
           {description && <p className="mt-2 text-[10px] text-slate-400 font-medium">{description}</p>}
         </div>
-        <div className={`p-3 rounded-xl ${currentVariant.bg} ${currentVariant.iconColor}`}>
-          <Icon size={20} />
-        </div>
+        {Icon && (
+          <div className={`p-3 rounded-xl ${currentVariant.bg} ${currentVariant.iconColor}`}>
+            <Icon size={20} />
+          </div>
+        )}
       </div>
     </div>
   );

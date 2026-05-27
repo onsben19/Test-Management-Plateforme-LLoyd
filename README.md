@@ -32,12 +32,13 @@
 InsureTM est une plateforme de gestion de tests conçue pour Lloyd Assurances dans le cadre d'un PFE (Projet de Fin d'Études). Elle permet de :
 
 - 📁 **Gérer des projets/releases** et organiser les campagnes de tests
-- 📊 **Importer des cas de tests** depuis des fichiers Excel
-- ✅ **Suivre l'exécution** des tests avec preuve photo
-- 🐛 **Signaler des anomalies** avec niveaux de criticité
+- 🤖 **Générer automatiquement des scripts de test (TypeScript)** à partir de descriptions textuelles via l'IA (Groq/Llama-3)
+- 🚀 **Exécuter des tests E2E à la volée** (zéro-configuration) via le moteur Playwright intégré au backend
+- ✅ **Suivre l'exécution** des tests avec preuve photo et diagnostic d'erreur autonome
+- 🐛 **Signaler des anomalies** manuellement ou automatiquement avec niveaux de criticité
 - 💬 **Collaborer** via commentaires sur les cas de tests
 - 📧 **Envoyer des notifications** par email et in-app
-- 🤖 **Interagir** avec l'analyse de données via l'Agent IA
+- 📊 **Interagir** avec l'analyse de données via l'Agent IA (Text-to-SQL)
 
 ---
 
@@ -74,10 +75,11 @@ Internet (port 80)
 |--------|-------------|
 | **Frontend** | React 18, TypeScript, Vite, TailwindCSS, Lucide |
 | **Backend** | Django 5, Django REST Framework, SimpleJWT |
+| **Automatisation QA** | Playwright (Moteur d'exécution E2E) |
 | **Base de données** | PostgreSQL 15 |
 | **Serveur prod** | Gunicorn (3 workers) + Nginx |
-| **IA Agent** | Google Gemini |
-| **Emails** | SendGrid / SMTP |
+| **Intelligence Artificielle** | Groq API (Llama-3), Vanna.ai |
+| **Emails & Workflows** | SendGrid / SMTP, n8n |
 | **Conteneurisation** | Docker, Docker Compose |
 | **CI/CD** | GitHub Actions |
 
@@ -182,6 +184,8 @@ Test-Management-Plateforme-LLoyd/
 │   │   ├── components/          # Composants réutilisables
 │   │   ├── services/api.ts      # Client Axios centralisé
 │   │   └── context/             # AuthContext (JWT)
+│   ├── tests/                   # Scripts Playwright générés & Configurations
+│   ├── playwright.config.ts     # Configuration globale du moteur E2E
 │   ├── Dockerfile               # Image Docker frontend
 │   └── nginx.conf               # Config Nginx SPA
 │

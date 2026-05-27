@@ -36,7 +36,10 @@ const ProjectPortfolio = () => {
     const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
 
     const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
+    const [filterOwner, setFilterOwner] = useState('ALL');
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 10;
 
     const fetchProjects = async () => {
         try {
@@ -52,8 +55,9 @@ const ProjectPortfolio = () => {
     };
 
     useEffect(() => {
+        setCurrentPage(1);
         fetchProjects();
-    }, [searchQuery]);
+    }, [searchQuery, filterOwner, sortBy]);
 
     const handleSaveProject = async () => {
         if (!newProject.name) return;
@@ -91,26 +95,47 @@ const ProjectPortfolio = () => {
     const HeaderActions = isAdminOrManager && (
         <Button
             onClick={() => { setEditingProject(null); setNewProject({ name: '', description: '' }); setIsModalOpen(true); }}
-            icon={Plus}
             className="text-[10px] font-bold tracking-wider rounded-lg"
         >
-            NOUVEAU PROJET
+            {t('portfolio.newProject', 'NOUVEAU PROJET')}
         </Button>
     );
 
+    const DescriptionCell = ({ text }: { text: string }) => {
+        const [expanded, setExpanded] = useState(false);
+        if (!text) return <span className="text-xs text-slate-500 dark:text-slate-400">N/A</span>;
+        
+        const isLong = text.length > 80;
+        
+        return (
+            <div className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
+                <span className={expanded ? "whitespace-normal break-words" : "line-clamp-2"}>
+                    {text}
+                </span>
+                {isLong && (
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+                        className="text-blue-500 hover:text-blue-400 font-bold mt-1 text-[10px] uppercase tracking-widest transition-colors"
+                    >
+                        {expanded ? t('portfolio.readLess', 'Réduire') : t('portfolio.readMore', 'Lire la suite')}
+                    </button>
+                )}
+            </div>
+        );
+    };
+
     const columns = [
         {
-            header: 'Projet',
+            header: t('portfolio.table.project', 'Projet'),
             accessor: (item: any) => (
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                        <Briefcase size={14} />
+                <div className="flex items-center cursor-pointer">
+                    <div className="flex flex-col gap-0.5">
+                        <span className="font-bold text-slate-200 group-hover:text-blue-400 transition-colors tracking-tight text-base">{item.name}</span>
                     </div>
-                    <span className="font-bold">{item.name}</span>
                 </div>
             )
         },
-        { header: t('portfolio.table.description'), accessor: (item: any) => <span className="text-xs truncate max-w-xs block text-slate-500 dark:text-slate-400">{item.description || 'N/A'}</span> },
+        { header: t('portfolio.table.description'), accessor: (item: any) => <DescriptionCell text={item.description} /> },
         { header: t('portfolio.table.releases'), accessor: (item: any) => <span className="font-bold text-blue-600 dark:text-blue-400">{item.releases_count || 0}</span> },
         { header: t('portfolio.table.createdAt'), accessor: (item: any) => new Date(item.created_at).toLocaleDateString() },
         { header: t('portfolio.table.owner'), accessor: 'created_by_username' }
@@ -118,6 +143,18 @@ const ProjectPortfolio = () => {
 
     const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
     const isManager = user?.role?.toUpperCase() === 'MANAGER';
+
+    const processedProjects = [...projects]
+        .filter((p) => filterOwner === 'ALL' || p.created_by_username === filterOwner)
+        .filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())))
+        .sort((a, b) => {
+            const timeA = new Date(a.created_at).getTime();
+            const timeB = new Date(b.created_at).getTime();
+            return sortBy === 'newest' ? timeB - timeA : timeA - timeB;
+        });
+
+    const totalPages = Math.ceil(processedProjects.length / pageSize);
+    const paginatedProjects = processedProjects.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
     return (
         <PageLayout
@@ -132,19 +169,16 @@ const ProjectPortfolio = () => {
                         <StatCard
                             title="Projets Actifs"
                             value={projects.length}
-                            icon={Briefcase}
                             variant="blue"
                         />
                         <StatCard
                             title="Total Releases"
                             value={projects.reduce((sum, p) => sum + (p.releases_count || 0), 0)}
-                            icon={Layers}
                             variant="blue"
                         />
                         <StatCard
                             title="Nouveaux ce mois"
                             value={projects.filter(p => new Date(p.created_at).getMonth() === new Date().getMonth()).length}
-                            icon={Calendar}
                             variant="purple"
                         />
                     </div>
@@ -162,10 +196,9 @@ const ProjectPortfolio = () => {
                             {/* Search & Sort Bar */}
                             <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
                                 <div className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
-                                    <Search className="w-4 h-4 text-slate-400 ml-2" />
                                     <input
                                         type="text"
-                                        placeholder="Rechercher un projet..."
+                                        placeholder={t('portfolio.search', 'Rechercher un projet...')}
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         className="flex-1 bg-transparent border-none text-sm text-foreground focus:ring-0 outline-none placeholder-slate-400"
@@ -176,7 +209,6 @@ const ProjectPortfolio = () => {
                                         variant={sortBy === 'newest' ? 'primary' : 'ghost'}
                                         size="sm"
                                         onClick={() => setSortBy('newest')}
-                                        icon={SortDesc}
                                         className="rounded-lg text-[10px] font-bold"
                                     >
                                         RÉCENTS
@@ -185,7 +217,6 @@ const ProjectPortfolio = () => {
                                         variant={sortBy === 'oldest' ? 'primary' : 'ghost'}
                                         size="sm"
                                         onClick={() => setSortBy('oldest')}
-                                        icon={SortAsc}
                                         className="rounded-lg text-[10px] font-bold"
                                     >
                                         ANCIENS
@@ -197,18 +228,12 @@ const ProjectPortfolio = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10">
                                 {loading ? (
                                     [1, 2, 3].map(i => <div key={i} className="h-64 bg-white/5 rounded-[2rem] animate-pulse border border-white/10" />)
-                                ) : projects.length === 0 ? (
+                                ) : processedProjects.length === 0 ? (
                                     <div className="col-span-full py-40 text-center opacity-30">
-                                        <Briefcase className="w-16 h-16 mx-auto mb-4" />
-                                        <p className="text-sm font-bold uppercase tracking-widest">Aucun projet trouvé</p>
+                                        <p className="text-sm font-bold uppercase tracking-widest">{t('portfolio.noProjects', 'Aucun projet trouvé')}</p>
                                     </div>
                                 ) : (
-                                    [...projects]
-                                        .sort((a, b) => {
-                                            const timeA = new Date(a.created_at).getTime();
-                                            const timeB = new Date(b.created_at).getTime();
-                                            return sortBy === 'newest' ? timeB - timeA : timeA - timeB;
-                                        })
+                                    processedProjects
                                         .map((project, idx) => (
                                             <motion.div
                                                 key={project.id}
@@ -223,7 +248,7 @@ const ProjectPortfolio = () => {
                                                     <div className="space-y-2 flex-1 min-w-0 pr-4">
                                                         <div className="flex items-center gap-2">
                                                             <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                                                            <span className="text-[10px] font-black text-blue-600 dark:text-blue-500 uppercase tracking-widest">Actif</span>
+                                                            <span className="text-[10px] font-black text-blue-600 dark:text-blue-500 uppercase tracking-widest">{t('portfolio.active', 'Actif')}</span>
                                                         </div>
                                                         <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase truncate">{project.name}</h3>
                                                     </div>
@@ -268,7 +293,7 @@ const ProjectPortfolio = () => {
 
                                                 {/* Description */}
                                                 <div className="space-y-2 mb-6">
-                                                    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium leading-relaxed line-clamp-2">{project.description || 'Description du projet métier'}</p>
+                                                    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium leading-relaxed line-clamp-2">{project.description || t('portfolio.defaultDesc', 'Description du projet métier')}</p>
                                                 </div>
 
                                                 <div className="h-px w-full bg-slate-200 dark:bg-white/5 mb-6" />
@@ -278,14 +303,14 @@ const ProjectPortfolio = () => {
                                                     <div className="p-5 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[1.5rem] space-y-3">
                                                         <div className="flex items-center gap-2">
                                                             <Layers className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600" />
-                                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Releases</p>
+                                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('portfolio.table.releases', 'Releases')}</p>
                                                         </div>
                                                         <p className="text-3xl font-black text-slate-900 dark:text-white">{project.releases_count || 0}</p>
                                                     </div>
                                                     <div className="p-5 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[1.5rem] space-y-3">
                                                         <div className="flex items-center gap-2">
                                                             <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600" />
-                                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Créé le</p>
+                                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('portfolio.table.createdAt', 'Créé le')}</p>
                                                         </div>
                                                         <div>
                                                             <p className="text-xl font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter">
@@ -315,7 +340,7 @@ const ProjectPortfolio = () => {
                                                 {/* Hover indicator */}
                                                 <div className="mt-5 flex items-center gap-2 text-[10px] font-black text-slate-600 group-hover:text-blue-500 transition-colors uppercase tracking-widest">
                                                     <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                                                    Voir les releases
+                                                    {t('portfolio.viewReleases', 'Voir les releases')}
                                                 </div>
                                             </motion.div>
                                         ))
@@ -334,27 +359,84 @@ const ProjectPortfolio = () => {
                         >
                             <AdminTable
                                 columns={columns}
-                                data={projects}
+                                data={paginatedProjects}
                                 isLoading={loading}
                                 searchable
                                 onSearch={setSearchQuery}
+                                filters={
+                                    <>
+                                        <select
+                                            value={sortBy}
+                                            onChange={(e) => setSortBy(e.target.value as any)}
+                                            className="bg-transparent border-none text-xs font-bold text-slate-300 focus:ring-0 outline-none cursor-pointer appearance-none"
+                                        >
+                                            <option value="newest" className="bg-[#0f172a] text-slate-300">{t('portfolio.filter.newest', 'RÉCENTS')}</option>
+                                            <option value="oldest" className="bg-[#0f172a] text-slate-300">{t('portfolio.filter.oldest', 'ANCIENS')}</option>
+                                        </select>
+                                        <div className="w-px h-4 bg-white/10 mx-2" />
+                                        <select
+                                            value={filterOwner}
+                                            onChange={(e) => setFilterOwner(e.target.value)}
+                                            className="bg-transparent border-none text-xs font-bold text-slate-300 focus:ring-0 outline-none cursor-pointer appearance-none"
+                                        >
+                                            <option value="ALL" className="bg-[#0f172a] text-slate-300">{t('portfolio.filter.allOwners', 'TOUS LES PROPRIÉTAIRES')}</option>
+                                            {Array.from(new Set(projects.map(p => p.created_by_username).filter(Boolean))).map(owner => (
+                                                <option key={owner as string} value={owner as string} className="bg-[#0f172a] text-slate-300">{owner as string}</option>
+                                            ))}
+                                        </select>
+                                    </>
+                                }
                                 actions={(item) => (
-                                    <div className="flex items-center gap-2">
-                                        <Button
-                                            variant="secondary"
-                                            size="icon"
-                                            onClick={() => { setEditingProject(item); setNewProject({ name: item.name, description: item.description }); setIsModalOpen(true); }}
-                                            icon={Edit}
-                                        />
-                                        <Button
-                                            variant="danger"
-                                            size="icon"
-                                            onClick={() => { setProjectToDelete(item.id); setIsDeleteModalOpen(true); }}
-                                            icon={Trash2}
-                                        />
+                                    <div className="flex items-center gap-6 pr-4">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setEditingProject(item); setNewProject({ name: item.name, description: item.description }); setIsModalOpen(true); }}
+                                            className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                            title="Modifier"
+                                        >
+                                            <Edit size={18} strokeWidth={2.5} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setProjectToDelete(item.id); setIsDeleteModalOpen(true); }}
+                                            className="text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                                            title="Supprimer"
+                                        >
+                                            <Trash2 size={18} strokeWidth={2.5} />
+                                        </button>
                                     </div>
                                 )}
                             />
+
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div className="flex justify-center gap-2 mt-10 pb-10">
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                        disabled={currentPage === 1}
+                                        className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20 transition-all font-black"
+                                    >
+                                        <ChevronRight className="w-5 h-5 rotate-180" />
+                                    </button>
+                                    {Array.from({ length: totalPages }).map((_, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => setCurrentPage(i + 1)}
+                                            className={`w-12 h-12 rounded-xl border font-black text-xs transition-all ${currentPage === i + 1
+                                                ? 'bg-blue-600 border-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]'
+                                                : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                                                }`}
+                                        >
+                                            {i + 1}
+                                        </button>
+                                    ))}
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20 transition-all font-black"
+                                    >
+                                        <ChevronRight className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>

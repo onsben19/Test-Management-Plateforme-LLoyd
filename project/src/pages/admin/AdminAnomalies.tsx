@@ -5,7 +5,7 @@ import AdminTable from '../../components/AdminTable';
 import EditAnomalyModal from '../../components/EditAnomalyModal';
 import { anomalyService } from '../../services/api';
 import { toast } from 'react-toastify';
-import { AlertTriangle, Trash2, Pencil, Filter, ShieldAlert, AlertOctagon, AlertCircle, CheckCircle2, Search, Rocket, User, Calendar, ExternalLink, XCircle, Info, Layers } from 'lucide-react';
+import { AlertTriangle, Trash2, Pencil, Filter, ShieldAlert, AlertOctagon, AlertCircle, CheckCircle2, Search, Rocket, User, Calendar, ExternalLink, XCircle, Info, Layers, Eye } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import StatCard from '../../components/StatCard';
 import Pagination from '../../components/Pagination';
@@ -31,6 +31,7 @@ const AdminAnomalies = () => {
     const [anomalyToDelete, setAnomalyToDelete] = useState<string | null>(null);
     const [editingAnomaly, setEditingAnomaly] = useState<any>(null);
     const [selectedAnomaly, setSelectedAnomaly] = useState<any>(null);
+    const [viewImage, setViewImage] = useState<string | null>(null);
 
     const fetchAnomalies = async () => {
         try {
@@ -102,6 +103,30 @@ const AdminAnomalies = () => {
         }
     };
 
+    const DescriptionCell = ({ text }: { text: string }) => {
+        const [isExpanded, setIsExpanded] = useState(false);
+        const shouldShowButton = text && text.length > 80;
+        const displayText = isExpanded ? text : (text?.slice(0, 80) + (shouldShowButton ? '...' : ''));
+
+        if (!text) return <span className="text-slate-600 font-bold text-[9px] uppercase tracking-widest italic opacity-40">Aucune description</span>;
+
+        return (
+            <div className="flex flex-col gap-1 min-w-0">
+                <p className="text-[11px] text-slate-500 font-medium leading-relaxed transition-all">
+                    {displayText}
+                </p>
+                {shouldShowButton && (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+                        className="text-[9px] font-black text-blue-500 hover:text-blue-400 uppercase tracking-widest text-left w-fit transition-colors"
+                    >
+                        {isExpanded ? 'Réduire' : 'Lire la suite'}
+                    </button>
+                )}
+            </div>
+        );
+    };
+
     const confirmDelete = async () => {
         if (!anomalyToDelete) return;
         try {
@@ -120,13 +145,10 @@ const AdminAnomalies = () => {
         {
             header: t('adminAnomalies.table.anomaly'),
             accessor: (item: any) => (
-                <div className="flex items-center gap-4 group/item">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300 group-hover:scale-110 ${item.criticite === 'CRITIQUE' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
-                        <ShieldAlert className="w-5 h-5" />
-                    </div>
-                    <div className="flex flex-col gap-0.5 min-w-0">
+                <div className="flex items-center group/item">
+                    <div className="flex flex-col gap-1 min-w-0">
                         <span className="text-[15px] font-bold text-white tracking-tight group-hover:text-blue-400 transition-colors truncate">{item.titre}</span>
-                        <p className="text-[11px] text-slate-500 font-medium line-clamp-1 opacity-70 italic">{item.description}</p>
+                        <DescriptionCell text={item.description} />
                     </div>
                 </div>
             )
@@ -154,7 +176,6 @@ const AdminAnomalies = () => {
                 <div className="flex flex-col gap-0.5">
                     {item.test_case_ref ? (
                         <div className="inline-flex items-center gap-2 px-2 py-0.5 bg-blue-500/5 text-blue-400 rounded-md border border-blue-500/10 text-[10px] font-bold tracking-tight">
-                            <Layers className="w-3 h-3" />
                             {item.test_case_ref}
                         </div>
                     ) : (
@@ -167,9 +188,6 @@ const AdminAnomalies = () => {
             header: t('adminAnomalies.table.createdBy'),
             accessor: (item: any) => (
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-600/10 border border-blue-600/10 flex items-center justify-center text-blue-400 group-hover:border-blue-500/30 transition-all">
-                        <User className="w-4 h-4" />
-                    </div>
                     <div className="flex flex-col">
                         <span className="text-[11px] font-bold text-slate-300 truncate max-w-[120px]">{item.cree_par_nom || 'Auditeur Système'}</span>
                         <span className="text-[9px] text-slate-500 font-medium">{new Date(item.cree_le).toLocaleDateString()}</span>
@@ -177,7 +195,7 @@ const AdminAnomalies = () => {
                 </div>
             )
         },
-        {
+         {
             header: t('adminAnomalies.table.date'),
             accessor: (item: any) => (
                 <div className="flex flex-col">
@@ -185,6 +203,30 @@ const AdminAnomalies = () => {
                     <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Reported</span>
                 </div>
             )
+        },
+        {
+            header: "Épreuve",
+            accessor: (item: any) => {
+                const hasCapture = !!item.capture;
+                return (
+                    <div className="flex items-center">
+                        {hasCapture ? (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setViewImage(item.capture);
+                                }}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/5 text-blue-400 rounded-lg border border-blue-500/10 hover:bg-blue-500/10 transition-all group/eye"
+                            >
+                                <Eye className="w-3.5 h-3.5 group-hover/eye:scale-110 transition-transform" />
+                                <span className="text-[9px] font-black uppercase tracking-widest">Voir</span>
+                            </button>
+                        ) : (
+                            <span className="text-slate-600 text-[10px] font-black tracking-widest uppercase opacity-40 italic">- N/A -</span>
+                        )}
+                    </div>
+                );
+            }
         }
     ];
 
@@ -240,35 +282,25 @@ const AdminAnomalies = () => {
                     searchable
                     onSearch={setSearchQuery}
                     filters={
-                        <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
-                            <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-[1.5rem] border border-white/5 flex-1 xl:flex-none">
-                                <div className="p-2 bg-rose-500/10 rounded-full border border-rose-500/20">
-                                    <Filter className="w-4 h-4 text-rose-500" />
-                                </div>
-                                <select
-                                    className="bg-transparent text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none"
-                                    value={criticalityFilter}
-                                    onChange={(e) => setCriticalityFilter(e.target.value)}
-                                >
-                                    <option value="ALL" className="bg-slate-900">{t('adminAnomalies.filters.all')}</option>
-                                    <option value="FAIBLE" className="bg-slate-900 font-bold">{t('adminAnomalies.badges.low')}</option>
-                                    <option value="MOYENNE" className="bg-slate-900 font-bold">{t('adminAnomalies.badges.medium')}</option>
-                                    <option value="CRITIQUE" className="bg-slate-900 font-bold text-rose-400">{t('adminAnomalies.badges.critical')}</option>
-                                </select>
-                            </div>
-                            <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-[1.5rem] border border-white/5 flex-1 xl:flex-none">
-                                <div className="p-2 bg-blue-500/10 rounded-full border border-blue-500/20">
-                                    <Calendar className="w-4 h-4 text-blue-500" />
-                                </div>
-                                <select
-                                    className="bg-transparent text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none"
-                                    value={sortOrder}
-                                    onChange={(e) => setSortOrder(e.target.value as 'recent' | 'oldest')}
-                                >
-                                    <option value="recent" className="bg-slate-900 font-bold">{t('adminAnomalies.filters.recent')}</option>
-                                    <option value="oldest" className="bg-slate-900 font-bold">{t('adminAnomalies.filters.oldest')}</option>
-                                </select>
-                            </div>
+                        <div className="flex flex-wrap items-center gap-4">
+                            <select
+                                className="bg-transparent text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-white/5 transition-all rounded-xl"
+                                value={criticalityFilter}
+                                onChange={(e) => setCriticalityFilter(e.target.value)}
+                            >
+                                <option value="ALL" className="bg-slate-900">{t('adminAnomalies.filters.all')}</option>
+                                <option value="FAIBLE" className="bg-slate-900">{t('adminAnomalies.badges.low')}</option>
+                                <option value="MOYENNE" className="bg-slate-900">{t('adminAnomalies.badges.medium')}</option>
+                                <option value="CRITIQUE" className="bg-slate-900">{t('adminAnomalies.badges.critical')}</option>
+                            </select>
+                            <select
+                                className="bg-transparent text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-white/5 transition-all rounded-xl"
+                                value={sortOrder}
+                                onChange={(e) => setSortOrder(e.target.value as 'recent' | 'oldest')}
+                            >
+                                <option value="recent" className="bg-slate-900">RÉCENTS</option>
+                                <option value="oldest" className="bg-slate-900">ANCIENS</option>
+                            </select>
                         </div>
                     }
                     variant="transparent"
@@ -283,7 +315,7 @@ const AdminAnomalies = () => {
                         relatedTest: item.test_case_ref
                     })}
                     actions={(item) => (
-                        <div className="flex items-center gap-2 pr-4">
+                        <div className="flex items-center gap-4 pr-4">
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -298,10 +330,10 @@ const AdminAnomalies = () => {
                                         relatedTest: item.test_case_ref
                                     });
                                 }}
-                                className="p-2.5 bg-white/5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all border border-white/5 flex items-center justify-center"
+                                className="text-slate-400 hover:text-blue-400 transition-all"
                                 title="Voir détails"
                             >
-                                <Info className="w-3.5 h-3.5" />
+                                <Info className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={(e) => {
@@ -320,10 +352,10 @@ const AdminAnomalies = () => {
                                         relatedTest: item.test_case_ref
                                     });
                                 }}
-                                className="p-2.5 bg-white/5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-xl transition-all border border-white/5 flex items-center justify-center"
+                                className="text-slate-400 hover:text-emerald-400 transition-all"
                                 title={t('adminAnomalies.actions.edit')}
                             >
-                                <Pencil className="w-3.5 h-3.5" />
+                                <Pencil className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={(e) => {
@@ -331,10 +363,10 @@ const AdminAnomalies = () => {
                                     setAnomalyToDelete(item.id);
                                     setIsDeleteModalOpen(true);
                                 }}
-                                className="p-2.5 bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all border border-white/5 flex items-center justify-center"
+                                className="text-slate-400 hover:text-rose-400 transition-all"
                                 title={t('adminAnomalies.actions.delete')}
                             >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash2 className="w-4 h-4" />
                             </button>
                         </div>
                     )}
@@ -380,6 +412,55 @@ const AdminAnomalies = () => {
                 confirmText={t('adminAnomalies.modal.delete')}
                 type="danger"
             />
+
+            {/* Image Preview Modal */}
+            <AnimatePresence>
+                {viewImage && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="relative max-w-5xl w-full h-[85vh] bg-[#0b0e14] border border-white/5 rounded-[2.5rem] overflow-hidden flex flex-col shadow-2xl"
+                        >
+                            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                                        <Eye className="w-5 h-5 text-blue-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-black text-white uppercase tracking-tighter">Preuve d'exécution</h3>
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Capture d'écran de l'anomalie</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setViewImage(null)}
+                                    className="p-2.5 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-all"
+                                >
+                                    <XCircle className="w-6 h-6" />
+                                </button>
+                            </div>
+                            <div className="flex-1 bg-black/40 p-4 overflow-hidden flex items-center justify-center group/img">
+                                <img
+                                    src={viewImage}
+                                    alt="Preuve"
+                                    className="max-w-full max-h-full object-contain rounded-xl shadow-2xl group-hover/img:scale-[1.02] transition-transform duration-700"
+                                />
+                            </div>
+                            <div className="p-6 border-t border-white/5 bg-white/[0.01] flex justify-center">
+                                <a
+                                    href={viewImage}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[10px] font-black text-blue-500 hover:text-blue-400 uppercase tracking-[0.2em] transition-all"
+                                >
+                                    Voir l'image originale
+                                </a>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </PageLayout>
     );
 };

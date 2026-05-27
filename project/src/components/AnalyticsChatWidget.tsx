@@ -379,7 +379,19 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                         </div>
                     ) : (
                         <>
-                            <div className={`rounded-2xl px-4 py-3 shadow-sm ${isUser ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-sm' : msg.type === 'error' ? 'bg-red-900/10 dark:bg-red-900/30 border border-red-200 dark:border-red-700/40 text-red-600 dark:text-red-300 rounded-tl-sm' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-tl-sm'}`}>
+                            <div className={`relative rounded-2xl px-5 py-4 shadow-sm border ${isUser ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white border-blue-500/30 rounded-tr-sm' : msg.type === 'error' ? 'bg-red-900/10 dark:bg-red-900/30 border-red-200 dark:border-red-700/40 text-red-600 dark:text-red-300 rounded-tl-sm' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-tl-sm'}`}>
+                                {!isUser && (
+                                    <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-100 dark:border-white/5">
+                                        <div className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-md flex items-center gap-1.5">
+                                            <Database className="w-2.5 h-2.5 text-blue-500" />
+                                            <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">Source Experte</span>
+                                        </div>
+                                        <div className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md flex items-center gap-1.5">
+                                            <CheckCircle className="w-2.5 h-2.5 text-emerald-500" />
+                                            <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Données Auditées</span>
+                                        </div>
+                                    </div>
+                                )}
                                 {(msg.file || msg.fileName) && (
                                     <div className="mb-3 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-600">
                                         {(msg.file?.match(/\.(jpeg|jpg|gif|png|webp|data:image)/i) || (msg.fileName?.match(/\.(jpeg|jpg|gif|png|webp)/i))) ? (
@@ -402,6 +414,22 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                                     </div>
                                 )}
                                 <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                                
+                                {!isUser && msg.sql && (
+                                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                                                <Zap className="w-3 h-3 text-amber-500" />
+                                                Raisonnement Cognitif
+                                            </span>
+                                            <span className="text-[8px] font-medium text-slate-400 bg-slate-50 dark:bg-white/5 px-2 py-0.5 rounded-full border border-slate-200 dark:border-white/5">SQL-Llama-3.3</span>
+                                        </div>
+                                        <div className="bg-slate-950/90 rounded-xl p-3 font-mono text-[10px] text-blue-300/80 overflow-x-auto border border-white/5 shadow-inner">
+                                            <code className="whitespace-pre">{msg.sql}</code>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {!isUser && msg.type !== 'text' && msg.type !== 'error' && <div className="mt-1">{renderVisualization(msg)}</div>}
                             </div>
                             {isUser && <button onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }} className="mt-1.5 opacity-0 group-hover:opacity-100 flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><Pencil className="w-3 h-3" />{t('analytics.chat.edit')}</button>}
@@ -483,22 +511,23 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8 w-full max-w-2xl">
                         {[
-                            { key: 'quality', icon: Activity },
-                            { key: 'coverage', icon: Database },
-                            { key: 'trends', icon: PieChart },
-                            { key: 'performance', icon: Zap }
+                            { key: 'quality', icon: Activity, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                            { key: 'coverage', icon: Database, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+                            { key: 'trends', icon: PieChart, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                            { key: 'performance', icon: Zap, color: 'text-amber-500', bg: 'bg-amber-500/10' }
                         ].map(s => (
                             <button
                                 key={s.key}
                                 onClick={() => handleSendMessage(undefined, t(`analytics.chat.suggestions.${s.key}`))}
-                                className="group relative flex items-center gap-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] hover:border-blue-500/30 hover:bg-blue-500/[0.02] p-5 rounded-xl transition-all duration-300 text-left overflow-hidden shadow-sm"
+                                className="group relative flex items-center gap-4 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] hover:border-blue-500/30 hover:bg-blue-500/[0.02] p-5 rounded-2xl transition-all duration-300 text-left overflow-hidden shadow-sm hover:shadow-xl hover:shadow-blue-500/5"
                             >
-                                <div className="p-3 rounded-xl bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform">
+                                <div className={`p-3 rounded-xl ${s.bg} ${s.color} group-hover:scale-110 transition-transform relative`}>
                                     <s.icon size={20} />
+                                    <div className={`absolute inset-0 rounded-xl ${s.bg} animate-ping opacity-20`} />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-blue-500 transition-colors">{t(`analytics.chat.suggestions.${s.key}`)}</span>
-                                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">Cliquez pour lancer l'analyse</span>
+                                    <span className="text-sm font-black text-slate-800 dark:text-slate-100 group-hover:text-blue-500 transition-colors uppercase tracking-tight">{t(`analytics.chat.suggestions.${s.key}`)}</span>
+                                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold mt-0.5 uppercase tracking-widest">Lancer l'audit cognitif</span>
                                 </div>
                                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/5 to-blue-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                             </button>
@@ -508,9 +537,41 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
             )}
             <AnimatePresence initial={false}>{messages.filter(m => m.id !== 'welcome' || messages.length === 1).map(msg => <div key={msg.id}>{renderMessage(msg)}</div>)}</AnimatePresence>
             {loading && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0"><Bot className="w-4 h-4 text-blue-600 dark:text-blue-400" /></div>
-                    <div className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">{[0, 0.2, 0.4].map((delay, i) => <motion.div key={i} animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.8, delay }} className="w-2 h-2 bg-blue-500 rounded-full" />)}</div>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-4">
+                    <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/5">
+                        <Bot className="w-5 h-5 text-blue-500 animate-pulse" />
+                    </div>
+                    <div className="bg-white/50 dark:bg-white/[0.03] backdrop-blur-md border border-slate-200 dark:border-white/5 rounded-2xl rounded-tl-sm px-5 py-4 flex flex-col gap-3 min-w-[200px]">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-black text-blue-500 uppercase tracking-[0.2em]">Audit des données en cours</span>
+                            <div className="flex gap-1">
+                                {[0, 0.2, 0.4].map((delay, i) => (
+                                    <motion.div 
+                                        key={i} 
+                                        animate={{ opacity: [0.3, 1, 0.3], scale: [1, 1.2, 1] }} 
+                                        transition={{ repeat: Infinity, duration: 1, delay }} 
+                                        className="w-1 h-1 bg-blue-500 rounded-full" 
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <div className="h-1.5 w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
+                                <motion.div 
+                                    animate={{ x: ['-100%', '100%'] }} 
+                                    transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }} 
+                                    className="h-full w-1/3 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" 
+                                />
+                            </div>
+                            <div className="h-1.5 w-2/3 bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
+                                <motion.div 
+                                    animate={{ x: ['-100%', '100%'] }} 
+                                    transition={{ repeat: Infinity, duration: 2, ease: "linear", delay: 0.5 }} 
+                                    className="h-full w-1/3 bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" 
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </motion.div>
             )}
             <div ref={messagesEndRef} />
@@ -523,8 +584,19 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                 <div className="shrink-0 bg-slate-50/90 dark:bg-slate-950/90 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2.5">
-                            <div className="relative"><div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-violet-700 rounded-xl flex items-center justify-center shadow-lg"><Sparkles className="w-4 h-4 text-white" /></div><div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-950 rounded-full" /></div>
-                            <div><h3 className="font-bold text-slate-800 dark:text-white text-sm leading-none">Assistant Analytics</h3><span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold tracking-wider">IA ACTIVE</span></div>
+                            <div className="relative">
+                                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-xl shadow-blue-500/10 border border-blue-400/20">
+                                    <Sparkles className="w-5 h-5 text-white" />
+                                </div>
+                                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-950 rounded-full shadow-lg" />
+                            </div>
+                            <div>
+                                <h3 className="font-black text-slate-800 dark:text-white text-xs uppercase tracking-widest leading-none mb-1">Expert Analyst IA</h3>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-black tracking-[0.2em] uppercase">Moteur Cognitif Actif</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">

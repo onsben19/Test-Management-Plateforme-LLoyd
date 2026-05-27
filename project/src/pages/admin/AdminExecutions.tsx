@@ -8,8 +8,10 @@ import EditExecutionModal from '../../components/EditExecutionModal';
 import { useLocation } from 'react-router-dom';
 import ConfirmModal from '../../components/ConfirmModal';
 import StatCard from '../../components/StatCard';
-import { PlayCircle, CheckCircle2, XCircle, Clock, Search, Filter, SortAsc, LayoutGrid, Layers, Calendar, ChevronRight } from 'lucide-react';
+import { PlayCircle, CheckCircle2, XCircle, Clock, Edit, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import AdminTable from '../../components/AdminTable';
+import Pagination from '../../components/Pagination';
 
 const AdminExecutions = () => {
     const { t } = useTranslation();
@@ -20,11 +22,13 @@ const AdminExecutions = () => {
     const [executions, setExecutions] = useState<TestItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState(initialSearch);
-    const [groupBy, setGroupBy] = useState<'none' | 'campaign' | 'release'>('none');
+    const [groupBy, setGroupBy] = useState<'none' | 'campaign' | 'release' | 'project'>('none');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
     const [editingTest, setEditingTest] = useState<TestItem | null>(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [testToDelete, setTestToDelete] = useState<TestItem | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 12;
 
     const fetchExecutions = async () => {
         try {
@@ -43,6 +47,8 @@ const AdminExecutions = () => {
                 rawDate: t_item.execution_date,
                 captures: t_item.proof_file ? [t_item.proof_file] : [],
                 release: t_item.project_name || t('adminExecutions.releaseFallback'),
+                businessProject: t_item.business_project_name || 'Global',
+                releaseType: t_item.release_type
             }));
             setExecutions(mappedTests);
         } catch (error) {
@@ -58,20 +64,31 @@ const AdminExecutions = () => {
     }, []);
 
     const filteredTests = useMemo(() => {
-        return executions.filter(t => {
-            const query = searchQuery.toLowerCase();
-            return (
-                (t.name?.toLowerCase() || '').includes(query) ||
-                (t.module?.toLowerCase() || '').includes(query) ||
-                (t.release?.toLowerCase() || '').includes(query) ||
-                (t.realized_by?.toLowerCase() || '').includes(query)
-            );
-        }).sort((a, b) => {
-            const dateA = new Date(a.rawDate || 0).getTime();
-            const dateB = new Date(b.rawDate || 0).getTime();
-            return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
-        });
+        const query = searchQuery.toLowerCase();
+        return executions
+            .filter((t) => {
+                const name = t.name?.toLowerCase() || '';
+                const module = t.module?.toLowerCase() || '';
+                const release = t.release?.toLowerCase() || '';
+                const realizedBy = t.realized_by?.toLowerCase() || '';
+                return (
+                    name.includes(query) ||
+                    module.includes(query) ||
+                    release.includes(query) ||
+                    realizedBy.includes(query)
+                );
+            })
+            .sort((a, b) => {
+                const dateA = new Date(a.rawDate || 0).getTime();
+                const dateB = new Date(b.rawDate || 0).getTime();
+                return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+            });
     }, [executions, searchQuery, sortOrder]);
+
+    const paginatedTests = useMemo(() => {
+        const startIndex = (currentPage - 1) * pageSize;
+        return filteredTests.slice(startIndex, startIndex + pageSize);
+    }, [filteredTests, currentPage, pageSize]);
 
     const stats = useMemo(() => {
         const total = executions.length;
@@ -127,7 +144,6 @@ const AdminExecutions = () => {
                     <StatCard
                         title={t('adminExecutions.stats.total')}
                         value={stats.total}
-                        icon={PlayCircle}
                         variant="blue"
                         description={t('adminExecutions.stats.totalDesc')}
                         isLoading={loading}
@@ -135,7 +151,6 @@ const AdminExecutions = () => {
                     <StatCard
                         title={t('adminExecutions.stats.passed')}
                         value={stats.passed}
-                        icon={CheckCircle2}
                         variant="green"
                         description={t('adminExecutions.stats.passedDesc')}
                         changeType="positive"
@@ -144,7 +159,6 @@ const AdminExecutions = () => {
                     <StatCard
                         title={t('adminExecutions.stats.failed')}
                         value={stats.failed}
-                        icon={XCircle}
                         variant="red"
                         description={t('adminExecutions.stats.failedDesc')}
                         change={stats.failed > 0 ? `+${stats.failed}` : undefined}
@@ -154,7 +168,6 @@ const AdminExecutions = () => {
                     <StatCard
                         title={t('adminExecutions.stats.pending')}
                         value={stats.pending}
-                        icon={Clock}
                         variant="yellow"
                         description={t('adminExecutions.stats.pendingDesc')}
                         isLoading={loading}
@@ -165,42 +178,36 @@ const AdminExecutions = () => {
                 <div className="px-8 py-4 shrink-0">
                     <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 flex flex-col xl:flex-row items-center gap-6 shadow-2xl">
                         <div className="relative flex-1 w-full group">
-                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                             <input
                                 type="text"
                                 placeholder={t('adminExecutions.search')}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] pl-16 pr-8 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold placeholder-slate-500"
+                                className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold placeholder-slate-500"
                             />
                         </div>
                         <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
                             <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-[1.5rem] border border-white/5 flex-1 xl:flex-none">
-                                <div className="p-2 bg-indigo-500/10 rounded-full border border-indigo-500/20">
-                                    <LayoutGrid className="w-4 h-4 text-indigo-500" />
-                                </div>
                                 <select
                                     value={groupBy}
-                                    onChange={(e) => setGroupBy(e.target.value as 'none' | 'campaign' | 'release')}
+                                    onChange={(e) => setGroupBy(e.target.value as 'none' | 'campaign' | 'release' | 'project')}
                                     className="bg-transparent text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none"
                                 >
                                     <option value="none" className="bg-slate-900">{t('adminExecutions.controls.none')}</option>
+                                    <option value="project" className="bg-slate-900">{t('adminExecutions.controls.project') || 'Par Projet'}</option>
                                     <option value="campaign" className="bg-slate-900">{t('adminExecutions.controls.campaign')}</option>
                                     <option value="release" className="bg-slate-900">{t('adminExecutions.controls.release')}</option>
                                 </select>
                             </div>
 
                             <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-[1.5rem] border border-white/5 flex-1 xl:flex-none">
-                                <div className="p-2 bg-blue-500/10 rounded-full border border-blue-500/20">
-                                    <SortAsc className="w-4 h-4 text-blue-500" />
-                                </div>
                                 <select
                                     value={sortOrder}
                                     onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
                                     className="bg-transparent text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none"
                                 >
-                                    <option value="newest" className="bg-slate-900">{t('adminExecutions.controls.newest')}</option>
-                                    <option value="oldest" className="bg-slate-900">{t('adminExecutions.controls.oldest')}</option>
+                                    <option value="newest" className="bg-slate-900">RÉCENTS</option>
+                                    <option value="oldest" className="bg-slate-900">ANCIENS</option>
                                 </select>
                             </div>
                         </div>
@@ -208,34 +215,95 @@ const AdminExecutions = () => {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-hidden p-8 pt-2">
-                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[3rem] h-full overflow-hidden flex flex-col shadow-2xl">
-                        <div className="flex-1 overflow-y-auto custom-scrollbar">
-                            {loading && executions.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full gap-4 opacity-50">
-                                    <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-                                    <span className="font-bold text-[10px] tracking-widest uppercase">Initializing terminal...</span>
-                                </div>
-                            ) : filteredTests.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full gap-4 opacity-30">
-                                    <PlayCircle className="w-16 h-16 text-slate-500" />
-                                    <span className="font-bold text-[10px] tracking-widest uppercase">{t('common.noResults')}</span>
-                                </div>
-                            ) : (
-                                <ExecutionTestList
-                                    tests={filteredTests}
-                                    onSelectTest={() => { }}
-                                    selectedTestId={undefined}
-                                    onEditTest={handleEditTest}
-                                    onDeleteTest={handleDeleteTest}
-                                    isTester={false}
-                                    canManage={true}
-                                    canDelete={true}
-                                    groupBy={groupBy}
-                                    variant="transparent"
-                                />
-                            )}
-                        </div>
+                <div className="flex-1 p-8 pt-2">
+                    <AdminTable
+                        columns={[
+                            {
+                                header: 'TEST & CAMPAGNE',
+                                accessor: (item: TestItem) => (
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-base font-bold text-white tracking-tight">{item.name}</span>
+                                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest opacity-60">{item.module}</span>
+                                    </div>
+                                )
+                            },
+                            {
+                                header: 'PROJET & RELEASE',
+                                accessor: (item: TestItem) => (
+                                    <div className="flex flex-col gap-1.5">
+                                        <span className="text-[11px] font-black text-white uppercase tracking-widest">{item.businessProject || 'GLOBAL'}</span>
+                                        <div className="flex items-center gap-2 text-slate-500">
+                                            <span className="text-[10px] font-bold uppercase tracking-widest">{item.release}</span>
+                                            {item.releaseType && (
+                                                <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-widest ${item.releaseType === 'PREPROD' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                                                    {item.releaseType}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )
+                            },
+                            {
+                                header: 'RÉALISÉ PAR',
+                                accessor: (item: TestItem) => <span className="text-xs font-bold text-white tracking-tight">{item.realized_by}</span>
+                            },
+                            {
+                                header: 'CAPTURES',
+                                accessor: (item: TestItem) => (item.captures && item.captures.length > 0) ? (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            window.open(item.captures![0], '_blank');
+                                        }}
+                                        className="text-blue-400 text-[10px] font-black uppercase tracking-widest hover:text-blue-300"
+                                    >
+                                        VOIR
+                                    </button>
+                                ) : (
+                                    <span className="text-slate-600 font-bold uppercase tracking-widest text-[9px] opacity-40">AUCUNE</span>
+                                )
+                            },
+                            {
+                                header: 'STATUT',
+                                accessor: (item: TestItem) => (
+                                    <span className={`inline-flex items-center gap-3 px-4 py-1.5 rounded-2xl text-[10px] font-bold uppercase tracking-widest border ${item.status === 'passed' ? 'bg-blue-500/5 text-blue-400 border-blue-500/10' : item.status === 'failed' ? 'bg-rose-500/5 text-rose-400 border-rose-500/10' : 'bg-amber-500/5 text-amber-400 border-amber-500/10'}`}>
+                                        <div className={`w-1.5 h-1.5 rounded-full ${item.status === 'passed' ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : item.status === 'failed' ? 'bg-rose-500' : 'bg-amber-500'}`} />
+                                        {item.status}
+                                    </span>
+                                )
+                            },
+                            {
+                                header: 'DATE',
+                                accessor: (item: TestItem) => (
+                                    <div className="flex flex-col">
+                                        <span className="text-slate-300 text-[10px] font-bold tracking-tight">{item.lastRun.split(' ')[0]}</span>
+                                        <span className="text-slate-500 text-[9px] font-bold uppercase tracking-widest opacity-60 italic">{item.lastRun.split(' ')[1]}</span>
+                                    </div>
+                                )
+                            }
+                        ]}
+                        data={paginatedTests}
+                        isLoading={loading}
+                        onRowClick={() => { }}
+                        actions={(item: TestItem) => (
+                            <div className="flex items-center justify-end gap-6 pr-4">
+                                <button onClick={() => handleEditTest(item)} className="text-slate-400 hover:text-blue-400 transition-colors">
+                                    <Edit className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => handleDeleteTest(item)} className="text-slate-400 hover:text-rose-400 transition-colors">
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+                    />
+
+                    <div className="mt-8 flex justify-center">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalCount={filteredTests.length}
+                            pageSize={pageSize}
+                            onPageChange={setCurrentPage}
+                        />
                     </div>
                 </div>
             </div>

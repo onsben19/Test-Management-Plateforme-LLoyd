@@ -151,9 +151,6 @@ const AdminReleases = () => {
             header: 'Nom de la Release',
             accessor: (item: any) => (
                 <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20 group-hover:scale-110 transition-transform">
-                        <Layers className="w-5 h-5" />
-                    </div>
                     <div className="flex flex-col gap-0.5">
                         <span className="text-[15px] font-bold text-white group-hover:text-blue-400 transition-colors tracking-tight">{item.name}</span>
                         <span className="text-[10px] text-slate-500 font-medium">ID: #{item.id}</span>
@@ -280,17 +277,17 @@ const AdminReleases = () => {
                             </div>
                         }
                         actions={(item) => (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-6 pr-4">
                                 <button
                                     onClick={() => handleEditClick(item)}
-                                    className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                                    className="text-slate-400 hover:text-blue-400 transition-colors"
                                     title="Modifier"
                                 >
                                     <Edit className="w-4 h-4" />
                                 </button>
                                 <button
                                     onClick={() => handleDeleteClick(item.id)}
-                                    className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                    className="text-slate-400 hover:text-rose-400 transition-colors"
                                     title="Supprimer"
                                 >
                                     <Trash2 className="w-4 h-4" />

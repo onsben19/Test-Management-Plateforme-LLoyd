@@ -33,12 +33,13 @@ class MLTimelineGuard:
     def get_campaign_status(self, campaign_id):
         try:
             campaign = Campaign.objects.get(id=campaign_id)
-            total_cases = campaign.nb_test_cases or 0
+            db_total = TestCase.objects.filter(campaign=campaign).count()
+            total_cases = max(campaign.nb_test_cases or 0, db_total)
             
-            # 1. Calculer les tests terminés
+            # 1. Calculer les tests terminés (exclure PENDING)
             executed_tests = TestCase.objects.filter(
                 campaign=campaign
-            )
+            ).exclude(status='PENDING')
             
             finished_count = executed_tests.count()
             
@@ -132,7 +133,7 @@ class MLTimelineGuard:
     def _format_response(self, status, velocity, end_date, delay, message, finished=0, total=0):
         return {
             "status": status,
-            "velocity": round(velocity, 2),
+            "velocity": math.ceil(velocity),
             "projected_end_date": end_date.isoformat() if end_date else None,
             "delay_days": max(0, delay),
             "message": message,
@@ -145,8 +146,8 @@ class MLTimelineGuard:
 
     def score_tester(self, tester_id, campaign_id=None):
         """
-        ML scoring system for testers fitness.
-        Calculates a score from 0-100 based on performance features.
+        ML scoring system for testers fitness & availability.
+        Calculates a score from 0-100 based on behavioral and logistical features.
         """
         try:
             from testCases.models import TestCase
@@ -154,43 +155,45 @@ class MLTimelineGuard:
             User = get_user_model()
             tester = User.objects.get(id=tester_id)
             
-            # Features extraction
-            # 1. Success Rate (Weight 40%)
-            all_tests = TestCase.objects.filter(tester=tester)
-            total_count = all_tests.count()
-            if total_count == 0: 
+            # 1. Indice de Productivité (Volume Historique - Weight 25%)
+            # On valorise l'expérience accumulée sur la plateforme (excluant PENDING)
+            all_tests = TestCase.objects.filter(tester=tester).exclude(status='PENDING')
+            total_history = all_tests.count()
+            
+            if total_history == 0: 
                 return {
-                    "score": 50.0,
-                    "metrics": {"success_rate": 0, "velocity": 0, "reliability": 0},
-                    "label": "NEUTRAL"
-                } # New tester neutral score
+                    "score": 40.0,
+                    "metrics": {"productivity": 0, "constancy": 0, "availability": 100},
+                    "label": "NEW_TALENT"
+                }
 
+            productivity_score = min(100, (total_history / 500.0) * 100) # Maxé à 500 tests
             
-            success_count = all_tests.filter(status='PASSED').count()
-            success_rate = (success_count / total_count) * 100
-            
-            # 2. Recent Velocity (Weight 30%)
-            last_7_days = timezone.now() - timedelta(days=7)
-            recent_tests = all_tests.filter(execution_date__gte=last_7_days).count()
-            velocity_score = min(100, (recent_tests / 7.0) * 10) # 10 tests/day = 100 points
-            
-            # 3. Reliability (Weight 30%)
-            # Checks consistency: days with at least 1 test in last 14 days
+            # 2. Indice de Constance (Stabilité - Weight 25%)
+            # Travail sur les 14 derniers jours
             last_14_days = timezone.now() - timedelta(days=14)
             active_days = all_tests.filter(execution_date__gte=last_14_days).dates('execution_date', 'day').count()
-            reliability_score = (active_days / 14.0) * 100
+            constancy_score = (active_days / 14.0) * 100
             
-            # Final ML score (Weighted Average)
-            final_score = (success_rate * 0.4) + (velocity_score * 0.3) + (reliability_score * 0.3)
+            # 3. Indice de Charge (Disponibilité Temps Réel - Weight 50%)
+            # On regarde les tests PENDING actuellement assignés (toutes campagnes confondues)
+            pending_load = TestCase.objects.filter(tester=tester, status='PENDING').count()
+            # Malus : 100% de dispo si 0 pending, 0% si 50+ pending
+            availability_score = max(0, 100 - (pending_load * 2))
+            
+            # Final ML score (Weighted Average - Configured as requested)
+            # 25% Productivity / 25% Constancy / 50% Availability
+            final_score = (productivity_score * 0.25) + (constancy_score * 0.25) + (availability_score * 0.50)
             
             return {
                 "score": round(final_score, 1),
                 "metrics": {
-                    "success_rate": round(success_rate, 1),
-                    "velocity": round(velocity_score, 1),
-                    "reliability": round(reliability_score, 1)
+                    "productivity": round(productivity_score, 1),
+                    "constancy": round(constancy_score, 1),
+                    "availability": round(availability_score, 1),
+                    "pending_tasks": pending_load
                 },
-                "label": "EXPERT" if final_score > 80 else "STABLE" if final_score > 50 else "TRAINEE"
+                "label": "ELITE" if final_score > 80 else "STABLE" if final_score > 40 else "OVERLOADED" if availability_score < 30 else "TRAINEE"
             }
         except Exception:
             return {"score": 50, "metrics": {}, "label": "NEUTRAL"}

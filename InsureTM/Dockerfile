@@ -25,6 +25,13 @@ WORKDIR /app
 # Runtime system dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
+    curl \
+    gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g playwright \
+    && npx playwright install --with-deps chromium \
+    && mkdir -p /project && cd /project && npm init -y && npm install @playwright/test \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder

@@ -16,6 +16,8 @@ interface ReviewPanelProps {
 const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embed = false, readOnly = false }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const [showFullLogs, setShowFullLogs] = React.useState(false);
+    const [showFullCode, setShowFullCode] = React.useState(false);
 
     if (!test) return null;
 
@@ -96,7 +98,53 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                         </div>
                     </div>
                 </section>
+                
+                {test.execution_logs && (
+                    <section className="space-y-4">
+                        <div className="flex items-center justify-between ml-1">
+                            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Logs d'exécution automatisée</h3>
+                            {test.execution_logs.length > 200 && (
+                                <button onClick={() => setShowFullLogs(!showFullLogs)} className="text-[10px] font-black uppercase tracking-widest text-blue-500 hover:text-blue-400">
+                                    {showFullLogs ? 'Réduire' : 'Lire plus'}
+                                </button>
+                            )}
+                        </div>
+                        <div className="bg-[#0d1117] border border-white/10 rounded-2xl p-6">
+                            <pre className={`text-slate-300 font-mono text-[11px] overflow-y-auto whitespace-pre-wrap transition-all ${showFullLogs ? 'max-h-[500px]' : 'max-h-32'}`}>
+                                {test.execution_logs}
+                            </pre>
+                        </div>
+                    </section>
+                )}
 
+                {(test as any).automation_code && (
+                    <section className="space-y-4">
+                        <div className="flex items-center justify-between ml-1">
+                            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Script Playwright</h3>
+                            {(test as any).automation_code.length > 200 && (
+                                <button onClick={() => setShowFullCode(!showFullCode)} className="text-[10px] font-black uppercase tracking-widest text-orange-500 hover:text-orange-400">
+                                    {showFullCode ? 'Réduire' : 'Lire plus'}
+                                </button>
+                            )}
+                        </div>
+                        <div className="bg-[#0d1117] border border-orange-500/30 rounded-2xl p-6">
+                            <pre className={`text-orange-400 font-mono text-[11px] overflow-y-auto whitespace-pre-wrap transition-all ${showFullCode ? 'max-h-[500px]' : 'max-h-32'}`}>
+                                {(test as any).automation_code}
+                            </pre>
+                        </div>
+                    </section>
+                )}
+
+                {test.captures && test.captures.length > 0 && (
+                    <section className="space-y-4">
+                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-1">Capture de l'exécution</h3>
+                        <div className="grid grid-cols-1 gap-4">
+                            {test.captures.map((cap, idx) => (
+                                <img key={idx} src={cap} alt={`Capture ${idx}`} className="w-full rounded-2xl border border-white/10 shadow-2xl object-contain max-h-96" />
+                            ))}
+                        </div>
+                    </section>
+                )}
             </div>
         </div>
     );

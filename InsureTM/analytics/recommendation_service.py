@@ -20,8 +20,10 @@ class CatchupRecommendationManager:
         """
         Envoie le plan de rattrapage à n8n via un Webhook.
         """
+        import os
+        token = os.environ.get('N8N_WEBHOOK_TOKEN', '')
         # URL de n8n via le réseau Docker interne (production webhook)
-        n8n_url = "http://insuretm-n8n:5678/webhook/catchup-plan"
+        n8n_url = f"http://insuretm-n8n:5678/webhook/catchup-plan?token={token}"
         try:
             logger.info(f"Tentative d'envoi du plan à n8n: {n8n_url}")
             response = requests.post(n8n_url, json=plan_data, timeout=5)
@@ -43,7 +45,8 @@ class CatchupRecommendationManager:
             delay_days = ml_status.get('delay_days', 0)
             current_velocity = ml_status.get('velocity', 0)
             
-            total_tests = campaign.nb_test_cases or 0
+            db_total = TestCase.objects.filter(campaign=campaign).count()
+            total_tests = max(campaign.nb_test_cases or 0, db_total)
             finished_tests = ml_status.get('progress', {}).get('finished', 0)
             remaining_tests = max(0, total_tests - finished_tests)
             
@@ -89,7 +92,7 @@ class CatchupRecommendationManager:
                 if is_already_in:
                     assignment = CampaignAssignment.objects.filter(campaign=campaign, tester=tester).first()
                     if assignment and assignment.test_quota > 0:
-                        total_done = TestCase.objects.filter(campaign=campaign, tester=tester).count()
+                        total_done = TestCase.objects.filter(campaign=campaign, tester=tester).exclude(status='PENDING').count()
                         has_finished_quota = total_done >= assignment.test_quota
 
                 tester_stats.append({
@@ -121,7 +124,8 @@ class CatchupRecommendationManager:
                 num_to_assign = min(2, len(potential_reinforcements))
                 for i in range(num_to_assign):
                     tester = potential_reinforcements[i]
-                    extra = round(delta_velocity / num_to_assign, 1)
+                    import math
+                    extra = math.ceil(delta_velocity / num_to_assign)
                     tester['recommended_extra'] = extra
                     tester['status'] = 'RECOMMENDED'
                     recommendations.append({
@@ -142,8 +146,8 @@ class CatchupRecommendationManager:
                 "campaign_id": campaign_id,
                 "campaign_title": campaign.title,
                 "delay_days": delay_days,
-                "current_velocity": round(current_velocity, 1),
-                "required_velocity": round(required_velocity, 1),
+                "current_velocity": math.ceil(current_velocity),
+                "required_velocity": math.ceil(required_velocity),
                 "days_left": days_left,
                 "remaining_tests": remaining_tests,
                 "progress_percentage": ml_status.get('progress', {}).get('percentage', 0),

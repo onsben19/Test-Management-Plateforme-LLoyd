@@ -301,6 +301,8 @@
         },
         "filters": {
             "all": "All Statuses",
+            "allProjects": "All Projects",
+            "allReleases": "All Releases",
             "active": "Active",
             "inactive": "Disabled"
         },
@@ -328,8 +330,8 @@
         }
     },
     "adminComments": {
-        "title": "Comment Log",
-        "subtitle": "Proactively manage discussions and testing feedback",
+        "title": "Chat Management",
+        "subtitle": "AUDIT LOGS & DISCUSSIONS",
         "searchPlaceholder": "Search for a comment...",
         "stats": {
             "total": "Comments",
@@ -998,6 +1000,7 @@
             "sortNewest": "Newest",
             "sortOldest": "Oldest",
             "groupNone": "No grouping",
+            "groupProject": "By Project",
             "groupCampaign": "By Campaign",
             "groupRelease": "By Release"
         },
@@ -1166,14 +1169,15 @@
     },
     "portfolio": {
         "title": "Project Management",
-        "titleAdmin": "Project Audit",
+        "titleAdmin": "Project Management",
         "subtitle": "AVAILABLE PROJECTS",
-        "subtitleAdmin": "DETAILED VIEW OF THE REPOSITORY",
+        "subtitleAdmin": "DETAILED VIEW OF PROJECTS",
         "stats": {
             "active": "Active Projects",
             "totalReleases": "Total Releases"
         },
         "table": {
+            "project": "Project",
             "description": "Description",
             "releases": "Releases",
             "createdAt": "Created on",

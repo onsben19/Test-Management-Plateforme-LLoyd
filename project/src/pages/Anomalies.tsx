@@ -481,7 +481,7 @@ const Anomalies: React.FC = () => {
                             <div className="flex flex-col gap-0.5 min-w-0">
                               <span className="text-[14px] font-bold text-slate-900 dark:text-white tracking-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
                                 <span className="text-blue-500/50 mr-2 font-mono text-[11px]">#{an.id}</span>
-                                {an.title}
+                                {an.title.length > 60 ? an.title.substring(0, 60) + '...' : an.title}
                               </span>
                               <div className="flex items-center gap-2">
                                 <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">{an.release}</span>

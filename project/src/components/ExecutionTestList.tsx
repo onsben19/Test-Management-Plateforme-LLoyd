@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlayCircle, CheckCircle, XCircle, Clock, User, Camera, Eye, Pencil, Trash2, Layers } from 'lucide-react';
+import { PlayCircle, CheckCircle, XCircle, Clock, User, Camera, Eye, Pencil, Trash2, Layers, Sparkles } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 
 export interface TestItem {
@@ -16,6 +16,7 @@ export interface TestItem {
     businessProject?: string;
     releaseType?: string;
     rawDate?: string;
+    execution_logs?: string;
 }
 
 
@@ -26,10 +27,11 @@ interface ExecutionTestListProps {
     onViewCaptures?: (test: TestItem) => void;
     onEditTest?: (test: TestItem) => void;
     onDeleteTest?: (test: TestItem) => void;
+    onAutomateTest?: (test: TestItem) => void;
     isTester?: boolean;
     canManage?: boolean;
     canDelete?: boolean;
-    groupBy?: 'release' | 'campaign' | 'none';
+    groupBy?: 'release' | 'campaign' | 'project' | 'none';
     variant?: 'default' | 'transparent';
 }
 
@@ -40,6 +42,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
     onViewCaptures,
     onEditTest,
     onDeleteTest,
+    onAutomateTest,
     isTester = false,
     canManage = true,
     canDelete = true,
@@ -94,7 +97,8 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
         displayTests.forEach(test => {
             const key = groupBy === 'campaign' ? (test.module || 'Sans Campagne')
                 : groupBy === 'release' ? (test.release || 'Sans Release')
-                    : 'Autres';
+                    : groupBy === 'project' ? (test.businessProject || 'Global')
+                        : 'Autres';
             if (!groups[key]) groups[key] = [];
             groups[key].push(test);
         });
@@ -115,18 +119,6 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                 <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-3">
-                            {canManage && (
-                                <button
-                                    className="p-2.5 rounded-xl bg-blue-500/5 text-blue-400 hover:bg-blue-500 hover:text-white border border-blue-500/20 transition-all transform active:scale-95 group-hover:scale-105 shadow-lg shadow-blue-500/5 group/play"
-                                    title="Démarrer l'exécution"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onSelectTest(test);
-                                    }}
-                                >
-                                    <PlayCircle className="w-4 h-4 group-hover/play:rotate-12 transition-transform" />
-                                </button>
-                            )}
                             <div className="flex flex-col gap-1">
                                 <span className={`text-base font-bold tracking-tight truncate max-w-[300px] transition-colors ${selectedTestId === test.id ? 'text-blue-400' : 'text-white group-hover:text-blue-400'}`}>
                                     {test.name || 'Test sans nom'}
@@ -140,12 +132,9 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                 </td>
                 <td className="px-8 py-6">
                     <div className="flex flex-col gap-1.5">
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/5 rounded-xl border border-white/10 group-hover:border-blue-500/30 transition-all w-fit">
-                            <Layers className="w-3 h-3 text-blue-500/70" />
-                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{test.release || 'V1.0'}</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-2">
-                            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">{test.businessProject || 'Global'}</span>
+                        <span className="text-[11px] font-black text-white uppercase tracking-widest">{test.businessProject || 'GLOBAL'}</span>
+                        <div className="flex items-center gap-2 text-slate-500">
+                            <span className="text-[10px] font-bold uppercase tracking-widest">{test.release || 'V1.0'}</span>
                             {test.releaseType && (
                                 <span className={`text-[8px] px-1.5 py-0.5 rounded-md font-black uppercase tracking-widest ${test.releaseType === 'PREPROD' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
                                     {test.releaseType}
@@ -166,9 +155,6 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                 {!isTester && (
                     <td className="px-8 py-6">
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 shrink-0">
-                                <User className="w-3.5 h-3.5" />
-                            </div>
                             <span className="text-xs font-bold text-white tracking-tight">{test.realized_by || '-'}</span>
                         </div>
                     </td>
@@ -183,9 +169,9 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                                     window.open(fileUrl, '_blank');
                                 }
                             }}
-                            className="p-3 bg-white/5 hover:bg-blue-500/10 text-slate-500 hover:text-blue-400 rounded-xl transition-all border border-white/10 hover:border-blue-500/30 group/eye"
+                            className="text-slate-500 hover:text-blue-400 text-[10px] font-bold uppercase tracking-widest transition-all"
                         >
-                            <Eye className="w-4 h-4 group-hover/eye:scale-110 transition-transform" />
+                            VOIR
                         </button>
                     ) : (
                         <span className="text-slate-600 font-bold uppercase tracking-widest text-[9px] opacity-40">AUCUNE</span>
@@ -202,21 +188,38 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                         {test.status}
                     </span>
                 </td>
-                <td className="px-8 py-6 text-slate-500 font-bold uppercase tracking-widest text-[10px] opacity-70">{test.lastRun}</td>
+                <td className="px-8 py-6 whitespace-nowrap">
+                    <div className="flex flex-col gap-0.5">
+                        <span className="text-slate-300 text-[10px] font-bold tracking-tight">{test.lastRun.split(' ')[0]}</span>
+                        <span className="text-slate-500 text-[9px] font-bold uppercase tracking-widest opacity-60 italic">{test.lastRun.split(' ')[1]}</span>
+                    </div>
+                </td>
 
-                {(canManage || canDelete) && (
+                {(canManage || canDelete || onAutomateTest) && (
                     <td className="px-8 py-6 text-right">
                         <div className="flex items-center justify-end gap-2">
+                            {onAutomateTest && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onAutomateTest(test);
+                                    }}
+                                    className="text-amber-400/70 hover:text-amber-400 transition-all p-1.5 hover:bg-amber-400/10 rounded-lg"
+                                    title="Générer Script IA"
+                                >
+                                    <Sparkles className="w-4 h-4" />
+                                </button>
+                            )}
                             {canManage && (
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onEditTest?.(test);
                                     }}
-                                    className="p-2.5 bg-white/5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl border border-white/10 hover:border-blue-500/30 transition-all group/edit"
+                                    className="text-slate-400 hover:text-blue-400 transition-all"
                                     title="Modifier"
                                 >
-                                    <Pencil className="w-4 h-4 group-hover/edit:rotate-12 transition-transform" />
+                                    <Pencil className="w-4 h-4" />
                                 </button>
                             )}
                             {canDelete && (
@@ -226,10 +229,10 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                                         setTestToDelete(test);
                                         setIsDeleteModalOpen(true);
                                     }}
-                                    className="p-2.5 bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl border border-white/10 hover:border-rose-500/30 transition-all group/trash"
+                                    className="text-slate-400 hover:text-rose-400 transition-all"
                                     title="Supprimer"
                                 >
-                                    <Trash2 className="w-4 h-4 group-hover/trash:scale-110 transition-transform" />
+                                    <Trash2 className="w-4 h-4" />
                                 </button>
                             )}
                         </div>
@@ -261,7 +264,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                         <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">STATUT</th>
                         <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">DATE</th>
                         <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] text-right">
-                            {(canManage || canDelete) ? 'ACTIONS' : ''}
+                            {(canManage || canDelete || onAutomateTest) ? 'ACTIONS' : ''}
                         </th>
                     </tr>
                 </thead>
@@ -271,7 +274,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                             <React.Fragment key={groupTitle}>
                                 <tr className="bg-slate-100 dark:bg-slate-800/50">
                                     <td colSpan={6 + dynamicColumns.length + (isTester ? 0 : 1)} className="px-4 py-2 font-bold text-slate-700 dark:text-slate-200 text-sm border-l-4 border-blue-500">
-                                        {groupBy === 'campaign' ? 'Campagne : ' : 'Release : '}
+                                        {groupBy === 'campaign' ? 'Campagne : ' : groupBy === 'release' ? 'Release : ' : 'Projet : '}
                                         {groupTitle}
                                         <span className="ml-2 text-xs font-normal text-slate-500">({groupTests.length} tests)</span>
                                     </td>
