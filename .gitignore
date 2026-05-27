@@ -34,3 +34,5 @@ project/.env
 InsureTM/pytest_cache/
 .report.md
 project/diagrammes
+DOCUMENTATION/
+InsureTM/diagrammes /
