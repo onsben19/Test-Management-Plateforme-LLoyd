@@ -53,7 +53,7 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClose, onSu
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-[2rem] shadow-2xl w-full max-w-lg border border-white/20 dark:border-slate-700/50 overflow-hidden flex flex-col max-h-[90vh]"
+                        className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-[2rem] shadow-2xl w-full max-w-lg border border-slate-400 dark:border-white/20 dark:border-slate-700/50 overflow-hidden flex flex-col max-h-[90vh]"
                     >
                         {/* Header */}
                         <div className="p-8 border-b border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between">

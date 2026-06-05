@@ -300,13 +300,13 @@ const AdminDashboard = () => {
                                 </div>
                                 {/* Rows */}
                                 {timelineRisks.map((risk, i) => (
-                                    <div key={i} className="grid grid-cols-12 gap-4 items-center px-6 py-4 bg-[#0b0e14]/60 border border-white/[0.03] rounded-2xl hover:bg-white/[0.02] transition-all duration-300">
+                                    <div key={i} className="grid grid-cols-12 gap-4 items-center px-6 py-4 bg-slate-50 dark:bg-[#0b0e14]/60 border border-slate-200 dark:border-white/[0.03] rounded-2xl hover:bg-slate-50 dark:bg-white/[0.02] transition-all duration-300">
                                         <div className="col-span-3 flex items-center gap-3">
                                             <div className="w-9 h-9 rounded-full bg-blue-600/10 flex items-center justify-center text-blue-400 font-bold text-sm border border-blue-600/20">
                                                 {risk.title.charAt(0)}
                                             </div>
                                             <div className="min-w-0">
-                                                <p className="text-sm font-bold text-white truncate" title={risk.title}>{risk.title}</p>
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white truncate" title={risk.title}>{risk.title}</p>
                                                 <p className="text-[10px] text-slate-600 font-medium">Campagne</p>
                                             </div>
                                         </div>
@@ -317,7 +317,7 @@ const AdminDashboard = () => {
                                         </div>
                                         <div className="col-span-3">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-1.5 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                                <div className="h-1.5 flex-1 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
                                                     <div
                                                         className={`h-full ${risk.status === 'CRITICAL' ? 'bg-rose-500' : risk.status === 'WARNING' ? 'bg-amber-500' : 'bg-emerald-500'}`}
                                                         style={{ width: `${risk.progress?.percentage}%` }}
@@ -425,7 +425,7 @@ const AdminDashboard = () => {
                                 { id: 'activity', label: t('adminDashboard.config.activity') },
                                 { id: 'users', label: t('adminDashboard.config.users') }
                             ].map(w => (
-                                <label key={w.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors border border-transparent hover:border-slate-200 dark:hover:border-white/5">
+                                <label key={w.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 cursor-pointer transition-colors border border-transparent hover:border-slate-200 dark:hover:border-white/10">
                                     <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{w.label}</span>
                                     <div className="relative">
                                         <input

@@ -135,7 +135,7 @@ const EmailDashboard = () => {
                         <Inbox className="w-4 h-4" />
                         <span>{t('email.tabs.inbox')}</span>
                         {activeTab === 'inbox' && (
-                            <span className="ml-auto bg-white/20 px-2 py-0.5 rounded-full text-[10px]">
+                            <span className="ml-auto bg-slate-300 dark:bg-white/20 px-2 py-0.5 rounded-full text-[10px]">
                                 {filteredEmails.length}
                             </span>
                         )}
@@ -150,7 +150,7 @@ const EmailDashboard = () => {
                         <Send className="w-4 h-4" />
                         <span>{t('email.tabs.sent')}</span>
                         {activeTab === 'sent' && (
-                            <span className="ml-auto bg-white/20 px-2 py-0.5 rounded-full text-[10px]">
+                            <span className="ml-auto bg-slate-300 dark:bg-white/20 px-2 py-0.5 rounded-full text-[10px]">
                                 {filteredEmails.length}
                             </span>
                         )}
@@ -197,10 +197,10 @@ const EmailDashboard = () => {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex flex-col h-full bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 rounded-3xl shadow-2xl overflow-hidden"
+                                className="flex flex-col h-full bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-400 dark:border-white/20 dark:border-slate-700/50 rounded-3xl shadow-2xl overflow-hidden"
                             >
                                 {/* Detail Header */}
-                                <div className="p-6 border-b border-slate-200/50 dark:border-slate-700/50 bg-white/20 dark:bg-slate-900/40">
+                                <div className="p-6 border-b border-slate-200/50 dark:border-slate-700/50 bg-slate-300 dark:bg-white/20 dark:bg-slate-900/40">
                                     <div className="flex items-start justify-between gap-4 mb-6">
                                         <div className="flex items-center gap-4 lg:hidden">
                                             <button
@@ -224,7 +224,7 @@ const EmailDashboard = () => {
                                                     {t('email.details.from')}
                                                     <strong className="text-slate-900 dark:text-slate-200 ml-1">{selectedEmail.sender_name}</strong>
                                                 </span>
-                                                <span className="text-slate-300 dark:text-slate-700">•</span>
+                                                <span className="text-slate-700 dark:text-slate-300 dark:text-slate-700">•</span>
                                                 <span className="text-slate-400">
                                                     {new Date(selectedEmail.created_at).toLocaleString()}
                                                 </span>

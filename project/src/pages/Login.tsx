@@ -89,10 +89,10 @@ const Login = () => {
       </div>
 
       <div className="w-full max-w-md p-8 relative z-10">
-        <div className="glass-panel shadow-2xl dark:shadow-none rounded-2xl p-8 space-y-8 animate-in fade-in zoom-in duration-500 bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-white/20 dark:border-slate-700/50">
+        <div className="glass-panel shadow-2xl dark:shadow-none rounded-2xl p-8 space-y-8 animate-in fade-in zoom-in duration-500 bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-400 dark:border-white/20 dark:border-slate-700/50">
           {/* Logo / Header */}
           <div className="text-center space-y-2">
-            <div className="w-48 h-20 bg-white/5 dark:bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-200/20 dark:border-white/10 p-4 transition-all duration-500 hover:scale-105">
+            <div className="w-48 h-20 bg-slate-100 dark:bg-white/5 dark:bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-200/20 dark:border-white/10 p-4 transition-all duration-500 hover:scale-105">
               <img
                 src={theme === 'dark' ? '/logo-lloyd-dark.webp' : '/logo-lloyd-light.webp'}
                 alt="Lloyd Logo"
@@ -244,7 +244,7 @@ const Login = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-700 dark:text-slate-300 transition-colors"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>

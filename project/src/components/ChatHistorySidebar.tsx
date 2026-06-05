@@ -56,7 +56,7 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
             <div className="p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/40">
                 <div className="flex items-center gap-3 mb-8">
                     <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                        <History className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <span className="font-black text-blue-600 dark:text-blue-400">IA</span>
                     </div>
                     <div className="flex flex-col">
                         <h2 className="font-bold text-slate-900 dark:text-white tracking-tight text-lg leading-none uppercase">{t('analytics.history.title')}</h2>
@@ -67,7 +67,6 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                     onClick={onNewChat}
                     className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-[1.25rem] transition-all shadow-xl shadow-blue-600/20 active:scale-[0.98] font-bold text-sm"
                 >
-                    <Plus className="w-5 h-5" />
                     {t('analytics.history.newChat')}
                 </button>
             </div>
@@ -83,7 +82,7 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                 ) : conversations.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full gap-3 px-4 py-8 text-center">
                         <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center">
-                            <MessageCircle className="w-6 h-6 text-slate-300 dark:text-slate-600" />
+                            <MessageCircle className="w-6 h-6 text-slate-700 dark:text-slate-300 dark:text-slate-600" />
                         </div>
                         <p className="text-slate-400 dark:text-slate-500 text-xs leading-relaxed font-medium">
                             {t('analytics.history.empty')}
@@ -93,7 +92,6 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                     groups.map(group => (
                         <div key={group.label} className="mb-4">
                             <div className="px-4 py-1.5 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest flex items-center gap-1.5">
-                                <Clock className="w-3 h-3" />
                                 {group.label}
                             </div>
                             <div className="space-y-1.5 px-4">
@@ -103,12 +101,10 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                                         onClick={() => onSelectConversation(conv.id)}
                                         className={`w-full text-left px-4 py-4 rounded-2xl flex items-start gap-4 transition-all group relative border ${currentConversationId === conv.id
                                             ? 'bg-blue-600/10 text-slate-900 dark:text-white border-blue-500/30'
-                                            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/[0.04] hover:text-slate-900 dark:hover:text-slate-200 border-transparent'
+                                            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-slate-800 dark:text-slate-200 border-transparent'
                                             }`}
                                     >
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 ${currentConversationId === conv.id ? 'bg-blue-600/20 text-blue-600 dark:text-blue-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'}`}>
-                                            <MessageCircle className="w-5 h-5" />
-                                        </div>
+
                                         <div className="flex-1 min-w-0 py-0.5">
                                             <span className={`text-[14px] font-bold truncate block leading-tight ${currentConversationId === conv.id ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
                                                 {conv.title || t('analytics.history.untitled')}

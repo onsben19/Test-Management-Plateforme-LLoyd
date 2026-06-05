@@ -83,7 +83,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onToggle }) => {
             <>
               <div className="flex items-center gap-2">
                 <Bot className="h-5 w-5 text-blue-400" />
-                <h3 className="font-medium text-white">Assistant IA</h3>
+                <h3 className="font-medium text-slate-900 dark:text-white">Assistant IA</h3>
               </div>
               <button
                 onClick={generateSynthesis}
@@ -96,7 +96,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onToggle }) => {
           )}
           <button
             onClick={onToggle}
-            className="p-2 text-slate-400 hover:text-white transition-colors ml-auto"
+            className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors ml-auto"
           >
             {isOpen ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
           </button>
@@ -118,7 +118,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onToggle }) => {
                   <div
                     className={`max-w-[80%] p-3 rounded-lg ${message.type === 'user'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-slate-700/50 text-slate-200'
+                        : 'bg-slate-700/50 text-slate-800 dark:text-slate-200'
                       }`}
                   >
                     <p className="text-sm whitespace-pre-line">{message.content}</p>
@@ -131,7 +131,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onToggle }) => {
                   </div>
                   {message.type === 'user' && (
                     <div className="flex-shrink-0 w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center">
-                      <User className="h-4 w-4 text-slate-300" />
+                      <User className="h-4 w-4 text-slate-700 dark:text-slate-300" />
                     </div>
                   )}
                 </div>
@@ -146,7 +146,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onToggle }) => {
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                   placeholder="Posez votre question..."
-                  className="flex-1 bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <button
                   onClick={handleSendMessage}

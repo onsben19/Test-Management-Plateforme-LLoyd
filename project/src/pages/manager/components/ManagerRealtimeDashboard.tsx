@@ -303,7 +303,7 @@ const ManagerRealtimeDashboard: React.FC<ManagerRealtimeDashboardProps> = ({ cam
                         <div className="flex h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
                     </div>
 
-                    <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] overflow-hidden flex flex-col h-[500px]">
+                    <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-[2rem] overflow-hidden flex flex-col h-[500px]">
                         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
                             <AnimatePresence mode="popLayout">
                                 {activityFeed.map((item) => (
@@ -311,7 +311,7 @@ const ManagerRealtimeDashboard: React.FC<ManagerRealtimeDashboardProps> = ({ cam
                                 ))}
                                 {activityFeed.length === 0 && (
                                     <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-4">
-                                        <div className="p-4 rounded-full bg-white/5">
+                                        <div className="p-4 rounded-full bg-slate-100 dark:bg-white/5">
                                             <Zap size={24} className="opacity-20" />
                                         </div>
                                         <p className="text-xs font-bold uppercase tracking-widest opacity-40">{t('managerDashboard.realtime.waitingForActivity')}</p>
@@ -382,10 +382,10 @@ const TesterRow = ({ tester }: { tester: TesterLiveStatus }) => {
             <div className="flex items-center gap-4">
                 {/* Avatar */}
                 <div className="relative shrink-0">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-white/10 dark:to-white/5 border border-white/10 flex items-center justify-center text-sm font-black text-slate-400 overflow-hidden">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-white/10 dark:to-white/5 border border-slate-300 dark:border-white/10 flex items-center justify-center text-sm font-black text-slate-400 overflow-hidden">
                         {tester.avatar ? <img src={tester.avatar} className="w-full h-full object-cover" /> : tester.name.charAt(0)}
                     </div>
-                    <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-[#0b0e14] ${tester.status === 'active' ? 'bg-emerald-500' : tester.status === 'idle' ? 'bg-amber-500' : 'bg-slate-500'
+                    <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-slate-200 dark:border-[#0b0e14] ${tester.status === 'active' ? 'bg-emerald-500' : tester.status === 'idle' ? 'bg-amber-500' : 'bg-slate-500'
                         } ${tester.status === 'active' ? 'animate-pulse' : ''}`} />
                 </div>
 

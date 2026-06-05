@@ -49,22 +49,22 @@ const Settings: React.FC = () => {
             variants={sectionVariants}
             initial="hidden"
             animate="visible"
-            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 shadow-2xl"
+            className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-white/10 rounded-[2.5rem] p-10 shadow-2xl"
           >
             <div className="flex items-center gap-4 mb-8">
               <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
                 <Shield className="w-6 h-6 text-blue-500" />
               </div>
               <div>
-                <h3 className="text-xl font-black text-white tracking-tight uppercase">{t('settings.auth.title')}</h3>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{t('settings.auth.title')}</h3>
                 <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1 opacity-70">{t('settings.auth.subtitle')}</p>
               </div>
             </div>
 
             <div className="space-y-8">
-              <div className="flex items-center justify-between p-6 bg-white/5 rounded-3xl border border-white/5">
+              <div className="flex items-center justify-between p-6 bg-slate-100 dark:bg-white/5 rounded-3xl border border-slate-200 dark:border-white/5">
                 <div className="space-y-1">
-                  <label className="text-sm text-white font-black uppercase tracking-widest">{t('settings.auth.enableSso')}</label>
+                  <label className="text-sm text-slate-900 dark:text-white font-black uppercase tracking-widest">{t('settings.auth.enableSso')}</label>
                   <p className="text-slate-500 text-xs font-medium">{t('settings.auth.ssoDesc')}</p>
                 </div>
                 <Switch checked={enableSSO} onCheckedChange={(v) => setEnableSSO(Boolean(v))} />
@@ -76,7 +76,7 @@ const Settings: React.FC = () => {
                   <select
                     value={ssoProvider}
                     onChange={(e) => setSsoProvider(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 text-white text-sm font-bold rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer appearance-none"
+                    className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-sm font-bold rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer appearance-none"
                   >
                     <option className="bg-slate-900">Okta</option>
                     <option className="bg-slate-900">Azure AD</option>
@@ -87,7 +87,7 @@ const Settings: React.FC = () => {
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('settings.auth.clientId')}</label>
                   <input
-                    className="w-full bg-white/5 border border-white/10 text-white text-sm font-bold rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder-slate-600"
+                    className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-sm font-bold rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder-slate-600"
                     placeholder={t('settings.auth.clientIdPlaceholder')}
                   />
                 </div>
@@ -101,22 +101,22 @@ const Settings: React.FC = () => {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 shadow-2xl"
+            className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-white/10 rounded-[2.5rem] p-10 shadow-2xl"
           >
             <div className="flex items-center gap-4 mb-8">
               <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/20">
                 <Bell className="w-6 h-6 text-amber-500" />
               </div>
               <div>
-                <h3 className="text-xl font-black text-white tracking-tight uppercase">{t('settings.notifications.title')}</h3>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{t('settings.notifications.title')}</h3>
                 <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1 opacity-70">{t('settings.notifications.subtitle')}</p>
               </div>
             </div>
 
             <div className="space-y-8">
-              <div className="flex items-center justify-between p-6 bg-white/5 rounded-3xl border border-white/5">
+              <div className="flex items-center justify-between p-6 bg-slate-100 dark:bg-white/5 rounded-3xl border border-slate-200 dark:border-white/5">
                 <div className="space-y-1">
-                  <label className="text-sm text-white font-black uppercase tracking-widest">{t('settings.notifications.enable')}</label>
+                  <label className="text-sm text-slate-900 dark:text-white font-black uppercase tracking-widest">{t('settings.notifications.enable')}</label>
                   <p className="text-slate-500 text-xs font-medium">{t('settings.notifications.desc')}</p>
                 </div>
                 <Switch checked={notificationsEnabled} onCheckedChange={(v) => setNotificationsEnabled(Boolean(v))} />
@@ -128,13 +128,13 @@ const Settings: React.FC = () => {
                   <input
                     type="email"
                     placeholder="ops@entreprise.com"
-                    className="w-full bg-white/5 border border-white/10 text-white text-sm font-bold rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder-slate-600"
+                    className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-sm font-bold rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder-slate-600"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('settings.notifications.threshold')}</label>
-                  <select className="w-full bg-white/5 border border-white/10 text-white text-sm font-bold rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer appearance-none">
+                  <select className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-sm font-bold rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer appearance-none">
                     <option className="bg-slate-900">{t('settings.notifications.criticalOnly')}</option>
                     <option className="bg-slate-900">{t('settings.notifications.all')}</option>
                   </select>
@@ -149,22 +149,22 @@ const Settings: React.FC = () => {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 shadow-2xl"
+            className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-white/10 rounded-[2.5rem] p-10 shadow-2xl"
           >
             <div className="flex items-center gap-4 mb-8">
               <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
                 <Zap className="w-6 h-6 text-emerald-500" />
               </div>
               <div>
-                <h3 className="text-xl font-black text-white tracking-tight uppercase">{t('settings.ai.title')}</h3>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{t('settings.ai.title')}</h3>
                 <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1 opacity-70">{t('settings.ai.subtitle')}</p>
               </div>
             </div>
 
             <div className="space-y-8">
-              <div className="flex items-center justify-between p-6 bg-white/5 rounded-3xl border border-white/5">
+              <div className="flex items-center justify-between p-6 bg-slate-100 dark:bg-white/5 rounded-3xl border border-slate-200 dark:border-white/5">
                 <div className="space-y-1">
-                  <label className="text-sm text-white font-black uppercase tracking-widest">{t('settings.ai.enableInsights')}</label>
+                  <label className="text-sm text-slate-900 dark:text-white font-black uppercase tracking-widest">{t('settings.ai.enableInsights')}</label>
                   <p className="text-slate-500 text-xs font-medium">{t('settings.ai.insightsDesc')}</p>
                 </div>
                 <Switch checked={insightsEnabled} onCheckedChange={(v) => setInsightsEnabled(Boolean(v))} />
@@ -181,7 +181,7 @@ const Settings: React.FC = () => {
                   max={100}
                   value={iaSensitivity}
                   onChange={(e) => setIaSensitivity(Number(e.target.value))}
-                  className="w-full h-2 bg-white/5 rounded-full appearance-none cursor-pointer accent-blue-600"
+                  className="w-full h-2 bg-slate-100 dark:bg-white/5 rounded-full appearance-none cursor-pointer accent-blue-600"
                 />
                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest transition-colors opacity-60">{t('settings.ai.sensitivityDesc')}</p>
               </div>
@@ -194,7 +194,7 @@ const Settings: React.FC = () => {
             variants={sectionVariants}
             initial="hidden"
             animate="visible"
-            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 space-y-8 shadow-2xl sticky top-24"
+            className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-white/10 rounded-[2.5rem] p-8 space-y-8 shadow-2xl sticky top-24"
           >
             <div className="space-y-6">
               <div className="flex items-start gap-5">
@@ -202,7 +202,7 @@ const Settings: React.FC = () => {
                   <CreditCard className="w-5 h-5 text-blue-500" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-black text-white uppercase tracking-widest">{t('settings.side.billing')}</h4>
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">{t('settings.side.billing')}</h4>
                   <p className="text-slate-500 text-xs font-medium mt-1">{t('settings.side.billingDesc')}</p>
                 </div>
               </div>
@@ -212,8 +212,8 @@ const Settings: React.FC = () => {
                   <Palette className="w-5 h-5 text-indigo-500" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-black text-white uppercase tracking-widest">{t('settings.appearance.theme')}</h4>
-                  <div className="flex items-center justify-between mt-3 bg-white/5 p-3 rounded-2xl border border-white/5">
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">{t('settings.appearance.theme')}</h4>
+                  <div className="flex items-center justify-between mt-3 bg-slate-100 dark:bg-white/5 p-3 rounded-2xl border border-slate-200 dark:border-white/5">
                     <span className="text-[10px] font-black text-slate-400">DARK MODE</span>
                     <Switch checked={theme === 'dark'} onCheckedChange={(v) => setTheme(v ? 'dark' : 'light')} />
                   </div>
@@ -225,16 +225,16 @@ const Settings: React.FC = () => {
                   <Cpu className="w-5 h-5 text-emerald-500" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-black text-white uppercase tracking-widest">{t('settings.side.model')}</h4>
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">{t('settings.side.model')}</h4>
                   <p className="text-slate-500 text-xs font-medium mt-1">{t('settings.side.modelVersion', { version: 'v1.4 PRO', date: '2024-04-06' })}</p>
                 </div>
               </div>
             </div>
 
-            <div className="pt-8 border-t border-white/5 space-y-4">
+            <div className="pt-8 border-t border-slate-200 dark:border-white/5 space-y-4">
               <button
                 onClick={() => toast.info(t('settings.toasts.resetInfo'))}
-                className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white/5 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 border border-white/10 rounded-2xl font-black text-[10px] tracking-widest uppercase transition-all"
+                className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-slate-100 dark:bg-white/5 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 border border-slate-300 dark:border-white/10 rounded-2xl font-black text-[10px] tracking-widest uppercase transition-all"
               >
                 <RefreshCw className="w-4 h-4" />
                 {t('settings.actions.reset')}

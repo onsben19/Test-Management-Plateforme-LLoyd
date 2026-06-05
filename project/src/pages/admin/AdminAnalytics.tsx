@@ -104,7 +104,7 @@ const AdminAnalytics = () => {
                         <User className="w-5 h-5" />
                     </div>
                     <div className="flex flex-col gap-0.5">
-                        <span className="font-bold text-white group-hover:text-blue-400 transition-colors tracking-tight text-base">{item.user_name || `User #${item.user}`}</span>
+                        <span className="font-bold text-slate-900 dark:text-white group-hover:text-blue-400 transition-colors tracking-tight text-base">{item.user_name || `User #${item.user}`}</span>
                         <span className="text-[10px] text-slate-500 font-medium">ID: #{String(item.id).substring(0, 8)}</span>
                     </div>
                 </div>
@@ -113,7 +113,7 @@ const AdminAnalytics = () => {
         {
             header: 'Titre de la Session',
             accessor: (item: any) => (
-                <span className="font-bold text-xs text-slate-400 group-hover:text-white transition-colors uppercase tracking-widest line-clamp-1">
+                <span className="font-bold text-xs text-slate-400 group-hover:text-slate-900 dark:hover:text-white transition-colors uppercase tracking-widest line-clamp-1">
                     {item.title}
                 </span>
             )
@@ -178,7 +178,7 @@ const AdminAnalytics = () => {
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                     <div className="xl:col-span-2 space-y-6">
-                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
+                        <div className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
                             <AdminTable
                                 columns={columns}
                                 data={paginatedConversations}
@@ -189,14 +189,14 @@ const AdminAnalytics = () => {
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => handleSelectConv(item)}
-                                            className={`p-2.5 rounded-xl transition-all ${selectedConv?.id === item.id ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                            className={`p-2.5 rounded-xl transition-all ${selectedConv?.id === item.id ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-white hover:bg-slate-200 dark:bg-white/10'}`}
                                             title="Consulter"
                                         >
                                             <Eye className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => handleDeleteConv(item.id)}
-                                            className="p-2.5 bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
+                                            className="p-2.5 bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
                                             title="Supprimer"
                                         >
                                             <Trash2 className="w-4 h-4" />
@@ -222,16 +222,16 @@ const AdminAnalytics = () => {
                                     initial={{ opacity: 0, x: 20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: 20 }}
-                                    className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] flex flex-col h-[700px] shadow-2xl sticky top-24 overflow-hidden"
+                                    className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-white/10 rounded-[2.5rem] flex flex-col h-[700px] shadow-2xl sticky top-24 overflow-hidden"
                                 >
-                                    <div className="p-8 border-b border-white/5 bg-gradient-to-r from-blue-600/10 to-transparent">
+                                    <div className="p-8 border-b border-slate-200 dark:border-white/5 bg-gradient-to-r from-blue-600/10 to-transparent">
                                         <div className="flex justify-between items-center mb-4">
                                             <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">Audit Session</span>
-                                            <button onClick={() => setSelectedConv(null)} className="p-2 hover:bg-white/5 rounded-full text-slate-400 transition-colors">
+                                            <button onClick={() => setSelectedConv(null)} className="p-2 hover:bg-slate-100 dark:bg-white/5 rounded-full text-slate-400 transition-colors">
                                                 <X className="w-5 h-5" />
                                             </button>
                                         </div>
-                                        <h3 className="text-xl font-bold text-white truncate tracking-tight">{selectedConv.title}</h3>
+                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white truncate tracking-tight">{selectedConv.title}</h3>
                                         <div className="flex items-center gap-2 mt-3 text-[10px] text-slate-500 uppercase font-bold tracking-widest">
                                             <User className="w-3 h-3 text-blue-400" />
                                             {selectedConv.user_name || 'Inconnu'}
@@ -256,11 +256,11 @@ const AdminAnalytics = () => {
                                                 </span>
                                                 <div className={`max-w-[90%] p-4 rounded-3xl text-sm leading-relaxed shadow-lg ${m.sender === 'user'
                                                     ? 'bg-blue-600 text-white rounded-tr-none'
-                                                    : 'bg-white/5 text-slate-200 border border-white/10 rounded-tl-none'
+                                                    : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-white/10 rounded-tl-none'
                                                     }`}>
                                                     <p className="whitespace-pre-wrap font-medium">{m.text}</p>
                                                     {m.sql && (
-                                                        <div className="mt-4 pt-4 border-t border-white/5">
+                                                        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-white/5">
                                                             <div className="flex items-center gap-2 mb-2">
                                                                 <Database className="w-3 h-3 text-emerald-400" />
                                                                 <span className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest">SQL Query</span>
@@ -276,7 +276,7 @@ const AdminAnalytics = () => {
                                     </div>
                                 </motion.div>
                             ) : (
-                                <div className="bg-white/5 border border-dashed border-white/10 rounded-[2.5rem] p-16 text-center sticky top-24 flex flex-col items-center justify-center min-h-[500px]">
+                                <div className="bg-slate-100 dark:bg-white/5 border border-dashed border-slate-300 dark:border-white/10 rounded-[2.5rem] p-16 text-center sticky top-24 flex flex-col items-center justify-center min-h-[500px]">
                                     <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mb-8 relative">
                                         <Sparkles className="w-10 h-10 text-blue-500/40" />
                                         <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full scale-150 animate-pulse" />

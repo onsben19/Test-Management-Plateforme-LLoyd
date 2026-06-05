@@ -134,14 +134,14 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                className="relative bg-white/80 dark:bg-[#0d1225]/90 backdrop-blur-2xl border border-white/20 dark:border-slate-700/50 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-w-2xl w-full overflow-hidden"
+                className="relative bg-white/80 dark:bg-[#0d1225]/90 backdrop-blur-2xl border border-slate-400 dark:border-white/20 dark:border-slate-700/50 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-w-2xl w-full overflow-hidden"
             >
                 {/* Header */}
-                <div className="p-8 border-b border-slate-200/50 dark:border-slate-700/50 bg-white/20 dark:bg-slate-900/40 flex justify-between items-center">
+                <div className="p-8 border-b border-slate-200/50 dark:border-slate-700/50 bg-slate-300 dark:bg-white/20 dark:bg-slate-900/40 flex justify-between items-center">
                     <div>
                         <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
                             <div className="p-2 bg-blue-500 rounded-xl shadow-lg shadow-blue-500/20">
-                                <Send className="w-5 h-5 text-white" />
+                                <Send className="w-5 h-5 text-slate-900 dark:text-white" />
                             </div>
                             {modalTitle}
                         </h2>
@@ -149,9 +149,9 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-all group"
+                        className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-all group"
                     >
-                        <X className="w-6 h-6 text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white" />
+                        <X className="w-6 h-6 text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-900 dark:hover:text-white" />
                     </button>
                 </div>
 
@@ -236,50 +236,53 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                     </div>
 
                     {/* Subject */}
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('email.compose.subject')}</label>
+                    <div className="relative">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t('email.compose.subject')}</label>
+                        <div className="relative group">
+                            <input
+                                type="text"
+                                value={subject}
+                                onChange={(e) => setSubject(e.target.value)}
+                                className="w-full bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-2xl pl-4 pr-12 py-3.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium text-sm"
+                                required
+                                placeholder={t('email.compose.subjectPlaceholder')}
+                            />
                             <button
                                 type="button"
                                 onClick={handleSubjectReformulate}
                                 disabled={subjectReformulating || !subject.trim()}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-violet-500/10 border border-violet-500/20 text-violet-600 dark:text-violet-400 hover:bg-violet-500 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed group shadow-sm"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed group/btn"
+                                title="Reformuler l'objet avec l'IA"
                             >
-                                {subjectReformulating ? <Loader className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3 group-hover:scale-110" />}
-                                {t('email.compose.ai.reformulateSubject')}
+                                {subjectReformulating ? <Loader className="w-4 h-4 animate-spin text-blue-400" /> : <Wand2 className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />}
                             </button>
                         </div>
-                        <input
-                            type="text"
-                            value={subject}
-                            onChange={(e) => setSubject(e.target.value)}
-                            className="w-full bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-2xl px-4 py-3.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium text-sm"
-                            required
-                            placeholder={t('email.compose.subjectPlaceholder')}
-                        />
                     </div>
 
                     {/* Body */}
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Message</label>
-                            <button
-                                type="button"
-                                onClick={handleReformulate}
-                                disabled={reformulating || !body.trim()}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-violet-500/10 border border-violet-500/20 text-violet-600 dark:text-violet-400 hover:bg-violet-500 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed group shadow-sm"
-                            >
-                                {reformulating ? <Loader className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3 group-hover:scale-110" />}
-                                {t('email.compose.ai.reformulateBody')}
-                            </button>
+                    <div className="relative">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Message</label>
+                        <div className="relative group">
+                            <textarea
+                                value={body}
+                                onChange={(e) => setBody(e.target.value)}
+                                className="w-full bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-3xl pl-6 pr-6 pb-16 pt-4 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 h-48 resize-none text-sm leading-relaxed custom-scrollbar font-medium"
+                                required
+                                placeholder={t('email.compose.messagePlaceholder')}
+                            />
+                            <div className="absolute right-4 bottom-4">
+                                <button
+                                    type="button"
+                                    onClick={handleReformulate}
+                                    disabled={reformulating || !body.trim()}
+                                    className="flex items-center gap-2 p-3 rounded-2xl text-slate-400 hover:text-blue-400 bg-slate-100 dark:bg-white/5 hover:bg-blue-500/10 border border-slate-200/50 dark:border-white/5 hover:border-blue-500/20 shadow-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed group/btn backdrop-blur-md"
+                                    title="Reformuler le message avec l'IA"
+                                >
+                                    {reformulating ? <Loader className="w-4 h-4 animate-spin text-blue-400" /> : <Wand2 className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />}
+                                    <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Améliorer</span>
+                                </button>
+                            </div>
                         </div>
-                        <textarea
-                            value={body}
-                            onChange={(e) => setBody(e.target.value)}
-                            className="w-full bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 rounded-3xl px-6 py-4 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 h-48 resize-none text-sm leading-relaxed custom-scrollbar font-medium"
-                            required
-                            placeholder={t('email.compose.messagePlaceholder')}
-                        />
                     </div>
 
                     {/* Footer / Background elements */}

@@ -85,14 +85,14 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="relative w-full max-w-2xl bg-[#0b0e14] border border-white/10 rounded-[2.5rem] shadow-[0_0_80px_rgba(0,0,0,0.8)] overflow-hidden my-auto"
+                        className="relative w-full max-w-2xl bg-slate-50 dark:bg-[#0b0e14] border border-slate-300 dark:border-white/10 rounded-[2.5rem] shadow-[0_0_80px_rgba(0,0,0,0.8)] overflow-hidden my-auto"
                     >
                         {/* Header */}
-                        <div className="relative p-6 border-b border-white/5 bg-[#0b0e14]">
+                        <div className="relative p-6 border-b border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#0b0e14]">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
                                     <div>
-                                        <h2 className="text-xl font-black text-white tracking-tight uppercase">
+                                        <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
                                             {title}
                                         </h2>
                                         <p className="text-[10px] font-black text-blue-400/60 uppercase tracking-[0.2em]">
@@ -102,7 +102,7 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                 </div>
                                 <button
                                     onClick={onClose}
-                                    className="p-3 hover:bg-white/5 rounded-2xl transition-all text-slate-500 hover:text-white"
+                                    className="p-3 hover:bg-slate-100 dark:bg-white/5 rounded-2xl transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white"
                                 >
                                     <X size={20} />
                                 </button>
@@ -110,9 +110,9 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                         </div>
 
                         {/* Content */}
-                        <div className="p-6 space-y-8 max-h-[60vh] overflow-y-auto custom-scrollbar bg-[#0b0e14]">
+                        <div className="p-6 space-y-8 max-h-[60vh] overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-[#0b0e14]">
                             {/* TOP DASHBOARD: GAUGE + STATUS */}
-                            <div className="bg-white/[0.01] border border-white/5 rounded-[1.5rem] p-6 flex items-center gap-8">
+                            <div className="bg-slate-50 dark:bg-white/[0.01] border border-slate-200 dark:border-white/5 rounded-[1.5rem] p-6 flex items-center gap-8">
                                 {/* Left: Gauge */}
                                 <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
                                     <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
@@ -127,7 +127,7 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                             strokeLinecap="round"
                                         />
                                     </svg>
-                                    <span className="absolute text-lg font-black text-white">{data.score}%</span>
+                                    <span className="absolute text-lg font-black text-slate-900 dark:text-white">{data.score}%</span>
                                 </div>
 
                                 {/* Right: Global Status */}
@@ -167,7 +167,7 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                     AUDIT TRAIL — JOURNAL DE TRANSPARENCE
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <div className="p-5 bg-white/[0.01] border border-white/5 rounded-[1.2rem] transition-all">
+                                    <div className="p-5 bg-slate-50 dark:bg-white/[0.01] border border-slate-200 dark:border-white/5 rounded-[1.2rem] transition-all">
                                         <div className="flex items-center gap-2 mb-4">
                                             <div className="p-1.5 bg-emerald-500/10 rounded-lg">
                                                 <CheckCircle2 size={12} className="text-emerald-500" />
@@ -176,15 +176,15 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                         </div>
                                         {data.source_data ? (
                                             <>
-                                                <div className="text-xl font-black text-white mb-0.5">{data.source_data.tests.passed} / {data.source_data.tests.total}</div>
+                                                <div className="text-xl font-black text-slate-900 dark:text-white mb-0.5">{data.source_data.tests.passed} / {data.source_data.tests.total}</div>
                                                 <div className="text-[9px] font-bold text-slate-500">tests validés · taux réel {data.source_data.tests.percent}%</div>
-                                                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden my-2">
+                                                <div className="h-1 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden my-2">
                                                     <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${data.breakdown.test_pass_rate}%` }} />
                                                 </div>
                                             </>
                                         ) : (
                                             <>
-                                                <div className="text-xl font-black text-white mb-0.5">0 / 0</div>
+                                                <div className="text-xl font-black text-slate-900 dark:text-white mb-0.5">0 / 0</div>
                                                 <div className="text-[9px] font-bold text-slate-500">Chargement...</div>
                                             </>
                                         )}
@@ -200,7 +200,7 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                             <>
                                                 <div className="text-xl font-black text-rose-500 mb-0.5">{data.source_data.anomalies.total} actives</div>
                                                 <div className="text-[9px] font-bold text-slate-500">{data.source_data.anomalies.critical} critiques · pénalité -{data.source_data.anomalies.penalty} pts</div>
-                                                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden my-2">
+                                                <div className="h-1 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden my-2">
                                                     <div className="h-full bg-blue-500 rounded-full" style={{ width: `${data.breakdown.anomalies_health}%` }} />
                                                 </div>
                                             </>
@@ -222,7 +222,7 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                             <>
                                                 <div className="text-xl font-black text-rose-500 mb-0.5">{data.source_data.ml.status}</div>
                                                 <div className="text-[9px] font-bold text-slate-500">+{data.source_data.ml.delay_days}j retard · IA à {Math.round(data.source_data.ml.confidence * 100)}%</div>
-                                                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden my-2">
+                                                <div className="h-1 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden my-2">
                                                     <div className="h-full bg-amber-500 rounded-full" style={{ width: `${data.breakdown.ml_stability}%` }} />
                                                 </div>
                                             </>
@@ -233,7 +233,7 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                             </>
                                         )}
                                     </div>
-                                    <div className="p-5 bg-white/[0.01] border border-white/5 rounded-[1.2rem]">
+                                    <div className="p-5 bg-slate-50 dark:bg-white/[0.01] border border-slate-200 dark:border-white/5 rounded-[1.2rem]">
                                         <div className="flex items-center gap-2 mb-4">
                                             <div className="p-1.5 bg-rose-500/10 rounded-lg">
                                                 <ShieldAlert size={12} className={data.source_data?.anomalies.blocking ? "text-rose-500" : "text-emerald-500"} />
@@ -245,13 +245,13 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                                 <div className={`text-xl font-black mb-0.5 ${data.source_data.anomalies.blocking ? "text-rose-500" : "text-emerald-500"}`}>
                                                     {data.source_data.anomalies.blocking} BLOQUANT
                                                 </div>
-                                                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden my-2">
+                                                <div className="h-1 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden my-2">
                                                     <div className="h-full bg-rose-500 rounded-full" style={{ width: `${data.breakdown.blocking_guard}%` }} />
                                                 </div>
                                             </>
                                         ) : (
                                             <>
-                                                <div className="text-xl font-black text-white mb-0.5">0</div>
+                                                <div className="text-xl font-black text-slate-900 dark:text-white mb-0.5">0</div>
                                             </>
                                         )}
                                     </div>
@@ -266,7 +266,7 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                 </div>
                                 <div className="space-y-2">
                                     {(data.reasons || []).map((text, i) => (
-                                        <div key={i} className="p-3.5 bg-white/[0.01] border border-white/5 rounded-xl flex items-center gap-3">
+                                        <div key={i} className="p-3.5 bg-slate-50 dark:bg-white/[0.01] border border-slate-200 dark:border-white/5 rounded-xl flex items-center gap-3">
                                             <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${text.toLowerCase().includes('insuffisant') || text.toLowerCase().includes('critique') ? 'bg-rose-500' : 'bg-amber-500'}`} />
                                             <p className="text-[10px] font-bold text-slate-400 leading-tight">{text}</p>
                                         </div>
@@ -276,18 +276,18 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                         </div>
 
                         {/* Footer */}
-                        <div className="p-6 border-t border-white/5 bg-[#0b0e14] flex items-center gap-3">
+                        <div className="p-6 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#0b0e14] flex items-center gap-3">
                             <button
                                 onClick={handleExport}
                                 disabled={isExporting}
-                                className="flex-[3] flex items-center justify-center gap-3 py-4 bg-[#0b0e14] border border-white/10 rounded-xl text-[9px] font-black tracking-[0.2em] text-white hover:bg-white/5 transition-all group disabled:opacity-50"
+                                className="flex-[3] flex items-center justify-center gap-3 py-4 bg-slate-50 dark:bg-[#0b0e14] border border-slate-300 dark:border-white/10 rounded-xl text-[9px] font-black tracking-[0.2em] text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-white/5 transition-all group disabled:opacity-50"
                             >
                                 <Download size={14} className="opacity-50 group-hover:opacity-100 transition-opacity" />
                                 {isExporting ? 'EXPORTATION...' : 'EXPORTER LA FICHE DE CLÔTURE (PDF)'}
                             </button>
                             <button
                                 onClick={onClose}
-                                className="flex-1 py-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[9px] font-black tracking-widest text-white transition-all"
+                                className="flex-1 py-4 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:bg-white/10 border border-slate-200 dark:border-white/5 rounded-xl text-[9px] font-black tracking-widest text-slate-900 dark:text-white transition-all"
                             >
                                 Annuler
                             </button>

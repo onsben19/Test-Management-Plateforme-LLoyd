@@ -13,7 +13,7 @@ const NotFound: React.FC = () => {
       <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4 relative">
         {/* Background 404 Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none opacity-[0.03]">
-          <span className="text-[20rem] font-black text-white leading-none">404</span>
+          <span className="text-[20rem] font-black text-slate-900 dark:text-white leading-none">404</span>
         </div>
 
         <motion.div
@@ -23,7 +23,7 @@ const NotFound: React.FC = () => {
           className="relative"
         >
           <div className="absolute inset-0 bg-blue-500/20 blur-[100px] rounded-full" />
-          <div className="relative w-32 h-32 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center justify-center text-blue-400 mb-10 mx-auto shadow-2xl backdrop-blur-xl group">
+          <div className="relative w-32 h-32 rounded-[2.5rem] bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 flex items-center justify-center text-blue-400 mb-10 mx-auto shadow-2xl backdrop-blur-xl group">
             <Ghost className="w-16 h-16 animate-bounce" />
           </div>
         </motion.div>
@@ -39,7 +39,7 @@ const NotFound: React.FC = () => {
             <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-none mt-0.5">Page non trouvée</span>
           </div>
 
-          <h1 className="text-5xl font-black text-white tracking-widest uppercase mb-6 leading-tight italic">
+          <h1 className="text-5xl font-black text-slate-900 dark:text-white tracking-widest uppercase mb-6 leading-tight italic">
             {t('errors.404.title')}
           </h1>
 
@@ -49,7 +49,7 @@ const NotFound: React.FC = () => {
 
           <Link
             to="/"
-            className="bg-white text-black px-12 py-5 rounded-3xl font-black text-[10px] tracking-widest uppercase hover:bg-slate-200 transition-all shadow-xl shadow-white/5 active:scale-95 flex items-center gap-3 mx-auto w-fit border border-white/10"
+            className="bg-white text-black px-12 py-5 rounded-3xl font-black text-[10px] tracking-widest uppercase hover:bg-slate-200 transition-all shadow-xl shadow-white/5 active:scale-95 flex items-center gap-3 mx-auto w-fit border border-slate-300 dark:border-white/10"
           >
             <Home className="w-4 h-4" />
             {t('errors.404.back')}

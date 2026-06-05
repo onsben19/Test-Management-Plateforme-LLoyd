@@ -48,7 +48,7 @@ const ReadinessGauge: React.FC<ReadinessGaugeProps> = ({ score, size = 120, labe
                         strokeLinecap="round"
                     />
                 </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-900 dark:text-white">
                     <span
                         className="font-black tracking-tighter leading-none"
                         style={{ fontSize: size * 0.28 }}

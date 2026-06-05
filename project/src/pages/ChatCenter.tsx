@@ -447,7 +447,7 @@ const ChatCenter = () => {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Rechercher..."
-                                className="flex-1 bg-transparent border-none text-sm text-white focus:ring-0 outline-none placeholder-slate-400"
+                                className="flex-1 bg-transparent border-none text-sm text-slate-900 dark:text-white focus:ring-0 outline-none placeholder-slate-400"
                             />
                         </div>
                     </div>
@@ -464,9 +464,9 @@ const ChatCenter = () => {
                                     key={conv.id}
                                     layout
                                     onClick={() => setSelectedConv(conv)}
-                                    className={`w-full p-5 rounded-[2rem] flex items-center gap-5 transition-all relative group/item border ${isActive ? 'bg-blue-600/10 border-blue-500/50 shadow-lg shadow-blue-500/5' : 'hover:bg-white/[0.03] border-transparent hover:border-white/10 text-slate-500 dark:text-slate-400'}`}
+                                    className={`w-full p-5 rounded-[2rem] flex items-center gap-5 transition-all relative group/item border ${isActive ? 'bg-blue-600/10 border-blue-500/50 shadow-lg shadow-blue-500/5' : 'hover:bg-slate-50 dark:bg-white/[0.03] border-transparent hover:border-slate-300 dark:border-white/10 text-slate-500 dark:text-slate-400'}`}
                                 >
-                                    <div className={`shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-blue-600 text-white' : 'bg-white/5 border border-white/5 group-hover/item:border-white/20'}`}>
+                                    <div className={`shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 group-hover/item:border-slate-400 dark:border-white/20'}`}>
                                         {conv.type === 'DIRECT' ? <User size={20} /> : conv.type === 'GROUP' ? <Users size={20} /> : <Hash size={20} />}
                                     </div>
                                     <div className="flex-1 text-left min-w-0">
@@ -491,16 +491,16 @@ const ChatCenter = () => {
                 <div className={`flex-1 flex flex-col relative z-20 ${!selectedConv ? 'hidden lg:flex' : 'flex'} bg-white/30 dark:bg-transparent`}>
                     {selectedConv ? (
                         <div className="flex flex-col h-full">
-                            <div className="px-8 py-6 border-b border-white/5 bg-white/5 dark:bg-white/[0.02] flex items-center justify-between backdrop-blur-md">
+                            <div className="px-8 py-6 border-b border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-white/5 dark:bg-white/[0.02] flex items-center justify-between backdrop-blur-md">
                                 <div className="flex items-center gap-6">
-                                    <button onClick={() => setSelectedConv(null)} className="p-2 lg:hidden hover:bg-white/10 rounded-xl transition-all text-slate-500"><ChevronLeft size={20} /></button>
+                                    <button onClick={() => setSelectedConv(null)} className="p-2 lg:hidden hover:bg-slate-200 dark:bg-white/10 rounded-xl transition-all text-slate-500"><ChevronLeft size={20} /></button>
                                     <div className="relative">
                                         <div className="w-16 h-16 rounded-[1.5rem] bg-gradient-to-br from-blue-500 to-indigo-600 p-0.5 shadow-2xl shadow-blue-500/20">
-                                            <div className="w-full h-full bg-[#0b0e14] rounded-[1.4rem] flex items-center justify-center text-xl font-black text-blue-400 border border-white/5">
+                                            <div className="w-full h-full bg-slate-50 dark:bg-[#0b0e14] rounded-[1.4rem] flex items-center justify-center text-xl font-black text-blue-400 border border-slate-200 dark:border-white/5">
                                                 {selectedConv.type === 'DIRECT' ? <User size={24} /> : <Users size={24} />}
                                             </div>
                                         </div>
-                                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#0b0e14] rounded-full flex items-center justify-center border-2 border-slate-900">
+                                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-slate-50 dark:bg-[#0b0e14] rounded-full flex items-center justify-center border-2 border-slate-900">
                                             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
                                         </div>
                                     </div>
@@ -514,19 +514,13 @@ const ChatCenter = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4">
-                                    <div className="hidden md:flex flex-col items-end mr-4">
-                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Status Sécurité</p>
-                                        <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 rounded-full border border-green-500/20">
-                                            <div className="w-1 h-1 bg-green-500 rounded-full" />
-                                            <p className="text-[9px] font-black text-green-500 uppercase tracking-widest">Chiffré de bout en bout</p>
-                                        </div>
-                                    </div>
+
                                     <div className="relative">
                                         <Button
                                             variant="secondary"
                                             size="icon"
                                             icon={MoreVertical}
-                                            className="bg-white/5 border-white/10"
+                                            className="bg-slate-100 dark:bg-white/5 border-slate-300 dark:border-white/10"
                                             onClick={() => setShowMenu(!showMenu)}
                                         />
                                         {showMenu && (
@@ -535,7 +529,7 @@ const ChatCenter = () => {
                                                 <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-white/5 z-20 p-2">
                                                     <button
                                                         onClick={handleArchiveConversation}
-                                                        className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg flex items-center gap-2"
+                                                        className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg flex items-center gap-2"
                                                     >
                                                         <Archive size={14} /> {selectedConv?.isArchived ? "Désarchiver" : "Archiver"}
                                                     </button>
@@ -587,8 +581,8 @@ const ChatCenter = () => {
 
                                                         <div className={`p-4 rounded-3xl shadow-xl transition-all relative ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : isMentioned ? 'bg-indigo-600/10 dark:bg-indigo-600/30 text-slate-900 dark:text-slate-200 border border-indigo-500/30 rounded-tl-none' : 'bg-white dark:bg-white/5 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/5 rounded-tl-none'}`}>
                                                             {msg.attachment && (
-                                                                <div className={`mb-4 p-4 rounded-2xl flex items-center gap-3 border ${isMe ? 'bg-white/10 border-white/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10'}`}>
-                                                                    <div className={`p-2 rounded-xl ${isMe ? 'bg-white/20' : 'bg-blue-500/10 text-blue-500'}`}>
+                                                                <div className={`mb-4 p-4 rounded-2xl flex items-center gap-3 border ${isMe ? 'bg-slate-200 dark:bg-white/10 border-slate-400 dark:border-white/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10'}`}>
+                                                                    <div className={`p-2 rounded-xl ${isMe ? 'bg-slate-300 dark:bg-white/20' : 'bg-blue-500/10 text-blue-500'}`}>
                                                                         {msg.attachment.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? <Image size={20} /> : <FileText size={20} />}
                                                                     </div>
                                                                     <div className="flex-1 min-w-0">
@@ -621,11 +615,11 @@ const ChatCenter = () => {
                                                             <div className={`absolute top-0 ${isMe ? '-left-12' : '-right-12'} opacity-0 group-hover:opacity-100 transition-all flex flex-col gap-1 p-2`}>
                                                                 {isMe && !isEditing && (
                                                                     <>
-                                                                        <button onClick={() => { setEditingMsgId(msg.id); setEditValue(msg.text); }} className="p-2 hover:bg-white/10 rounded-full text-slate-500 hover:text-white transition-colors" title="Éditer"><Pencil size={12} /></button>
+                                                                        <button onClick={() => { setEditingMsgId(msg.id); setEditValue(msg.text); }} className="p-2 hover:bg-slate-200 dark:bg-white/10 rounded-full text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors" title="Éditer"><Pencil size={12} /></button>
                                                                         <button onClick={() => handleDeleteMessage(msg.id)} className="p-2 hover:bg-rose-500/10 rounded-full text-slate-500 hover:text-rose-500 transition-colors" title="Supprimer"><Trash2 size={12} /></button>
                                                                     </>
                                                                 )}
-                                                                <button onClick={() => { setMsgToForward(msg); setShowForwardModal(true); }} className="p-2 hover:bg-white/10 rounded-full text-slate-500 hover:text-white transition-colors" title="Transférer"><Forward size={12} /></button>
+                                                                <button onClick={() => { setMsgToForward(msg); setShowForwardModal(true); }} className="p-2 hover:bg-slate-200 dark:bg-white/10 rounded-full text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors" title="Transférer"><Forward size={12} /></button>
                                                             </div>
                                                         </div>
 
@@ -646,8 +640,8 @@ const ChatCenter = () => {
                                 <div className="max-w-5xl mx-auto relative">
                                     <AnimatePresence>
                                         {showMentionPopover && (
-                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 right-0 mb-6 bg-[#0b0e14] border border-white/10 rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden z-50 backdrop-blur-3xl">
-                                                <div className="p-5 border-b border-white/5 bg-white/5 flex items-center justify-between">
+                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 right-0 mb-6 bg-slate-50 dark:bg-[#0b0e14] border border-slate-300 dark:border-white/10 rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden z-50 backdrop-blur-3xl">
+                                                <div className="p-5 border-b border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-white/5 flex items-center justify-between">
                                                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Mentionner un collègue</span>
                                                     <AtSign size={14} className="text-blue-500" />
                                                 </div>
@@ -664,7 +658,7 @@ const ChatCenter = () => {
                                                             }}
                                                             className="w-full p-4 rounded-2xl hover:bg-blue-600 text-white flex items-center gap-4 transition-all group"
                                                         >
-                                                            <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center text-xs font-black border border-white/5 group-hover:bg-white/20 transition-all text-blue-400 group-hover:text-white">
+                                                            <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-xs font-black border border-slate-200 dark:border-white/5 group-hover:bg-slate-300 dark:bg-white/20 transition-all text-blue-400 group-hover:text-slate-900 dark:hover:text-white">
                                                                 {p.username.charAt(0)}
                                                             </div>
                                                             <div className="text-left">
@@ -680,15 +674,15 @@ const ChatCenter = () => {
 
                                     <div className="relative group/input">
                                         <div className="absolute inset-0 bg-blue-500/5 blur-3xl opacity-0 group-focus-within/input:opacity-100 transition-opacity" />
-                                        <div className="relative bg-[#0b0e14]/80 border border-white/10 rounded-[2.5rem] p-4 flex flex-col gap-3 backdrop-blur-2xl shadow-2xl transition-all focus-within:border-blue-500/40 focus-within:ring-4 focus-within:ring-blue-500/5">
+                                        <div className="relative bg-slate-50 dark:bg-[#0b0e14]/80 border border-slate-300 dark:border-white/10 rounded-[2.5rem] p-4 flex flex-col gap-3 backdrop-blur-2xl shadow-2xl transition-all focus-within:border-blue-500/40 focus-within:ring-4 focus-within:ring-blue-500/5">
                                             {selectedFile && (
-                                                <div className="px-5 py-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between animate-fade-in">
+                                                <div className="px-5 py-4 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl flex items-center justify-between animate-fade-in">
                                                     <div className="flex items-center gap-4 overflow-hidden">
                                                         <div className="p-2.5 bg-blue-500/20 rounded-xl text-blue-400">
                                                             {selectedFile.type.startsWith('image/') ? <Image size={18} /> : <FileText size={18} />}
                                                         </div>
                                                         <div className="flex flex-col">
-                                                            <span className="text-xs font-black text-white truncate max-w-[300px]">{selectedFile.name}</span>
+                                                            <span className="text-xs font-black text-slate-900 dark:text-white truncate max-w-[300px]">{selectedFile.name}</span>
                                                             <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Document prêt à l'envoi</span>
                                                         </div>
                                                     </div>
@@ -703,7 +697,7 @@ const ChatCenter = () => {
                                             <div className="flex items-center gap-4">
                                                 <button
                                                     onClick={() => fileInputRef.current?.click()}
-                                                    className={`p-4 rounded-2xl transition-all border ${selectedFile ? 'bg-blue-600 border-transparent text-white' : 'bg-white/5 border-white/5 hover:bg-white/10 text-slate-500 hover:text-white'}`}
+                                                    className={`p-4 rounded-2xl transition-all border ${selectedFile ? 'bg-blue-600 border-transparent text-white' : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/5 hover:bg-slate-200 dark:bg-white/10 text-slate-500 hover:text-white'}`}
                                                 >
                                                     <Paperclip size={20} />
                                                 </button>
@@ -743,7 +737,7 @@ const ChatCenter = () => {
                                                         }}
                                                         placeholder="Tapez votre message ici... (@ pour mentionner)"
                                                         rows={1}
-                                                        className="w-full bg-transparent border-none py-4 text-[14px] font-bold text-white focus:outline-none resize-none placeholder:text-slate-700"
+                                                        className="w-full bg-transparent border-none py-4 text-[14px] font-bold text-slate-900 dark:text-white focus:outline-none resize-none placeholder:text-slate-700"
                                                     />
                                                 </div>
                                                 <div className="flex items-center gap-2">
@@ -758,7 +752,7 @@ const ChatCenter = () => {
                     </div>
                 ) : (
                         <div className="flex-1 flex flex-col items-center justify-center space-y-8">
-                            <div className="w-32 h-32 rounded-[3rem] bg-slate-100 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 flex items-center justify-center shadow-inner"><MessageSquare size={48} className="text-slate-300 dark:text-slate-700" /></div>
+                            <div className="w-32 h-32 rounded-[3rem] bg-slate-100 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 flex items-center justify-center shadow-inner"><MessageSquare size={48} className="text-slate-700 dark:text-slate-300 dark:text-slate-700" /></div>
                             <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-widest text-center">Collaboration Center</h3>
                             <Button onClick={() => setShowNewChatModal('direct')} size="lg">Nouvelle Discussion</Button>
                         </div>
@@ -773,7 +767,7 @@ const ChatCenter = () => {
                             <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-lg bg-white dark:bg-[#0b0e14] border border-slate-200 dark:border-white/10 rounded-[3rem] overflow-hidden">
                                 <div className="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
                                     <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">{showNewChatModal === 'direct' ? 'Message Direct' : 'Nouveau Groupe'}</h3>
-                                    <button onClick={() => setShowNewChatModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl text-slate-500"><X size={20} /></button>
+                                    <button onClick={() => setShowNewChatModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl text-slate-500"><X size={20} /></button>
                                 </div>
                                 <div className="p-8 space-y-6">
                                     {showNewChatModal === 'group' && (
@@ -783,7 +777,7 @@ const ChatCenter = () => {
                                                 value={groupName}
                                                 onChange={(e) => setGroupName(e.target.value)}
                                                 placeholder="Nom du groupe..."
-                                                className="flex-1 bg-transparent border-none text-sm text-white focus:ring-0 outline-none placeholder-slate-700"
+                                                className="flex-1 bg-transparent border-none text-sm text-slate-900 dark:text-white focus:ring-0 outline-none placeholder-slate-700"
                                             />
                                         </div>
                                     )}
@@ -794,7 +788,7 @@ const ChatCenter = () => {
                                             value={userSearchTerm}
                                             onChange={(e) => setUserSearchTerm(e.target.value)}
                                             placeholder="Chercher des membres..."
-                                            className="flex-1 bg-transparent border-none text-sm text-white focus:ring-0 outline-none placeholder-slate-700"
+                                            className="flex-1 bg-transparent border-none text-sm text-slate-900 dark:text-white focus:ring-0 outline-none placeholder-slate-700"
                                         />
                                     </div>
                                     <div className="max-h-64 overflow-y-auto custom-scrollbar space-y-2">
@@ -804,7 +798,7 @@ const ChatCenter = () => {
                                                 <button key={u.id} onClick={() => {
                                                     if (showNewChatModal === 'direct') handleCreateDirect(u.id);
                                                     else setSelectedParticipants(prev => isSelected ? prev.filter(id => id !== u.id) : [...prev, u.id]);
-                                                }} className={`w-full p-4 rounded-2xl flex items-center gap-4 transition-all border ${isSelected ? 'bg-indigo-600/10 border-indigo-500/30' : 'hover:bg-slate-50 dark:hover:bg-white/5 border-transparent'}`}>
+                                                }} className={`w-full p-4 rounded-2xl flex items-center gap-4 transition-all border ${isSelected ? 'bg-indigo-600/10 border-indigo-500/30' : 'hover:bg-slate-50 dark:hover:bg-white/10 border-transparent'}`}>
                                                     <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-xs">{u.username.charAt(0)}</div>
                                                     <div className="text-left flex-1"><p className="text-sm font-bold text-slate-700 dark:text-slate-200">{u.username}</p></div>
                                                     {isSelected && <Check size={16} className="text-indigo-600 dark:text-indigo-400" />}
@@ -826,14 +820,14 @@ const ChatCenter = () => {
                             <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-lg bg-white dark:bg-[#0b0e14] border border-slate-200 dark:border-white/10 rounded-[3rem] overflow-hidden">
                                 <div className="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
                                     <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Transférer le message</h3>
-                                    <button onClick={() => setShowForwardModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl text-slate-500"><X size={20} /></button>
+                                    <button onClick={() => setShowForwardModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl text-slate-500"><X size={20} /></button>
                                 </div>
                                 <div className="p-8 space-y-4">
                                     <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-2xl mb-4 italic text-slate-500 text-xs truncate">"{msgToForward?.text}"</div>
                                     <h4 className="text-[10px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-widest">Choisir une destination</h4>
                                     <div className="max-h-64 overflow-y-auto custom-scrollbar space-y-2">
                                         {conversations.map(c => (
-                                            <button key={c.id} onClick={() => handleForwardMessage(c.id)} className="w-full p-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-4 transition-all border border-transparent hover:border-slate-200 dark:hover:border-white/5">
+                                            <button key={c.id} onClick={() => handleForwardMessage(c.id)} className="w-full p-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/10 flex items-center gap-4 transition-all border border-transparent hover:border-slate-200 dark:hover:border-white/10">
                                                 <div className="w-8 h-8 rounded-lg bg-blue-600/10 flex items-center justify-center text-blue-600 dark:text-blue-400"><Send size={14} /></div>
                                                 <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{c.name || c.type}</span>
                                             </button>

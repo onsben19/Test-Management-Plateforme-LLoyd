@@ -128,7 +128,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="fixed right-0 top-0 bottom-0 z-[110] w-full max-w-lg bg-[#0b0e14] border-l border-white/5 flex flex-col shadow-2xl"
+                            className="fixed right-0 top-0 bottom-0 z-[110] w-full max-w-lg bg-slate-50 dark:bg-[#0b0e14] border-l border-slate-200 dark:border-white/5 flex flex-col shadow-2xl"
                         >
                             {/* Drawer Content wrapper */}
                             <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
@@ -139,35 +139,35 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
 
                                 {/* Icon & Title */}
                                 <div className="mb-8">
-                                    <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-white/5 flex items-center justify-center text-blue-400 mb-6">
+                                    <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-slate-200 dark:border-white/5 flex items-center justify-center text-blue-400 mb-6">
                                         <FileText size={28} />
                                     </div>
-                                    <h2 className="text-3xl font-black text-white leading-tight mb-2">
+                                    <h2 className="text-3xl font-black text-slate-900 dark:text-white leading-tight mb-2">
                                         {campaign.title}
                                     </h2>
 
                                     {/* Subtitle */}
-                                    <p className="text-sm text-slate-300 leading-relaxed mb-8">
+                                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed mb-8">
                                         {campaign.description || "Vérification du taux de faux positifs sur la détection de faux bulletins de salaire."}
                                     </p>
 
                                     {/* Meta row */}
                                     <div className="flex items-center gap-3">
-                                        <div className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl flex items-center gap-2">
+                                        <div className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl flex items-center gap-2">
                                             <Calendar size={14} className="text-slate-500" />
-                                            <span className="text-xs font-bold text-slate-300">11/04/2026</span>
+                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">11/04/2026</span>
                                         </div>
-                                        <div className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl flex items-center gap-2">
+                                        <div className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl flex items-center gap-2">
                                             <Clock size={14} className="text-slate-500" />
                                             <span className="text-xs font-bold text-slate-400">
-                                                Deadline <span className="text-slate-200">18 avr.</span>
+                                                Deadline <span className="text-slate-800 dark:text-slate-200">18 avr.</span>
                                             </span>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* PROGRESSION & CADENCE Section */}
-                                <div className="bg-[#151921] border border-white/5 rounded-3xl p-6 mb-8">
+                                <div className="bg-slate-50 dark:bg-[#151921] border border-slate-200 dark:border-white/5 rounded-3xl p-6 mb-8">
                                     <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest mb-8">
                                         <TrendingUp size={14} />
                                         Progression & Cadence
@@ -189,7 +189,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                                 />
                                             </svg>
                                             <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className="text-xl font-black text-white">{rate}%</span>
+                                                <span className="text-xl font-black text-slate-900 dark:text-white">{rate}%</span>
                                             </div>
                                         </div>
 
@@ -205,7 +205,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                                     <span className="text-xs font-black text-rose-400">{failed} restants</span>
                                                 </div>
                                             </div>
-                                            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden mb-3">
+                                            <div className="h-2 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden mb-3">
                                                 <motion.div
                                                     initial={{ width: 0 }}
                                                     animate={{ width: `${rate}%` }}
@@ -221,16 +221,16 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
 
                                     {/* Velocity Grid */}
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+                                        <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-2xl p-4">
                                             <div className="flex items-center gap-2 text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2">
                                                 <TrendingUp size={12} className="text-slate-600" />
                                                 Cadence IA
                                             </div>
-                                            <div className="text-xl font-black text-white">
+                                            <div className="text-xl font-black text-slate-900 dark:text-white">
                                                 {catchupData?.current_velocity || 0} <span className="text-xs text-slate-500">tests/j</span>
                                             </div>
                                         </div>
-                                        <div className="bg-white/[0.02] border border-rose-500/30 rounded-2xl p-4 relative overflow-hidden">
+                                        <div className="bg-slate-50 dark:bg-white/[0.02] border border-rose-500/30 rounded-2xl p-4 relative overflow-hidden">
                                             <div className="absolute inset-0 bg-rose-500/5" />
                                             <div className="relative">
                                                 <div className="flex items-center gap-2 text-[9px] font-black text-rose-500 uppercase tracking-widest mb-2">
@@ -266,7 +266,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                             </p>
                                             <button
                                                 onClick={() => setIsAIModalOpen(true)}
-                                                className="px-6 py-3 bg-[#131722]/80 border border-white/10 rounded-[1.2rem] text-[10px] font-black uppercase tracking-[widest] text-white transition-all hover:bg-white hover:text-black flex items-center gap-3 group/btn shadow-xl"
+                                                className="px-6 py-3 bg-slate-50 dark:bg-[#131722]/80 border border-slate-300 dark:border-white/10 rounded-[1.2rem] text-[10px] font-black uppercase tracking-[widest] text-slate-900 dark:text-white transition-all hover:bg-white hover:text-black flex items-center gap-3 group/btn shadow-xl"
                                             >
                                                 Lire la suite
                                                 <ArrowRight size={14} className="group-hover/btn:translate-x-1.5 transition-transform" />
@@ -276,32 +276,32 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                 </AnimatePresence>
 
                                 {/* Footer content */}
-                                <div className="pt-10 border-t border-white/5 flex items-center justify-between mb-8">
+                                <div className="pt-10 border-t border-slate-200 dark:border-white/5 flex items-center justify-between mb-8">
                                     <div className="flex items-center gap-4">
                                         <div className="flex -space-x-2">
                                             {(campaign.assigned_testers_names || []).length > 0 ? (
                                                 (campaign.assigned_testers_names || []).slice(0, 3).map((name, i) => (
-                                                    <div key={i} className={`w-10 h-10 rounded-full border-2 border-[#0b0e14] flex items-center justify-center text-xs font-black text-white ${i === 0 ? 'bg-blue-600' : i === 1 ? 'bg-emerald-600' : 'bg-purple-600'}`}>
+                                                    <div key={i} className={`w-10 h-10 rounded-full border-2 border-slate-200 dark:border-[#0b0e14] flex items-center justify-center text-xs font-black text-white ${i === 0 ? 'bg-blue-600' : i === 1 ? 'bg-emerald-600' : 'bg-purple-600'}`}>
                                                         {name.charAt(0).toUpperCase()}
                                                     </div>
                                                 ))
                                             ) : (
-                                                <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-[#0b0e14] flex items-center justify-center text-xs font-black text-slate-500">?</div>
+                                                <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-slate-200 dark:border-[#0b0e14] flex items-center justify-center text-xs font-black text-slate-500">?</div>
                                             )}
                                             {(campaign.assigned_testers_names || []).length > 3 && (
-                                                <div className="w-10 h-10 rounded-full bg-slate-700 border-2 border-[#0b0e14] flex items-center justify-center text-[10px] font-black text-white">
+                                                <div className="w-10 h-10 rounded-full bg-slate-700 border-2 border-slate-200 dark:border-[#0b0e14] flex items-center justify-center text-[10px] font-black text-slate-900 dark:text-white">
                                                     +{(campaign.assigned_testers_names || []).length - 3}
                                                 </div>
                                             )}
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="text-sm font-black text-white leading-none mb-1">{(campaign.assigned_testers_names || []).length}</span>
+                                            <span className="text-sm font-black text-slate-900 dark:text-white leading-none mb-1">{(campaign.assigned_testers_names || []).length}</span>
                                             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Testeurs</span>
                                         </div>
                                     </div>
 
-                                    <div className="w-24 h-16 bg-white/[0.03] border border-white/5 rounded-2xl flex flex-col items-center justify-center">
-                                        <span className="text-2xl font-black text-white leading-none mb-1">{total}</span>
+                                    <div className="w-24 h-16 bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col items-center justify-center">
+                                        <span className="text-2xl font-black text-slate-900 dark:text-white leading-none mb-1">{total}</span>
                                         <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Cas Test</span>
                                     </div>
                                 </div>
@@ -309,7 +309,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                 {/* VOIR LE CAHIER DE TESTS Button */}
                                 <button
                                     onClick={() => navigate('/explorer')}
-                                    className="w-full py-5 bg-[#0b0e14] border border-white/10 rounded-2xl flex items-center justify-center gap-4 text-sm font-black uppercase tracking-widest text-white hover:bg-white/5 transition-all group/footer"
+                                    className="w-full py-5 bg-slate-50 dark:bg-[#0b0e14] border border-slate-300 dark:border-white/10 rounded-2xl flex items-center justify-center gap-4 text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-white/5 transition-all group/footer"
                                 >
                                     <div className="flex flex-col gap-1 items-center justify-center scale-75 group-hover/footer:scale-90 transition-transform">
                                         <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
@@ -323,7 +323,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                             {/* Close button top right */}
                             <button
                                 onClick={onClose}
-                                className="absolute top-8 left-8 p-3 hover:bg-white/5 rounded-full text-slate-500 transition-all"
+                                className="absolute top-8 left-8 p-3 hover:bg-slate-100 dark:bg-white/5 rounded-full text-slate-500 transition-all"
                             >
                                 <X size={24} />
                             </button>
@@ -354,7 +354,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                     <div className="relative w-full max-w-2xl my-8">
                         <button
                             onClick={() => setIsCatchupPlanOpen(false)}
-                            className="absolute -top-12 right-0 text-white/50 hover:text-white transition-colors"
+                            className="absolute -top-12 right-0 text-slate-900 dark:text-white/50 hover:text-slate-900 dark:hover:text-white transition-colors"
                         >
                             <X className="w-8 h-8" />
                         </button>

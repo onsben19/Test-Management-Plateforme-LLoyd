@@ -11,6 +11,27 @@ import {
     Award, Info, SortAsc
 } from 'lucide-react';
 
+// --- Composant réutilisable : description extensible ---
+const ExpandableDescription = ({ text, maxChars = 90, emptyLabel = 'Aucune description.' }: { text?: string; maxChars?: number; emptyLabel?: string }) => {
+    const [expanded, setExpanded] = useState(false);
+    if (!text) return <p className="text-sm text-slate-400 leading-relaxed mb-5 italic opacity-60">{emptyLabel}</p>;
+    const isLong = text.length > maxChars;
+    return (
+        <p className="text-sm text-slate-400 leading-relaxed mb-5 opacity-70">
+            {expanded || !isLong ? text : text.slice(0, maxChars) + '…'}
+            {isLong && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
+                    className="ml-1.5 text-blue-400 hover:text-blue-300 text-[11px] font-black uppercase tracking-widest transition-colors"
+                >
+                    {expanded ? 'Réduire' : 'Lire la suite'}
+                </button>
+            )}
+        </p>
+    );
+};
+
+
 import { campaignService, userService, aiService, projectService } from '../services/api';
 import Pagination from '../components/Pagination';
 import StarBorder from '../components/bits/StarBorder';
@@ -144,7 +165,7 @@ const DataDrivenManager = () => {
         } else {
             setLoading(false);
         }
-    }, [activeReleaseId, searchQuery, testerFilter]);
+    }, [activeReleaseId, searchQuery, testerFilter, sortOrder]);
 
     const handleOpenReadinessDetails = (campaignId: string, name: string) => {
         const readiness = readinessScores[campaignId];
@@ -185,6 +206,8 @@ const DataDrivenManager = () => {
                 project: activeReleaseId,
                 page,
                 search: searchQuery,
+                tester: testerFilter,
+                ordering: sortOrder === 'newest' ? '-created_at' : 'created_at'
             });
             const responseData = response.data || {};
             const data = (responseData.results || (Array.isArray(responseData) ? responseData : []));
@@ -224,30 +247,7 @@ const DataDrivenManager = () => {
         }
     };
 
-    const filteredAndSortedFiles = React.useMemo(() => {
-        let result = [...importedFiles];
-        
-        if (testerFilter) {
-            result = result.filter(file => 
-                file.assigned_testers_names?.some(name => 
-                    name.toLowerCase().includes(testerFilter.toLowerCase())
-                )
-            );
-        }
-        
-        result.sort((a, b) => {
-            const dateA = new Date(a.rawDate || 0).getTime();
-            const dateB = new Date(b.rawDate || 0).getTime();
-            
-            if (sortOrder === 'newest') {
-                return dateB - dateA;
-            } else {
-                return dateA - dateB;
-            }
-        });
-        
-        return result;
-    }, [importedFiles, testerFilter, sortOrder]);
+    const filteredAndSortedFiles = importedFiles;
 
     const fetchTimelineGuard = async (campaignId: string) => {
         try {
@@ -497,7 +497,7 @@ const DataDrivenManager = () => {
                             placeholder="Rechercher une campagne..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="flex-1 bg-transparent border-none text-sm text-white focus:ring-0 outline-none placeholder-slate-400"
+                            className="flex-1 bg-transparent border-none text-sm text-slate-900 dark:text-white focus:ring-0 outline-none placeholder-slate-400"
                         />
                     </div>
                     <div className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
@@ -507,13 +507,13 @@ const DataDrivenManager = () => {
                             placeholder="Filtrer par testeur..."
                             value={testerFilter}
                             onChange={(e) => setTesterFilter(e.target.value)}
-                            className="flex-1 bg-transparent border-none text-sm text-white focus:ring-0 outline-none placeholder-slate-400"
+                            className="flex-1 bg-transparent border-none text-sm text-slate-900 dark:text-white focus:ring-0 outline-none placeholder-slate-400"
                         />
                     </div>
                     <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-1 flex items-center gap-1">
                         <div className="relative flex items-center">
                             <select
-                                className="bg-transparent text-white text-[10px] font-black uppercase tracking-[0.2em] pl-4 pr-10 py-2 outline-none cursor-pointer appearance-none relative z-10"
+                                className="bg-transparent text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-[0.2em] pl-4 pr-10 py-2 outline-none cursor-pointer appearance-none relative z-10"
                                 value={sortOrder}
                                 onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
                             >
@@ -545,7 +545,7 @@ const DataDrivenManager = () => {
                                 <div
                                     key={file.id}
                                     style={{ animationDelay: `${index * 100}ms` }}
-                                    className="group relative bg-[#0f1729]/80 backdrop-blur-xl hover:bg-[#131c31] border border-white/5 hover:border-blue-500/30 rounded-[2.5rem] p-8 overflow-hidden shadow-xl hover:shadow-[0_15px_40px_-10px_rgba(59,130,246,0.15)] animate-in fade-in slide-in-from-bottom-4 transition-all duration-500 flex flex-col h-full"
+                                    className="group relative bg-slate-50 dark:bg-[#0f1729]/80 backdrop-blur-xl hover:bg-slate-50 dark:hover:bg-[#131c31] border border-slate-200 dark:border-white/5 hover:border-blue-500/30 rounded-[2.5rem] p-8 overflow-hidden shadow-xl hover:shadow-[0_15px_40px_-10px_rgba(59,130,246,0.15)] animate-in fade-in slide-in-from-bottom-4 transition-all duration-500 flex flex-col h-full"
                                 >
                                     {/* Subtle ambient glow */}
                                     <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
@@ -553,10 +553,10 @@ const DataDrivenManager = () => {
                                     <div className="absolute top-6 right-6 flex items-center gap-3 z-20">
                                         <button
                                             onClick={(e) => { e.stopPropagation(); handleOpenReadinessDetails(file.id, file.name); }}
-                                            className="px-4 py-2 bg-white/[0.03] hover:bg-blue-500/10 border border-white/10 hover:border-blue-500/30 rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer group/readiness relative overflow-hidden shrink-0"
+                                            className="px-4 py-2 bg-slate-50 dark:bg-white/[0.03] hover:bg-blue-500/10 border border-slate-300 dark:border-white/10 hover:border-blue-500/30 rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer group/readiness relative overflow-hidden shrink-0"
                                         >
                                             <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover/readiness:opacity-100 transition-opacity" />
-                                            <span className="text-base font-black text-white leading-none relative z-10">
+                                            <span className="text-base font-black text-slate-900 dark:text-white leading-none relative z-10">
                                                 {readiness?.score || 0}<span className="text-xs opacity-40 ml-0.5">%</span>
                                             </span>
                                             <div className="mt-1 flex items-center gap-1 relative z-10">
@@ -569,7 +569,7 @@ const DataDrivenManager = () => {
                                         <div className="relative" onClick={e => e.stopPropagation()}>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === file.id ? null : file.id); }}
-                                                className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 text-slate-500 hover:text-white transition-all"
+                                                className="p-2.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:bg-white/10 rounded-xl border border-slate-200 dark:border-white/5 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-all"
                                             >
                                                 <MoreVertical size={14} />
                                             </button>
@@ -580,17 +580,17 @@ const DataDrivenManager = () => {
                                                         initial={{ opacity: 0, scale: 0.95, y: 10 }}
                                                         animate={{ opacity: 1, scale: 1, y: 0 }}
                                                         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                        className="absolute right-0 mt-2 w-48 bg-[#0f172a] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                                                        className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
                                                     >
                                                         <div className="p-2 space-y-1">
                                                             <button
                                                                 onClick={(e) => { openEditModal(file, e); setOpenMenuId(null); }}
-                                                                className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                                                                className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:bg-white/5 rounded-xl transition-all"
                                                             >
                                                                 <Edit className="w-3.5 h-3.5 text-blue-500/70" />
                                                                 Modifier
                                                             </button>
-                                                            <div className="h-px bg-white/5 mx-2 my-1" />
+                                                            <div className="h-px bg-slate-100 dark:bg-white/5 mx-2 my-1" />
                                                             <button
                                                                 onClick={(e) => { handleDeleteFile(file.id, e); setOpenMenuId(null); }}
                                                                 className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
@@ -619,34 +619,32 @@ const DataDrivenManager = () => {
 
                                     {/* Title & Metas */}
                                     <div className="mb-6 relative z-10">
-                                        <h3 className="text-xl md:text-2xl font-black text-white leading-tight tracking-tight mb-2 line-clamp-2 min-h-[3rem] group-hover:text-blue-400 transition-colors pr-32">
+                                        <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white leading-tight tracking-tight mb-2 line-clamp-2 min-h-[3rem] group-hover:text-blue-400 transition-colors pr-32">
                                             {file.name}
                                         </h3>
                                         {file.description ? (
-                                            <p className="text-sm text-slate-400 leading-relaxed line-clamp-3 mb-5 opacity-70">
-                                                {file.description}
-                                            </p>
+                                            <ExpandableDescription text={file.description} maxChars={90} />
                                         ) : (
-                                            <p className="text-sm text-slate-400 leading-relaxed mb-5 italic opacity-60">Aucune description</p>
+                                            <ExpandableDescription text={undefined} emptyLabel="Aucune description" />
                                         )}
                                         <div className="flex items-center gap-3">
-                                            <div className="px-3 py-1.5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors border border-white/5 rounded-xl flex items-center gap-2">
+                                            <div className="px-3 py-1.5 bg-slate-50 dark:bg-white/[0.02] hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors border border-slate-200 dark:border-white/5 rounded-xl flex items-center gap-2">
                                                 <Calendar size={12} className="text-emerald-400" />
-                                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{file.date}</span>
+                                                <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">{file.date}</span>
                                             </div>
-                                            <div className="px-3 py-1.5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors border border-white/5 rounded-xl flex items-center gap-2">
+                                            <div className="px-3 py-1.5 bg-slate-50 dark:bg-white/[0.02] hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors border border-slate-200 dark:border-white/5 rounded-xl flex items-center gap-2">
                                                 <Clock size={12} className="text-blue-400" />
-                                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                                                <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
                                                     Deadline {guard?.projected_end_date ? new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="h-px w-full bg-white/5 mb-6" />
+                                    <div className="h-px w-full bg-slate-100 dark:bg-white/5 mb-6" />
 
                                     {/* Progression Section */}
-                                    <div className="bg-white/[0.02] backdrop-blur-md border border-white/5 hover:bg-white/[0.04] transition-colors rounded-[1.5rem] p-5 mb-4 relative z-10">
+                                    <div className="bg-slate-50 dark:bg-white/[0.02] backdrop-blur-md border border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors rounded-[1.5rem] p-5 mb-4 relative z-10">
                                         <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest mb-6">
                                             <TrendingUp size={12} />
                                             PROGRESSION & CADENCE
@@ -668,7 +666,7 @@ const DataDrivenManager = () => {
                                                     />
                                                 </svg>
                                                 <div className="absolute inset-0 flex items-center justify-center">
-                                                    <span className="text-sm font-black text-white">{Math.round(rate)}%</span>
+                                                    <span className="text-sm font-black text-slate-900 dark:text-white">{Math.round(rate)}%</span>
                                                 </div>
                                             </div>
 
@@ -683,7 +681,7 @@ const DataDrivenManager = () => {
                                                         <span className="text-xs font-black text-blue-400">{failed} restants</span>
                                                     </div>
                                                 </div>
-                                                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden mb-2">
+                                                <div className="h-1.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden mb-2">
                                                     <motion.div
                                                         initial={{ width: 0 }}
                                                         animate={{ width: `${rate}%` }}
@@ -698,19 +696,19 @@ const DataDrivenManager = () => {
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-3">
-                                            <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3">
+                                            <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-xl p-3">
                                                 <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">
                                                     <History size={10} />
                                                     CADENCE IA
                                                 </div>
-                                                <div className="text-sm font-black text-white">{guard?.velocity || 0} <span className="text-xs text-slate-500">tests/j</span></div>
+                                                <div className="text-sm font-black text-slate-900 dark:text-white">{guard?.velocity || 0} <span className="text-xs text-slate-500">tests/j</span></div>
                                             </div>
-                                            <div className={`border rounded-xl p-3 ${['CRITICAL', 'WARNING'].includes(guard?.status) ? 'bg-rose-500/5 border-rose-500/10' : 'bg-white/[0.02] border-white/5'}`}>
+                                            <div className={`border rounded-xl p-3 ${['CRITICAL', 'WARNING'].includes(guard?.status) ? 'bg-rose-500/5 border-rose-500/10' : 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/5'}`}>
                                                 <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest mb-1 ${['CRITICAL', 'WARNING'].includes(guard?.status) ? 'text-rose-500/50' : 'text-slate-600'}`}>
                                                     <Clock size={10} />
                                                     FIN ESTIMÉE
                                                 </div>
-                                                <div className="text-sm font-black text-white">
+                                                <div className="text-sm font-black text-slate-900 dark:text-white">
                                                     {guard?.projected_end_date ? new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
                                                 </div>
                                             </div>
@@ -730,7 +728,7 @@ const DataDrivenManager = () => {
                                         </p>
                                         <button
                                             onClick={() => handleOpenAIInsight(file.id, file.name)}
-                                            className="px-4 py-2 bg-white/5 hover:bg-white hover:text-black border border-white/10 rounded-lg text-xs font-black uppercase tracking-widest text-white transition-all flex items-center gap-2 group/btn"
+                                            className="px-4 py-2 bg-slate-100 dark:bg-white/5 hover:bg-white hover:text-black border border-slate-300 dark:border-white/10 rounded-lg text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white transition-all flex items-center gap-2 group/btn"
                                         >
                                             Lire la suite
                                             <ArrowRight size={12} className="group-hover/btn:translate-x-1 transition-transform" />
@@ -738,7 +736,7 @@ const DataDrivenManager = () => {
                                     </div>
 
                                     {/* Footer */}
-                                    <div className="pt-4 border-t border-white/5 space-y-4">
+                                    <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-4">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <div 
@@ -747,18 +745,18 @@ const DataDrivenManager = () => {
                                                 >
                                                     <div className="flex -space-x-2">
                                                         {(file.assigned_testers_names || []).slice(0, 2).map((name, i) => (
-                                                            <div key={i} className="w-8 h-8 rounded-full bg-slate-800 border-2 border-[#0b0e14] flex items-center justify-center text-[10px] font-black text-white" title={name}>
+                                                            <div key={i} className="w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-200 dark:border-[#0b0e14] flex items-center justify-center text-[10px] font-black text-slate-900 dark:text-white" title={name}>
                                                                 {name.charAt(0).toUpperCase()}
                                                             </div>
                                                         ))}
                                                         {(file.assigned_testers_names || []).length > 2 && (
-                                                            <div className="w-8 h-8 rounded-full bg-slate-900 border-2 border-[#0b0e14] flex items-center justify-center text-[8px] font-black text-slate-500">
+                                                            <div className="w-8 h-8 rounded-full bg-slate-900 border-2 border-slate-200 dark:border-[#0b0e14] flex items-center justify-center text-[8px] font-black text-slate-500">
                                                                 +{(file.assigned_testers_names || []).length - 2}
                                                             </div>
                                                         )}
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="text-xs font-black text-white">{(file.assigned_testers_names || []).length}</span>
+                                                        <span className="text-xs font-black text-slate-900 dark:text-white">{(file.assigned_testers_names || []).length}</span>
                                                         <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">TESTEURS</span>
                                                     </div>
 
@@ -769,14 +767,14 @@ const DataDrivenManager = () => {
                                                                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                                                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                                                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                                className="absolute bottom-full left-0 mb-2 w-48 bg-[#0f172a] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                                                                className="absolute bottom-full left-0 mb-2 w-48 bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
                                                             >
                                                                 <div className="p-3 space-y-2">
-                                                                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/5 pb-1">
+                                                                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-white/5 pb-1">
                                                                         Testeurs Assignés
                                                                     </div>
                                                                     {(file.assigned_testers_names || []).map((name, i) => (
-                                                                        <div key={i} className="flex items-center gap-2 text-xs font-bold text-white">
+                                                                        <div key={i} className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
                                                                             <div className="w-5 h-5 rounded-full bg-blue-500/10 flex items-center justify-center text-[8px] font-black text-blue-400">
                                                                                 {name.charAt(0).toUpperCase()}
                                                                             </div>
@@ -794,15 +792,15 @@ const DataDrivenManager = () => {
                                                     </AnimatePresence>
                                                 </div>
                                             </div>
-                                            <div className="px-5 py-3 bg-white/5 border border-white/5 rounded-xl flex flex-col items-center">
-                                                <span className="text-lg font-black text-white">{total}</span>
+                                            <div className="px-5 py-3 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl flex flex-col items-center">
+                                                <span className="text-lg font-black text-slate-900 dark:text-white">{total}</span>
                                                 <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">CAS TEST</span>
                                             </div>
                                         </div>
 
                                         <button
                                             onClick={() => handleOpenPreview(file)}
-                                            className="w-full py-4 bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-blue-500/30 rounded-2xl flex items-center justify-between px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-400 transition-all group/footer relative z-10"
+                                            className="w-full py-4 bg-slate-50 dark:bg-white/[0.02] hover:bg-slate-50 dark:hover:bg-white/[0.04] border border-slate-200 dark:border-white/5 hover:border-blue-500/30 rounded-2xl flex items-center justify-between px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-400 transition-all group/footer relative z-10"
                                         >
                                             <span className="opacity-0 group-hover/footer:opacity-100 transition-opacity absolute left-6 text-blue-400">
                                                 Accéder
@@ -817,9 +815,9 @@ const DataDrivenManager = () => {
                             );
                         })}
                         {importedFiles.length === 0 && (
-                            <div className="col-span-full py-24 text-center bg-white/5 rounded-[3rem] border-2 border-dashed border-white/10">
+                            <div className="col-span-full py-24 text-center bg-slate-100 dark:bg-white/5 rounded-[3rem] border-2 border-dashed border-slate-300 dark:border-white/10">
                                 <FileSpreadsheet className="w-16 h-16 text-slate-700 mx-auto mb-6" />
-                                <h3 className="text-xl font-bold text-white mb-2">Aucune campagne disponible</h3>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Aucune campagne disponible</h3>
                                 <p className="text-slate-500 text-sm max-w-sm mx-auto">Importez votre premier cahier de tests Excel pour commencer le suivi.</p>
                             </div>
                         )}
@@ -857,7 +855,7 @@ const DataDrivenManager = () => {
                         <div className="relative w-full max-w-2xl my-8">
                             <button
                                 onClick={() => setIsCatchupPlanOpen(false)}
-                                className="absolute -top-12 right-0 text-white/50 hover:text-white transition-colors"
+                                className="absolute -top-12 right-0 text-slate-900 dark:text-white/50 hover:text-slate-900 dark:hover:text-white transition-colors"
                             >
                                 <X className="w-8 h-8" />
                             </button>
@@ -874,15 +872,15 @@ const DataDrivenManager = () => {
             {/* Campaign Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-[99999] flex items-start justify-center bg-slate-950/80 backdrop-blur-xl p-4 overflow-y-auto pt-24">
-                    <div className="bg-slate-900 border border-white/10 rounded-[2rem] w-full max-w-3xl shadow-[0_0_100px_rgba(37,99,235,0.1)] overflow-hidden flex flex-col max-h-[85vh]">
-                        <div className="px-6 py-6 border-b border-white/5 flex justify-between items-center bg-white/5 flex-shrink-0">
+                    <div className="bg-slate-900 border border-slate-300 dark:border-white/10 rounded-[2rem] w-full max-w-3xl shadow-[0_0_100px_rgba(37,99,235,0.1)] overflow-hidden flex flex-col max-h-[85vh]">
+                        <div className="px-6 py-6 border-b border-slate-200 dark:border-white/5 flex justify-between items-center bg-slate-100 dark:bg-white/5 flex-shrink-0">
                             <div>
-                                <h2 className="text-xl font-black text-white uppercase tracking-tight">
+                                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
                                     {editingCampaign ? 'Modifier Campagne' : 'Nouvelle Campagne'}
                                 </h2>
                                 <p className="text-blue-500 font-bold uppercase tracking-widest text-[10px] mt-1">Gérer les cahiers de tests</p>
                             </div>
-                            <button onClick={() => setIsModalOpen(false)} className="bg-white/5 p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 border border-white/10 transition-all">
+                            <button onClick={() => setIsModalOpen(false)} className="bg-slate-100 dark:bg-white/5 p-2 rounded-full text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:bg-white/10 border border-slate-300 dark:border-white/10 transition-all">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -896,7 +894,7 @@ const DataDrivenManager = () => {
                                             type="text"
                                             value={campaignForm.title}
                                             onChange={(e) => setCampaignForm({ ...campaignForm, title: e.target.value })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-3 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all placeholder:text-slate-700 font-bold"
+                                            className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl px-6 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all placeholder:text-slate-700 font-bold"
                                             placeholder="Ex: Regression Sprint 42"
                                             required
                                         />
@@ -907,7 +905,7 @@ const DataDrivenManager = () => {
                                             type="number"
                                             value={campaignForm.nb_test_cases}
                                             onChange={(e) => setCampaignForm({ ...campaignForm, nb_test_cases: parseInt(e.target.value) || 0 })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-3 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
+                                            className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl px-6 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
                                             min="0"
                                         />
                                     </div>
@@ -918,18 +916,18 @@ const DataDrivenManager = () => {
                                     <textarea
                                         value={campaignForm.description}
                                         onChange={(e) => setCampaignForm({ ...campaignForm, description: e.target.value })}
-                                        className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-6 py-3 text-white focus:ring-2 focus:ring-blue-500/50 outline-none min-h-[100px] resize-none transition-all placeholder:text-slate-700 font-bold"
+                                        className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-[1.5rem] px-6 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none min-h-[100px] resize-none transition-all placeholder:text-slate-700 font-bold"
                                         placeholder="Décrivez les objectifs de cette campagne..."
                                     />
                                 </div>
 
-                                <div className={`p-5 rounded-[1.5rem] border transition-all duration-500 ${showScheduleSelector ? 'bg-indigo-500/5 border-indigo-500/20' : 'bg-white/5 border-white/10'}`}>
+                                <div className={`p-5 rounded-[1.5rem] border transition-all duration-500 ${showScheduleSelector ? 'bg-indigo-500/5 border-indigo-500/20' : 'bg-slate-100 dark:bg-white/5 border-slate-300 dark:border-white/10'}`}>
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
-                                            <div className={`p-1.5 rounded-xl border ${showScheduleSelector ? 'bg-indigo-500/20 border-indigo-500/20 text-indigo-500' : 'bg-white/5 border-white/10 text-slate-500'}`}>
+                                            <div className={`p-1.5 rounded-xl border ${showScheduleSelector ? 'bg-indigo-500/20 border-indigo-500/20 text-indigo-500' : 'bg-slate-100 dark:bg-white/5 border-slate-300 dark:border-white/10 text-slate-500'}`}>
                                                 <Clock className="w-4 h-4" />
                                             </div>
-                                            <span className="text-xs font-black text-white uppercase tracking-widest">Planification</span>
+                                            <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Planification</span>
                                         </div>
                                         <button
                                             type="button"
@@ -948,7 +946,7 @@ const DataDrivenManager = () => {
                                                     type="datetime-local"
                                                     value={campaignForm.scheduled_at}
                                                     onChange={(e) => setCampaignForm({ ...campaignForm, scheduled_at: e.target.value, start_date: e.target.value.split('T')[0] })}
-                                                    className="w-full bg-slate-950 border border-indigo-500/30 rounded-2xl px-6 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all font-bold"
+                                                    className="w-full bg-slate-950 border border-indigo-500/30 rounded-2xl px-6 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all font-bold"
                                                 />
                                             </div>
                                         )}
@@ -958,7 +956,7 @@ const DataDrivenManager = () => {
                                                 type="date"
                                                 value={campaignForm.estimated_end_date}
                                                 onChange={(e) => setCampaignForm({ ...campaignForm, estimated_end_date: e.target.value })}
-                                                className="w-full bg-slate-950 border border-white/10 rounded-2xl px-6 py-3 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
+                                                className="w-full bg-slate-950 border border-slate-300 dark:border-white/10 rounded-2xl px-6 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
                                                 required
                                             />
                                         </div>
@@ -967,7 +965,7 @@ const DataDrivenManager = () => {
 
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Import Excel (.xlsx)</label>
-                                    <div className={`relative border-2 border-dashed rounded-[1.5rem] p-6 flex flex-col items-center justify-center transition-all ${campaignForm.file ? 'border-blue-500 bg-blue-500/5' : 'border-white/10 hover:border-white/20 bg-white/5'}`}>
+                                    <div className={`relative border-2 border-dashed rounded-[1.5rem] p-6 flex flex-col items-center justify-center transition-all ${campaignForm.file ? 'border-blue-500 bg-blue-500/5' : 'border-slate-300 dark:border-white/10 hover:border-slate-400 dark:border-white/20 bg-slate-100 dark:bg-white/5'}`}>
                                         <input type="file" onChange={handleFileChange} accept=".xlsx, .xls" className="absolute inset-0 opacity-0 cursor-pointer" required={!editingCampaign} />
                                         <Upload className={`w-8 h-8 mb-2 ${campaignForm.file ? 'text-blue-500 animate-bounce' : 'text-slate-600'}`} />
                                         <p className={`text-xs font-bold uppercase tracking-widest ${campaignForm.file ? 'text-white' : 'text-slate-500'}`}>
@@ -979,9 +977,9 @@ const DataDrivenManager = () => {
 
                                 <div className="space-y-4">
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Équipe assignée</label>
-                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 bg-white/5 p-4 rounded-[1.5rem] border border-white/10 max-h-56 overflow-y-auto custom-scrollbar">
+                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-100 dark:bg-white/5 p-4 rounded-[1.5rem] border border-slate-300 dark:border-white/10 max-h-56 overflow-y-auto custom-scrollbar">
                                         {(testers || []).map(tester => (
-                                            <label key={tester.id} className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all border ${campaignForm.assigned_testers.includes(tester.id) ? 'bg-blue-600/20 border-blue-500 text-white' : 'bg-transparent border-white/5 text-slate-500 hover:border-white/20'}`}>
+                                            <label key={tester.id} className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all border ${campaignForm.assigned_testers.includes(tester.id) ? 'bg-blue-600/20 border-blue-500 text-white' : 'bg-transparent border-slate-200 dark:border-white/5 text-slate-500 hover:border-slate-400 dark:border-white/20'}`}>
                                                 <input
                                                     type="checkbox"
                                                     checked={campaignForm.assigned_testers.includes(tester.id)}
@@ -1015,8 +1013,8 @@ const DataDrivenManager = () => {
                                 </div>
                             </div>
 
-                            <div className="px-10 py-8 bg-white/5 border-t border-white/5 flex gap-4 shrink-0">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">
+                            <div className="px-10 py-8 bg-slate-100 dark:bg-white/5 border-t border-slate-200 dark:border-white/5 flex gap-4 shrink-0">
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                                     Annuler
                                 </button>
                                 <button type="submit" className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-900/40 active:scale-95 flex items-center justify-center gap-3">
@@ -1032,15 +1030,15 @@ const DataDrivenManager = () => {
             {/* Delete Confirmation */}
             {deleteModal.isOpen && (
                 <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
-                    <div className="bg-slate-900 border border-white/10 rounded-[3rem] p-10 max-w-sm w-full shadow-2xl animate-in zoom-in-95">
+                    <div className="bg-slate-900 border border-slate-300 dark:border-white/10 rounded-[3rem] p-10 max-w-sm w-full shadow-2xl animate-in zoom-in-95">
                         <div className="flex flex-col items-center text-center">
                             <div className="w-20 h-20 rounded-full bg-rose-500/10 flex items-center justify-center mb-6 border border-rose-500/20 shadow-[0_0_50px_rgba(244,63,94,0.1)]">
                                 <Trash2 className="w-10 h-10 text-rose-500" />
                             </div>
-                            <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-3">Supprimer ?</h3>
+                            <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-3">Supprimer ?</h3>
                             <p className="text-slate-400 text-sm leading-relaxed mb-8">Cette action est définitive. Toutes les données de la campagne seront perdues.</p>
                             <div className="flex gap-4 w-full">
-                                <button onClick={() => setDeleteModal({ isOpen: false, fileId: null })} className="flex-1 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-white transition-colors">
+                                <button onClick={() => setDeleteModal({ isOpen: false, fileId: null })} className="flex-1 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 dark:hover:text-white transition-colors">
                                     Retour
                                 </button>
                                 <button onClick={confirmDelete} className="flex-1 py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg shadow-rose-900/40">
@@ -1065,21 +1063,21 @@ const DataDrivenManager = () => {
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative w-full max-w-lg bg-slate-900 border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden"
+                            className="relative w-full max-w-lg bg-slate-900 border border-slate-300 dark:border-white/10 rounded-[3rem] shadow-2xl overflow-hidden"
                         >
-                            <div className="p-10 border-b border-white/5 bg-gradient-to-r from-blue-600/10 to-transparent">
-                                <h3 className="text-3xl font-black text-white uppercase tracking-tight">Assignation</h3>
+                            <div className="p-10 border-b border-slate-200 dark:border-white/5 bg-gradient-to-r from-blue-600/10 to-transparent">
+                                <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Assignation</h3>
                                 <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-2">Définissez l'objectif pour {pendingTester.username}</p>
                             </div>
 
                             <div className="p-10 space-y-6">
-                                <div className="flex items-center justify-between gap-6 p-6 bg-white/5 rounded-[2rem] border border-white/5">
+                                <div className="flex items-center justify-between gap-6 p-6 bg-slate-100 dark:bg-white/5 rounded-[2rem] border border-slate-200 dark:border-white/5">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400">
                                             <Target size={20} />
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="font-black text-white uppercase tracking-tight text-sm">{pendingTester.username}</span>
+                                            <span className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-sm">{pendingTester.username}</span>
                                             <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Membre de l'équipe</span>
                                         </div>
                                     </div>
@@ -1097,7 +1095,7 @@ const DataDrivenManager = () => {
                                                 setTempQuota(Math.min(Math.max(0, val), maxVal));
                                             }}
                                             onKeyDown={(e) => e.key === 'Enter' && confirmSingleQuota()}
-                                            className="w-24 bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white font-black text-center focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                            className="w-24 bg-black/40 border border-slate-300 dark:border-white/10 rounded-2xl px-4 py-3 text-slate-900 dark:text-white font-black text-center focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                         />
                                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tests</span>
                                     </div>
@@ -1111,7 +1109,7 @@ const DataDrivenManager = () => {
                                         setIsSingleQuotaModalOpen(false);
                                         setPendingTester(null);
                                     }}
-                                    className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
+                                    className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
                                 >
                                     ANNULER
                                 </button>

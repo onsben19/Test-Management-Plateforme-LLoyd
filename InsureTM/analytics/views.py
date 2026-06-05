@@ -806,7 +806,9 @@ class HistoricalTestersView(APIView):
             
             data = []
             from django.contrib.auth import get_user_model
+            from .ml_service import MLTimelineGuard
             User = get_user_model()
+            ml_guard = MLTimelineGuard()
             
             for t_dict in testers:
                 tester_id = t_dict['tester']
@@ -855,6 +857,8 @@ class HistoricalTestersView(APIView):
                 if delta > 5: trend = 'improving'
                 elif delta < -5: trend = 'declining'
                 
+                ml_perf = ml_guard.score_tester(tester_id=user.id)
+                
                 data.append({
                     "tester": {
                         "id": user.id, 
@@ -864,7 +868,10 @@ class HistoricalTestersView(APIView):
                     "releases": releases_perf,
                     "trend": trend,
                     "latest_pass_rate": latest,
-                    "delta_vs_first": round(delta, 1)
+                    "delta_vs_first": round(delta, 1),
+                    "ml_score": ml_perf.get("score", 50),
+                    "ml_label": ml_perf.get("label", "NEUTRAL"),
+                    "ml_metrics": ml_perf.get("metrics", {})
                 })
             return Response(data)
         except Exception as e:

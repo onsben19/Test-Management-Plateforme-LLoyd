@@ -29,29 +29,29 @@ const AIInsightModal: React.FC<AIInsightModalProps> = ({ isOpen, onClose, title,
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="bg-slate-900 border border-white/10 w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden"
+                        className="bg-slate-900 border border-slate-300 dark:border-white/10 w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden"
                     >
                         <div className="flex items-center justify-between mb-8">
                             <div className="flex items-center gap-4">
                                 <div>
-                                    <h2 className="text-xl font-black text-white uppercase tracking-tight">{title}</h2>
+                                    <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{title}</h2>
                                     <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">ANALYSE IA GÉNÉRATIVE</span>
                                 </div>
                             </div>
                             <button 
                                 onClick={onClose}
-                                className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-all"
+                                className="w-10 h-10 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:bg-slate-200 dark:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-all"
                             >
                                 <X size={20} />
                             </button>
                         </div>
 
                         <div className="space-y-6">
-                            <div className="bg-[#131b26]/80 border border-white/5 rounded-2xl p-6 relative group overflow-hidden">
+                            <div className="bg-slate-50 dark:bg-[#131b26]/80 border border-slate-200 dark:border-white/5 rounded-2xl p-6 relative group overflow-hidden">
                                 <div className="flex items-center gap-2 mb-4 text-blue-400">
                                     <span className="text-[10px] font-black uppercase tracking-widest">Diagnostic IA</span>
                                 </div>
-                                <p className="text-slate-300 leading-relaxed font-medium italic">
+                                <p className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium italic">
                                     "{insight}"
                                 </p>
                             </div>

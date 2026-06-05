@@ -115,7 +115,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
             <tr
                 key={test.id || index}
                 onClick={() => onSelectTest(test)}
-                className={`cursor-pointer transition-all duration-300 group ${variant === 'transparent' ? 'hover:bg-white/5 border-b border-white/5' : 'hover:bg-slate-50 dark:hover:bg-slate-700/30'} ${selectedTestId === test.id ? (variant === 'transparent' ? 'bg-blue-600/10' : 'bg-blue-600/5') : ''}`}
+                className={`cursor-pointer transition-all duration-300 group ${variant === 'transparent' ? 'hover:bg-slate-100 dark:bg-white/5 border-b border-slate-200 dark:border-white/5' : 'hover:bg-slate-50 dark:hover:bg-slate-700/30'} ${selectedTestId === test.id ? (variant === 'transparent' ? 'bg-blue-600/10' : 'bg-blue-600/5') : ''}`}
             >
                 <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
@@ -133,7 +133,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                 </td>
                 <td className="px-8 py-6">
                     <div className="flex flex-col gap-1.5">
-                        <span className="text-[11px] font-black text-white uppercase tracking-widest">{test.businessProject || 'GLOBAL'}</span>
+                        <span className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest">{test.businessProject || 'GLOBAL'}</span>
                         <div className="flex items-center gap-2 text-slate-500">
                             <span className="text-[10px] font-bold uppercase tracking-widest">{test.release || 'V1.0'}</span>
                             {test.releaseType && (
@@ -173,7 +173,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                 {!isTester && (
                     <td className="px-8 py-6">
                         <div className="flex items-center gap-3">
-                            <span className="text-xs font-bold text-white tracking-tight">{test.realized_by || '-'}</span>
+                            <span className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">{test.realized_by || '-'}</span>
                         </div>
                     </td>
                 )}
@@ -193,7 +193,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                                     <img
                                         src={url}
                                         alt={`Capture ${i + 1}`}
-                                        className="w-10 h-10 object-cover rounded-lg border border-white/10 group-hover/cap:border-blue-400/60 group-hover/cap:scale-110 transition-all duration-200"
+                                        className="w-10 h-10 object-cover rounded-lg border border-slate-300 dark:border-white/10 group-hover/cap:border-blue-400/60 group-hover/cap:scale-110 transition-all duration-200"
                                     />
                                     <div className="absolute inset-0 bg-blue-400/0 group-hover/cap:bg-blue-400/10 rounded-lg transition-all" />
                                 </button>
@@ -219,7 +219,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                 </td>
                 <td className="px-8 py-6 whitespace-nowrap">
                     <div className="flex flex-col gap-0.5">
-                        <span className="text-slate-300 text-[10px] font-bold tracking-tight">{test.lastRun.split(' ')[0]}</span>
+                        <span className="text-slate-700 dark:text-slate-300 text-[10px] font-bold tracking-tight">{test.lastRun.split(' ')[0]}</span>
                         <span className="text-slate-500 text-[9px] font-bold uppercase tracking-widest opacity-60 italic">{test.lastRun.split(' ')[1]}</span>
                     </div>
                 </td>
@@ -246,7 +246,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
     return (
         <div className={`table-container animate-fade-in overflow-x-auto ${variant === 'transparent' ? '' : 'min-h-[400px]'}`}>
             <table className="w-full text-left">
-                <thead className="border-b border-white/5 bg-white/[0.01]">
+                <thead className="border-b border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.01]">
                     <tr>
                         <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">TEST & CAMPAGNE</th>
                         <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">PROJET & RELEASE</th>
@@ -314,11 +314,11 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                     onClick={() => setLogModal(null)}
                 >
                     <div
-                        className="relative bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-3xl mx-4 flex flex-col max-h-[85vh]"
+                        className="relative bg-slate-900 border border-slate-300 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-3xl mx-4 flex flex-col max-h-[85vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
-                            <span className="text-sm font-black text-white uppercase tracking-widest">{logModal.title}</span>
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-300 dark:border-white/10 flex-shrink-0">
+                            <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">{logModal.title}</span>
                             <div className="flex items-center gap-3">
                                 {/* Bouton download — uniquement pour le texte (pas les images) */}
                                 {!logModal.content.startsWith('__IMAGE__') && (
@@ -336,7 +336,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                                 )}
                                 <button
                                     onClick={() => setLogModal(null)}
-                                    className="text-slate-500 hover:text-white transition-colors text-xl font-bold"
+                                    className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors text-xl font-bold"
                                 >✕</button>
                             </div>
                         </div>
@@ -346,13 +346,25 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                                 <img
                                     src={logModal.content.replace('__IMAGE__', '')}
                                     alt={logModal.title}
-                                    className="max-w-full max-h-full object-contain rounded-xl border border-white/10"
+                                    className="max-w-full max-h-full object-contain rounded-xl border border-slate-300 dark:border-white/10"
                                 />
                             </div>
                         ) : (
                             // Affichage texte/logs/script
-                            <pre className="overflow-auto p-6 text-xs text-slate-300 font-mono leading-relaxed whitespace-pre-wrap break-words flex-1">
-                                {logModal.content}
+                            <pre className="overflow-auto p-6 text-xs text-slate-700 dark:text-slate-300 font-mono leading-relaxed whitespace-pre-wrap break-words flex-1">
+                                {logModal.title.toLowerCase().includes('automation') || logModal.title.toLowerCase().includes('script') ? (
+                                    <span dangerouslySetInnerHTML={{ __html: 
+                                        logModal.content
+                                        .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                                        .replace(/\b(import|from|const|let|var|await|async|function|return|if|else|for|while|try|catch)\b/g, '<span class=text-pink-400>$1</span>')
+                                        .replace(/\b(test|expect|page|locator|click|fill|goto|toBeVisible|toContainText|first|catch|timeout|Promise|all)\b/g, '<span class=text-blue-400>$1</span>')
+                                        .replace(/(['"`])(.*?)\1/g, '<span class=text-emerald-400>$&</span>')
+                                        .replace(/([{}()\[\]])/g, '<span class=text-amber-400>$1</span>')
+                                        .replace(/(?<!-)\b(\d+)\b/g, '<span class=text-purple-400>$1</span>')
+                                    }} />
+                                ) : (
+                                    logModal.content
+                                )}
                             </pre>
                         )}
                     </div>

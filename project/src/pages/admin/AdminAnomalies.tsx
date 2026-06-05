@@ -147,7 +147,7 @@ const AdminAnomalies = () => {
             accessor: (item: any) => (
                 <div className="flex items-center group/item">
                     <div className="flex flex-col gap-1 min-w-0">
-                        <span className="text-[15px] font-bold text-white tracking-tight group-hover:text-blue-400 transition-colors truncate">{item.titre}</span>
+                        <span className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight group-hover:text-blue-400 transition-colors truncate">{item.titre}</span>
                         <DescriptionCell text={item.description} />
                     </div>
                 </div>
@@ -161,9 +161,9 @@ const AdminAnomalies = () => {
                 const isMedium = level === 'MOYENNE';
 
                 return (
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10 group-hover:border-blue-500/30 transition-all">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 dark:bg-white/5 rounded-full border border-slate-300 dark:border-white/10 group-hover:border-blue-500/30 transition-all">
                         <div className={`w-1.5 h-1.5 rounded-full ${isCritical ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' : isMedium ? 'bg-amber-500' : 'bg-blue-500'}`} />
-                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-none">
+                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest leading-none">
                             {isCritical ? t('adminAnomalies.badges.critical') : isMedium ? t('adminAnomalies.badges.medium') : t('adminAnomalies.badges.low')}
                         </span>
                     </div>
@@ -189,7 +189,7 @@ const AdminAnomalies = () => {
             accessor: (item: any) => (
                 <div className="flex items-center gap-3">
                     <div className="flex flex-col">
-                        <span className="text-[11px] font-bold text-slate-300 truncate max-w-[120px]">{item.cree_par_nom || 'Auditeur Système'}</span>
+                        <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate max-w-[120px]">{item.cree_par_nom || 'Auditeur Système'}</span>
                         <span className="text-[9px] text-slate-500 font-medium">{new Date(item.cree_le).toLocaleDateString()}</span>
                     </div>
                 </div>
@@ -199,7 +199,7 @@ const AdminAnomalies = () => {
             header: t('adminAnomalies.table.date'),
             accessor: (item: any) => (
                 <div className="flex flex-col">
-                    <span className="text-white text-xs font-bold">{new Date(item.cree_le).toLocaleDateString(t('common.dateLocale'))}</span>
+                    <span className="text-slate-900 dark:text-white text-xs font-bold">{new Date(item.cree_le).toLocaleDateString(t('common.dateLocale'))}</span>
                     <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Reported</span>
                 </div>
             )
@@ -284,7 +284,7 @@ const AdminAnomalies = () => {
                     filters={
                         <div className="flex flex-wrap items-center gap-4">
                             <select
-                                className="bg-transparent text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-white/5 transition-all rounded-xl"
+                                className="bg-transparent text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-slate-100 dark:bg-white/5 transition-all rounded-xl"
                                 value={criticalityFilter}
                                 onChange={(e) => setCriticalityFilter(e.target.value)}
                             >
@@ -294,7 +294,7 @@ const AdminAnomalies = () => {
                                 <option value="CRITIQUE" className="bg-slate-900">{t('adminAnomalies.badges.critical')}</option>
                             </select>
                             <select
-                                className="bg-transparent text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-white/5 transition-all rounded-xl"
+                                className="bg-transparent text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-slate-100 dark:bg-white/5 transition-all rounded-xl"
                                 value={sortOrder}
                                 onChange={(e) => setSortOrder(e.target.value as 'recent' | 'oldest')}
                             >
@@ -421,21 +421,21 @@ const AdminAnomalies = () => {
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
-                            className="relative max-w-5xl w-full h-[85vh] bg-[#0b0e14] border border-white/5 rounded-[2.5rem] overflow-hidden flex flex-col shadow-2xl"
+                            className="relative max-w-5xl w-full h-[85vh] bg-slate-50 dark:bg-[#0b0e14] border border-slate-200 dark:border-white/5 rounded-[2.5rem] overflow-hidden flex flex-col shadow-2xl"
                         >
-                            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
+                            <div className="p-6 border-b border-slate-200 dark:border-white/5 flex justify-between items-center bg-slate-50 dark:bg-white/[0.01]">
                                 <div className="flex items-center gap-4">
                                     <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20">
                                         <Eye className="w-5 h-5 text-blue-400" />
                                     </div>
                                     <div>
-                                        <h3 className="text-sm font-black text-white uppercase tracking-tighter">Preuve d'exécution</h3>
+                                        <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter">Preuve d'exécution</h3>
                                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Capture d'écran de l'anomalie</p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={() => setViewImage(null)}
-                                    className="p-2.5 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-all"
+                                    className="p-2.5 hover:bg-slate-100 dark:bg-white/5 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all"
                                 >
                                     <XCircle className="w-6 h-6" />
                                 </button>
@@ -447,7 +447,7 @@ const AdminAnomalies = () => {
                                     className="max-w-full max-h-full object-contain rounded-xl shadow-2xl group-hover/img:scale-[1.02] transition-transform duration-700"
                                 />
                             </div>
-                            <div className="p-6 border-t border-white/5 bg-white/[0.01] flex justify-center">
+                            <div className="p-6 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.01] flex justify-center">
                                 <a
                                     href={viewImage}
                                     target="_blank"

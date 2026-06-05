@@ -25,7 +25,7 @@ const AIPreviewModal: React.FC<AIPreviewModalProps> = ({ isOpen, onClose, testCa
       case 'critical':
         return 'bg-red-500/20 border-red-500/50 text-red-300';
       default:
-        return 'bg-slate-700/50 border-slate-600/50 text-slate-300';
+        return 'bg-slate-700/50 border-slate-600/50 text-slate-700 dark:text-slate-300';
     }
   };
 
@@ -45,12 +45,12 @@ const AIPreviewModal: React.FC<AIPreviewModalProps> = ({ isOpen, onClose, testCa
       <div className="bg-slate-800 border border-slate-700 rounded-xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
         <div className="flex items-center justify-between p-6 border-b border-slate-700">
           <div>
-            <h2 className="text-xl font-semibold text-white">Prévisualisation IA</h2>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Prévisualisation IA</h2>
             <p className="text-slate-400 text-sm">Analyse automatique des cas de tests</p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -88,7 +88,7 @@ const AIPreviewModal: React.FC<AIPreviewModalProps> = ({ isOpen, onClose, testCa
         <div className="flex justify-end gap-3 p-6 border-t border-slate-700">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
+            className="px-4 py-2 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
             Annuler
           </button>

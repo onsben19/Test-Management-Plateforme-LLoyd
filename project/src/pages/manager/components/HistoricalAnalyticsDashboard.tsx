@@ -35,6 +35,9 @@ interface TesterPerformance {
     trend: 'improving' | 'stable' | 'declining';
     latest_pass_rate: number;
     delta_vs_first: number;
+    ml_score: number;
+    ml_label: string;
+    ml_metrics: any;
 }
 
 interface ModuleHealth {
@@ -180,13 +183,13 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                             <div className="flex items-center bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
                                 <button 
                                     onClick={() => setQualityViewMode('table')}
-                                    className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${qualityViewMode === 'table' ? 'bg-white dark:bg-slate-800 text-blue-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                    className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${qualityViewMode === 'table' ? 'bg-white dark:bg-slate-800 text-blue-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-700 dark:text-slate-300'}`}
                                 >
                                     <Layout size={12} /> {t('historicalAnalytics.qualityTab.table')}
                                 </button>
                                 <button 
                                     onClick={() => setQualityViewMode('chart')}
-                                    className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${qualityViewMode === 'chart' ? 'bg-white dark:bg-slate-800 text-blue-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                    className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${qualityViewMode === 'chart' ? 'bg-white dark:bg-slate-800 text-blue-500 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-700 dark:text-slate-300'}`}
                                 >
                                     <Activity size={12} /> {t('historicalAnalytics.qualityTab.chart')}
                                 </button>
@@ -216,7 +219,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                         const isMid = rel.pass_rate >= 60;
                                         
                                         return (
-                                            <tr key={idx} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                            <tr key={idx} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors">
                                                 <td className="p-4 font-black text-slate-900 dark:text-white">{rel.version}</td>
                                                 <td className="p-4">
                                                     <div className="flex items-center gap-3">
@@ -253,7 +256,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                             </table>
                             </div>
                         ) : (
-                            <div className="h-[280px] w-full pt-4 bg-white/[0.01] border border-slate-200 dark:border-white/5 rounded-[2rem] p-4">
+                            <div className="h-[280px] w-full pt-4 bg-slate-50 dark:bg-white/[0.01] border border-slate-200 dark:border-white/5 rounded-[2rem] p-4">
                                 {releaseData.length === 0 ? (
                                     <div className="flex items-center justify-center w-full h-full text-slate-500 font-medium text-xs">
                                         Aucune donnée graphique disponible
@@ -285,15 +288,15 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                             </div>
                         )}
 
-                        <div className="flex items-center justify-between text-[10px] font-black p-4 bg-white/5 rounded-2xl border border-white/5">
+                        <div className="flex items-center justify-between text-[10px] font-black p-4 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5">
                             <div className="flex items-center gap-4">
                                 <span className="text-slate-500 uppercase tracking-widest flex items-center gap-2">
                                     <Target size={12} className="text-blue-500" />
-                                    Moyenne Globale : <span className="text-white">{readinessScore}%</span>
+                                    Moyenne Globale : <span className="text-slate-900 dark:text-white">{readinessScore}%</span>
                                 </span>
-                                <div className="w-px h-4 bg-white/10" />
+                                <div className="w-px h-4 bg-slate-200 dark:bg-white/10" />
                                 <span className="text-slate-500 uppercase tracking-widest">
-                                    Total : <span className="text-white">{releaseData.length || 6} Releases</span>
+                                    Total : <span className="text-slate-900 dark:text-white">{releaseData.length || 6} Releases</span>
                                 </span>
                             </div>
                             <span className="text-emerald-500 uppercase tracking-widest flex items-center gap-2 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
@@ -317,24 +320,28 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                         </div>
 
                         <div className="divide-y divide-white/5">
-                            {testerData.length ? [...testerData].sort((a, b) => b.latest_pass_rate - a.latest_pass_rate).map((tester, i) => (
+                            {testerData.length ? [...testerData].sort((a, b) => b.ml_score - a.ml_score).map((tester, i) => (
                                 <div key={i} className="py-6 flex items-center justify-between group cursor-default">
                                     <div className="flex items-center gap-6">
                                         <div className="relative">
-                                            <div className={`w-12 h-12 rounded-[1.2rem] flex items-center justify-center text-[11px] font-black text-white shadow-xl ${['bg-emerald-500/20 text-emerald-500', 'bg-purple-500/20 text-purple-500', 'bg-blue-500/20 text-blue-500'][i % 3]
-                                                } border border-white/5`}>
+                                            <div className={`w-12 h-12 rounded-[1.2rem] flex items-center justify-center text-[11px] font-black text-white shadow-xl ${
+                                                    tester.ml_label === 'ELITE' ? 'bg-amber-500/20 text-amber-500 border-amber-500/30' :
+                                                    tester.ml_label === 'STABLE' ? 'bg-blue-500/20 text-blue-500 border-blue-500/30' :
+                                                    tester.ml_label === 'NEW_TALENT' ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30' :
+                                                    'bg-slate-500/20 text-slate-500 border-slate-500/30'
+                                                } border`}>
                                                 {tester.tester.initials}
                                             </div>
-                                            {i === 0 && (
-                                                <div className="absolute -top-2 -right-2 p-1.5 bg-amber-500 rounded-full border-2 border-[#0f172a] shadow-lg">
-                                                    <Crown className="w-2.5 h-2.5 text-white" />
+                                            {tester.ml_label === 'ELITE' && (
+                                                <div className="absolute -top-2 -right-2 p-1.5 bg-amber-500 rounded-full border-2 border-slate-200 dark:border-[#0f172a] shadow-lg">
+                                                    <Crown className="w-2.5 h-2.5 text-slate-900 dark:text-white" />
                                                 </div>
                                             )}
                                         </div>
                                         <div className="space-y-0.5">
                                             <h4 className="text-base font-black text-slate-900 dark:text-white group-hover:translate-x-1 transition-transform">{tester.tester.name}</h4>
                                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                                {i === 0 ? 'Champion Quality' : i === 1 ? 'Expert' : 'Testeur Junior'}
+                                                {tester.ml_label === 'ELITE' ? 'Champion Quality (Elite)' : tester.ml_label === 'STABLE' ? 'Expert (Stable)' : tester.ml_label === 'NEW_TALENT' ? 'Nouveau Talent' : tester.ml_label === 'OVERLOADED' ? 'En Surcharge' : 'Testeur Junior'}
                                             </p>
                                         </div>
                                     </div>

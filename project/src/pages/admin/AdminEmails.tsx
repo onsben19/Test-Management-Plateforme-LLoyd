@@ -144,10 +144,10 @@ const AdminEmails = () => {
                                 placeholder={t('adminEmails.searchPlaceholder') || "Rechercher un message..."}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] pl-16 pr-8 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold placeholder-slate-500"
+                                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-[1.5rem] pl-16 pr-8 py-4 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold placeholder-slate-500"
                             />
                             {searchQuery && (
-                                <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 hover:bg-white/10 rounded-full transition-all">
+                                <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 hover:bg-slate-200 dark:bg-white/10 rounded-full transition-all">
                                     <X className="w-4 h-4" />
                                 </button>
                             )}
@@ -182,9 +182,9 @@ const AdminEmails = () => {
                                     initial={{ opacity: 0, x: 20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
-                                    className="flex flex-col h-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden"
+                                    className="flex flex-col h-full bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-white/10 rounded-[3rem] shadow-2xl overflow-hidden"
                                 >
-                                    <div className="p-8 border-b border-white/5 bg-white/[0.02]">
+                                    <div className="p-8 border-b border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="flex items-center gap-4 lg:hidden">
                                                 <button onClick={() => setSelectedEmail(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
@@ -201,7 +201,7 @@ const AdminEmails = () => {
                                             </div>
                                             <button
                                                 onClick={() => handleDeleteEmail(selectedEmail)}
-                                                className="p-2.5 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md border border-white/10 rounded-xl transition-all shadow-xl"
+                                                className="p-2.5 bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:bg-white/20 text-slate-900 dark:text-white backdrop-blur-md border border-slate-300 dark:border-white/10 rounded-xl transition-all shadow-xl"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
@@ -227,7 +227,7 @@ const AdminEmails = () => {
                             ) : (
                                 <div className="flex-1 flex items-center justify-center bg-slate-100/30 dark:bg-slate-800/20 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700">
                                     <div className="text-center">
-                                        <Mail className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4 opacity-20" />
+                                        <Mail className="w-16 h-16 text-slate-700 dark:text-slate-300 dark:text-slate-600 mx-auto mb-4 opacity-20" />
                                         <p className="text-slate-500 dark:text-slate-400 font-bold">{t('adminEmails.details.empty')}</p>
                                     </div>
                                 </div>

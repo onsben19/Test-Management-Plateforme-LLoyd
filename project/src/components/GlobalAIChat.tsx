@@ -16,11 +16,14 @@ const GlobalAIChat = () => {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
 
-    // Ne pas afficher sur la page de login ou unauthorized
-    if (['/login', '/unauthorized'].includes(location.pathname)) {
-        return null;
-    }
+    useEffect(() => {
+        if (inputRef.current) {
+            inputRef.current.style.height = 'auto';
+            inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 150)}px`;
+        }
+    }, [input]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -29,6 +32,11 @@ const GlobalAIChat = () => {
     useEffect(() => {
         if (isOpen && !isMinimized) scrollToBottom();
     }, [messages, isOpen, isMinimized]);
+
+    // Ne pas afficher sur la page de login ou unauthorized
+    if (['/login', '/unauthorized'].includes(location.pathname)) {
+        return null;
+    }
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -65,16 +73,16 @@ const GlobalAIChat = () => {
                             width: isMinimized ? '300px' : '400px'
                         }}
                         exit={{ opacity: 0, scale: 0.8, y: 20 }}
-                        className="bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden mb-6 flex flex-col"
+                        className="bg-slate-50 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-2xl overflow-hidden mb-6 flex flex-col"
                     >
                         {/* Header */}
-                        <div className="p-5 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
+                        <div className="p-5 bg-slate-50 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                                    <span className="text-white font-black text-lg">AI</span>
+                                    <span className="text-slate-900 dark:text-white font-black text-lg">AI</span>
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-black text-white uppercase tracking-widest leading-none mb-1">Votre Agent AI</h3>
+                                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest leading-none mb-1">Votre Agent AI</h3>
                                     <div className="flex items-center gap-1.5">
                                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
                                         <span className="text-[9px] font-bold text-blue-500 uppercase tracking-widest">Connecté</span>
@@ -84,7 +92,7 @@ const GlobalAIChat = () => {
                             <div className="flex items-center gap-1">
                                 <button 
                                     onClick={() => setIsMinimized(!isMinimized)}
-                                    className="p-2 text-slate-500 hover:text-white transition-colors"
+                                    className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
                                 >
                                     {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
                                 </button>
@@ -106,10 +114,10 @@ const GlobalAIChat = () => {
                                             <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                                                 msg.role === 'user' 
                                                 ? 'bg-blue-600 text-white rounded-tr-sm shadow-lg shadow-blue-500/10' 
-                                                : 'bg-white/5 border border-white/10 text-slate-200 rounded-tl-sm'
+                                                : 'bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 rounded-tl-sm'
                                             }`}>
                                                 {msg.role === 'assistant' && (
-                                                    <div className="flex items-center gap-1.5 mb-2 pb-1 border-b border-white/5">
+                                                    <div className="flex items-center gap-1.5 mb-2 pb-1 border-b border-slate-200 dark:border-white/5">
                                                         <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Réponse de l'IA</span>
                                                     </div>
                                                 )}
@@ -119,7 +127,7 @@ const GlobalAIChat = () => {
                                     ))}
                                     {loading && (
                                         <div className="flex justify-start">
-                                            <div className="bg-white/5 border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">
+                                            <div className="bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">
                                                 {[0, 0.2, 0.4].map((d, i) => (
                                                     <motion.div 
                                                         key={i}
@@ -135,14 +143,23 @@ const GlobalAIChat = () => {
                                 </div>
 
                                 {/* Input */}
-                                <form onSubmit={handleSend} className="p-4 bg-white/[0.02] border-t border-white/5">
+                                <form onSubmit={handleSend} className="p-4 bg-slate-50 dark:bg-white/[0.02] border-t border-slate-200 dark:border-white/5">
                                     <div className="relative flex items-center">
-                                        <input 
-                                            type="text"
+                                        <textarea 
+                                            ref={inputRef}
                                             value={input}
                                             onChange={(e) => setInput(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    if (input.trim() && !loading) {
+                                                        handleSend(e as unknown as React.FormEvent);
+                                                    }
+                                                }
+                                            }}
                                             placeholder="Posez votre question..."
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-12 text-sm text-white placeholder-slate-600 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
+                                            rows={1}
+                                            className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 pr-12 text-sm text-slate-900 dark:text-white placeholder-slate-600 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-colors resize-none custom-scrollbar"
                                         />
                                         <button 
                                             type="submit"
@@ -165,8 +182,8 @@ const GlobalAIChat = () => {
                 onClick={() => setIsOpen(!isOpen)}
                 className={`group relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 overflow-hidden backdrop-blur-xl border ${
                     isOpen 
-                    ? 'bg-slate-900 border-white/10 shadow-lg' 
-                    : 'bg-[#0f1729]/90 border-white/10 hover:border-blue-500/30 shadow-2xl hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]'
+                    ? 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-lg' 
+                    : 'bg-slate-50 dark:bg-[#0f1729]/90 border-slate-200 dark:border-white/10 hover:border-blue-500/30 shadow-2xl hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]'
                 }`}
             >
                 {/* Subtle ambient glow on hover */}
@@ -175,7 +192,7 @@ const GlobalAIChat = () => {
                 )}
                 
                 {isOpen ? (
-                    <X className="text-white relative z-10" size={18} strokeWidth={1.5} />
+                    <X className="text-slate-900 dark:text-white relative z-10" size={18} strokeWidth={1.5} />
                 ) : (
                     <Bot className="text-slate-400 group-hover:text-blue-400 transition-colors relative z-10" size={20} strokeWidth={1.5} />
                 )}

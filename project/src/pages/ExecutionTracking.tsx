@@ -55,7 +55,7 @@ const ExecutionTracking = () => {
     const isAdmin = user?.role?.toLowerCase() === 'admin';
     const isManager = user?.role?.toLowerCase() === 'manager';
     const canManage = isAdmin || isTester || isManager;
-    const canDelete = isAdmin;
+    const canDelete = isAdmin || isManager;
 
     const [activeTab, setActiveTab] = useState<'list' | 'performance'>('list');
     const [selectedTest, setSelectedTest] = useState<TestItem | null>(null);
@@ -321,7 +321,7 @@ const ExecutionTracking = () => {
                                     placeholder="Filtrer par testeur..."
                                     value={testerFilter}
                                     onChange={(e) => setTesterFilter(e.target.value)}
-                                    className="flex-1 bg-transparent border-none text-sm text-white focus:ring-0 outline-none placeholder-slate-400"
+                                    className="flex-1 bg-transparent border-none text-sm text-slate-900 dark:text-white focus:ring-0 outline-none placeholder-slate-400"
                                 />
                             </div>
                         )}
@@ -348,7 +348,7 @@ const ExecutionTracking = () => {
                         <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-1 flex gap-1">
                             <div className="relative flex items-center">
                                 <select
-                                    className="bg-transparent text-white text-[10px] font-black uppercase tracking-[0.2em] pl-4 pr-10 py-2 outline-none cursor-pointer appearance-none relative z-10"
+                                    className="bg-transparent text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-[0.2em] pl-4 pr-10 py-2 outline-none cursor-pointer appearance-none relative z-10"
                                     value={groupBy}
                                     onChange={(e) => setGroupBy(e.target.value as 'none' | 'campaign' | 'release' | 'project')}
                                 >
@@ -361,7 +361,7 @@ const ExecutionTracking = () => {
                             </div>
                             <div className="relative flex items-center">
                                 <select
-                                    className="bg-transparent text-white text-[10px] font-black uppercase tracking-[0.2em] pl-4 pr-10 py-2 outline-none cursor-pointer appearance-none relative z-10"
+                                    className="bg-transparent text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-[0.2em] pl-4 pr-10 py-2 outline-none cursor-pointer appearance-none relative z-10"
                                     value={sortOrder}
                                     onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
                                 >
@@ -373,7 +373,7 @@ const ExecutionTracking = () => {
                         </div>
                     </div>
 
-                    <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden">
+                    <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl overflow-hidden">
                         <div className="max-h-[60vh] overflow-auto custom-scrollbar">
                             <ExecutionTestList
                                 tests={filteredTests}
@@ -389,7 +389,7 @@ const ExecutionTracking = () => {
                                 groupBy={groupBy}
                             />
                         </div>
-                        <div className="border-t border-white/5 bg-slate-900/20">
+                        <div className="border-t border-slate-200 dark:border-white/5 bg-slate-900/20">
                             <Pagination
                                 currentPage={currentPage}
                                 totalItems={totalItems}
@@ -418,7 +418,7 @@ const ExecutionTracking = () => {
                                     animate={{ x: 0 }}
                                     exit={{ x: '100%' }}
                                     transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                                    className="fixed right-0 top-0 bottom-0 z-[1010] w-full max-w-[500px] bg-[#0b0e14] border-l border-white/5 flex flex-col shadow-2xl"
+                                    className="fixed right-0 top-0 bottom-0 z-[1010] w-full max-w-[500px] bg-slate-50 dark:bg-[#0b0e14] border-l border-slate-200 dark:border-white/5 flex flex-col shadow-2xl"
                                 >
                                     <ReviewPanel
                                         test={selectedTest}
@@ -448,30 +448,30 @@ const ExecutionTracking = () => {
                 <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl" onClick={() => setViewingCaptures(null)}>
                     <div className="relative max-w-7xl max-h-screen w-full p-8 flex flex-col items-center" onClick={e => e.stopPropagation()}>
                         <button
-                            className="absolute top-8 right-8 text-white/50 hover:text-white transition-all transform hover:rotate-90 hover:scale-110"
+                            className="absolute top-8 right-8 text-slate-900 dark:text-white/50 hover:text-slate-900 dark:hover:text-white transition-all transform hover:rotate-90 hover:scale-110"
                             onClick={() => setViewingCaptures(null)}
                         >
-                            <div className="bg-white/5 p-3 rounded-full hover:bg-white/10 border border-white/10 shadow-2xl backdrop-blur-md">
+                            <div className="bg-slate-100 dark:bg-white/5 p-3 rounded-full hover:bg-slate-200 dark:bg-white/10 border border-slate-300 dark:border-white/10 shadow-2xl backdrop-blur-md">
                                 <X className="w-8 h-8" />
                             </div>
                         </button>
                         <div className="flex overflow-x-auto gap-8 p-8 w-full justify-center snap-x custom-scrollbar">
                             {(viewingCaptures.captures || []).map((cap, idx) => (
                                 <div key={idx} className="snap-center shrink-0 max-w-[85vw] max-h-[75vh] flex flex-col items-center group">
-                                    <div className="relative border-2 border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
+                                    <div className="relative border-2 border-slate-300 dark:border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
                                         {cap.startsWith('data:') ? (
                                             <img src={cap} alt={`Capture ${idx}`} className="max-h-[70vh] object-contain transition-transform duration-500 group-hover:scale-[1.02]" />
                                         ) : (
-                                            <div className="w-96 h-64 bg-white/5 flex items-center justify-center rounded-[2.5rem]">
+                                            <div className="w-96 h-64 bg-slate-100 dark:bg-white/5 flex items-center justify-center rounded-[2.5rem]">
                                                 <span className="text-slate-500 font-bold uppercase tracking-widest text-xs opacity-50">{cap}</span>
                                             </div>
                                         )}
-                                        <div className="absolute top-6 left-6 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-                                            <p className="text-white/70 font-bold uppercase tracking-[0.2em] text-[8px]">CAPTURE {idx + 1} / {(viewingCaptures?.captures || []).length}</p>
+                                        <div className="absolute top-6 left-6 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-slate-300 dark:border-white/10">
+                                            <p className="text-slate-900 dark:text-white/70 font-bold uppercase tracking-[0.2em] text-[8px]">CAPTURE {idx + 1} / {(viewingCaptures?.captures || []).length}</p>
                                         </div>
                                     </div>
                                     <div className="mt-6 flex flex-col items-center gap-1">
-                                        <h4 className="text-white font-black text-lg tracking-tight">{viewingCaptures.name}</h4>
+                                        <h4 className="text-slate-900 dark:text-white font-black text-lg tracking-tight">{viewingCaptures.name}</h4>
                                         <p className="text-blue-400 text-[10px] font-black uppercase tracking-widest">{viewingCaptures.module}</p>
                                     </div>
                                 </div>
@@ -487,7 +487,7 @@ const ExecutionTracking = () => {
                     <div className="relative w-full max-w-2xl my-8">
                         <button
                             onClick={() => setIsCatchupPlanOpen(false)}
-                            className="absolute -top-12 right-0 text-white/50 hover:text-white transition-colors"
+                            className="absolute -top-12 right-0 text-slate-900 dark:text-white/50 hover:text-slate-900 dark:hover:text-white transition-colors"
                         >
                             <X className="w-8 h-8" />
                         </button>

@@ -71,12 +71,12 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                                     {style.icon}
                                 </div>
                                 <div className="flex-1">
-                                    <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{title}</h3>
                                     <p className="text-slate-400 text-sm leading-relaxed">{message}</p>
                                 </div>
                                 <button
                                     onClick={onCancel}
-                                    className="p-1 hover:bg-white/10 rounded-lg text-slate-500 hover:text-white transition-colors"
+                                    className="p-1 hover:bg-slate-200 dark:bg-white/10 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>

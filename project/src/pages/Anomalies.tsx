@@ -452,12 +452,12 @@ const Anomalies: React.FC = () => {
                       <>
                         <div className="fixed inset-0 z-10" onClick={() => setIsImpactMenuOpen(false)}></div>
                         <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-white/5 z-20 p-2">
-                          <button onClick={() => { setImpactFilter('Tout'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">TOUT IMPACT</button>
-                          <button onClick={() => { setImpactFilter('BLOQUANTES'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">BLOQUANTES</button>
-                          <button onClick={() => { setImpactFilter('CRITIQUE'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">CRITIQUE</button>
-                          <button onClick={() => { setImpactFilter('MAJEUR'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">MAJEUR</button>
-                          <button onClick={() => { setImpactFilter('MINEURS'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">MINEURS</button>
-                          <button onClick={() => { setImpactFilter('FONCTIONNALITE'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg">FONCTIONNALITÉ</button>
+                          <button onClick={() => { setImpactFilter('Tout'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg">TOUT IMPACT</button>
+                          <button onClick={() => { setImpactFilter('BLOQUANTES'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg">BLOQUANTES</button>
+                          <button onClick={() => { setImpactFilter('CRITIQUE'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg">CRITIQUE</button>
+                          <button onClick={() => { setImpactFilter('MAJEUR'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg">MAJEUR</button>
+                          <button onClick={() => { setImpactFilter('MINEURS'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg">MINEURS</button>
+                          <button onClick={() => { setImpactFilter('FONCTIONNALITE'); setIsImpactMenuOpen(false); }} className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg">FONCTIONNALITÉ</button>
                         </div>
                       </>
                     )}
@@ -495,12 +495,12 @@ const Anomalies: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-slate-900/40 border border-white/5 rounded-xl overflow-hidden shadow-2xl">
+            <div className="bg-slate-900/40 border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden shadow-2xl">
 
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse table-fixed min-w-[1000px]">
                   <thead>
-                    <tr className="border-b border-white/5 bg-white/[0.01]">
+                    <tr className="border-b border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.01]">
                       <th className="w-[30%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('anomalies.table.anomaly')}</th>
                       <th className="w-[12%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Impact</th>
                       <th className="w-[12%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Priorité</th>
@@ -512,7 +512,7 @@ const Anomalies: React.FC = () => {
                     {loading ? (
                       Array.from({ length: 5 }).map((_, i) => (
                         <tr key={i} className="animate-pulse">
-                          <td colSpan={5} className="px-6 py-8"><div className="h-4 bg-white/5 rounded-full w-full" /></td>
+                          <td colSpan={5} className="px-6 py-8"><div className="h-4 bg-slate-100 dark:bg-white/5 rounded-full w-full" /></td>
                         </tr>
                       ))
                     ) : data.length === 0 ? (
@@ -525,11 +525,11 @@ const Anomalies: React.FC = () => {
                       <tr
                         key={an.id}
                         onClick={() => setSelectedAnomaly(an)}
-                        className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-all duration-300 group cursor-pointer border-b border-slate-100 dark:border-white/5 last:border-0"
+                        className="hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-300 group cursor-pointer border-b border-slate-100 dark:border-white/5 last:border-0"
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-4">
-                            <div className={`p-2.5 rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform ${impactStyles[an.impact]?.text || 'text-slate-400'}`}>
+                            <div className={`p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 group-hover:scale-110 transition-transform ${impactStyles[an.impact]?.text || 'text-slate-400'}`}>
                               <ShieldAlert className="w-5 h-5" />
                             </div>
                             <div className="flex flex-col gap-0.5 min-w-0">
@@ -565,7 +565,7 @@ const Anomalies: React.FC = () => {
                                   <button
                                     key={opt}
                                     onClick={(e) => { e.stopPropagation(); handleQuickUpdate(an.id, 'impact', opt); }}
-                                    className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg"
+                                    className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg"
                                   >
                                     {opt}
                                   </button>
@@ -593,7 +593,7 @@ const Anomalies: React.FC = () => {
                                   <button
                                     key={opt}
                                     onClick={(e) => { e.stopPropagation(); handleQuickUpdate(an.id, 'priority', opt); }}
-                                    className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg"
+                                    className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg"
                                   >
                                     {opt}
                                   </button>
@@ -616,7 +616,7 @@ const Anomalies: React.FC = () => {
                               className="rounded-xl"
                             />
                           ) : (
-                            <div className="w-10 h-10 rounded-xl bg-white/5 border border-dashed border-white/10 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 border border-dashed border-slate-300 dark:border-white/10 flex items-center justify-center">
                               <Info className="w-4 h-4 text-slate-700" />
                             </div>
                           )}
@@ -656,7 +656,7 @@ const Anomalies: React.FC = () => {
                                         handleEditAnomaly(an);
                                         setOpenMenuId(null);
                                       }}
-                                      className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg flex items-center gap-2"
+                                      className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg flex items-center gap-2"
                                     >
                                       <Edit size={14} /> Modifier
                                     </button>
@@ -803,16 +803,16 @@ const Anomalies: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-[#0f172a] border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden"
+              className="relative w-full max-w-2xl bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-white/10 rounded-[3rem] shadow-2xl overflow-hidden"
               onClick={e => e.stopPropagation()}
             >
-              <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+              <div className="p-8 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-white/[0.02]">
                 <div className="flex items-center gap-4">
                   <div className={`p-3 rounded-2xl ${viewingList.type === 'priorities' ? 'bg-rose-500/10 text-rose-400' : 'bg-orange-500/10 text-orange-400'}`}>
                     {viewingList.type === 'priorities' ? <Zap /> : <Clock />}
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-white uppercase tracking-tight">
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">
                       {viewingList.type === 'priorities' ? 'Priorités d\'Action' : 'Bugs Vieillissants (+7j)'}
                     </h3>
                     <p className="text-slate-500 text-xs font-medium uppercase tracking-widest">
@@ -833,7 +833,7 @@ const Anomalies: React.FC = () => {
                   {viewingList.items.map((item, idx) => (
                     <div
                       key={idx}
-                      className="group p-6 bg-white/5 border border-white/5 rounded-3xl hover:border-blue-500/30 transition-all flex flex-col gap-4"
+                      className="group p-6 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-3xl hover:border-blue-500/30 transition-all flex flex-col gap-4"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -841,7 +841,7 @@ const Anomalies: React.FC = () => {
                             #{idx + 1}
                           </div>
                           <div>
-                            <p className="text-lg font-black text-white tracking-tight">{item.title}</p>
+                            <p className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{item.title}</p>
                             <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mt-0.5">
                               Impact: {item.impact} • Assigné à: {item.assignedTo}
                             </p>
@@ -861,7 +861,7 @@ const Anomalies: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-6 bg-white/[0.02] border-t border-white/5 flex justify-end">
+              <div className="p-6 bg-slate-50 dark:bg-white/[0.02] border-t border-slate-200 dark:border-white/5 flex justify-end">
                 <Button
                   variant="secondary"
                   onClick={() => setViewingList(null)}

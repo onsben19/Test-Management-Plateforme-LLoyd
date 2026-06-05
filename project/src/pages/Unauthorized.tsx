@@ -28,7 +28,7 @@ const Unauthorized = () => {
                     transition={{ duration: 0.5, delay: 0.2 }}
                     className="max-w-lg"
                 >
-                    <h1 className="text-4xl font-black text-white tracking-widest uppercase mb-4 leading-tight">
+                    <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-widest uppercase mb-4 leading-tight">
                         {t('errors.403.title') || "ACCÈS INTERDIT"}
                     </h1>
                     <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mb-12 max-w-sm mx-auto opacity-70">

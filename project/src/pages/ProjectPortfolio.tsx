@@ -17,6 +17,26 @@ import StatCard from '../components/StatCard';
 import { Clock, ArrowDownZa, SortAsc, SortDesc } from 'lucide-react';
 import Button from '../components/ui/Button';
 
+// --- Composant réutilisable : description extensible ---
+const ExpandableDescription = ({ text, maxChars = 90, emptyLabel = 'Aucune description fournie.' }: { text?: string; maxChars?: number; emptyLabel?: string }) => {
+    const [expanded, setExpanded] = useState(false);
+    if (!text) return <span className="italic opacity-50 text-xs">{emptyLabel}</span>;
+    const isLong = text.length > maxChars;
+    return (
+        <span>
+            {expanded || !isLong ? text : text.slice(0, maxChars) + '…'}
+            {isLong && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
+                    className="ml-1.5 text-blue-400 hover:text-blue-300 text-[11px] font-black uppercase tracking-widest transition-colors"
+                >
+                    {expanded ? 'Réduire' : 'Lire la suite'}
+                </button>
+            )}
+        </span>
+    );
+};
+
 
 const ProjectPortfolio = () => {
     const { t } = useTranslation();
@@ -39,13 +59,22 @@ const ProjectPortfolio = () => {
     const [filterOwner, setFilterOwner] = useState('ALL');
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
     const pageSize = 10;
 
-    const fetchProjects = async () => {
+    const fetchProjects = async (page = 1) => {
         try {
             setLoading(true);
-            const response = await businessProjectService.getBusinessProjects({ search: searchQuery });
-            setProjects(response.data.results || response.data);
+            const response = await businessProjectService.getBusinessProjects({ 
+                search: searchQuery,
+                page,
+                owner: filterOwner,
+                ordering: sortBy === 'newest' ? '-created_at' : 'created_at'
+            });
+            const data = response.data.results || response.data;
+            const count = response.data.count || (Array.isArray(response.data) ? response.data.length : 0);
+            setTotalItems(count);
+            setProjects(data);
         } catch (error) {
             console.error("Failed to fetch business projects", error);
             toast.error("Erreur lors de la récupération des projets");
@@ -56,8 +85,13 @@ const ProjectPortfolio = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-        fetchProjects();
+        fetchProjects(1);
     }, [searchQuery, filterOwner, sortBy]);
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+        fetchProjects(page);
+    };
 
     const handleSaveProject = async () => {
         if (!newProject.name) return;
@@ -72,7 +106,7 @@ const ProjectPortfolio = () => {
             setIsModalOpen(false);
             setNewProject({ name: '', description: '' });
             setEditingProject(null);
-            fetchProjects();
+            fetchProjects(currentPage);
         } catch {
             toast.error("Erreur lors de l'enregistrement");
         }
@@ -130,7 +164,7 @@ const ProjectPortfolio = () => {
             accessor: (item: any) => (
                 <div className="flex items-center cursor-pointer">
                     <div className="flex flex-col gap-0.5">
-                        <span className="font-bold text-slate-200 group-hover:text-blue-400 transition-colors tracking-tight text-base">{item.name}</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-400 transition-colors tracking-tight text-base">{item.name}</span>
                     </div>
                 </div>
             )
@@ -144,17 +178,8 @@ const ProjectPortfolio = () => {
     const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
     const isManager = user?.role?.toUpperCase() === 'MANAGER';
 
-    const processedProjects = [...projects]
-        .filter((p) => filterOwner === 'ALL' || p.created_by_username === filterOwner)
-        .filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())))
-        .sort((a, b) => {
-            const timeA = new Date(a.created_at).getTime();
-            const timeB = new Date(b.created_at).getTime();
-            return sortBy === 'newest' ? timeB - timeA : timeA - timeB;
-        });
-
-    const totalPages = Math.ceil(processedProjects.length / pageSize);
-    const paginatedProjects = processedProjects.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    const totalPages = Math.ceil(totalItems / pageSize);
+    const paginatedProjects = projects;
 
     return (
         <PageLayout
@@ -227,13 +252,13 @@ const ProjectPortfolio = () => {
                             {/* Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10">
                                 {loading ? (
-                                    [1, 2, 3].map(i => <div key={i} className="h-64 bg-white/5 rounded-[2rem] animate-pulse border border-white/10" />)
-                                ) : processedProjects.length === 0 ? (
+                                    [1, 2, 3].map(i => <div key={i} className="h-64 bg-slate-100 dark:bg-white/5 rounded-[2rem] animate-pulse border border-slate-300 dark:border-white/10" />)
+                                ) : paginatedProjects.length === 0 ? (
                                     <div className="col-span-full py-40 text-center opacity-30">
                                         <p className="text-sm font-bold uppercase tracking-widest">{t('portfolio.noProjects', 'Aucun projet trouvé')}</p>
                                     </div>
                                 ) : (
-                                    processedProjects
+                                    paginatedProjects
                                         .map((project, idx) => (
                                             <motion.div
                                                 key={project.id}
@@ -241,7 +266,7 @@ const ProjectPortfolio = () => {
                                                 animate={{ opacity: 1, scale: 1 }}
                                                 transition={{ delay: idx * 0.05 }}
                                                 onClick={() => navigate('/releases', { state: { businessProjectId: project.id, businessProjectName: project.name } })}
-                                                className="group relative bg-[#0f1729]/80 backdrop-blur-xl hover:bg-[#131c31] border border-white/5 hover:border-blue-500/30 rounded-[2.5rem] p-8 overflow-hidden shadow-xl hover:shadow-[0_15px_40px_-10px_rgba(59,130,246,0.15)] cursor-pointer transition-all duration-500"
+                                                className="group relative bg-slate-50 dark:bg-[#0f1729]/80 backdrop-blur-xl hover:bg-slate-50 dark:hover:bg-[#131c31] border border-slate-200 dark:border-white/5 hover:border-blue-500/30 rounded-[2.5rem] p-8 overflow-hidden shadow-xl hover:shadow-[0_15px_40px_-10px_rgba(59,130,246,0.15)] cursor-pointer transition-all duration-500"
                                             >
                                                 {/* Subtle ambient glow */}
                                                 <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
@@ -252,7 +277,7 @@ const ProjectPortfolio = () => {
                                                             <div className={`w-1.5 h-1.5 rounded-full ${project.status === 'TERMINÉ' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'}`} />
                                                             <span className={`text-[9px] font-black uppercase tracking-widest ${project.status === 'TERMINÉ' ? 'text-rose-500' : 'text-emerald-500'}`}>{project.status || 'ACTIF'}</span>
                                                         </div>
-                                                        <h3 className="text-xl md:text-2xl font-black text-white tracking-tight leading-none group-hover:text-blue-400 transition-colors uppercase truncate relative z-10">{project.name}</h3>
+                                                        <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-blue-400 transition-colors uppercase truncate relative z-10">{project.name}</h3>
                                                     </div>
                                                     <div className="relative shrink-0" onClick={e => e.stopPropagation()}>
                                                         <Button
@@ -283,14 +308,14 @@ const ProjectPortfolio = () => {
                                                                                 }
                                                                                 setOpenMenuId(null);
                                                                             }}
-                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-all"
+                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl transition-all"
                                                                         >
                                                                             <Activity className={`w-3.5 h-3.5 ${project.status === 'ACTIF' ? 'text-rose-600 dark:text-rose-500/70' : 'text-emerald-600 dark:text-emerald-500/70'}`} />
                                                                             {project.status === 'ACTIF' ? 'Marquer Terminé' : 'Marquer Actif'}
                                                                         </button>
                                                                         <button
                                                                             onClick={() => { setEditingProject(project); setNewProject({ name: project.name, description: project.description }); setIsModalOpen(true); setOpenMenuId(null); }}
-                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-all"
+                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl transition-all"
                                                                         >
                                                                             <Pencil className="w-3.5 h-3.5 text-blue-600 dark:text-blue-500/70" />
                                                                             {t('releaseManager.menu.edit') || 'Modifier'}
@@ -312,25 +337,31 @@ const ProjectPortfolio = () => {
 
                                                 {/* Description */}
                                                 <div className="space-y-2 mb-8 relative z-10">
-                                                    <p className="text-slate-400 text-sm font-medium leading-relaxed line-clamp-2">{project.description || <span className="italic opacity-60">{t('portfolio.defaultDesc', 'Aucune description fournie pour ce projet métier.')}</span>}</p>
+                                                    <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                                                        <ExpandableDescription
+                                                            text={project.description}
+                                                            maxChars={90}
+                                                            emptyLabel={t('portfolio.defaultDesc', 'Aucune description fournie pour ce projet métier.')}
+                                                        />
+                                                    </p>
                                                 </div>
 
                                                 {/* Stats */}
                                                 <div className="grid grid-cols-2 gap-3 relative z-10">
-                                                    <div className="p-4 bg-white/[0.02] group-hover:bg-white/[0.04] transition-colors border border-white/5 rounded-2xl flex flex-col justify-between">
+                                                    <div className="p-4 bg-slate-50 dark:bg-white/[0.02] group-hover:bg-slate-50 dark:group-hover:bg-white/[0.04] transition-colors border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between">
                                                         <div className="flex items-center gap-2 mb-2">
                                                             <Layers className="w-3.5 h-3.5 text-blue-400" />
                                                             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('portfolio.table.releases', 'Releases')}</p>
                                                         </div>
-                                                        <p className="text-2xl font-black text-white">{project.releases_count || 0}</p>
+                                                        <p className="text-2xl font-black text-slate-900 dark:text-white">{project.releases_count || 0}</p>
                                                     </div>
-                                                    <div className="p-4 bg-white/[0.02] group-hover:bg-white/[0.04] transition-colors border border-white/5 rounded-2xl flex flex-col justify-between">
+                                                    <div className="p-4 bg-slate-50 dark:bg-white/[0.02] group-hover:bg-slate-50 dark:group-hover:bg-white/[0.04] transition-colors border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between">
                                                         <div className="flex items-center gap-2 mb-2">
                                                             <Calendar className="w-3.5 h-3.5 text-emerald-400" />
                                                             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('portfolio.table.createdAt', 'Créé le')}</p>
                                                         </div>
                                                         <div className="flex items-baseline gap-1.5">
-                                                            <p className="text-xl font-black text-white leading-tight uppercase tracking-tighter">
+                                                            <p className="text-xl font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter">
                                                                 {new Date(project.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }).replace('.', '')}
                                                             </p>
                                                             <p className="text-xs text-slate-500 font-bold">{new Date(project.created_at).getFullYear()}</p>
@@ -390,20 +421,20 @@ const ProjectPortfolio = () => {
                                         <select
                                             value={sortBy}
                                             onChange={(e) => setSortBy(e.target.value as any)}
-                                            className="bg-transparent border-none text-xs font-bold text-slate-300 focus:ring-0 outline-none cursor-pointer appearance-none"
+                                            className="bg-transparent border-none text-xs font-bold text-slate-700 dark:text-slate-300 focus:ring-0 outline-none cursor-pointer appearance-none"
                                         >
-                                            <option value="newest" className="bg-[#0f172a] text-slate-300">{t('portfolio.filter.newest', 'RÉCENTS')}</option>
-                                            <option value="oldest" className="bg-[#0f172a] text-slate-300">{t('portfolio.filter.oldest', 'ANCIENS')}</option>
+                                            <option value="newest" className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300">{t('portfolio.filter.newest', 'RÉCENTS')}</option>
+                                            <option value="oldest" className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300">{t('portfolio.filter.oldest', 'ANCIENS')}</option>
                                         </select>
-                                        <div className="w-px h-4 bg-white/10 mx-2" />
+                                        <div className="w-px h-4 bg-slate-200 dark:bg-white/10 mx-2" />
                                         <select
                                             value={filterOwner}
                                             onChange={(e) => setFilterOwner(e.target.value)}
-                                            className="bg-transparent border-none text-xs font-bold text-slate-300 focus:ring-0 outline-none cursor-pointer appearance-none"
+                                            className="bg-transparent border-none text-xs font-bold text-slate-700 dark:text-slate-300 focus:ring-0 outline-none cursor-pointer appearance-none"
                                         >
-                                            <option value="ALL" className="bg-[#0f172a] text-slate-300">{t('portfolio.filter.allOwners', 'TOUS LES PROPRIÉTAIRES')}</option>
+                                            <option value="ALL" className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300">{t('portfolio.filter.allOwners', 'TOUS LES PROPRIÉTAIRES')}</option>
                                             {Array.from(new Set(projects.map(p => p.created_by_username).filter(Boolean))).map(owner => (
-                                                <option key={owner as string} value={owner as string} className="bg-[#0f172a] text-slate-300">{owner as string}</option>
+                                                <option key={owner as string} value={owner as string} className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300">{owner as string}</option>
                                             ))}
                                         </select>
                                     </>
@@ -432,28 +463,28 @@ const ProjectPortfolio = () => {
                             {totalPages > 1 && (
                                 <div className="flex justify-center gap-2 mt-10 pb-10">
                                     <button
-                                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                        onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                                         disabled={currentPage === 1}
-                                        className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20 transition-all font-black"
+                                        className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 flex items-center justify-center text-slate-400 disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20 transition-all font-black"
                                     >
                                         <ChevronRight className="w-5 h-5 rotate-180" />
                                     </button>
                                     {Array.from({ length: totalPages }).map((_, i) => (
                                         <button
                                             key={i}
-                                            onClick={() => setCurrentPage(i + 1)}
+                                            onClick={() => handlePageChange(i + 1)}
                                             className={`w-12 h-12 rounded-xl border font-black text-xs transition-all ${currentPage === i + 1
                                                 ? 'bg-blue-600 border-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]'
-                                                : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                                                : 'bg-slate-100 dark:bg-white/5 border-slate-300 dark:border-white/10 text-slate-400 hover:bg-slate-200 dark:bg-white/10'
                                                 }`}
                                         >
                                             {i + 1}
                                         </button>
                                     ))}
                                     <button
-                                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                        onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                                         disabled={currentPage === totalPages}
-                                        className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20 transition-all font-black"
+                                        className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 flex items-center justify-center text-slate-400 disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20 transition-all font-black"
                                     >
                                         <ChevronRight className="w-5 h-5" />
                                     </button>

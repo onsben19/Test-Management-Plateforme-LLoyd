@@ -22,20 +22,20 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
     if (!test) return null;
 
     return (
-        <div className="h-full w-full bg-[#0b0e14] flex flex-col">
+        <div className="h-full w-full bg-slate-50 dark:bg-[#0b0e14] flex flex-col">
             {/* Header */}
-            <div className="p-8 pb-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-b from-white/[0.03] to-transparent backdrop-blur-3xl">
+            <div className="p-8 pb-6 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-gradient-to-b from-white/[0.03] to-transparent backdrop-blur-3xl">
                 <div className="flex items-center gap-6 overflow-hidden">
-                    <div className="w-16 h-16 bg-[#1a1f2e] rounded-2xl flex items-center justify-center border border-white/10 flex-shrink-0 shadow-2xl relative">
+                    <div className="w-16 h-16 bg-slate-50 dark:bg-[#1a1f2e] rounded-2xl flex items-center justify-center border border-slate-300 dark:border-white/10 flex-shrink-0 shadow-2xl relative">
                         <Hash className="w-7 h-7 text-blue-400" />
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-[#0b0e14]" />
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-slate-200 dark:border-[#0b0e14]" />
                     </div>
                     <div className="overflow-hidden">
-                        <h2 className="text-2xl font-black text-white truncate tracking-tighter leading-none mb-2" title={test.name}>
+                        <h2 className="text-2xl font-black text-slate-900 dark:text-white truncate tracking-tighter leading-none mb-2" title={test.name}>
                             {test.name || t('execution.list.untitled')}
                         </h2>
                         <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-black text-slate-500 bg-white/5 px-3 py-1 rounded-lg border border-white/5 uppercase tracking-[0.2em]">#{test.id}</span>
+                            <span className="text-[10px] font-black text-slate-500 bg-slate-100 dark:bg-white/5 px-3 py-1 rounded-lg border border-slate-200 dark:border-white/5 uppercase tracking-[0.2em]">#{test.id}</span>
                             <span className={`flex items-center gap-2 text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-[0.2em] border shadow-lg ${test.status === 'passed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-emerald-500/5' :
                                 test.status === 'failed' ? 'bg-rose-500/20 text-rose-400 border-rose-500/20 shadow-rose-500/5' :
                                     'bg-slate-500/10 text-slate-400 border-slate-500/20'
@@ -49,7 +49,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl text-slate-500 hover:text-white transition-all active:scale-90 border border-white/5 group"
+                    className="p-4 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:bg-white/10 rounded-2xl text-slate-500 hover:text-slate-900 dark:hover:text-white transition-all active:scale-90 border border-slate-200 dark:border-white/5 group"
                 >
                     <X className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" />
                 </button>
@@ -60,34 +60,34 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                 <section className="space-y-4">
                     <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-1">Informations Générales</h3>
                     <div className="grid grid-cols-1 gap-4">
-                        <div className="bg-gradient-to-r from-blue-600/5 to-transparent border border-white/5 rounded-2xl p-6 flex items-center gap-6 hover:from-blue-600/10 transition-all duration-300 group">
+                        <div className="bg-gradient-to-r from-blue-600/5 to-transparent border border-slate-200 dark:border-white/5 rounded-2xl p-6 flex items-center gap-6 hover:from-blue-600/10 transition-all duration-300 group">
                             <div className="w-12 h-12 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-400 border border-blue-500/10 group-hover:scale-110 transition-transform">
                                 <User size={20} />
                             </div>
                             <div className="flex-1">
                                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Réalisé par</p>
-                                <p className="text-sm font-bold text-white">{test.realized_by || 'Non assigné'}</p>
+                                <p className="text-sm font-bold text-slate-900 dark:text-white">{test.realized_by || 'Non assigné'}</p>
                             </div>
                         </div>
 
-                        <div className="bg-gradient-to-r from-indigo-600/5 to-transparent border border-white/5 rounded-2xl p-6 flex items-center gap-6 hover:from-indigo-600/10 transition-all duration-300 group">
+                        <div className="bg-gradient-to-r from-indigo-600/5 to-transparent border border-slate-200 dark:border-white/5 rounded-2xl p-6 flex items-center gap-6 hover:from-indigo-600/10 transition-all duration-300 group">
                             <div className="w-12 h-12 bg-indigo-600/10 rounded-xl flex items-center justify-center text-indigo-400 border border-indigo-500/10 group-hover:scale-110 transition-transform">
                                 <Calendar size={20} />
                             </div>
                             <div className="flex-1">
                                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Dernière Run</p>
-                                <p className="text-sm font-bold text-white">{test.lastRun}</p>
+                                <p className="text-sm font-bold text-slate-900 dark:text-white">{test.lastRun}</p>
                             </div>
                         </div>
 
-                        <div className="bg-gradient-to-r from-emerald-600/5 to-transparent border border-white/5 rounded-2xl p-6 flex items-center gap-6 hover:from-emerald-600/10 transition-all duration-300 group">
+                        <div className="bg-gradient-to-r from-emerald-600/5 to-transparent border border-slate-200 dark:border-white/5 rounded-2xl p-6 flex items-center gap-6 hover:from-emerald-600/10 transition-all duration-300 group">
                             <div className="w-12 h-12 bg-emerald-600/10 rounded-xl flex items-center justify-center text-emerald-400 border border-emerald-500/10 group-hover:scale-110 transition-transform">
                                 <Layers size={20} />
                             </div>
                             <div className="flex-1">
                                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Contexte Release</p>
                                 <div className="flex items-center gap-3">
-                                    <p className="text-sm font-bold text-white">{test.businessProject} &gt; {test.release}</p>
+                                    <p className="text-sm font-bold text-slate-900 dark:text-white">{test.businessProject} &gt; {test.release}</p>
                                     {test.releaseType && (
                                         <span className={`text-[8px] px-2 py-0.5 rounded-md font-black uppercase tracking-widest ${test.releaseType === 'PREPROD' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
                                             {test.releaseType}
@@ -109,8 +109,8 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                                 </button>
                             )}
                         </div>
-                        <div className="bg-[#0d1117] border border-white/10 rounded-2xl p-6">
-                            <pre className={`text-slate-300 font-mono text-[11px] overflow-y-auto whitespace-pre-wrap transition-all ${showFullLogs ? 'max-h-[500px]' : 'max-h-32'}`}>
+                        <div className="bg-slate-50 dark:bg-[#0d1117] border border-slate-300 dark:border-white/10 rounded-2xl p-6">
+                            <pre className={`text-slate-700 dark:text-slate-300 font-mono text-[11px] overflow-y-auto whitespace-pre-wrap transition-all ${showFullLogs ? 'max-h-[500px]' : 'max-h-32'}`}>
                                 {test.execution_logs}
                             </pre>
                         </div>
@@ -127,9 +127,17 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                                 </button>
                             )}
                         </div>
-                        <div className="bg-[#0d1117] border border-orange-500/30 rounded-2xl p-6">
-                            <pre className={`text-orange-400 font-mono text-[11px] overflow-y-auto whitespace-pre-wrap transition-all ${showFullCode ? 'max-h-[500px]' : 'max-h-32'}`}>
-                                {(test as any).automation_code}
+                        <div className="bg-slate-50 dark:bg-[#0d1117] border border-orange-500/30 rounded-2xl p-6">
+                            <pre className={`text-slate-700 dark:text-slate-300 font-mono text-[11px] overflow-y-auto whitespace-pre-wrap transition-all ${showFullCode ? 'max-h-[500px]' : 'max-h-32'}`}>
+                                <span dangerouslySetInnerHTML={{ __html: 
+                                    (test as any).automation_code
+                                    .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                                    .replace(/\b(import|from|const|let|var|await|async|function|return|if|else|for|while|try|catch)\b/g, '<span class=text-pink-400>$1</span>')
+                                    .replace(/\b(test|expect|page|locator|click|fill|goto|toBeVisible|toContainText|first|catch|timeout|Promise|all)\b/g, '<span class=text-blue-400>$1</span>')
+                                    .replace(/(['"`])(.*?)\1/g, '<span class=text-emerald-400>$&</span>')
+                                    .replace(/([{}()\[\]])/g, '<span class=text-amber-400>$1</span>')
+                                    .replace(/(?<!-)\b(\d+)\b/g, '<span class=text-purple-400>$1</span>')
+                                }} />
                             </pre>
                         </div>
                     </section>
@@ -140,7 +148,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-1">Capture de l'exécution</h3>
                         <div className="grid grid-cols-1 gap-4">
                             {test.captures.map((cap, idx) => (
-                                <img key={idx} src={cap} alt={`Capture ${idx}`} className="w-full rounded-2xl border border-white/10 shadow-2xl object-contain max-h-96" />
+                                <img key={idx} src={cap} alt={`Capture ${idx}`} className="w-full rounded-2xl border border-slate-300 dark:border-white/10 shadow-2xl object-contain max-h-96" />
                             ))}
                         </div>
                     </section>

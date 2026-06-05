@@ -59,11 +59,6 @@ const StatCard: React.FC<StatCardProps> = ({
           )}
           {description && <p className="mt-2 text-[10px] text-slate-400 font-medium">{description}</p>}
         </div>
-        {Icon && (
-          <div className={`p-3 rounded-xl ${currentVariant.bg} ${currentVariant.iconColor}`}>
-            <Icon size={20} />
-          </div>
-        )}
       </div>
     </div>
   );

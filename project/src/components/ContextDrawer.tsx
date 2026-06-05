@@ -40,10 +40,10 @@ const ContextDrawer: React.FC<ContextDrawerProps> = ({ isOpen, onClose, rowTitle
             <div className="flex flex-col h-full">
                 <div className="p-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center">
                     <div>
-                        <h3 className="text-white font-medium">Discussion Contextuelle</h3>
+                        <h3 className="text-slate-900 dark:text-white font-medium">Discussion Contextuelle</h3>
                         <p className="text-xs text-slate-400 truncate w-64">{rowTitle}</p>
                     </div>
-                    <button onClick={onClose} className="p-2 text-slate-400 hover:text-white transition-colors">
+                    <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -59,14 +59,14 @@ const ContextDrawer: React.FC<ContextDrawerProps> = ({ isOpen, onClose, rowTitle
                             <div
                                 className={`max-w-[80%] p-3 rounded-lg text-sm ${msg.type === 'user'
                                     ? 'bg-blue-600 text-white rounded-br-none'
-                                    : 'bg-slate-800 text-slate-200 rounded-bl-none'
+                                    : 'bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-none'
                                     }`}
                             >
                                 {msg.text}
                             </div>
                             {msg.type === 'user' && (
                                 <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0">
-                                    <User className="w-4 h-4 text-slate-300" />
+                                    <User className="w-4 h-4 text-slate-700 dark:text-slate-300" />
                                 </div>
                             )}
                         </div>
@@ -81,7 +81,7 @@ const ContextDrawer: React.FC<ContextDrawerProps> = ({ isOpen, onClose, rowTitle
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                             placeholder="Écrivez un message..."
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-4 pr-10 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder-slate-500"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-4 pr-10 py-2.5 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder-slate-500"
                         />
                         <button
                             onClick={handleSend}

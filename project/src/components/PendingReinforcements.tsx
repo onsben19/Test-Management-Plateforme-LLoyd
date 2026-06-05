@@ -48,23 +48,23 @@ export const PendingReinforcements = () => {
     if (requests.length === 0) return null;
 
     return (
-        <div className="bg-white/[0.02] border border-blue-500/30 rounded-[2.5rem] p-8 mb-8 relative overflow-hidden group">
+        <div className="bg-slate-50 dark:bg-white/[0.02] border border-blue-500/30 rounded-[2.5rem] p-8 mb-8 relative overflow-hidden group">
             <div className="absolute inset-0 bg-blue-500/5 backdrop-blur-xl -z-10" />
             <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
                     <AlertCircle size={24} />
                 </div>
                 <div>
-                    <h2 className="text-xl font-black text-white uppercase tracking-tighter">Demandes de Renfort</h2>
+                    <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Demandes de Renfort</h2>
                     <p className="text-sm text-slate-400 font-medium">Vos managers ont besoin de vous sur ces campagnes.</p>
                 </div>
             </div>
 
             <div className="space-y-4">
                 {requests.map((req) => (
-                    <div key={req.campaign_id} className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 transition-all hover:border-blue-500/30">
+                    <div key={req.campaign_id} className="bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 transition-all hover:border-blue-500/30">
                         <div className="flex-1">
-                            <h3 className="text-lg font-bold text-white mb-2">{req.campaign_title}</h3>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{req.campaign_title}</h3>
                             <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
                                 <Calendar size={14} />
                                 <span>Demandé le {new Date(req.sent_at).toLocaleDateString()}</span>

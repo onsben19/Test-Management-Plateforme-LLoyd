@@ -18,7 +18,7 @@ const TeamPerformance = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Productivity Chart */}
             <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-medium text-white mb-6">{t('execution.performance.title')}</h3>
+                <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-6">{t('execution.performance.title')}</h3>
                 <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart
@@ -42,7 +42,7 @@ const TeamPerformance = () => {
 
             {/* Success Ratio */}
             <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-medium text-white mb-6">{t('execution.performance.loadDistribution')}</h3>
+                <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-6">{t('execution.performance.loadDistribution')}</h3>
                 <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>

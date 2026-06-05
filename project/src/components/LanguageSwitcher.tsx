@@ -21,7 +21,7 @@ const LanguageSwitcher: React.FC = () => {
     return (
         <Popover.Root>
             <Popover.Trigger asChild>
-                <button className="flex items-center gap-2 p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 outline-none group border border-transparent hover:border-slate-200 dark:hover:border-white/10">
+                <button className="flex items-center gap-2 p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 outline-none group border border-transparent hover:border-slate-200 dark:hover:border-slate-300 dark:border-white/10">
                     <Languages className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
                     <span className="text-xs font-black uppercase tracking-widest hidden sm:inline-block">
                         {currentLanguage.code}
@@ -42,7 +42,7 @@ const LanguageSwitcher: React.FC = () => {
                                 onClick={() => changeLanguage(lang.code)}
                                 className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all ${i18n.language === lang.code
                                         ? 'bg-blue-600/10 text-blue-500 font-bold'
-                                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5'
+                                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
                                     }`}
                             >
                                 <div className="flex items-center gap-3">

@@ -3,15 +3,20 @@ from .models import BusinessProject
 from .serializers import BusinessProjectSerializer
 
 class BusinessProjectViewSet(viewsets.ModelViewSet):
-    queryset = BusinessProject.objects.all().order_by('-created_at')
+    queryset = BusinessProject.objects.all()
     serializer_class = BusinessProjectSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']
+    ordering_fields = ['created_at']
+    ordering = ['-created_at']
 
     def get_queryset(self):
-        # Optionnel: Filtrer par utilisateur si besoin, mais ici on veut tout le portfolio
-        return super().get_queryset()
+        queryset = super().get_queryset()
+        owner = self.request.query_params.get('owner')
+        if owner and owner != 'ALL':
+            queryset = queryset.filter(created_by__username=owner)
+        return queryset
 
     def perform_update(self, serializer):
         instance = serializer.save()

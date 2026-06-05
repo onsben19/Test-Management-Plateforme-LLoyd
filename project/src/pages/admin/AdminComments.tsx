@@ -104,7 +104,7 @@ const AdminComments = () => {
             header: 'Discussion / Contexte',
             accessor: (conv: any) => (
                 <div className="flex flex-col gap-0.5">
-                    <span className="text-[14px] font-bold text-white tracking-tight uppercase">
+                    <span className="text-[14px] font-bold text-slate-900 dark:text-white tracking-tight uppercase">
                         {conv.id === 'general' ? 'Fil de discussion Général' : `Cas de Test #${conv.id}`}
                     </span>
                     <p className="text-[11px] text-slate-500 font-medium line-clamp-1 italic">
@@ -117,7 +117,7 @@ const AdminComments = () => {
             header: 'Dernier Intervenant',
             accessor: (conv: any) => (
                 <div className="flex flex-col">
-                    <span className="text-[11px] font-bold text-slate-300 uppercase tracking-widest">
+                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
                         {conv.lastMessage.author_name || conv.lastMessage.author_username}
                     </span>
                     <span className="text-[9px] text-slate-500 font-medium">
@@ -129,7 +129,7 @@ const AdminComments = () => {
         {
             header: 'Volume',
             accessor: (conv: any) => (
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-white/5 rounded-full border border-white/5">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-slate-100 dark:bg-white/5 rounded-full border border-slate-200 dark:border-white/5">
                     <span className="text-[10px] font-bold text-blue-400">{conv.count}</span>
                     <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter">Messages</span>
                 </div>
@@ -177,7 +177,7 @@ const AdminComments = () => {
                     />
                 </div>
 
-                <div className="bg-[#0b0e14]/40 border border-white/[0.03] rounded-[2.5rem] overflow-hidden">
+                <div className="bg-slate-50 dark:bg-[#0b0e14]/40 border border-slate-200 dark:border-white/[0.03] rounded-[2.5rem] overflow-hidden">
                     <AdminTable
                         columns={conversationColumns}
                         data={groupedConversations}
@@ -198,11 +198,11 @@ const AdminComments = () => {
                                 animate={{ x: 0 }}
                                 exit={{ x: '100%' }}
                                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                                className="w-full max-w-2xl h-full bg-[#0b0e14] border-l border-white/5 shadow-2xl flex flex-col"
+                                className="w-full max-w-2xl h-full bg-slate-50 dark:bg-[#0b0e14] border-l border-slate-200 dark:border-white/5 shadow-2xl flex flex-col"
                             >
-                                <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
+                                <div className="p-8 border-b border-slate-200 dark:border-white/5 flex justify-between items-center bg-slate-50 dark:bg-white/[0.01]">
                                     <div>
-                                        <h2 className="text-xl font-black text-white uppercase tracking-tighter">
+                                        <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
                                             {activeConversationId === 'general' ? 'Discussion Générale' : `Audit Cas de Test #${activeConversationId}`}
                                         </h2>
                                         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">
@@ -211,7 +211,7 @@ const AdminComments = () => {
                                     </div>
                                     <button
                                         onClick={() => setActiveConversationId(null)}
-                                        className="p-3 hover:bg-white/5 rounded-full text-slate-400 transition-colors"
+                                        className="p-3 hover:bg-slate-100 dark:bg-white/5 rounded-full text-slate-400 transition-colors"
                                     >
                                         <XCircle className="w-6 h-6" />
                                     </button>
@@ -228,8 +228,8 @@ const AdminComments = () => {
                                                     {new Date(msg.created_at).toLocaleString()}
                                                 </span>
                                             </div>
-                                            <div className="bg-white/[0.02] border border-white/5 rounded-[1.5rem] p-5 shadow-sm">
-                                                <p className="text-sm text-slate-300 leading-relaxed font-medium">
+                                            <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-[1.5rem] p-5 shadow-sm">
+                                                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                                                     {msg.message}
                                                 </p>
                                             </div>
@@ -237,7 +237,7 @@ const AdminComments = () => {
                                     ))}
                                 </div>
 
-                                <div className="p-8 border-t border-white/5 bg-white/[0.01]">
+                                <div className="p-8 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.01]">
                                     <p className="text-center text-[10px] text-slate-600 font-bold uppercase tracking-widest italic">
                                         Mode consultation admin - discussions archivées & actives
                                     </p>

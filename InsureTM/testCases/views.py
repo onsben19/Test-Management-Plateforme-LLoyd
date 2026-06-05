@@ -176,9 +176,16 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         filename = f"test_{test_case.id}_{test_case.test_case_ref}.spec.ts".replace(" ", "_").replace("/", "_")
         filepath = os.path.join(tests_dir, filename)
         
-        # Inject screenshot and baseURL config
+        # Inject screenshot, baseURL and storageState config based on user role
         frontend_url = os.environ.get('FRONTEND_URL', 'http://nginx')
-        config_injection = f"test.use({{ screenshot: 'only-on-failure', baseURL: '{frontend_url}' }});\n"
+        
+        role = request.user.role.lower() if request.user and getattr(request.user, 'role', None) else 'tester'
+        if role not in ['manager', 'tester']:
+            role = 'tester'
+            
+        storage_state_path = f"tests/{role}/.auth/{role}.json"
+        
+        config_injection = f"test.use({{ screenshot: 'only-on-failure', baseURL: '{frontend_url}', storageState: '{storage_state_path}' }});\n"
         
         if 'test.use' not in code:
             code = code.replace("from '@playwright/test';", f"from '@playwright/test';\n\n{config_injection}")

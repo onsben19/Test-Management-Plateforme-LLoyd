@@ -12,7 +12,7 @@ const RoleGuard: React.FC<RoleGuardProps> = ({ children, allowedRoles }) => {
     const { user, loading } = useAuth();
 
     if (loading) {
-        return <div className="flex justify-center items-center h-screen text-slate-300">Loading...</div>;
+        return <div className="flex justify-center items-center h-screen text-slate-700 dark:text-slate-300">Loading...</div>;
     }
 
     if (!user) {

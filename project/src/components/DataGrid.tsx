@@ -63,7 +63,7 @@ const DataGrid: React.FC<DataGridProps> = ({ data, columns, onRowUpdate, onOpenC
                                     }`}
                             >
                                 {/* AI Analysis Column */}
-                                <td className="p-3 border-r border-slate-800 text-center sticky left-0 bg-slate-900 group-hover:bg-[#131d33] transition-colors">
+                                <td className="p-3 border-r border-slate-800 text-center sticky left-0 bg-slate-900 group-hover:bg-slate-50 dark:bg-[#131d33] transition-colors">
                                     {isComplete(row) ? (
                                         <div className="flex justify-center">
                                             <CheckCircle className="w-4 h-4 text-green-500/50" />
@@ -94,12 +94,12 @@ const DataGrid: React.FC<DataGridProps> = ({ data, columns, onRowUpdate, onOpenC
                                                         alt={cellValue.name}
                                                         className="w-8 h-8 rounded-full border border-slate-600 object-cover flex-shrink-0"
                                                     />
-                                                    <span className="text-sm text-slate-300 whitespace-nowrap">{cellValue.name}</span>
+                                                    <span className="text-sm text-slate-700 dark:text-slate-300 whitespace-nowrap">{cellValue.name}</span>
                                                 </div>
                                             ) : isEditing ? (
                                                 <textarea
                                                     autoFocus
-                                                    className="w-full h-full min-h-[40px] bg-slate-800 text-white text-sm p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded resize-none"
+                                                    className="w-full h-full min-h-[40px] bg-slate-800 text-slate-900 dark:text-white text-sm p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded resize-none"
                                                     value={String(cellValue)}
                                                     onChange={(e) => onRowUpdate(row.id, col, e.target.value)}
                                                     onBlur={() => setEditingCell(null)}
@@ -122,7 +122,7 @@ const DataGrid: React.FC<DataGridProps> = ({ data, columns, onRowUpdate, onOpenC
                                                             </select>
                                                         </span>
                                                     ) : (
-                                                        <span className="text-sm text-slate-300 line-clamp-2">{String(cellValue)}</span>
+                                                        <span className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2">{String(cellValue)}</span>
                                                     )}
                                                 </div>
                                             )}
@@ -131,7 +131,7 @@ const DataGrid: React.FC<DataGridProps> = ({ data, columns, onRowUpdate, onOpenC
                                 })}
 
                                 {/* Actions Column */}
-                                <td className="p-3 text-center sticky right-0 bg-slate-900 group-hover:bg-[#131d33] transition-colors shadow-[-10px_0_20px_-5px_rgba(0,0,0,0.3)]">
+                                <td className="p-3 text-center sticky right-0 bg-slate-900 group-hover:bg-slate-50 dark:bg-[#131d33] transition-colors shadow-[-10px_0_20px_-5px_rgba(0,0,0,0.3)]">
                                     <button
                                         onClick={() => onOpenChat(row)}
                                         className="p-1.5 rounded-lg bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white transition-all shadow-sm"

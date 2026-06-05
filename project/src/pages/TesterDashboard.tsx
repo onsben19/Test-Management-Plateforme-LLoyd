@@ -38,6 +38,7 @@ const TesterDashboard = () => {
     const [readinessScores, setReadinessScores] = useState<Record<string, number>>({});
     const [mlInsights, setMlInsights] = useState<Record<string, any>>({});
     const [selectedReadiness, setSelectedReadiness] = useState<{ isOpen: boolean; data: any; title: string } | null>(null);
+    const [expandedDescMap, setExpandedDescMap] = useState<Record<string, boolean>>({});
     const [stats, setStats] = useState({
         totalTests: 0,
         openAnomalies: 0,
@@ -64,9 +65,10 @@ const TesterDashboard = () => {
 
     useEffect(() => {
         if (user) {
-            fetchAssignedCampaigns(currentPage);
+            setCurrentPage(1);
+            fetchAssignedCampaigns(1);
         }
-    }, [user, searchQuery, sortOrder, currentPage]);
+    }, [user, searchQuery, sortOrder, releaseTypeFilter]);
 
     const fetchAssignedCampaigns = async (page = 1) => {
         try {
@@ -74,6 +76,8 @@ const TesterDashboard = () => {
             const response = await campaignService.getCampaigns({
                 page,
                 search: searchQuery,
+                ordering: sortOrder === 'newest' ? '-created_at' : 'created_at',
+                release_type: releaseTypeFilter
             });
             const responseData = response.data || {};
             const data = (responseData.results || (Array.isArray(responseData) ? responseData : []));
@@ -130,14 +134,10 @@ const TesterDashboard = () => {
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
+        fetchAssignedCampaigns(page);
     };
 
-    const filteredCampaigns = useMemo(() => {
-        return (campaigns || []).filter(camp => {
-            if (releaseTypeFilter === 'all') return true;
-            return camp.release_type === releaseTypeFilter;
-        });
-    }, [campaigns, releaseTypeFilter]);
+    const filteredCampaigns = campaigns || [];
 
     const groupedCampaigns = filteredCampaigns.reduce((acc, camp) => {
         if (groupMode === 'none') return acc;
@@ -226,7 +226,7 @@ const TesterDashboard = () => {
                 const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
                 const token = localStorage.getItem('access_token');
                 const wsUrl = `${protocol}://${window.location.host}/ws/testcases/${testId}/logs/${token ? `?token=${token}` : ''}`;
-                
+
                 try {
                     ws = new WebSocket(wsUrl);
                     ws.onmessage = (e) => {
@@ -238,7 +238,7 @@ const TesterDashboard = () => {
                     ws.onerror = (err) => {
                         console.error("WS Error:", err);
                     };
-                    
+
                     // Attendre l'ouverture du WebSocket avant de lancer l'exécution (résout la race condition)
                     await new Promise<void>((resolve) => {
                         if (!ws) return resolve();
@@ -316,7 +316,7 @@ const TesterDashboard = () => {
                 }
                 const anomalyRes = await anomalyService.createAnomaly(anomalyData);
                 toast.warning(t('testerDashboard.toasts.anomalyReported'));
-                
+
                 setExecutionResult({
                     status: 'FAILED',
                     logs: 'Exécution manuelle échouée. L\'anomalie a été déclarée avec succès dans le système.',
@@ -410,21 +410,20 @@ const TesterDashboard = () => {
                 key={camp.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="group relative overflow-hidden bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 hover:bg-white/10 transition-all duration-500 flex flex-col h-full shadow-2xl shadow-black/20"
+                className="group relative overflow-hidden bg-white dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-[2.5rem] p-8 hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-500 flex flex-col h-full shadow-2xl shadow-slate-200/50 dark:shadow-black/20"
             >
                 <div className="flex justify-between items-start mb-6">
                     {/* Top Left: Badges */}
                     <div className="flex flex-col items-start gap-2">
                         {camp.release_type && (
-                            <div className={`px-3 py-1 rounded-full border text-[9px] font-black tracking-[0.2em] uppercase ${
-                                envColor === 'teal' ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' : 
-                                envColor === 'amber' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 
-                                'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                            }`}>
+                            <div className={`px-3 py-1 rounded-full border text-[9px] font-black tracking-[0.2em] uppercase ${envColor === 'teal' ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' :
+                                    envColor === 'amber' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                        'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                }`}>
                                 {camp.release_type}
                             </div>
                         )}
-                        <div className="px-3 py-1 bg-white/5 rounded-full text-[9px] font-black text-slate-400 tracking-widest uppercase border border-white/5">
+                        <div className="px-3 py-1 bg-slate-100 dark:bg-white/5 rounded-full text-[9px] font-black text-slate-400 tracking-widest uppercase border border-slate-200 dark:border-white/5">
                             {camp.nb_test_cases} TEST{camp.nb_test_cases > 1 ? 'S' : ''}
                         </div>
                     </div>
@@ -442,7 +441,7 @@ const TesterDashboard = () => {
                                         stroke="currentColor"
                                         strokeWidth="4"
                                         fill="transparent"
-                                        className="text-white/5"
+                                        className="text-slate-100 dark:text-white/5"
                                     />
                                     <circle
                                         cx="28" cy="28" r="24"
@@ -456,7 +455,7 @@ const TesterDashboard = () => {
                                     />
                                 </svg>
                                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span className="text-[10px] font-black text-white leading-none">{score}%</span>
+                                    <span className="text-[10px] font-black text-slate-900 dark:text-white leading-none">{score}%</span>
                                 </div>
                                 <div className="absolute -top-1 -right-1">
                                     <div className="bg-blue-600 text-white p-1 rounded-full shadow-lg opacity-0 group-hover/readiness:opacity-100 transition-opacity">
@@ -469,13 +468,23 @@ const TesterDashboard = () => {
                 </div>
 
                 <div className="flex-1">
-                    <h3 className="text-xl font-black text-white mb-3 tracking-tighter leading-tight group-hover:text-blue-400 transition-colors">
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white mb-3 tracking-tighter leading-tight group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
                         {camp.title}
                     </h3>
                     {camp.description ? (
-                        <p className="text-sm text-slate-400 mb-8 line-clamp-3 leading-relaxed font-medium">
-                            {camp.description}
-                        </p>
+                        <div className="mb-8">
+                            <p className={`text-sm text-slate-400 leading-relaxed font-medium ${!expandedDescMap[camp.id] ? 'line-clamp-3' : ''}`}>
+                                {camp.description}
+                            </p>
+                            {camp.description.length > 150 && (
+                                <button 
+                                    onClick={() => setExpandedDescMap(prev => ({ ...prev, [camp.id]: !prev[camp.id] }))}
+                                    className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 mt-2 transition-colors focus:outline-none"
+                                >
+                                    {expandedDescMap[camp.id] ? 'Réduire' : 'Lire la suite'}
+                                </button>
+                            )}
+                        </div>
                     ) : (
                         <p className="text-sm text-slate-500/60 mb-8 italic font-medium">
                             Aucune description pour cette campagne.
@@ -483,15 +492,13 @@ const TesterDashboard = () => {
                     )}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 mb-8 border-t border-white/5 pt-6">
-                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
-                        <Calendar className="w-3.5 h-3.5 opacity-70" />
+                <div className="flex flex-wrap items-center gap-3 mb-8 border-t border-slate-200 dark:border-white/5 pt-6">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/5">
                         Créé le {new Date(camp.created_at).toLocaleDateString(t('common.dateLocale'))}
                     </div>
                     {ml?.projected_end_date && (
                         <div className="flex items-center gap-2 text-[10px] font-black text-purple-400 uppercase tracking-widest bg-purple-500/10 border border-purple-500/20 px-3 py-1.5 rounded-lg">
-                            <Sparkles className="w-3.5 h-3.5" />
-                            Fin IA : {new Date(ml.projected_end_date).toLocaleDateString()}
+                            Fin estimée  : {new Date(ml.projected_end_date).toLocaleDateString()}
                         </div>
                     )}
                 </div>
@@ -500,9 +507,8 @@ const TesterDashboard = () => {
                     <button
                         type="button"
                         onClick={() => handleOpenExcel(camp.excel_file)}
-                        className="py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 border border-white/5"
+                        className="py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-900 dark:text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 border border-slate-200 dark:border-white/5"
                     >
-                        <FileIcon className="w-3.5 h-3.5 text-slate-400" />
                         Excel
                     </button>
                     <button
@@ -513,7 +519,6 @@ const TesterDashboard = () => {
                         }}
                         className="py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95"
                     >
-                        <CheckCircle className="w-3.5 h-3.5" />
                         Valider
                     </button>
                 </div>
@@ -534,20 +539,17 @@ const TesterDashboard = () => {
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="relative overflow-hidden bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5 group cursor-pointer hover:bg-white/[0.04] hover:border-indigo-500/30 transition-all duration-500 shadow-lg shadow-black/10"
+                    className="relative overflow-hidden bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-2xl p-4 md:p-5 group cursor-pointer hover:bg-slate-50 dark:bg-white/[0.04] hover:border-indigo-500/30 transition-all duration-500 shadow-lg shadow-black/10"
                     onClick={() => navigate('/qa-intelligence')}
                 >
                     {/* Glowing left accent */}
                     <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-purple-500 opacity-30 group-hover:opacity-100 transition-opacity duration-500" />
-                    
+
                     <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4 ml-2">
                         <div className="flex items-center gap-4 w-full md:w-auto">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500/10 to-purple-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20 group-hover:scale-110 transition-transform duration-500">
-                                <Sparkles size={18} className="group-hover:animate-pulse" />
-                            </div>
                             <div>
-                                <h2 className="text-sm font-bold text-white tracking-wide flex items-center gap-2">
-                                    QA Intelligence Hub
+                                <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-wide flex items-center gap-2">
+                                    Veille & Innovations IA
                                     <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-[9px] uppercase tracking-widest rounded-full font-black">Nouveau</span>
                                 </h2>
                                 <p className="text-xs text-slate-400 mt-1 font-medium">Explorez les dernières tendances IA pour booster vos stratégies de test.</p>
@@ -602,45 +604,45 @@ const TesterDashboard = () => {
                                 placeholder={t('testerDashboard.searchPlaceholder')}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl pl-12 pr-6 py-4 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder-slate-500"
                             />
                         </div>
 
-                        <div className="flex items-center gap-3 bg-white/5 px-6 rounded-2xl border border-white/10 min-w-[200px]">
+                        <div className="flex items-center gap-3 bg-slate-100 dark:bg-white/5 px-6 rounded-2xl border border-slate-200 dark:border-white/10 min-w-[200px]">
                             <LayoutGrid className="w-4 h-4 text-slate-500" />
                             <select
                                 value={groupMode}
                                 onChange={(e) => setGroupMode(e.target.value as 'project' | 'release' | 'none')}
-                                className="bg-transparent border-none py-4 text-sm font-bold text-white focus:ring-0 w-full cursor-pointer"
+                                className="bg-transparent border-none py-4 text-sm font-bold text-slate-900 dark:text-white focus:ring-0 w-full cursor-pointer"
                             >
-                                <option value="none" className="bg-slate-900">{t('testerDashboard.controls.simpleGrid')}</option>
-                                <option value="project" className="bg-slate-900">{t('testerDashboard.controls.groupByProject')}</option>
-                                <option value="release" className="bg-slate-900">{t('testerDashboard.controls.groupByRelease')}</option>
+                                <option value="none" className="bg-white dark:bg-slate-900">{t('testerDashboard.controls.simpleGrid')}</option>
+                                <option value="project" className="bg-white dark:bg-slate-900">{t('testerDashboard.controls.groupByProject')}</option>
+                                <option value="release" className="bg-white dark:bg-slate-900">{t('testerDashboard.controls.groupByRelease')}</option>
                             </select>
                         </div>
 
-                        <div className="flex items-center gap-3 bg-white/5 px-6 rounded-2xl border border-white/10 min-w-[200px]">
+                        <div className="flex items-center gap-3 bg-slate-100 dark:bg-white/5 px-6 rounded-2xl border border-slate-200 dark:border-white/10 min-w-[200px]">
                             <Layers className="w-4 h-4 text-slate-500" />
                             <select
                                 value={releaseTypeFilter}
                                 onChange={(e) => setReleaseTypeFilter(e.target.value as 'all' | 'PREPROD' | 'RECETTE')}
-                                className="bg-transparent border-none py-4 text-sm font-bold text-white focus:ring-0 w-full cursor-pointer"
+                                className="bg-transparent border-none py-4 text-sm font-bold text-slate-900 dark:text-white focus:ring-0 w-full cursor-pointer"
                             >
-                                <option value="all" className="bg-slate-900">Toutes les releases</option>
-                                <option value="PREPROD" className="bg-slate-900">Preprod</option>
-                                <option value="RECETTE" className="bg-slate-900">Recette</option>
+                                <option value="all" className="bg-white dark:bg-slate-900">Toutes les releases</option>
+                                <option value="PREPROD" className="bg-white dark:bg-slate-900">Preprod</option>
+                                <option value="RECETTE" className="bg-white dark:bg-slate-900">Recette</option>
                             </select>
                         </div>
 
-                        <div className="flex items-center gap-3 bg-white/5 px-6 rounded-2xl border border-white/10 min-w-[200px]">
+                        <div className="flex items-center gap-3 bg-slate-100 dark:bg-white/5 px-6 rounded-2xl border border-slate-200 dark:border-white/10 min-w-[200px]">
                             <Filter className="w-4 h-4 text-slate-500" />
                             <select
                                 value={sortOrder}
                                 onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                                className="bg-transparent border-none py-4 text-sm font-bold text-white focus:ring-0 w-full cursor-pointer"
+                                className="bg-transparent border-none py-4 text-sm font-bold text-slate-900 dark:text-white focus:ring-0 w-full cursor-pointer"
                             >
-                                <option value="newest" className="bg-slate-900">{t('testerDashboard.controls.recent')}</option>
-                                <option value="oldest" className="bg-slate-900">{t('testerDashboard.controls.oldest')}</option>
+                                <option value="newest" className="bg-white dark:bg-slate-900">{t('testerDashboard.controls.recent')}</option>
+                                <option value="oldest" className="bg-white dark:bg-slate-900">{t('testerDashboard.controls.oldest')}</option>
                             </select>
                         </div>
                     </div>
@@ -648,12 +650,12 @@ const TesterDashboard = () => {
                     {loading ? (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {[1, 2, 3].map(i => (
-                                <div key={i} className="h-[400px] bg-white/5 animate-pulse rounded-[2.5rem] border border-white/10" />
+                                <div key={i} className="h-[400px] bg-slate-100 dark:bg-white/5 animate-pulse rounded-[2.5rem] border border-slate-200 dark:border-white/10" />
                             ))}
                         </div>
                     ) : (campaigns || []).length === 0 ? (
-                        <div className="text-center py-32 bg-white/5 rounded-[2.5rem] border border-dashed border-white/10">
-                            <List className="w-16 h-16 text-slate-600 mx-auto mb-4 opacity-50" />
+                        <div className="text-center py-32 bg-slate-50 dark:bg-white/5 rounded-[2.5rem] border border-dashed border-slate-300 dark:border-white/10">
+                            <List className="w-16 h-16 text-slate-400 dark:text-slate-600 mx-auto mb-4 opacity-50" />
                             <p className="text-xl font-bold text-slate-400 italic">
                                 {(campaigns || []).length === 0 ? t('testerDashboard.state.emptyAssigned') : t('testerDashboard.state.emptySearch')}
                             </p>
@@ -666,7 +668,7 @@ const TesterDashboard = () => {
                                         <div className="w-10 h-10 rounded-xl bg-blue-600/20 flex items-center justify-center border border-blue-600/30">
                                             <Layers className="w-5 h-5 text-blue-400" />
                                         </div>
-                                        <h2 className="text-xl font-black text-white tracking-widest uppercase">
+                                        <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-widest uppercase">
                                             {groupMode === 'project' ? (
                                                 <span className="text-blue-500">{releaseName}</span>
                                             ) : (
@@ -677,8 +679,8 @@ const TesterDashboard = () => {
                                                 </>
                                             )}
                                         </h2>
-                                        <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
-                                        <span className="text-[10px] font-black text-slate-500 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 uppercase tracking-widest">
+                                        <div className="h-px flex-1 bg-gradient-to-r from-slate-200 dark:from-white/10 to-transparent" />
+                                        <span className="text-[10px] font-black text-slate-500 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/5 uppercase tracking-widest">
                                             {t('testerDashboard.group.count', { count: groupedCampaigns[releaseName].length })}
                                         </span>
                                     </div>

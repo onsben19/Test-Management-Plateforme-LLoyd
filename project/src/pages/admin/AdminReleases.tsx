@@ -152,7 +152,7 @@ const AdminReleases = () => {
             accessor: (item: any) => (
                 <div className="flex items-center gap-4">
                     <div className="flex flex-col gap-0.5">
-                        <span className="text-[15px] font-bold text-white group-hover:text-blue-400 transition-colors tracking-tight">{item.name}</span>
+                        <span className="text-[15px] font-bold text-slate-900 dark:text-white group-hover:text-blue-400 transition-colors tracking-tight">{item.name}</span>
                         <span className="text-[10px] text-slate-500 font-medium">ID: #{item.id}</span>
                     </div>
                 </div>
@@ -177,7 +177,7 @@ const AdminReleases = () => {
                 return (
                     <div className="flex items-center gap-2">
                         <div className={`w-1.5 h-1.5 rounded-full ${color} shadow-[0_0_8px_rgba(0,0,0,0.5)]`} />
-                        <span className="text-[11px] font-bold text-slate-300 uppercase tracking-widest">{getStatusLabel(item.status)}</span>
+                        <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">{getStatusLabel(item.status)}</span>
                     </div>
                 );
             }
@@ -195,14 +195,14 @@ const AdminReleases = () => {
             className: 'w-[140px]',
             accessor: (item: any) => {
                 const data = readinessScores[item.id];
-                if (!data) return <div className="animate-pulse bg-white/5 h-12 w-12 rounded-full" />;
+                if (!data) return <div className="animate-pulse bg-slate-100 dark:bg-white/5 h-12 w-12 rounded-full" />;
                 return (
                     <div className="flex items-center gap-3">
                         <ReadinessGauge score={data.score} size={50} label="" />
                         <div className="group relative">
                             <Info className="w-3.5 h-3.5 text-slate-500 cursor-help" />
-                            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-slate-800 border border-white/10 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all text-[9px] text-slate-300 z-50">
-                                <p className="font-bold text-white mb-1 uppercase tracking-tighter">Facteurs d'analyse :</p>
+                            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-slate-800 border border-slate-300 dark:border-white/10 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all text-[9px] text-slate-700 dark:text-slate-300 z-50">
+                                <p className="font-bold text-slate-900 dark:text-white mb-1 uppercase tracking-tighter">Facteurs d'analyse :</p>
                                 <ul className="list-disc pl-3 mt-1 space-y-1">
                                     {data.reasons?.slice(0, 3).map((r: string, i: number) => (
                                         <li key={i}>{r}</li>
@@ -258,7 +258,7 @@ const AdminReleases = () => {
                         filters={
                             <div className="flex items-center gap-4">
                                 <select
-                                    className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-blue-500 text-[10px] font-bold uppercase tracking-widest appearance-none cursor-pointer hover:bg-white/10 transition-all"
+                                    className="bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl px-4 py-2 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-[10px] font-bold uppercase tracking-widest appearance-none cursor-pointer hover:bg-slate-200 dark:bg-white/10 transition-all"
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
                                 >
@@ -267,7 +267,7 @@ const AdminReleases = () => {
                                     <option value="COMPLETED" className="bg-slate-900">Terminé</option>
                                 </select>
                                 <select
-                                    className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-blue-500 text-[10px] font-bold uppercase tracking-widest appearance-none cursor-pointer hover:bg-white/10 transition-all"
+                                    className="bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl px-4 py-2 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-[10px] font-bold uppercase tracking-widest appearance-none cursor-pointer hover:bg-slate-200 dark:bg-white/10 transition-all"
                                     value={sortOrder}
                                     onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
                                 >
@@ -313,7 +313,7 @@ const AdminReleases = () => {
                 editingRelease && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm animate-in fade-in">
                         <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-200">
-                            <h2 className="text-xl font-bold text-white mb-6">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
                                 Modifier la Release
                             </h2>
 
@@ -322,7 +322,7 @@ const AdminReleases = () => {
                                     <label className="block text-sm font-medium text-slate-400 mb-1">Nom de la Release</label>
                                     <input
                                         type="text"
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                         value={editForm.name}
                                         onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                                     />
@@ -331,7 +331,7 @@ const AdminReleases = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-slate-400 mb-1">Description</label>
                                     <textarea
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all h-24 resize-none"
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all h-24 resize-none"
                                         value={editForm.description}
                                         onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                                     />
@@ -340,7 +340,7 @@ const AdminReleases = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-slate-400 mb-1">Statut</label>
                                     <select
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                         value={editForm.status}
                                         onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                                     >
@@ -353,7 +353,7 @@ const AdminReleases = () => {
                             <div className="flex justify-end gap-3 mt-8">
                                 <button
                                     onClick={resetForm}
-                                    className="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+                                    className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
                                 >
                                     Annuler
                                 </button>
@@ -379,14 +379,14 @@ const AdminReleases = () => {
                                 <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
                                     <Trash2 className="w-6 h-6 text-red-500" />
                                 </div>
-                                <h3 className="text-lg font-bold text-white mb-2">Supprimer la release</h3>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Supprimer la release</h3>
                                 <p className="text-slate-400 mb-6">
                                     Êtes-vous sûr de vouloir supprimer cette release ?
                                 </p>
                                 <div className="flex gap-3 w-full">
                                     <button
                                         onClick={() => setDeleteModal({ isOpen: false, releaseId: null })}
-                                        className="flex-1 px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+                                        className="flex-1 px-4 py-2 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
                                     >
                                         Annuler
                                     </button>

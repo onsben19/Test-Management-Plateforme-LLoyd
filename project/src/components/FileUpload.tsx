@@ -49,7 +49,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
 
   return (
     <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
-      <h3 className="text-lg font-semibold text-white mb-4">Import de Campagne</h3>
+      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Import de Campagne</h3>
       
       {!selectedFile ? (
         <div
@@ -63,7 +63,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
           onDrop={handleDrop}
         >
           <Upload className="mx-auto h-12 w-12 text-slate-400 mb-4" />
-          <p className="text-white font-medium mb-2">
+          <p className="text-slate-900 dark:text-white font-medium mb-2">
             Glissez-déposez votre fichier Excel ici
           </p>
           <p className="text-slate-400 text-sm mb-4">
@@ -88,7 +88,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
           <div className="flex items-center">
             <FileSpreadsheet className="h-8 w-8 text-green-400 mr-3" />
             <div>
-              <p className="text-white font-medium">{selectedFile.name}</p>
+              <p className="text-slate-900 dark:text-white font-medium">{selectedFile.name}</p>
               <p className="text-slate-400 text-sm">
                 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
               </p>

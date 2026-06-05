@@ -166,7 +166,7 @@ const AdminCampaigns = () => {
             header: t('adminCampaigns.table.title'),
             accessor: (item: any) => (
                 <div className="flex items-center gap-3">
-                    <span className="font-bold text-white group-hover:text-blue-400 transition-colors tracking-tight text-base">{item.title}</span>
+                    <span className="font-bold text-slate-900 dark:text-white group-hover:text-blue-400 transition-colors tracking-tight text-base">{item.title}</span>
                 </div>
             )
         },
@@ -192,7 +192,7 @@ const AdminCampaigns = () => {
             header: t('adminCampaigns.table.createdAt'),
             accessor: (item: any) => (
                 <div className="flex flex-col gap-0.5">
-                    <span className="text-slate-300 text-[11px] font-bold tracking-tight">{new Date(item.created_at).toLocaleDateString(t('common.dateLocale'))}</span>
+                    <span className="text-slate-700 dark:text-slate-300 text-[11px] font-bold tracking-tight">{new Date(item.created_at).toLocaleDateString(t('common.dateLocale'))}</span>
                     <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest italic opacity-60">Enregistré</span>
                 </div>
             )
@@ -253,7 +253,7 @@ const AdminCampaigns = () => {
                     filters={
                         <div className="flex items-center gap-4">
                             <select
-                                className="bg-transparent text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-white/5 transition-all rounded-xl"
+                                className="bg-transparent text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-slate-100 dark:bg-white/5 transition-all rounded-xl"
                                 value={businessProjectFilter}
                                 onChange={(e) => setBusinessProjectFilter(e.target.value)}
                             >
@@ -263,7 +263,7 @@ const AdminCampaigns = () => {
                                 ))}
                             </select>
                             <select
-                                className="bg-transparent text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-white/5 transition-all rounded-xl"
+                                className="bg-transparent text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-slate-100 dark:bg-white/5 transition-all rounded-xl"
                                 value={releaseFilter}
                                 onChange={(e) => setReleaseFilter(e.target.value)}
                             >
@@ -273,7 +273,7 @@ const AdminCampaigns = () => {
                                 ))}
                             </select>
                             <select
-                                className="bg-transparent text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-white/5 transition-all rounded-xl"
+                                className="bg-transparent text-slate-900 dark:text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-slate-100 dark:bg-white/5 transition-all rounded-xl"
                                 value={sortOrder}
                                 onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
                             >
@@ -286,14 +286,14 @@ const AdminCampaigns = () => {
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => handleEditClick(item)}
-                                className="p-2.5 bg-white/5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all"
+                                className="p-2.5 bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all"
                                 title={t('adminCampaigns.actions.edit')}
                             >
                                 <Edit className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => handleDeleteClick(item.id)}
-                                className="p-2.5 bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
+                                className="p-2.5 bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
                                 title={t('adminCampaigns.actions.delete')}
                             >
                                 <Trash2 className="w-4 h-4" />
@@ -320,16 +320,16 @@ const AdminCampaigns = () => {
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative w-full max-w-xl bg-[#0f172a] border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl"
+                            className="relative w-full max-w-xl bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-white/10 rounded-[3rem] overflow-hidden shadow-2xl"
                         >
-                            <div className="p-8 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-blue-600/10 to-transparent">
+                            <div className="p-8 border-b border-slate-200 dark:border-white/5 flex justify-between items-center bg-gradient-to-r from-blue-600/10 to-transparent">
                                 <div>
-                                    <h2 className="text-2xl font-black text-white tracking-widest uppercase">{t('adminCampaigns.modal.editTitle')}</h2>
+                                    <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-widest uppercase">{t('adminCampaigns.modal.editTitle')}</h2>
                                     <p className="text-[10px] font-black text-slate-500 mt-1 uppercase tracking-[0.2em]">Modifier les détails de la campagne</p>
                                 </div>
                                 <button
                                     onClick={() => setEditingCampaign(null)}
-                                    className="p-3 bg-white/5 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-all border border-white/5"
+                                    className="p-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:bg-white/10 rounded-full text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all border border-slate-200 dark:border-white/5"
                                 >
                                     <XCircle className="w-6 h-6" />
                                 </button>
@@ -342,7 +342,7 @@ const AdminCampaigns = () => {
                                         <BookOpen className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                                         <input
                                             type="text"
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-16 pr-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
+                                            className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl pl-16 pr-6 py-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
                                             value={editForm.title}
                                             onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
                                         />
@@ -352,16 +352,16 @@ const AdminCampaigns = () => {
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('adminCampaigns.modal.fieldDescription')}</label>
                                     <textarea
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold h-32 resize-none"
+                                        className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl px-6 py-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold h-32 resize-none"
                                         value={editForm.description}
                                         onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                                     />
                                 </div>
 
-                                <div className="flex items-center justify-end gap-5 pt-6 border-t border-white/5">
+                                <div className="flex items-center justify-end gap-5 pt-6 border-t border-slate-200 dark:border-white/5">
                                     <button
                                         onClick={() => setEditingCampaign(null)}
-                                        className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all"
+                                        className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-900 dark:hover:text-white transition-all"
                                     >
                                         {t('adminCampaigns.modal.cancel')}
                                     </button>

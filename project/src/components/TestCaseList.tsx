@@ -64,7 +64,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({ testCases, onRunTest, onPau
   return (
     <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl">
       <div className="px-6 py-4 border-b border-slate-700/50">
-        <h3 className="text-lg font-semibold text-white">Cas de Tests</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Cas de Tests</h3>
         <p className="text-slate-400 text-sm">{testCases.length} tests chargés</p>
       </div>
       
@@ -75,7 +75,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({ testCases, onRunTest, onPau
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
                   {getStatusIcon(testCase.status)}
-                  <h4 className="font-medium text-white truncate">{testCase.name}</h4>
+                  <h4 className="font-medium text-slate-900 dark:text-white truncate">{testCase.name}</h4>
                   <Badge color={getPriorityColor(testCase.priority)} variant="soft">
                     {testCase.priority}
                   </Badge>

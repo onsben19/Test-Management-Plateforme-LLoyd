@@ -103,8 +103,8 @@ const Analytics = () => {
                         title={isHistorySidebarOpen ? t('common.close') : t('common.open')}
                     >
                         {isHistorySidebarOpen
-                            ? <ChevronLeft className="w-4 h-4 text-white" />
-                            : <ChevronRight className="w-4 h-4 text-white" />
+                            ? <ChevronLeft className="w-4 h-4 text-slate-900 dark:text-white" />
+                            : <ChevronRight className="w-4 h-4 text-slate-900 dark:text-white" />
                         }
                     </button>
                 </div>

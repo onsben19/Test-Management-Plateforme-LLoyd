@@ -108,20 +108,20 @@ const AIAutomationModal: React.FC<AIAutomationModalProps> = ({ test, onClose, on
             <motion.div 
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="bg-[#0b0e14] border border-white/10 w-full max-w-4xl rounded-2xl overflow-hidden flex flex-col shadow-2xl max-h-[90vh]"
+                className="bg-slate-50 dark:bg-[#0b0e14] border border-slate-300 dark:border-white/10 w-full max-w-4xl rounded-2xl overflow-hidden flex flex-col shadow-2xl max-h-[90vh]"
             >
                 {/* Header */}
-                <div className="flex justify-between items-center p-6 border-b border-white/5">
+                <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-white/5">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
                             <Sparkles className="w-6 h-6 text-amber-400" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-white tracking-tight">Automatisation IA</h3>
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Automatisation IA</h3>
                             <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest font-bold">{test.name}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors bg-white/5 p-2 rounded-full hover:bg-white/10">
+                    <button onClick={onClose} className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors bg-slate-100 dark:bg-white/5 p-2 rounded-full hover:bg-slate-200 dark:bg-white/10">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -134,15 +134,15 @@ const AIAutomationModal: React.FC<AIAutomationModalProps> = ({ test, onClose, on
                                 <Sparkles className="w-10 h-10 text-amber-400 absolute animate-pulse" />
                             </div>
                             <div className="text-center max-w-lg">
-                                <h4 className="text-white font-bold text-lg mb-2">Générer le script d'automatisation</h4>
+                                <h4 className="text-slate-900 dark:text-white font-bold text-lg mb-2">Générer le script d'automatisation</h4>
                                 <p className="text-slate-400 text-sm leading-relaxed">
                                     Veuillez saisir ou coller les étapes et données de test (depuis votre fichier Excel) ci-dessous. L'Intelligence Artificielle va les analyser et générer un code exécutable Playwright.
                                 </p>
                             </div>
                             
-                            <div className="w-full max-w-2xl bg-slate-950 rounded-xl p-4 border border-white/5 focus-within:border-amber-500/30 transition-colors shadow-inner">
+                            <div className="w-full max-w-2xl bg-slate-950 rounded-xl p-4 border border-slate-200 dark:border-white/5 focus-within:border-amber-500/30 transition-colors shadow-inner">
                                 <textarea
-                                    className="w-full bg-transparent text-slate-300 text-sm outline-none resize-y min-h-[150px] custom-scrollbar placeholder-slate-600"
+                                    className="w-full bg-transparent text-slate-700 dark:text-slate-300 text-sm outline-none resize-y min-h-[150px] custom-scrollbar placeholder-slate-600"
                                     placeholder="Exemple:&#10;1. Aller sur la page de connexion&#10;2. Entrer l'email 'test@test.com'&#10;3. Vérifier que le bouton est actif..."
                                     value={manualData}
                                     onChange={(e) => setManualData(e.target.value)}
@@ -160,10 +160,10 @@ const AIAutomationModal: React.FC<AIAutomationModalProps> = ({ test, onClose, on
                     ) : (
                         <div className="flex flex-col gap-6">
                             <div className="flex items-center justify-between">
-                                <p className="text-slate-300 text-sm font-medium">Vous pouvez modifier le code généré avant de l'exécuter :</p>
+                                <p className="text-slate-700 dark:text-slate-300 text-sm font-medium">Vous pouvez modifier le code généré avant de l'exécuter :</p>
                                 <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[10px] uppercase font-black tracking-widest rounded-md border border-emerald-500/20">Playwright (TS)</span>
                             </div>
-                            <div className="bg-slate-950 rounded-xl p-6 border border-white/5 relative group focus-within:border-amber-500/30 transition-colors shadow-inner">
+                            <div className="bg-slate-950 rounded-xl p-6 border border-slate-200 dark:border-white/5 relative group focus-within:border-amber-500/30 transition-colors shadow-inner">
                                 <textarea 
                                     className="w-full bg-transparent text-amber-100 font-mono text-[13px] leading-relaxed outline-none resize-y min-h-[350px] custom-scrollbar"
                                     value={code}
@@ -173,7 +173,7 @@ const AIAutomationModal: React.FC<AIAutomationModalProps> = ({ test, onClose, on
                             </div>
                             
                             {executing && (
-                                <div className="p-4 rounded-xl border bg-slate-900 border-white/5 text-slate-300">
+                                <div className="p-4 rounded-xl border bg-slate-900 border-slate-200 dark:border-white/5 text-slate-700 dark:text-slate-300">
                                     <h4 className="font-bold text-sm mb-2 animate-pulse flex items-center gap-2 text-amber-400">
                                         <div className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
                                         Exécution en cours - Logs en direct...

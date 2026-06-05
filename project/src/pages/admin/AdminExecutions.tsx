@@ -176,22 +176,22 @@ const AdminExecutions = () => {
 
                 {/* Toolbar */}
                 <div className="px-8 py-4 shrink-0">
-                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 flex flex-col xl:flex-row items-center gap-6 shadow-2xl">
+                    <div className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-white/10 rounded-[2.5rem] p-6 flex flex-col xl:flex-row items-center gap-6 shadow-2xl">
                         <div className="relative flex-1 w-full group">
                             <input
                                 type="text"
                                 placeholder={t('adminExecutions.search')}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold placeholder-slate-500"
+                                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-[1.5rem] px-8 py-4 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold placeholder-slate-500"
                             />
                         </div>
                         <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
-                            <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-[1.5rem] border border-white/5 flex-1 xl:flex-none">
+                            <div className="flex items-center gap-3 bg-slate-100 dark:bg-white/5 p-1.5 rounded-[1.5rem] border border-slate-200 dark:border-white/5 flex-1 xl:flex-none">
                                 <select
                                     value={groupBy}
                                     onChange={(e) => setGroupBy(e.target.value as 'none' | 'campaign' | 'release' | 'project')}
-                                    className="bg-transparent text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none"
+                                    className="bg-transparent text-slate-900 dark:text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none"
                                 >
                                     <option value="none" className="bg-slate-900">{t('adminExecutions.controls.none')}</option>
                                     <option value="project" className="bg-slate-900">{t('adminExecutions.controls.project') || 'Par Projet'}</option>
@@ -200,11 +200,11 @@ const AdminExecutions = () => {
                                 </select>
                             </div>
 
-                            <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-[1.5rem] border border-white/5 flex-1 xl:flex-none">
+                            <div className="flex items-center gap-3 bg-slate-100 dark:bg-white/5 p-1.5 rounded-[1.5rem] border border-slate-200 dark:border-white/5 flex-1 xl:flex-none">
                                 <select
                                     value={sortOrder}
                                     onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                                    className="bg-transparent text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none"
+                                    className="bg-transparent text-slate-900 dark:text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none"
                                 >
                                     <option value="newest" className="bg-slate-900">RÉCENTS</option>
                                     <option value="oldest" className="bg-slate-900">ANCIENS</option>
@@ -222,7 +222,7 @@ const AdminExecutions = () => {
                                 header: 'TEST & CAMPAGNE',
                                 accessor: (item: TestItem) => (
                                     <div className="flex flex-col gap-1">
-                                        <span className="text-base font-bold text-white tracking-tight">{item.name}</span>
+                                        <span className="text-base font-bold text-slate-900 dark:text-white tracking-tight">{item.name}</span>
                                         <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest opacity-60">{item.module}</span>
                                     </div>
                                 )
@@ -231,7 +231,7 @@ const AdminExecutions = () => {
                                 header: 'PROJET & RELEASE',
                                 accessor: (item: TestItem) => (
                                     <div className="flex flex-col gap-1.5">
-                                        <span className="text-[11px] font-black text-white uppercase tracking-widest">{item.businessProject || 'GLOBAL'}</span>
+                                        <span className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest">{item.businessProject || 'GLOBAL'}</span>
                                         <div className="flex items-center gap-2 text-slate-500">
                                             <span className="text-[10px] font-bold uppercase tracking-widest">{item.release}</span>
                                             {item.releaseType && (
@@ -245,7 +245,7 @@ const AdminExecutions = () => {
                             },
                             {
                                 header: 'RÉALISÉ PAR',
-                                accessor: (item: TestItem) => <span className="text-xs font-bold text-white tracking-tight">{item.realized_by}</span>
+                                accessor: (item: TestItem) => <span className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">{item.realized_by}</span>
                             },
                             {
                                 header: 'CAPTURES',
@@ -276,7 +276,7 @@ const AdminExecutions = () => {
                                 header: 'DATE',
                                 accessor: (item: TestItem) => (
                                     <div className="flex flex-col">
-                                        <span className="text-slate-300 text-[10px] font-bold tracking-tight">{item.lastRun.split(' ')[0]}</span>
+                                        <span className="text-slate-700 dark:text-slate-300 text-[10px] font-bold tracking-tight">{item.lastRun.split(' ')[0]}</span>
                                         <span className="text-slate-500 text-[9px] font-bold uppercase tracking-widest opacity-60 italic">{item.lastRun.split(' ')[1]}</span>
                                     </div>
                                 )

@@ -576,7 +576,7 @@ const ManagerDashboard = () => {
                     {activeTab === 'projects' && (
                         <div className="space-y-8">
                             {/* Group Mode Switcher */}
-                            <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/10 w-fit">
+                            <div className="flex items-center gap-3 bg-slate-100 dark:bg-white/5 p-1.5 rounded-2xl border border-slate-300 dark:border-white/10 w-fit">
                                 <button
                                     onClick={() => setGroupMode('project')}
                                     className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all ${groupMode === 'project' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:text-white'}`}
@@ -646,7 +646,7 @@ const ManagerDashboard = () => {
                                 if (releasesToShow.length === 0 || filteredData.filteredCamps.length === 0) {
                                     return (
                                         <div className="py-24 bg-white dark:bg-white/[0.02] border border-dashed border-slate-200 dark:border-white/10 rounded-[3rem] flex flex-col items-center gap-4">
-                                            <Layers className="w-12 h-12 text-slate-200 dark:text-white/10" />
+                                            <Layers className="w-12 h-12 text-slate-800 dark:text-slate-200 dark:text-white/10" />
                                             <p className="text-slate-400 font-bold">Aucune campagne disponible</p>
                                         </div>
                                     );
@@ -694,15 +694,15 @@ const ManagerDashboard = () => {
                         <div className="space-y-8">
                             {/* Campaign Selector for Real-time */}
                             {filteredData.filteredCamps.length > 1 && (
-                                <div className="flex items-center gap-4 bg-white/5 border border-white/5 p-4 rounded-3xl max-w-md">
+                                <div className="flex items-center gap-4 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 p-4 rounded-3xl max-w-md">
                                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-2">Superviser :</span>
                                     <select
                                         value={realtimeCampaignId || ''}
                                         onChange={(e) => setRealtimeCampaignId(Number(e.target.value))}
-                                        className="bg-transparent text-sm font-black text-white focus:outline-none flex-1 cursor-pointer"
+                                        className="bg-transparent text-sm font-black text-slate-900 dark:text-white focus:outline-none flex-1 cursor-pointer"
                                     >
                                         {filteredData.filteredCamps.map((c: any) => (
-                                            <option key={c.id} value={c.id} className="bg-slate-900 text-white">
+                                            <option key={c.id} value={c.id} className="bg-slate-900 text-slate-900 dark:text-white">
                                                 {c.title}
                                             </option>
                                         ))}
@@ -714,7 +714,7 @@ const ManagerDashboard = () => {
                                 <ManagerRealtimeDashboard campaignId={realtimeCampaignId} />
                             ) : (
                                 <div className="py-20 text-center">
-                                    <Activity className="w-10 h-10 text-slate-200 dark:text-white/10 mx-auto mb-3" />
+                                    <Activity className="w-10 h-10 text-slate-800 dark:text-slate-200 dark:text-white/10 mx-auto mb-3" />
                                     <p className="text-slate-400 font-bold text-sm">Veuillez sélectionner une campagne pour voir le live</p>
                                 </div>
                             )}
@@ -746,7 +746,7 @@ const ManagerDashboard = () => {
                         >
                             <button
                                 onClick={() => setIsCatchupPlanOpen(false)}
-                                className="absolute -top-12 right-0 text-white/50 hover:text-white transition-colors"
+                                className="absolute -top-12 right-0 text-slate-900 dark:text-white/50 hover:text-slate-900 dark:hover:text-white transition-colors"
                             >
                                 <X className="w-8 h-8" />
                             </button>

@@ -18,7 +18,7 @@ export default defineConfig({
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
     launchOptions: {
-      slowMo: 1000, // ← 1 seconde entre chaque action (modifier selon vos besoins)
+      slowMo: 0, // ← 0 pour une exécution immédiate (mettre 500 ou 1000 pour ralentir la démo)
     },
   },
 

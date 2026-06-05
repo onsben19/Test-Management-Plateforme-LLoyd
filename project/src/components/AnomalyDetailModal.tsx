@@ -59,14 +59,14 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                 initial={{ opacity: 0, scale: 0.9, y: 30 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 30 }}
-                className="relative w-full max-w-2xl bg-[#0f172a] border border-white/10 rounded-[3rem] overflow-hidden shadow-[0_32px_128px_rgba(0,0,0,0.8)]"
+                className="relative w-full max-w-2xl bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-white/10 rounded-[3rem] overflow-hidden shadow-[0_32px_128px_rgba(0,0,0,0.8)]"
             >
                 {/* Header Backdrop Pattern */}
                 <div className={`absolute top-0 left-0 right-0 h-48 ${styles.bg} opacity-20`} />
 
                 <div className="relative">
                     {/* Header */}
-                    <div className="p-8 border-b border-white/5 flex justify-between items-start">
+                    <div className="p-8 border-b border-slate-200 dark:border-white/5 flex justify-between items-start">
                         <div className="space-y-3">
                             <div className="flex items-center gap-2">
                                 <div className={`px-3 py-0.5 rounded-md ${styles.bg} ${styles.color} border ${styles.border} text-[10px] font-bold uppercase tracking-wider`}>
@@ -75,17 +75,17 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                                 <div className="px-3 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold uppercase tracking-wider">
                                     {anomaly.priority} Priority
                                 </div>
-                                <div className={`px-3 py-0.5 rounded-md bg-white/5 text-slate-400 border border-white/10 text-[10px] font-bold uppercase tracking-wider`}>
+                                <div className={`px-3 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 text-slate-400 border border-slate-300 dark:border-white/10 text-[10px] font-bold uppercase tracking-wider`}>
                                     {anomaly.visibility}
                                 </div>
                             </div>
-                            <h2 className="text-3xl font-black text-white tracking-tight leading-tight max-w-2xl break-words">
+                            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-tight max-w-2xl break-words">
                                 {anomaly.title.length > 150 ? anomaly.title.substring(0, 150) + '...' : anomaly.title}
                             </h2>
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white transition-all border border-white/5"
+                            className="p-2.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:bg-white/10 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all border border-slate-200 dark:border-white/5"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -95,22 +95,22 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                     <div className="p-8 space-y-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
                         {/* Summary Section */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center gap-4">
+                            <div className="bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl p-4 flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
                                     <Calendar className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Date Signalée</p>
-                                    <p className="text-sm font-bold text-white">{new Date(anomaly.created_at).toLocaleString()}</p>
+                                    <p className="text-sm font-bold text-slate-900 dark:text-white">{new Date(anomaly.created_at).toLocaleString()}</p>
                                 </div>
                             </div>
-                            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center gap-4">
+                            <div className="bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl p-4 flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
                                     <User className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Rapporteur</p>
-                                    <p className="text-sm font-bold text-white">{anomaly.author_name || anomaly.author_username || "Auditeur Système"}</p>
+                                    <p className="text-sm font-bold text-slate-900 dark:text-white">{anomaly.author_name || anomaly.author_username || "Auditeur Système"}</p>
                                 </div>
                             </div>
                         </div>
@@ -123,11 +123,11 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
 
                             {/* Message d'erreur interprété */}
                             {descMessage ? (
-                                <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-5 leading-relaxed text-slate-300 text-sm shadow-inner">
+                                <div className="bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl p-5 leading-relaxed text-slate-700 dark:text-slate-300 text-sm shadow-inner">
                                     {descMessage}
                                 </div>
                             ) : (
-                                <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-5 italic text-slate-500 text-sm">
+                                <div className="bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl p-5 italic text-slate-500 text-sm">
                                     Aucune description détaillée n'a été fournie.
                                 </div>
                             )}
@@ -144,7 +144,7 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                                             {showFullLogs ? 'Réduire' : 'Voir les logs'}
                                         </button>
                                     </div>
-                                    <pre className={`bg-slate-950 border border-white/5 rounded-2xl p-4 text-[11px] text-slate-400 font-mono leading-relaxed whitespace-pre-wrap break-words overflow-auto transition-all ${showFullLogs ? 'max-h-[400px]' : 'max-h-20'}`}>
+                                    <pre className={`bg-slate-950 border border-slate-200 dark:border-white/5 rounded-2xl p-4 text-[11px] text-slate-400 font-mono leading-relaxed whitespace-pre-wrap break-words overflow-auto transition-all ${showFullLogs ? 'max-h-[400px]' : 'max-h-20'}`}>
                                         {descLogs}
                                     </pre>
                                 </div>
@@ -158,7 +158,7 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                                     <ShieldAlert className="w-4 h-4" />
                                     <h4 className="text-[10px] font-black uppercase tracking-widest">Preuve de l'Anomalie</h4>
                                 </div>
-                                <div className="relative rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl group/img">
+                                <div className="relative rounded-[2rem] overflow-hidden border border-slate-300 dark:border-white/10 shadow-2xl group/img">
                                     <img
                                         src={anomaly.proofImage}
                                         alt="Preuve"
@@ -169,7 +169,7 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                                             href={anomaly.proofImage}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="px-6 py-3 bg-white/10 backdrop-blur-md rounded-xl text-white text-[10px] font-black uppercase tracking-widest border border-white/20 hover:bg-white/20 transition-all flex items-center gap-2"
+                                            className="px-6 py-3 bg-slate-200 dark:bg-white/10 backdrop-blur-md rounded-xl text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-widest border border-slate-400 dark:border-white/20 hover:bg-slate-300 dark:bg-white/20 transition-all flex items-center gap-2"
                                         >
                                             <ExternalLink size={14} />
                                             Ouvrir en plein écran
@@ -195,8 +195,16 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                                         ↓ Télécharger
                                     </a>
                                 </div>
-                                <pre className="bg-slate-950 border border-amber-500/20 rounded-2xl p-5 text-xs text-slate-300 font-mono leading-relaxed whitespace-pre-wrap break-words overflow-auto max-h-64">
-                                    {anomaly.playwright_script}
+                                <pre className="bg-slate-950 border border-amber-500/20 rounded-2xl p-5 text-xs text-slate-700 dark:text-slate-300 font-mono leading-relaxed whitespace-pre-wrap break-words overflow-auto max-h-64">
+                                    <span dangerouslySetInnerHTML={{ __html: 
+                                        anomaly.playwright_script
+                                        .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                                        .replace(/\b(import|from|const|let|var|await|async|function|return|if|else|for|while|try|catch)\b/g, '<span class=text-pink-400>$1</span>')
+                                        .replace(/\b(test|expect|page|locator|click|fill|goto|toBeVisible|toContainText|first|catch|timeout|Promise|all)\b/g, '<span class=text-blue-400>$1</span>')
+                                        .replace(/(['"`])(.*?)\1/g, '<span class=text-emerald-400>$&</span>')
+                                        .replace(/([{}()\[\]])/g, '<span class=text-amber-400>$1</span>')
+                                        .replace(/(?<!-)\b(\d+)\b/g, '<span class=text-purple-400>$1</span>')
+                                    }} />
                                 </pre>
                             </div>
                         )}
@@ -209,13 +217,13 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                                     <h4 className="text-[10px] font-black uppercase tracking-widest">Localisation</h4>
                                 </div>
                                 <div className="space-y-3">
-                                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                                    <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/5">
                                         <span className="text-[11px] font-bold text-slate-500">Release</span>
                                         <span className="text-[11px] font-black text-white px-3 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20">{anomaly.release}</span>
                                     </div>
-                                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                                    <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/5">
                                         <span className="text-[11px] font-bold text-slate-500">Campagne</span>
-                                        <span className="text-[11px] font-black text-slate-300">{anomaly.campaign}</span>
+                                        <span className="text-[11px] font-black text-slate-700 dark:text-slate-300">{anomaly.campaign}</span>
                                     </div>
                                 </div>
                             </div>
@@ -235,12 +243,12 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Test Exécution</p>
-                                            <p className="text-sm font-bold text-white truncate">{anomaly.relatedTest}</p>
+                                            <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{anomaly.relatedTest}</p>
                                         </div>
                                         <ExternalLink className="w-4 h-4 text-blue-500 group-hover:translate-x-1 transition-transform" />
                                     </Link>
                                 ) : (
-                                    <div className="p-4 bg-white/5 border border-dashed border-white/10 rounded-2xl text-center">
+                                    <div className="p-4 bg-slate-100 dark:bg-white/5 border border-dashed border-slate-300 dark:border-white/10 rounded-2xl text-center">
                                         <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">Aucun test lié</p>
                                     </div>
                                 )}
@@ -249,10 +257,10 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="p-8 border-t border-white/5 bg-white/[0.01] flex items-center justify-end gap-4">
+                    <div className="p-8 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.01] flex items-center justify-end gap-4">
                         <button
                             onClick={onClose}
-                            className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all"
+                            className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-900 dark:hover:text-white transition-all"
                         >
                             Fermer
                         </button>

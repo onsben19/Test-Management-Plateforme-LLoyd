@@ -45,7 +45,7 @@ const Sidebar = () => {
         { name: t('sidebar.items.comments'), href: '/admin/comments', icon: MessageSquare, roles: ['ADMIN'] },
         { name: t('sidebar.items.messages'), href: '/messages', icon: Mail, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
         { name: t('sidebar.items.chat'), href: '/chat', icon: MessageSquare, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
-        { name: 'Intelligence Hub', href: '/qa-intelligence', icon: Wand2, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+        { name: 'Veille & Innovations IA', href: '/qa-intelligence', icon: Wand2, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
         { name: t('sidebar.items.aiAnalytics'), href: '/analytics', icon: Sparkles, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
       ]
 
@@ -78,7 +78,7 @@ const Sidebar = () => {
                 className={`relative group flex items-center h-11 px-3 rounded-xl transition-all duration-300 ease-out ${isOpen ? '' : 'justify-center mx-auto'
                   } ${isActive
                     ? 'bg-blue-600/15 text-blue-500 shadow-[inset_0_1px_rgba(255,255,255,0.05),0_10px_20px_-10px_rgba(37,99,235,0.3)]'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 active:scale-95'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95'
                   }`}
               >
                 {/* Active Indicator Bar */}

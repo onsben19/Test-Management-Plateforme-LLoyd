@@ -13,6 +13,27 @@ import ReadinessGauge from '../components/ReadinessGauge';
 import ReadinessDetailModal from '../components/ReadinessDetailModal';
 import { aiService } from '../services/api';
 import { Award, Info, XCircle } from 'lucide-react';
+
+// --- Composant réutilisable : description extensible ---
+const ExpandableDescription = ({ text, maxChars = 90, emptyLabel = 'Aucune description.' }: { text?: string; maxChars?: number; emptyLabel?: string }) => {
+    const [expanded, setExpanded] = useState(false);
+    if (!text) return <span className="italic opacity-50 text-xs">{emptyLabel}</span>;
+    const isLong = text.length > maxChars;
+    return (
+        <span>
+            {expanded || !isLong ? text : text.slice(0, maxChars) + '…'}
+            {isLong && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
+                    className="ml-1.5 text-blue-400 hover:text-blue-300 text-[11px] font-black uppercase tracking-widest transition-colors"
+                >
+                    {expanded ? 'Réduire' : 'Lire la suite'}
+                </button>
+            )}
+        </span>
+    );
+};
+
 import Button from '../components/ui/Button';
 
 const ReleaseManager = () => {
@@ -236,7 +257,7 @@ const ReleaseManager = () => {
                             placeholder={t('releaseManager.searchPlaceholder')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="flex-1 bg-transparent border-none text-sm text-white focus:ring-0 outline-none placeholder-slate-400"
+                            className="flex-1 bg-transparent border-none text-sm text-slate-900 dark:text-white focus:ring-0 outline-none placeholder-slate-400"
                         />
                     </div>
 
@@ -246,10 +267,10 @@ const ReleaseManager = () => {
                         <select
                             value={sortOrder}
                             onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                            className="bg-transparent text-white text-xs font-bold outline-none cursor-pointer appearance-none uppercase tracking-widest"
+                            className="bg-transparent text-slate-900 dark:text-white text-xs font-bold outline-none cursor-pointer appearance-none uppercase tracking-widest"
                         >
-                            <option value="newest" className="bg-slate-900 text-white">{t('releaseManager.sort.newest')}</option>
-                            <option value="oldest" className="bg-slate-900 text-white">{t('releaseManager.sort.oldest')}</option>
+                            <option value="newest" className="bg-slate-900 text-slate-900 dark:text-white">{t('releaseManager.sort.newest')}</option>
+                            <option value="oldest" className="bg-slate-900 text-slate-900 dark:text-white">{t('releaseManager.sort.oldest')}</option>
                         </select>
                     </div>
 
@@ -265,7 +286,7 @@ const ReleaseManager = () => {
                                 onClick={() => setActiveReleaseType(tab.id as any)}
                                 className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${activeReleaseType === tab.id
                                     ? 'bg-blue-500 text-white'
-                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                    : 'text-slate-400 hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
                                     }`}
                             >
                                 {tab.label}
@@ -279,7 +300,7 @@ const ReleaseManager = () => {
                     <AnimatePresence mode="popLayout">
                         {loading && releases.length === 0 ? (
                             [1, 2, 3, 4].map(i => (
-                                <div key={i} className="h-64 bg-white/5 rounded-[2.5rem] animate-pulse border border-white/10" />
+                                <div key={i} className="h-64 bg-slate-100 dark:bg-white/5 rounded-[2.5rem] animate-pulse border border-slate-300 dark:border-white/10" />
                             ))
                         ) : releases.length === 0 ? (
                             <div className="col-span-full py-40 text-center opacity-30">
@@ -293,7 +314,7 @@ const ReleaseManager = () => {
                                     initial={{ opacity: 0, y: 30 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.5, delay: idx * 0.05 }}
-                                    className="group relative bg-[#0f1729]/80 backdrop-blur-xl hover:bg-[#131c31] border border-white/5 hover:border-blue-500/30 rounded-[2.5rem] p-8 overflow-hidden shadow-xl hover:shadow-[0_15px_40px_-10px_rgba(59,130,246,0.15)] cursor-pointer transition-all duration-500"
+                                    className="group relative bg-slate-50 dark:bg-[#0f1729]/80 backdrop-blur-xl hover:bg-slate-50 dark:hover:bg-[#131c31] border border-slate-200 dark:border-white/5 hover:border-blue-500/30 rounded-[2.5rem] p-8 overflow-hidden shadow-xl hover:shadow-[0_15px_40px_-10px_rgba(59,130,246,0.15)] transition-all duration-500"
                                 >
                                     {/* Subtle ambient glow */}
                                     <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
@@ -317,7 +338,7 @@ const ReleaseManager = () => {
                                                         <div className="p-3 space-y-1">
                                                             <button
                                                                 onClick={() => handleEditClick(release)}
-                                                                className="w-full flex items-center gap-3 px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-all"
+                                                                className="w-full flex items-center gap-3 px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10 rounded-2xl transition-all"
                                                             >
                                                                 <Edit className="w-4 h-4 text-blue-600 dark:text-blue-500/70" />
                                                                 {t('releaseManager.menu.edit')}
@@ -328,7 +349,7 @@ const ReleaseManager = () => {
                                                                 <button
                                                                     key={status}
                                                                     onClick={() => handleStatusChange(release, status)}
-                                                                    className={`w-full flex items-center gap-3 px-6 py-3 text-[9px] font-black uppercase tracking-widest rounded-2xl transition-all ${release.status === status ? (status === 'ACTIVE' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/5' : 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/5') : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                                                                    className={`w-full flex items-center gap-3 px-6 py-3 text-[9px] font-black uppercase tracking-widest rounded-2xl transition-all ${release.status === status ? (status === 'ACTIVE' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/5' : 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/5') : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/10'}`}
                                                                 >
                                                                     <Activity className={`w-3.5 h-3.5 ${release.status === status ? 'animate-pulse' : 'opacity-40'}`} />
                                                                     {getStatusLabel(status)}
@@ -358,7 +379,7 @@ const ReleaseManager = () => {
                                                     {getStatusLabel(release.status)}
                                                 </span>
                                                 {release.release_type && (
-                                                    <span className="inline-flex items-center px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                                                    <span className="inline-flex items-center px-3 py-1 bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-full text-[8px] font-black text-slate-400 uppercase tracking-widest">
                                                         {release.release_type}
                                                     </span>
                                                 )}
@@ -370,8 +391,12 @@ const ReleaseManager = () => {
                                             <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white mb-2 group-hover:text-blue-400 transition-colors tracking-tight truncate uppercase">
                                                 {release.name}
                                             </h3>
-                                            <p className="text-slate-400 text-sm font-medium leading-relaxed line-clamp-2 h-10">
-                                                {release.description || <span className="italic opacity-60">Aucune description</span>}
+                                             <p className="text-slate-400 text-sm font-medium leading-relaxed min-h-[2.5rem]">
+                                                <ExpandableDescription
+                                                    text={release.description}
+                                                    maxChars={90}
+                                                    emptyLabel="Aucune description"
+                                                />
                                             </p>
                                         </div>
 
@@ -406,24 +431,24 @@ const ReleaseManager = () => {
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-3 mb-10 relative z-10">
-                                            <div className="p-4 bg-white/[0.02] group-hover:bg-white/[0.04] transition-colors border border-white/5 rounded-2xl flex flex-col justify-between">
+                                            <div className="p-4 bg-slate-50 dark:bg-white/[0.02] group-hover:bg-slate-50 dark:group-hover:bg-white/[0.04] transition-colors border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <Calendar className="w-3.5 h-3.5 text-emerald-400" />
                                                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Créé le</p>
                                                 </div>
                                                 <div className="flex items-baseline gap-1.5">
-                                                    <p className="text-xl font-black text-white leading-tight uppercase tracking-tighter">
+                                                    <p className="text-xl font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter">
                                                         {new Date(release.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }).replace('.', '')}
                                                     </p>
                                                     <p className="text-xs text-slate-500 font-bold">{new Date(release.created_at).getFullYear()}</p>
                                                 </div>
                                             </div>
-                                            <div className="p-4 bg-white/[0.02] group-hover:bg-white/[0.04] transition-colors border border-white/5 rounded-2xl flex flex-col justify-between">
+                                            <div className="p-4 bg-slate-50 dark:bg-white/[0.02] group-hover:bg-slate-50 dark:group-hover:bg-white/[0.04] transition-colors border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <BookOpen className="w-3.5 h-3.5 text-blue-400" />
                                                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Campagnes</p>
                                                 </div>
-                                                <p className="text-2xl font-black text-white">{release.campaign_count || 1}</p>
+                                                <p className="text-2xl font-black text-slate-900 dark:text-white">{release.campaign_count || 1}</p>
                                             </div>
                                         </div>
 

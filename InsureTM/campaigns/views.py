@@ -16,11 +16,15 @@ from rest_framework.response import Response
 
 logger = logging.getLogger(__name__)
 
+from rest_framework import viewsets, filters
 
 class CampaignViewSet(viewsets.ModelViewSet):
     serializer_class = CampaignSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser)
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['created_at', 'start_date', 'estimated_end_date']
+    ordering = ['-created_at']
 
     def get_queryset(self):
         queryset = Campaign.objects.all()
@@ -34,14 +38,22 @@ class CampaignViewSet(viewsets.ModelViewSet):
 
         project_id = self.request.query_params.get('project')
         search = self.request.query_params.get('search')
+        tester = self.request.query_params.get('tester')
+        release_type = self.request.query_params.get('release_type')
 
         if project_id:
             queryset = queryset.filter(project_id=project_id)
 
         if search:
             queryset = queryset.filter(Q(title__icontains=search) | Q(description__icontains=search))
+            
+        if tester:
+            queryset = queryset.filter(assigned_testers__username__icontains=tester)
+            
+        if release_type and release_type != 'all':
+            queryset = queryset.filter(release_type=release_type)
 
-        return queryset
+        return queryset.distinct()
 
     def perform_create(self, serializer):
         instance = serializer.save(imported_by=self.request.user)

@@ -40,7 +40,7 @@ const AdminTable = <T extends { id?: string | number }>({
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 {title && (
                     <div className="space-y-1">
-                        <h2 className="text-2xl font-bold text-white tracking-tight">
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
                             {title}
                         </h2>
                         <p className="text-slate-500 text-sm">
@@ -60,20 +60,20 @@ const AdminTable = <T extends { id?: string | number }>({
 
             {/* Search and Filter Bar - Glassmorphism */}
             {(searchable || filters) && (
-                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 flex flex-col md:flex-row items-center gap-6 shadow-2xl">
+                <div className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-white/10 rounded-[2.5rem] p-6 flex flex-col md:flex-row items-center gap-6 shadow-2xl">
                     {searchable && (
                         <div className="relative flex-1 w-full group">
                             <input
                                 type="text"
                                 placeholder="Rechercher..."
-                                className="w-full bg-white/5 border border-white/10 rounded-[1.5rem] px-8 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder-slate-500"
+                                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-[1.5rem] px-8 py-4 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder-slate-500"
                                 onChange={(e) => onSearch && onSearch(e.target.value)}
                             />
                         </div>
                     )}
                     {filters && (
                         <div className="flex items-center gap-4 w-full md:w-auto">
-                            <div className="flex items-center gap-3 bg-white/5 p-2 rounded-[1.5rem] border border-white/5">
+                            <div className="flex items-center gap-3 bg-slate-100 dark:bg-white/5 p-2 rounded-[1.5rem] border border-slate-200 dark:border-white/5">
                                 {filters}
                             </div>
                         </div>
@@ -105,12 +105,12 @@ const AdminTable = <T extends { id?: string | number }>({
                             Array.from({ length: 5 }).map((_, i) => (
                                 <tr key={i} className="animate-pulse">
                                     {columns.map((_, idx) => (
-                                        <td key={idx} className="px-8 py-5 bg-[#0b0e14]/40 first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-white/[0.02]">
+                                        <td key={idx} className="px-8 py-5 bg-slate-50 dark:bg-[#0b0e14]/40 first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.02]">
                                             <div className="h-4 bg-slate-700/50 rounded-full w-full" />
                                         </td>
                                     ))}
                                     {actions && (
-                                        <td className="px-8 py-5 bg-[#0b0e14]/40 first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-white/[0.02]">
+                                        <td className="px-8 py-5 bg-slate-50 dark:bg-[#0b0e14]/40 first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.02]">
                                             <div className="h-8 bg-slate-700/50 rounded-lg w-20 ml-auto" />
                                         </td>
                                     )}
@@ -118,7 +118,7 @@ const AdminTable = <T extends { id?: string | number }>({
                             ))
                         ) : data.length === 0 ? (
                             <tr>
-                                <td colSpan={columns.length + (actions ? 1 : 0)} className="px-8 py-12 text-center text-slate-500 bg-[#0b0e14]/40 rounded-2xl border border-white/[0.02]">
+                                <td colSpan={columns.length + (actions ? 1 : 0)} className="px-8 py-12 text-center text-slate-500 bg-slate-50 dark:bg-[#0b0e14]/40 rounded-2xl border border-slate-200 dark:border-white/[0.02]">
                                     Aucune donnée disponible.
                                 </td>
                             </tr>
@@ -132,7 +132,7 @@ const AdminTable = <T extends { id?: string | number }>({
                                     {columns.map((col, colIdx) => (
                                         <td
                                             key={colIdx}
-                                            className="px-8 py-5 text-sm text-slate-300 bg-[#0b0e14]/60 group-hover:bg-white/[0.02] transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-white/[0.03] group-hover:border-white/[0.05]"
+                                            className="px-8 py-5 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-50 dark:bg-white/[0.02] transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-200 dark:border-white/[0.05]"
                                         >
                                             {typeof col.accessor === 'function'
                                                 ? col.accessor(item)
@@ -140,7 +140,7 @@ const AdminTable = <T extends { id?: string | number }>({
                                         </td>
                                     ))}
                                     {actions && (
-                                        <td className="px-8 py-5 text-right bg-[#0b0e14]/60 group-hover:bg-white/[0.02] transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-white/[0.03] group-hover:border-white/[0.05]">
+                                        <td className="px-8 py-5 text-right bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-50 dark:bg-white/[0.02] transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-200 dark:border-white/[0.05]">
                                             <div className="flex justify-end gap-2">
                                                 {actions(item)}
                                             </div>

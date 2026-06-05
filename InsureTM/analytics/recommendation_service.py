@@ -1,4 +1,5 @@
 import logging
+import math
 from datetime import date, timedelta
 from django.utils import timezone
 from django.contrib.auth import get_user_model
@@ -124,7 +125,6 @@ class CatchupRecommendationManager:
                 num_to_assign = min(2, len(potential_reinforcements))
                 for i in range(num_to_assign):
                     tester = potential_reinforcements[i]
-                    import math
                     extra = math.ceil(delta_velocity / num_to_assign)
                     tester['recommended_extra'] = extra
                     tester['status'] = 'RECOMMENDED'
