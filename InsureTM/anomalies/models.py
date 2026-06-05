@@ -19,6 +19,7 @@ class Anomalie(models.Model):
     description = models.TextField()
     # Impact (anciennement criticité) avec choix étendus
     IMPACT_CHOICES = [
+        ('A_DEFINIR', 'À définir'),
         ('FONCTIONNALITE', 'Fonctionnalité'),
         ('SIMPLE', 'Simple'),
         ('TEXTE', 'Texte'),
@@ -31,11 +32,12 @@ class Anomalie(models.Model):
     impact = models.CharField(
         max_length=20, 
         choices=IMPACT_CHOICES,
-        default='MINEURS'
+        default='A_DEFINIR'
     )
     
     # Priorité
     PRIORITE_CHOICES = [
+        ('A_DEFINIR', 'À définir'),
         ('NORMALE', 'Normale'),
         ('BASSE', 'Basse'),
         ('ELEVEE', 'Élevée'),
@@ -45,7 +47,7 @@ class Anomalie(models.Model):
     priorite = models.CharField(
         max_length=20, 
         choices=PRIORITE_CHOICES,
-        default='NORMALE'
+        default='A_DEFINIR'
     )
     
     # Visibilité
@@ -67,10 +69,36 @@ class Anomalie(models.Model):
     
     # Preuve visuelle (Capture d'écran ou fichier)
     preuve_image = models.FileField(upload_to='anomalies/preuves/%Y/%m/%d/', blank=True, null=True)
+    preuve_hash = models.CharField(max_length=64, blank=True, null=True, db_index=True)
     
     # Traçabilité du testeur
     cree_par = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     cree_le = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.preuve_image:
+            import hashlib
+            hasher = hashlib.sha256()
+            try:
+                opened_here = False
+                if self.preuve_image.closed:
+                    self.preuve_image.open('rb')
+                    opened_here = True
+                else:
+                    self.preuve_image.seek(0)
+                
+                for chunk in self.preuve_image.chunks():
+                    hasher.update(chunk)
+                
+                self.preuve_hash = hasher.hexdigest()
+                
+                if opened_here:
+                    self.preuve_image.close()
+            except Exception:
+                pass
+        else:
+            self.preuve_hash = None
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Bug: {self.titre} (Test: {self.test_case.test_case_ref})"

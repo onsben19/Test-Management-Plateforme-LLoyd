@@ -12,6 +12,25 @@ interface AnomalyDetailModalProps {
 const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClose }) => {
     const { t } = useTranslation();
     const [showFullDesc, setShowFullDesc] = React.useState(false);
+    const [showFullLogs, setShowFullLogs] = React.useState(false);
+
+    // Sépare automatiquement le message d'erreur des logs bruts Playwright
+    const parseDescription = (desc: string | undefined) => {
+        if (!desc) return { message: null, logs: null };
+        const logMarkers = ['--- LOGS', 'Running 1 test', 'Running 0 test', '\n✘', '\n1 failed', '\n1 passed'];
+        for (const marker of logMarkers) {
+            const idx = desc.indexOf(marker);
+            if (idx > 0) {
+                return {
+                    message: desc.slice(0, idx).trim() || null,
+                    logs: desc.slice(idx).trim()
+                };
+            }
+        }
+        return { message: desc, logs: null };
+    };
+
+    const { message: descMessage, logs: descLogs } = parseDescription(anomaly.description);
 
     if (!anomaly) return null;
 
@@ -97,20 +116,39 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                         </div>
 
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-slate-400">
-                                    <FileText className="w-4 h-4" />
-                                    <h4 className="text-[10px] font-black uppercase tracking-widest">Détails de l'Anomalie</h4>
+                            <div className="flex items-center gap-2 text-slate-400">
+                                <FileText className="w-4 h-4" />
+                                <h4 className="text-[10px] font-black uppercase tracking-widest">Détails de l'Anomalie</h4>
+                            </div>
+
+                            {/* Message d'erreur interprété */}
+                            {descMessage ? (
+                                <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-5 leading-relaxed text-slate-300 text-sm shadow-inner">
+                                    {descMessage}
                                 </div>
-                                {anomaly.description && anomaly.description.length > 200 && (
-                                    <button onClick={() => setShowFullDesc(!showFullDesc)} className="text-[10px] font-black uppercase tracking-widest text-blue-500 hover:text-blue-400">
-                                        {showFullDesc ? 'Réduire' : 'Lire plus'}
-                                    </button>
-                                )}
-                            </div>
-                            <div className={`bg-white/[0.03] border border-white/5 rounded-3xl p-6 italic leading-relaxed text-slate-300 text-base shadow-inner overflow-y-auto transition-all ${showFullDesc ? 'max-h-[500px]' : 'max-h-32'}`}>
-                                {anomaly.description || "Aucune description détaillée n'a été fournie pour cette anomalie."}
-                            </div>
+                            ) : (
+                                <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-5 italic text-slate-500 text-sm">
+                                    Aucune description détaillée n'a été fournie.
+                                </div>
+                            )}
+
+                            {/* Logs bruts Playwright — section séparée */}
+                            {descLogs && (
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Logs d'Exécution</span>
+                                        <button
+                                            onClick={() => setShowFullLogs(!showFullLogs)}
+                                            className="text-[10px] font-black uppercase tracking-widest text-blue-500 hover:text-blue-400 transition-colors"
+                                        >
+                                            {showFullLogs ? 'Réduire' : 'Voir les logs'}
+                                        </button>
+                                    </div>
+                                    <pre className={`bg-slate-950 border border-white/5 rounded-2xl p-4 text-[11px] text-slate-400 font-mono leading-relaxed whitespace-pre-wrap break-words overflow-auto transition-all ${showFullLogs ? 'max-h-[400px]' : 'max-h-20'}`}>
+                                        {descLogs}
+                                    </pre>
+                                </div>
+                            )}
                         </div>
 
                         {/* Evidence Section */}
@@ -138,6 +176,28 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                                         </a>
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Script de Test Playwright */}
+                        {anomaly.playwright_script && (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-slate-400">
+                                        <FileText className="w-4 h-4 text-amber-400" />
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-400">Script Playwright Généré</h4>
+                                    </div>
+                                    <a
+                                        href={`data:text/typescript;charset=utf-8,${encodeURIComponent(anomaly.playwright_script)}`}
+                                        download={`test_${anomaly.id}.spec.ts`}
+                                        className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors"
+                                    >
+                                        ↓ Télécharger
+                                    </a>
+                                </div>
+                                <pre className="bg-slate-950 border border-amber-500/20 rounded-2xl p-5 text-xs text-slate-300 font-mono leading-relaxed whitespace-pre-wrap break-words overflow-auto max-h-64">
+                                    {anomaly.playwright_script}
+                                </pre>
                             </div>
                         )}
 

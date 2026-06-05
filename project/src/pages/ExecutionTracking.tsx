@@ -73,8 +73,10 @@ const ExecutionTracking = () => {
     const pageSize = 10;
 
     const [searchQuery, setSearchQuery] = useState('');
+    const [testerFilter, setTesterFilter] = useState('');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
     const [groupBy, setGroupBy] = useState<'none' | 'campaign' | 'release' | 'project'>('none');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'passed' | 'failed' | 'pending'>('all');
 
     const [projects, setProjects] = useState<any[]>([]);
     const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -93,18 +95,21 @@ const ExecutionTracking = () => {
     const filteredTests = useMemo(() => {
         return tests.filter(t => {
             const query = searchQuery.toLowerCase();
-            return (
+            const matchesSearch = (
                 (t.name?.toLowerCase() || '').includes(query) ||
                 (t.module?.toLowerCase() || '').includes(query) ||
                 (t.release?.toLowerCase() || '').includes(query) ||
                 (t.realized_by?.toLowerCase() || '').includes(query)
             );
+            const matchesTester = !testerFilter || (t.realized_by?.toLowerCase() || '').includes(testerFilter.toLowerCase());
+            const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
+            return matchesSearch && matchesStatus && matchesTester;
         }).sort((a, b) => {
             const dateA = new Date(a.rawDate || 0).getTime();
             const dateB = new Date(b.rawDate || 0).getTime();
             return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
         });
-    }, [tests, searchQuery, sortOrder]);
+    }, [tests, searchQuery, testerFilter, sortOrder, statusFilter]);
 
     useEffect(() => {
         fetchExecutions(1);
@@ -296,8 +301,8 @@ const ExecutionTracking = () => {
                     </div>
 
                     {/* Search/Filter Bar */}
-                    <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
-                        <div className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
+                    <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center flex-wrap">
+                        <div className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3 min-w-[200px]">
                             <Search className="w-4 h-4 text-slate-400 ml-2" />
                             <input
                                 type="text"
@@ -307,6 +312,39 @@ const ExecutionTracking = () => {
                                 className="flex-1 bg-transparent border-none text-sm text-foreground focus:ring-0 outline-none placeholder-slate-400"
                             />
                         </div>
+
+                        {!isTester && (
+                            <div className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3 min-w-[200px]">
+                                <Filter className="w-4 h-4 text-slate-400 ml-2" />
+                                <input
+                                    type="text"
+                                    placeholder="Filtrer par testeur..."
+                                    value={testerFilter}
+                                    onChange={(e) => setTesterFilter(e.target.value)}
+                                    className="flex-1 bg-transparent border-none text-sm text-white focus:ring-0 outline-none placeholder-slate-400"
+                                />
+                            </div>
+                        )}
+
+                        {/* Filtres Statut */}
+                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-1.5">
+                            {([
+                                { value: 'all',    label: 'Tous',     color: 'text-slate-400 hover:text-white',       active: 'bg-slate-600 text-white' },
+                                { value: 'passed', label: '✓ Succès', color: 'text-blue-400/70 hover:text-blue-300', active: 'bg-blue-500/20 text-blue-300 border border-blue-500/30' },
+                                { value: 'failed', label: '✗ Échec',  color: 'text-rose-400/70 hover:text-rose-300', active: 'bg-rose-500/20 text-rose-300 border border-rose-500/30' },
+                            ] as const).map(({ value, label, color, active }) => (
+                                <button
+                                    key={value}
+                                    onClick={() => setStatusFilter(value)}
+                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                                        statusFilter === value ? active : color
+                                    }`}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
+
                         <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-1 flex gap-1">
                             <div className="relative flex items-center">
                                 <select

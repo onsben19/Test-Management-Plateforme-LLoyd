@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Upload, FileText, Trash2, AlertTriangle, Bug, Loader2 } from 'lucide-react';
+import { X, Save, Upload, FileText, Trash2, AlertTriangle, Bug, Loader2, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { executionService, campaignService } from '../services/api';
+import { executionService, campaignService, anomalyService } from '../services/api';
+import { toast } from 'react-toastify';
 
 export interface AnomalyItem {
     id: string;
@@ -38,6 +39,12 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loadingTests, setLoadingTests] = useState(false);
 
+    // AI Assistant States
+    const [showAiAssistant, setShowAiAssistant] = useState(false);
+    const [externalLogs, setExternalLogs] = useState('');
+    const [externalCode, setExternalCode] = useState('');
+    const [isDiagnosing, setIsDiagnosing] = useState(false);
+
     useEffect(() => {
         if (!isEditing && user) {
             fetchCampaigns();
@@ -54,6 +61,28 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
             console.error("Failed to fetch campaigns", error);
         } finally {
             setLoadingTests(false);
+        }
+    };
+
+    const handleDiagnose = async () => {
+        if (!externalLogs) {
+            toast.error("Veuillez fournir au moins les logs d'erreur.");
+            return;
+        }
+        setIsDiagnosing(true);
+        try {
+            const res = await anomalyService.diagnoseExternalLogs({ logs: externalLogs, code: externalCode });
+            setTitle(res.data.titre);
+            setDescription(res.data.description);
+            setImpact('A_DEFINIR');
+            setPriority('A_DEFINIR');
+            toast.success("Diagnostic IA généré avec succès !");
+            setShowAiAssistant(false);
+        } catch (error) {
+            console.error("Diagnosis error:", error);
+            toast.error("Erreur lors du diagnostic IA.");
+        } finally {
+            setIsDiagnosing(false);
         }
     };
 
@@ -87,6 +116,7 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
     };
 
     const impactOptions = [
+        { label: 'À définir', value: 'A_DEFINIR' },
         { label: 'Fonctionnalité', value: 'FONCTIONNALITE' },
         { label: 'Simple', value: 'SIMPLE' },
         { label: 'Texte', value: 'TEXTE' },
@@ -98,6 +128,7 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
     ];
 
     const priorityOptions = [
+        { label: 'À définir', value: 'A_DEFINIR' },
         { label: 'Basse', value: 'BASSE' },
         { label: 'Normale', value: 'NORMALE' },
         { label: 'Elevée', value: 'ELEVEE' },
@@ -110,7 +141,6 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
             <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col max-h-[90vh]">
                 <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
                     <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        {isEditing ? <AlertTriangle className="w-5 h-5 text-orange-500" /> : <Bug className="w-5 h-5 text-red-500" />}
                         {isEditing ? "Modifier l'anomalie" : "Signalement d'anomalie"}
                     </h2>
                     <button
@@ -122,6 +152,55 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto">
+                    
+                    {/* AI Assistant Section */}
+                    {!isEditing && (
+                        <div className="bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl overflow-hidden transition-all">
+                            <button
+                                type="button"
+                                onClick={() => setShowAiAssistant(!showAiAssistant)}
+                                className="w-full px-4 py-3 flex items-center justify-between text-indigo-600 dark:text-indigo-400 font-bold text-sm tracking-wide uppercase hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                            >
+                                <span className="flex items-center gap-2">
+                                    Diagnostic IA depuis des logs externes
+                                </span>
+                                <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/40 px-2 py-1 rounded-md">{showAiAssistant ? 'Masquer' : 'Afficher'}</span>
+                            </button>
+                            
+                            {showAiAssistant && (
+                                <div className="p-4 space-y-4 border-t border-indigo-100 dark:border-indigo-500/20 animate-fade-in">
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-indigo-500 uppercase tracking-widest">Logs d'exécution (Obligatoire)</label>
+                                        <textarea
+                                            value={externalLogs}
+                                            onChange={(e) => setExternalLogs(e.target.value)}
+                                            className="w-full bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-500/30 rounded-lg px-3 py-2 text-xs text-slate-700 dark:text-slate-300 font-mono min-h-[80px] focus:ring-1 focus:ring-indigo-500 outline-none"
+                                            placeholder="Collez ici les logs d'erreur bruts..."
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-black text-indigo-500 uppercase tracking-widest">Code Playwright (Optionnel)</label>
+                                        <textarea
+                                            value={externalCode}
+                                            onChange={(e) => setExternalCode(e.target.value)}
+                                            className="w-full bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-500/30 rounded-lg px-3 py-2 text-xs text-slate-700 dark:text-slate-300 font-mono min-h-[60px] focus:ring-1 focus:ring-indigo-500 outline-none"
+                                            placeholder="Collez le script qui a échoué..."
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleDiagnose}
+                                        disabled={isDiagnosing || !externalLogs}
+                                        className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                        {isDiagnosing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                        {isDiagnosing ? "Analyse en cours..." : "Générer le diagnostic IA"}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                             Titre

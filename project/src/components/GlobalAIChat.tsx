@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, X, Send, Sparkles, MessageCircle, Minimize2, Maximize2, Zap } from 'lucide-react';
 import { aiService } from '../services/api';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 
 const GlobalAIChat = () => {
     const { t } = useTranslation();
+    const location = useLocation();
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
     const [messages, setMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([
@@ -14,6 +16,11 @@ const GlobalAIChat = () => {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Ne pas afficher sur la page de login ou unauthorized
+    if (['/login', '/unauthorized'].includes(location.pathname)) {
+        return null;
+    }
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -153,38 +160,24 @@ const GlobalAIChat = () => {
             </AnimatePresence>
 
             <motion.button
-                whileHover={{ scale: 1.05, y: -5 }}
+                whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsOpen(!isOpen)}
-                className={`group relative w-12 h-12 rounded-[1.25rem] flex items-center justify-center shadow-[0_15px_35px_rgba(79,70,229,0.3)] transition-all duration-500 overflow-hidden ${
+                className={`group relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 overflow-hidden backdrop-blur-xl border ${
                     isOpen 
-                    ? 'bg-slate-900 border border-white/10' 
-                    : 'bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-700 border-t border-white/20'
+                    ? 'bg-slate-900 border-white/10 shadow-lg' 
+                    : 'bg-[#0f1729]/90 border-white/10 hover:border-blue-500/30 shadow-2xl hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]'
                 }`}
             >
-                {/* Glow Effect */}
+                {/* Subtle ambient glow on hover */}
                 {!isOpen && (
-                    <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                    <div className="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none blur-md" />
                 )}
                 
                 {isOpen ? (
-                    <X className="text-white" size={20} strokeWidth={1.5} />
+                    <X className="text-white relative z-10" size={18} strokeWidth={1.5} />
                 ) : (
-                    <div className="relative">
-                        <MessageCircle className="text-white fill-white/10" size={22} strokeWidth={1.5} />
-                        <motion.div 
-                            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-                            transition={{ repeat: Infinity, duration: 3 }}
-                            className="absolute -top-1.5 -right-1.5"
-                        >
-                            <Sparkles className="text-amber-300" size={12} strokeWidth={1.5} />
-                        </motion.div>
-                    </div>
-                )}
-
-                {/* Status Ring */}
-                {!isOpen && (
-                    <div className="absolute inset-0 border border-white/5 rounded-[1.25rem] pointer-events-none" />
+                    <Bot className="text-slate-400 group-hover:text-blue-400 transition-colors relative z-10" size={20} strokeWidth={1.5} />
                 )}
             </motion.button>
         </div>

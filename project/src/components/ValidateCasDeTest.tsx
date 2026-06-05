@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, User, ListChecks, Code2, Copy, Check, Edit2, Play, Calendar, AlertTriangle, FileIcon, CheckCircle, XCircle, Layers, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { aiService } from '../services/api';
 
 interface ValidateCasDeTestProps {
@@ -15,6 +16,7 @@ interface ValidateCasDeTestProps {
   generatingCode: boolean;
   executionResult: any;
   setExecutionResult: any;
+  liveLogs?: string;
 }
 
 const ValidateCasDeTest: React.FC<ValidateCasDeTestProps> = ({
@@ -28,11 +30,21 @@ const ValidateCasDeTest: React.FC<ValidateCasDeTestProps> = ({
   executingCode,
   generatingCode,
   executionResult,
-  setExecutionResult
+  setExecutionResult,
+  liveLogs = ''
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isReformulating, setIsReformulating] = useState(false);
+  const navigate = useNavigate();
+
+  const logsEndRef = useRef<HTMLPreElement>(null);
+
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollTop = logsEndRef.current.scrollHeight;
+    }
+  }, [liveLogs]);
 
   if (!isOpen) return null;
 
@@ -100,15 +112,40 @@ const ValidateCasDeTest: React.FC<ValidateCasDeTestProps> = ({
                     </pre>
                 </div>
 
-                <button
-                    onClick={() => {
-                        setExecutionResult(null);
-                        onClose();
-                    }}
-                    className="w-full py-4 text-white bg-white/10 hover:bg-white/20 rounded-xl font-black tracking-[0.2em] uppercase transition-all"
-                >
-                    Fermer
-                </button>
+                <div className="flex gap-4 w-full">
+                    <button
+                        onClick={() => {
+                            setExecutionResult(null);
+                            onClose();
+                        }}
+                        className="flex-1 py-4 text-white bg-white/10 hover:bg-white/20 rounded-xl font-black tracking-[0.2em] uppercase transition-all"
+                    >
+                        Fermer
+                    </button>
+                    {executionResult.status === 'FAILED' && executionResult.anomaly_id && (
+                        <button
+                           onClick={() => {
+                               navigate('/anomalies', { state: { openAnomalyId: executionResult.anomaly_id } });
+                               onClose();
+                           }}
+                           className="flex-1 py-4 text-white bg-rose-500 hover:bg-rose-600 rounded-xl font-black tracking-[0.2em] uppercase transition-all shadow-lg shadow-rose-500/20"
+                        >
+                            Voir l'anomalie
+                        </button>
+                    )}
+                </div>
+            </div>
+        ) : executingCode ? (
+            <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
+                <div className="p-6 rounded-xl border bg-slate-950 border-white/5 text-slate-300">
+                    <h3 className="font-bold text-sm mb-4 animate-pulse flex items-center gap-2 text-amber-400">
+                        <div className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                        Exécution Playwright en cours...
+                    </h3>
+                    <pre ref={logsEndRef} className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-6 py-4 text-slate-300 font-mono text-[11px] overflow-y-auto max-h-64 whitespace-pre-wrap">
+                        {liveLogs || 'Démarrage du conteneur de test...'}
+                    </pre>
+                </div>
             </div>
         ) : (
             <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">

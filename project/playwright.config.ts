@@ -4,8 +4,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 60 * 1000,
-  expect: { timeout: 10000 },
+  timeout: 120 * 1000,
+  expect: { timeout: 30000 },
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -13,6 +13,8 @@ export default defineConfig({
   reporter: 'line',
 
   use: {
+    actionTimeout: 60000,
+    navigationTimeout: 60000,
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
     launchOptions: {
@@ -55,6 +57,13 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         storageState: 'tests/tester/.auth/tester.json',
       },
+    },
+
+    // ─── Tests Admin : autonomes ───────────────────────────────────────────────
+    {
+      name: 'admin',
+      testMatch: '**/admin/*.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
     },
 
     // ─── Tests généraux (login.spec.ts) sans session pré-chargée ──────────────

@@ -93,6 +93,24 @@ class TestCaseSerializer(serializers.ModelSerializer):
 
         return validated_data
 
+    def validate_proof_file(self, value):
+        if value:
+            import hashlib
+            hasher = hashlib.sha256()
+            for chunk in value.chunks():
+                hasher.update(chunk)
+            file_hash = hasher.hexdigest()
+            
+            # Rejet des doublons physiques de preuve
+            queryset = TestCase.objects.filter(proof_hash=file_hash)
+            if self.instance:
+                queryset = queryset.exclude(id=self.instance.id)
+            if queryset.exists():
+                raise serializers.ValidationError(
+                    "Ce fichier de preuve existe déjà dans la base de données (doublon détecté via SHA-256)."
+                )
+        return value
+
     class Meta:
         model = TestCase
         fields = [
@@ -100,6 +118,6 @@ class TestCaseSerializer(serializers.ModelSerializer):
             'business_project_name', 'release_type',
             'test_case_ref', 'data_json', 'status',
             'tester', 'tester_name', 'assigned_tester_name',
-            'execution_date', 'proof_file',
+            'execution_date', 'proof_file', 'proof_hash',
             'is_automated', 'automation_code', 'automation_script_path',
         ]

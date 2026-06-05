@@ -10,6 +10,43 @@ class GroqService:
             api_key=os.environ.get("GROQ_API_KEY"),
         )
         
+    def _get_completion_with_fallback(self, messages, temperature=0.7, model_name="llama-3.3-70b-versatile"):
+        try:
+            completion = self.client.chat.completions.create(
+                messages=messages,
+                model=model_name,
+                temperature=temperature,
+            )
+            return completion.choices[0].message.content.strip()
+        except Exception as groq_error:
+            print(f"Groq API Error: {str(groq_error)}. Falling back to Gemini...")
+            gemini_api_key = os.environ.get("GEMINI_API_KEY")
+            if not gemini_api_key:
+                raise groq_error
+                
+            import google.generativeai as genai
+            genai.configure(api_key=gemini_api_key)
+            
+            contents = []
+            for msg in messages:
+                if isinstance(msg['content'], list):
+                    for item in msg['content']:
+                        if item['type'] == 'text':
+                            contents.append(item['text'])
+                        elif item['type'] == 'image_url':
+                            b64 = item['image_url']['url'].split(',')[1]
+                            image_bytes = base64.b64decode(b64)
+                            contents.append({'mime_type': 'image/jpeg', 'data': image_bytes})
+                else:
+                    contents.append(f"[{msg['role'].upper()}]: {msg['content']}")
+                    
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            response = model.generate_content(
+                contents,
+                generation_config=genai.types.GenerationConfig(temperature=temperature)
+            )
+            return response.text.strip()
+        
     def get_dynamic_schema(self, role, user_id):
         base_schema = """
         You are an expert PostgreSQL Data Analyst. Use the following database schema to answer user questions by generating a valid SQL query.
@@ -30,9 +67,11 @@ class GroqService:
            - impact values: 'BLOQUANTES', 'CRITIQUE', 'MAJEUR', 'MINEURS', 'COSMETIQUE', 'TEXTE', 'SIMPLE', 'FONCTIONNALITE'
         
         Rules:
-        - Return ONLY the SQL query.
+        - Return ONLY the raw SQL query. NO markdown, NO code blocks, NO explanation.
         - Ensure table names are double-quoted if they contain mixed case or special characters.
         - CRITICAL: When filtering by string columns like 'title' or 'name', ALWAYS use ILIKE '%keyword%' instead of strict '=' equality to avoid case-sensitivity issues.
+        - ALWAYS add a LIMIT 100 to any SELECT query to prevent overloading the database.
+        - NEVER use DROP, DELETE, UPDATE, INSERT, or any data-modifying statements.
         """
         return base_schema
 
@@ -47,15 +86,11 @@ class GroqService:
         else:
             security_constraints = f"You are a TESTER (User ID: {user.id}). Row-level security for your data."
 
-        completion = self.client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": f"{dynamic_schema}\n\n{security_constraints}"},
-                {"role": "user", "content": f"Generate a SQL query to answer: {question}"}
-            ],
-            model="llama-3.3-70b-versatile",
-            temperature=0,
-        )
-        sql_query = completion.choices[0].message.content.strip()
+        messages = [
+            {"role": "system", "content": f"{dynamic_schema}\n\n{security_constraints}"},
+            {"role": "user", "content": f"Generate a SQL query to answer: {question}"}
+        ]
+        sql_query = self._get_completion_with_fallback(messages, temperature=0)
         if sql_query.startswith("```"):
              sql_query = sql_query.strip("`").replace("sql", "").strip()
         return sql_query
@@ -113,22 +148,19 @@ class GroqService:
         image_bytes = image_file.read()
         base64_image = base64.b64encode(image_bytes).decode('utf-8')
         
-        completion = self.client.chat.completions.create(
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": f"En tant qu'expert QA, analyse cette capture d'écran et réponds à : {question}"},
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
-                        }
-                    ]
-                }
-            ],
-            model="llama-3.2-11b-vision-preview",
-        )
-        return completion.choices[0].message.content
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": f"En tant qu'expert QA, analyse cette capture d'écran et réponds à : {question}"},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
+                    }
+                ]
+            }
+        ]
+        return self._get_completion_with_fallback(messages, temperature=0.7, model_name="llama-3.2-11b-vision-preview")
 
     def generate_plotly_config(self, data, question):
         """Generate a Plotly.js configuration JSON based on data and question."""
@@ -161,12 +193,8 @@ class GroqService:
         Example Output: {{"data": [...], "layout": {{ ... }} }}
         """
         
-        completion = self.client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model="llama-3.3-70b-versatile",
-            temperature=0,
-        )
-        config_text = completion.choices[0].message.content.strip()
+        messages = [{"role": "user", "content": prompt}]
+        config_text = self._get_completion_with_fallback(messages, temperature=0)
         if config_text.startswith("```json"):
             config_text = config_text.replace("```json", "").replace("```", "").strip()
         return config_text
@@ -194,12 +222,10 @@ class GroqService:
                     
                     Consigne : Analyse le document par rapport à la question et réponds de manière précise. Si le document ne contient pas l'info, mentionne-le.
                     """
-                    completion = self.client.chat.completions.create(
-                        messages=[{"role": "user", "content": prompt}],
-                        model="llama-3.3-70b-versatile",
-                    )
+                    messages = [{"role": "user", "content": prompt}]
+                    answer = self._get_completion_with_fallback(messages, temperature=0.7)
                     return {
-                        "answer": completion.choices[0].message.content,
+                        "answer": answer,
                         "type": "text", "sql": "", "data": []
                     }
             
@@ -229,13 +255,10 @@ class GroqService:
                     3. À la fin, propose TOUJOURS une action concrète (ex: reformuler une notification, contacter un testeur, etc.).
                     4. Si le score est < 80%, sois vigilant sur les risques.
                     """
-                    completion = self.client.chat.completions.create(
-                        messages=[{"role": "user", "content": prompt}],
-                        model="llama-3.3-70b-versatile",
-                        temperature=0.7,
-                    )
+                    messages = [{"role": "user", "content": prompt}]
+                    answer = self._get_completion_with_fallback(messages, temperature=0.7)
                     return {
-                        "answer": completion.choices[0].message.content,
+                        "answer": answer,
                         "type": "text", 
                         "sql": "N/A (Calcul de score interne)", 
                         "data": readiness
@@ -244,14 +267,21 @@ class GroqService:
             # Case 3: Email / General Chat Intent
             general_keywords = ['rédige', 'écris', 'mail', 'e-mail', 'conseil', 'lettre', 'explique', 'bonjour', 'salut']
             if any(kw in question.lower() for kw in general_keywords):
-                prompt = f"Tu es un Manager QA Senior de la plateforme InsureTM. Réponds de manière très professionnelle à cette demande : {question}"
-                completion = self.client.chat.completions.create(
-                    messages=[{"role": "user", "content": prompt}],
-                    model="llama-3.3-70b-versatile",
-                    temperature=0.7,
-                )
+                prompt = f"""
+                Tu es un Manager QA Senior de la plateforme InsureTM chez Lloyd Assurances.
+                Réponds de manière professionnelle, concise et structurée à cette demande : {question}
+
+                Règles de format :
+                - Réponds en Français uniquement.
+                - Si la demande est un e-mail, structure ta réponse avec : Objet, Corps, Signature.
+                - Si la demande est un conseil, utilise des points clés numérotés (max 4).
+                - Ne dépasse pas 200 mots.
+                - Pas de markdown excessif.
+                """
+                messages = [{"role": "user", "content": prompt}]
+                answer = self._get_completion_with_fallback(messages, temperature=0.7)
                 return {
-                    "answer": completion.choices[0].message.content,
+                    "answer": answer,
                     "type": "text", 
                     "sql": "N/A (Génération de texte)", 
                     "data": []
@@ -275,12 +305,9 @@ class GroqService:
                 3. Propose une ACTION immédiate basée sur cette analyse technique.
                 4. Réponds en 2-3 phrases percutantes en Français.
                 """
-                interpretation = self.client.chat.completions.create(
-                    messages=[{"role": "user", "content": interpretation_prompt}],
-                    model="llama-3.3-70b-versatile",
-                    temperature=0.5,
-                )
-                expert_answer = f"Voici l'analyse des données :\n\n{interpretation.choices[0].message.content.strip()}"
+                messages = [{"role": "user", "content": interpretation_prompt}]
+                interpretation = self._get_completion_with_fallback(messages, temperature=0.5)
+                expert_answer = f"Voici l'analyse des données :\n\n{interpretation}"
             else:
                 expert_answer = "Aucune donnée n'a été trouvée pour cette période ou ces critères. Un audit plus large est conseillé."
 
@@ -328,17 +355,26 @@ class GroqService:
                 "Ne retourne QUE ce texte avec 'Objectif :' et 'Étapes :', rien d'autre. Pas de blabla d'introduction."
             )
         else:
-            system_prompt = f"Expert QA Platform Analyser. Rewrite as professional {'SUBJECT (Single line, NO markdown, NO newlines)' if is_subject else 'BODY'}. French. Clear, concise."
+            if is_subject:
+                system_prompt = (
+                    "Tu es un expert en communication professionnelle. "
+                    "Reformule le texte suivant en un OBJET D'EMAIL clair et percutant. "
+                    "RÈGLES STRICTES : Une seule ligne. Pas de markdown. Pas de guillemets. Pas de retour à la ligne. En Français."
+                )
+            else:
+                system_prompt = (
+                    "Tu es un expert en communication QA professionnelle. "
+                    "Reformule le texte suivant en un CORPS D'EMAIL ou MESSAGE professionnel. "
+                    "RÈGLES : Ton formel, clair et bienveillant. En Français. "
+                    "Structure : salutation courte, corps du message structuré en 2-3 phrases, formule de politesse finale. "
+                    "Pas de markdown. Pas de titre. Pas d'explication hors du message."
+                )
         try:
-            completion = self.client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Reformulate: {text}"}
-                ],
-                model="llama-3.3-70b-versatile",
-                temperature=0.3,
-            )
-            result = completion.choices[0].message.content.strip()
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Reformulate: {text}"}
+            ]
+            result = self._get_completion_with_fallback(messages, temperature=0.3)
             if is_subject:
                 # Remove markdown and newlines
                 result = result.replace("**", "").replace("\n", " ").replace("\r", " ").strip()
@@ -391,13 +427,10 @@ class GroqService:
         Format de réponse attendu : "Analyse {theme['name']} : [Statut]. [Analyse transversale liant exécutions et anomalies]. [Action prioritaire]."
         """
         try:
-            completion = self.client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                model="llama-3.3-70b-versatile",
-                temperature=0.7,
-            )
+            messages = [{"role": "user", "content": prompt}]
+            brief_text = self._get_completion_with_fallback(messages, temperature=0.7)
             return {
-                "brief": completion.choices[0].message.content.strip(),
+                "brief": brief_text,
                 "target_id": theme['target_id'],
                 "theme_name": theme['name']
             }
@@ -425,21 +458,21 @@ class GroqService:
         1. Analyse les clés et les valeurs du JSON ou texte fourni. Déduis le rôle de chaque valeur.
         2. Construit une séquence d'actions Playwright logique.
         3. Génère un script Playwright complet avec `import {{ test, expect }} from '@playwright/test';` et un bloc `test('{test_title}', async ({{ page }}) => {{ ... }});`.
-        4. Si le test indique d'aller sur une URL de la plateforme (ex: `/login`), laisse l'URL en relatif (ex: `await page.goto('/login');`). Ne mets pas de domaine, l'URL de base est injectée automatiquement.
+        4. GESTION DES URLs : Si les données du test contiennent une URL absolue complète (commençant par http ou https, ex: `https://www.google.com/`), TU DOIS IMPÉRATIVEMENT utiliser cette URL complète dans `page.goto()`. N'utilise une URL relative (ex: `/login`) QUE si l'utilisateur n'a pas fourni de nom de domaine.
         5. Sois TRES ROBUSTE : Les sites publics ont souvent des popups "Accepter les cookies". Avant chaque première interaction importante, ajoute : `await page.locator('#L2AGLb, button:has-text("Tout accepter")').first().click({{ timeout: 5000 }}).catch(() => {{}});`.
         6. Déduis des sélecteurs très flexibles (ex: `page.locator('textarea[name="q"], input[name="q"], [title="Rechercher"]').first()` pour la barre de recherche Google). Préfère `locator` avec plusieurs sélecteurs CSS séparés par des virgules, ET AJOUTE TOUJOURS `.first()` à la fin de tes locators génériques.
         7. Gère correctement les conditions ("si... apparait"). Exemple : si le texte dit "si la popup apparait", génère : `await page.waitForTimeout(2000); if (await page.locator('...').isVisible()) {{ await page.locator('...').click(); }}`.
         8. Inclus les assertions pour les 'Attendus'. Par exemple, `await expect(locator.first()).toBeVisible({{ timeout: 10000 }});` ou `await expect(page).not.toHaveURL(/.*login/, {{ timeout: 10000 }});`. Attention à la syntaxe stricte de Playwright (ex: `toHaveURL` prend une string/regex en premier argument).
-        9. NE RENVOIE QUE LE CODE SOURCE. Pas d'explications avant ni après.
+        9. NE RENVOIE QUE LE CODE SOURCE. Pas d'explications avant ni après. Pas de blocs ```typescript``` ou ```javascript```.
+        10. SOLUTION ANTI-TIMEOUT : Pour éviter que Playwright ne bloque sur des boutons masqués par du CSS ou des dropdowns, AJOUTE TOUJOURS `{{ force: true }}` lors de tes `click()` (ex: `await locator.click({{ force: true }})`). S'il s'agit d'une barre de recherche (comme Google), utilise TOUJOURS `await page.keyboard.press('Enter')` plutôt que de chercher un bouton "Recherche" !
+        11. SAISIE DE TEXTE ROBUSTE : Pour tous les champs de saisie (input, textarea), utilise TOUJOURS `await locator.first().evaluate((el, val) => {{ el.value = val; el.dispatchEvent(new Event('input', {{bubbles: true}})); el.dispatchEvent(new Event('change', {{bubbles: true}})); }}, 'valeur')` pour forcer la mise à jour des champs React/Angular qui ignorent le `fill()` natif.
+        12. ATTENTE RÉSEAU : Après chaque `page.goto()`, ajoute `await page.waitForLoadState('networkidle');` pour garantir que la page est entièrement chargée avant d'interagir.
+        13. ASSERTIONS PRÉCISES : Pour vérifier le CONTENU d'une page, n'utilise JAMAIS `page.locator('p, div, span').first()` (résout vers des éléments ARIA vides). Utilise toujours un sélecteur sémantique stable : `page.locator('#mw-content-text')` pour Wikipedia, `page.locator('main, article, [role="main"]').first()` pour les autres sites, ou `page.locator('body')` en dernier recours.
         """
         
         try:
-            completion = self.client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                model="llama-3.3-70b-versatile",
-                temperature=0.1,
-            )
-            code = completion.choices[0].message.content.strip()
+            messages = [{"role": "user", "content": prompt}]
+            code = self._get_completion_with_fallback(messages, temperature=0.1)
             if code.startswith("```"):
                 code = "\n".join(code.split("\n")[1:-1])
             return code
@@ -449,25 +482,30 @@ class GroqService:
     def generate_anomaly_from_logs(self, test_title, logs):
         """
         Génère un titre et une description d'anomalie pertinents à partir des logs d'erreur Playwright.
+        Distingue un bug de script (SCRIPT_ERROR) d'un vrai bug applicatif (APP_BUG).
         """
         prompt = f"""
-        Tu es un expert QA. Un test Playwright automatisé vient d'échouer.
+        Tu es un expert QA senior. Un test Playwright automatisé vient d'échouer.
         Titre du Cas de Test : {test_title}
         
         LOGS D'ERREUR PLAYWRIGHT :
         {logs[-2000:]}
         
-        Analyse l'erreur et retourne UNIQUEMENT un JSON strict avec ce format :
-        {{"titre": "Un titre court et explicite de l'anomalie", "description": "Une description détaillée de l'échec et des causes probables basées sur les logs."}}
+        TON TRAVAIL EN 2 ÉTAPES :
+        
+        ÉTAPE 1 — Diagnostique la CAUSE RACINE :
+        - Est-ce un problème de CODE DE TEST (sélecteur introuvable, locator trop générique, timeout, syntaxe incorrecte, assertion mal ciblée) ?
+          → Si oui, la cause est : SCRIPT_ERROR
+        - Est-ce un problème dans L'APPLICATION TESTÉE (page non chargée, bouton manquant, redirection inattendue, erreur 404/500, fonctionnalité cassée) ?
+          → Si oui, la cause est : APP_BUG
+        
+        ÉTAPE 2 — Retourne UNIQUEMENT ce JSON strict :
+        {{"cause": "SCRIPT_ERROR ou APP_BUG", "titre": "Un titre court et explicite", "description": "Description précise. Si SCRIPT_ERROR : mentionne que l anomalie est due au script généré et non à l application. Si APP_BUG : décris le comportement inattendu de l application."}}
         Ne renvoie rien d'autre que le JSON valide.
         """
         try:
-            completion = self.client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                model="llama-3.3-70b-versatile",
-                temperature=0.1,
-            )
-            response = completion.choices[0].message.content.strip()
+            messages = [{"role": "user", "content": prompt}]
+            response = self._get_completion_with_fallback(messages, temperature=0.1)
             if response.startswith("```json"):
                 response = response.replace("```json", "").replace("```", "").strip()
             if response.startswith("```"):
@@ -475,6 +513,16 @@ class GroqService:
                 
             import json
             data = json.loads(response)
-            return data.get("titre", f"Échec automatique : {test_title}"), data.get("description", logs[-1000:])
+            cause = data.get("cause", "APP_BUG")
+            titre = data.get("titre", f"Échec automatique : {test_title}")
+            description = data.get("description", logs[-1000:])
+            
+            # Préfixe le titre pour signaler clairement un faux positif de script
+            if cause == "SCRIPT_ERROR":
+                titre = f"[SCRIPT] {titre}"
+                description = f"⚠️ Cause probable : Erreur dans le script généré (pas un bug applicatif).\n\n{description}"
+            
+            return titre, description
         except Exception as e:
             return f"Échec d'exécution : {test_title}", f"Le test automatisé a échoué. \n\nLogs d'erreur:\n{logs[-1000:]}"
+

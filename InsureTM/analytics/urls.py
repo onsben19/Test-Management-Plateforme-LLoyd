@@ -17,6 +17,9 @@ from .views import (
     HistoricalTestersView,
     HistoricalModulesView,
     ReinforcementStatusView,
+    PendingReinforcementsView,
+    N8NCreateNotificationView,
+    RespondToN8NView,
     QANewsListView,
     OllamaChatView,
 )
@@ -42,6 +45,9 @@ urlpatterns = [
     path('accept-reinforcement/', AcceptReinforcementView.as_view(), name='accept-reinforcement'),
     path('refuse-reinforcement/', RefuseReinforcementView.as_view(), name='refuse-reinforcement'),
     path('reinforcement-status/<int:campaign_id>/', ReinforcementStatusView.as_view(), name='reinforcement-status'),
+    path('pending-reinforcements/', PendingReinforcementsView.as_view(), name='pending-reinforcements'),
+    path('respond-n8n/', RespondToN8NView.as_view(), name='respond-n8n'),
+    path('n8n-notification/', N8NCreateNotificationView.as_view(), name='n8n-notification'),
     path('qa-news/', QANewsListView.as_view(), name='qa-news'),
     path('ollama-chat/', OllamaChatView.as_view(), name='ollama-chat'),
 ]

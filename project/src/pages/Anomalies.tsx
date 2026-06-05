@@ -36,6 +36,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { anomalyService } from '../services/api';
+import { toast } from 'react-toastify';
 import { useSidebar } from '../context/SidebarContext';
 import Pagination from '../components/Pagination';
 import ConfirmModal from '../components/ConfirmModal';
@@ -54,8 +55,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface Anomaly {
   id: string;
   title: string;
-  impact: 'FONCTIONNALITE' | 'SIMPLE' | 'TEXTE' | 'COSMETIQUE' | 'MINEURS' | 'MAJEUR' | 'CRITIQUE' | 'BLOQUANTES';
-  priority: 'NORMALE' | 'BASSE' | 'ELEVEE' | 'URGENTE' | 'IMMEDIATE';
+  impact: 'FONCTIONNALITE' | 'SIMPLE' | 'TEXTE' | 'COSMETIQUE' | 'MINEURS' | 'MAJEUR' | 'CRITIQUE' | 'BLOQUANTES' | 'A_DEFINIR';
+  priority: 'NORMALE' | 'BASSE' | 'ELEVEE' | 'URGENTE' | 'IMMEDIATE' | 'A_DEFINIR';
   visibility: 'PUBLIQUE' | 'PRIVEE';
   status: 'OUVERTE' | 'EN_INVESTIGATION' | 'RESOLUE';
   relatedTest?: string;
@@ -69,6 +70,7 @@ interface Anomaly {
   author_username?: string;
   author?: string;
   created_at: string;
+  playwright_script?: string;
 }
 
 const impactStyles: Record<string, { bg: string, text: string, border: string, dot: string }> = {
@@ -79,7 +81,8 @@ const impactStyles: Record<string, { bg: string, text: string, border: string, d
   FONCTIONNALITE: { bg: 'bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-500/20', dot: 'bg-blue-500' },
   SIMPLE: { bg: 'bg-slate-500/10', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-500/20', dot: 'bg-slate-500' },
   TEXTE: { bg: 'bg-purple-500/10', text: 'text-purple-600 dark:text-purple-400', border: 'border-purple-500/20', dot: 'bg-purple-500' },
-  COSMETIQUE: { bg: 'bg-pink-500/10', text: 'text-pink-600 dark:text-pink-400', border: 'border-pink-500/20', dot: 'bg-pink-500' }
+  COSMETIQUE: { bg: 'bg-pink-500/10', text: 'text-pink-600 dark:text-pink-400', border: 'border-pink-500/20', dot: 'bg-pink-500' },
+  A_DEFINIR: { bg: 'bg-slate-500/10', text: 'text-slate-500 dark:text-slate-400', border: 'border-slate-500/20 border-dashed', dot: 'bg-slate-500 animate-pulse' }
 };
 
 const priorityStyles: Record<string, { bg: string, text: string, border: string }> = {
@@ -87,7 +90,8 @@ const priorityStyles: Record<string, { bg: string, text: string, border: string 
   URGENTE: { bg: 'bg-orange-600/10', text: 'text-orange-600 dark:text-orange-400', border: 'border-orange-500/20' },
   ELEVEE: { bg: 'bg-yellow-600/10', text: 'text-yellow-600 dark:text-yellow-400', border: 'border-yellow-500/20' },
   NORMALE: { bg: 'bg-blue-600/10', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-500/20' },
-  BASSE: { bg: 'bg-slate-600/10', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-500/20' }
+  BASSE: { bg: 'bg-slate-600/10', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-500/20' },
+  A_DEFINIR: { bg: 'bg-slate-500/10', text: 'text-slate-500 dark:text-slate-400', border: 'border-slate-500/20 border-dashed' }
 };
 
 const Anomalies: React.FC = () => {
@@ -122,6 +126,26 @@ const Anomalies: React.FC = () => {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [isImpactMenuOpen, setIsImpactMenuOpen] = useState(false);
   const [viewingList, setViewingList] = useState<{ type: 'priorities' | 'ageing', items: any[] } | null>(null);
+  const [quickEditDropdown, setQuickEditDropdown] = useState<{ id: string, field: 'impact' | 'priority' } | null>(null);
+
+  const handleQuickUpdate = async (id: string, field: 'impact' | 'priority', value: string) => {
+    try {
+      const formData = new FormData();
+      if (field === 'impact') {
+        formData.append('impact', value);
+      } else {
+        formData.append('priorite', value);
+      }
+      await anomalyService.updateAnomaly(id, formData);
+      fetchAnomalies(currentPage);
+      toast.success("Mise à jour rapide réussie !");
+    } catch (error) {
+      console.error("Failed to quick update anomaly", error);
+      toast.error("Erreur lors de la mise à jour.");
+    } finally {
+      setQuickEditDropdown(null);
+    }
+  };
 
   React.useEffect(() => {
     fetchAnomalies(1);
@@ -162,9 +186,18 @@ const Anomalies: React.FC = () => {
         release: a.project_name || 'Inconnu',
         campaign: a.campaign_title || 'Inconnue',
         author_name: a.cree_par_nom,
-        created_at: a.cree_le
+        created_at: a.cree_le,
+        playwright_script: a.playwright_script || null,
       }));
       setData(mappedAnomalies);
+
+      if (location.state && (location.state as any).openAnomalyId) {
+          const toOpen = mappedAnomalies.find(an => an.id === (location.state as any).openAnomalyId.toString());
+          if (toOpen) {
+              setSelectedAnomaly(toOpen);
+              window.history.replaceState({}, document.title);
+          }
+      }
     } catch (error) {
       console.error("Failed to fetch anomalies", error);
     } finally {
@@ -189,9 +222,28 @@ const Anomalies: React.FC = () => {
       fetchAnomalies();
       setEditingAnomaly(null);
       setIsCreating(false);
+      toast.success("Anomalie enregistrée avec succès !");
     } catch (error) {
       console.error("Failed to save anomaly", error);
-      alert("Erreur lors de l'enregistrement.");
+      let errMsg = "Erreur lors de l'enregistrement.";
+      const axiosError = error as any;
+      if (axiosError.response?.data) {
+        const data = axiosError.response.data;
+        if (data.preuve_image) {
+          errMsg = Array.isArray(data.preuve_image) ? data.preuve_image[0] : data.preuve_image;
+        } else if (data.non_field_errors) {
+          errMsg = Array.isArray(data.non_field_errors) ? data.non_field_errors[0] : data.non_field_errors;
+        } else if (data.detail) {
+          errMsg = data.detail;
+        } else if (typeof data === 'object') {
+          const keys = Object.keys(data);
+          if (keys.length > 0) {
+            const val = data[keys[0]];
+            errMsg = Array.isArray(val) ? val[0] : String(val);
+          }
+        }
+      }
+      toast.error(errMsg);
     }
   };
 
@@ -205,9 +257,10 @@ const Anomalies: React.FC = () => {
     try {
       await anomalyService.deleteAnomaly(anomalyToDelete);
       setData(prev => prev.filter(a => a.id !== anomalyToDelete));
+      toast.success("Anomalie supprimée avec succès !");
     } catch (error) {
       console.error("Failed to delete anomaly", error);
-      alert("Erreur lors de la suppression.");
+      toast.error("Erreur lors de la suppression.");
     } finally {
       setAnomalyToDelete(null);
     }
@@ -308,9 +361,10 @@ const Anomalies: React.FC = () => {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      toast.success("Rapport PDF généré avec succès !");
     } catch (error) {
       console.error("Failed to download PDF", error);
-      alert("Erreur lors de la génération du PDF.");
+      toast.error("Erreur lors de la génération du PDF.");
     } finally {
       setIsPdfDownloading(false);
     }
@@ -491,16 +545,62 @@ const Anomalies: React.FC = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className={`inline-flex items-center gap-2 px-3 py-1 ${impactStyles[an.impact]?.bg || 'bg-slate-500/10'} rounded-lg border ${impactStyles[an.impact]?.border || 'border-slate-500/20'}`}>
+                        <td className="px-6 py-4 relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setQuickEditDropdown(quickEditDropdown?.id === an.id && quickEditDropdown?.field === 'impact' ? null : { id: an.id, field: 'impact' });
+                              setOpenMenuId(null);
+                            }}
+                            className={`inline-flex items-center gap-2 px-3 py-1 ${impactStyles[an.impact]?.bg || 'bg-slate-500/10'} rounded-lg border ${impactStyles[an.impact]?.border || 'border-slate-500/20'} cursor-pointer hover:ring-2 hover:ring-blue-500/30 transition-all`}
+                          >
                             <div className={`w-1.5 h-1.5 rounded-full ${impactStyles[an.impact]?.dot || 'bg-slate-500'}`} />
                             <span className={`text-[9px] font-black uppercase tracking-widest ${impactStyles[an.impact]?.text || 'text-slate-400'}`}>{an.impact}</span>
-                          </div>
+                          </button>
+                          {quickEditDropdown?.id === an.id && quickEditDropdown?.field === 'impact' && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setQuickEditDropdown(null); }}></div>
+                              <div className="absolute left-6 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-white/5 z-20 p-2 max-h-60 overflow-y-auto custom-scrollbar">
+                                {['FONCTIONNALITE', 'SIMPLE', 'TEXTE', 'COSMETIQUE', 'MINEURS', 'MAJEUR', 'CRITIQUE', 'BLOQUANTES'].map((opt) => (
+                                  <button
+                                    key={opt}
+                                    onClick={(e) => { e.stopPropagation(); handleQuickUpdate(an.id, 'impact', opt); }}
+                                    className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg"
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
                         </td>
-                        <td className="px-6 py-4">
-                          <div className={`inline-flex items-center gap-2 px-3 py-1 ${priorityStyles[an.priority]?.bg || 'bg-slate-500/10'} rounded-lg border ${priorityStyles[an.priority]?.border || 'border-slate-500/20'}`}>
+                        <td className="px-6 py-4 relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setQuickEditDropdown(quickEditDropdown?.id === an.id && quickEditDropdown?.field === 'priority' ? null : { id: an.id, field: 'priority' });
+                              setOpenMenuId(null);
+                            }}
+                            className={`inline-flex items-center gap-2 px-3 py-1 ${priorityStyles[an.priority]?.bg || 'bg-slate-500/10'} rounded-lg border ${priorityStyles[an.priority]?.border || 'border-slate-500/20'} cursor-pointer hover:ring-2 hover:ring-blue-500/30 transition-all`}
+                          >
                             <span className={`text-[9px] font-black uppercase tracking-widest ${priorityStyles[an.priority]?.text || 'text-slate-400'}`}>{an.priority}</span>
-                          </div>
+                          </button>
+                          {quickEditDropdown?.id === an.id && quickEditDropdown?.field === 'priority' && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setQuickEditDropdown(null); }}></div>
+                              <div className="absolute left-6 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-white/5 z-20 p-2 max-h-60 overflow-y-auto custom-scrollbar">
+                                {['BASSE', 'NORMALE', 'ELEVEE', 'URGENTE', 'IMMEDIATE'].map((opt) => (
+                                  <button
+                                    key={opt}
+                                    onClick={(e) => { e.stopPropagation(); handleQuickUpdate(an.id, 'priority', opt); }}
+                                    className="w-full text-left px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg"
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
                         </td>
                         <td className="px-6 py-4">
                           {an.proofImage ? (

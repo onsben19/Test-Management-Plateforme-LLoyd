@@ -38,6 +38,15 @@ class TestCaseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = TestCase.objects.all()
+        
+        if self.request.user.role == 'TESTER':
+            from campaigns.models import TaskAssignment
+            assigned_tasks = TaskAssignment.objects.filter(tester=self.request.user)
+            q_filter = Q(tester=self.request.user)
+            for task in assigned_tasks:
+                q_filter |= Q(campaign=task.campaign, test_case_ref=task.test_case_ref)
+            queryset = queryset.filter(q_filter)
+
         search = self.request.query_params.get('search')
         status = self.request.query_params.get('status')
         ordering = self.request.query_params.get('ordering')
@@ -196,14 +205,36 @@ class TestCaseViewSet(viewsets.ModelViewSet):
             if os.path.exists(output_dir):
                 shutil.rmtree(output_dir)
                 
-            result = subprocess.run(
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            channel_layer = get_channel_layer()
+            group_name = f'testcase_logs_{test_case.id}'
+
+            process = subprocess.Popen(
                 ['npx', 'playwright', 'test', path, f'--output={output_dir}'],
                 cwd=project_dir,
-                capture_output=True,
-                text=True
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
             )
-            logs = result.stdout + result.stderr
-            status = 'PASSED' if result.returncode == 0 else 'FAILED'
+
+            logs_list = []
+            for line in iter(process.stdout.readline, ''):
+                logs_list.append(line)
+                if channel_layer:
+                    async_to_sync(channel_layer.group_send)(
+                        group_name,
+                        {
+                            "type": "log_message",
+                            "message": line
+                        }
+                    )
+
+            process.stdout.close()
+            returncode = process.wait()
+            logs = "".join(logs_list)
+            status = 'PASSED' if returncode == 0 else 'FAILED'
             
             # Save logs to TestCase data_json
             tc_data = test_case.data_json or {}
@@ -222,7 +253,12 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                 from django.core.files import File
                 
                 groq_service = GroqService()
-                anomaly_title, anomaly_desc = groq_service.generate_anomaly_from_logs(test_case.test_case_ref, logs)
+                try:
+                    anomaly_title, anomaly_desc = groq_service.generate_anomaly_from_logs(test_case.test_case_ref, logs)
+                except Exception as e:
+                    logger.error(f"Erreur lors de l'appel LLM Groq : {e}")
+                    anomaly_title = f"Échec du test automatique : {test_case.test_case_ref}"
+                    anomaly_desc = "Le test a échoué. Le diagnostic IA n'a pas pu être généré suite à une erreur technique de l'API LLM."
                 
                 # Sanitize to prevent DB errors and append raw logs
                 safe_title = str(anomaly_title).replace('\x00', '')[:250]
@@ -232,8 +268,8 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                     test_case=test_case,
                     titre=safe_title,
                     description=safe_desc,
-                    impact='MAJEUR',
-                    priorite='ELEVEE',
+                    impact='A_DEFINIR',
+                    priorite='A_DEFINIR',
                     visibilite='PUBLIQUE',
                     statut='OUVERTE',
                     cree_par=request.user
@@ -257,9 +293,13 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                 anomaly.save()
                 test_case.save()
 
-            return Response({
+            response_data = {
                 "status": test_case.status,
                 "logs": logs
-            })
+            }
+            if status == 'FAILED' and 'anomaly' in locals():
+                response_data["anomaly_id"] = anomaly.id
+                
+            return Response(response_data)
         except Exception as e:
             import traceback; traceback.print_exc(); return Response({"error": str(e)}, status=500)

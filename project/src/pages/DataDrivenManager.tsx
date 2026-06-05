@@ -360,7 +360,7 @@ const DataDrivenManager = () => {
 
         setTesterQuotas({
             ...testerQuotas,
-            [pendingTester.id]: tempQuota || 10
+            [pendingTester.id]: tempQuota || campaignForm.nb_test_cases || 10
         });
 
         setIsSingleQuotaModalOpen(false);
@@ -545,8 +545,10 @@ const DataDrivenManager = () => {
                                 <div
                                     key={file.id}
                                     style={{ animationDelay: `${index * 100}ms` }}
-                                    className="group bg-[#0f172a]/40 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] p-6 relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 hover:border-emerald-500/20 flex flex-col h-full"
+                                    className="group relative bg-[#0f1729]/80 backdrop-blur-xl hover:bg-[#131c31] border border-white/5 hover:border-blue-500/30 rounded-[2.5rem] p-8 overflow-hidden shadow-xl hover:shadow-[0_15px_40px_-10px_rgba(59,130,246,0.15)] animate-in fade-in slide-in-from-bottom-4 transition-all duration-500 flex flex-col h-full"
                                 >
+                                    {/* Subtle ambient glow */}
+                                    <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                                     {/* Top Right Area (Badges + Actions) */}
                                     <div className="absolute top-6 right-6 flex items-center gap-3 z-20">
                                         <button
@@ -616,23 +618,25 @@ const DataDrivenManager = () => {
                                     </div>
 
                                     {/* Title & Metas */}
-                                    <div className="mb-6">
-                                        <h3 className="text-xl font-black text-white leading-tight tracking-tight mb-2 line-clamp-2 min-h-[3rem] group-hover:text-blue-400 transition-colors pr-32">
+                                    <div className="mb-6 relative z-10">
+                                        <h3 className="text-xl md:text-2xl font-black text-white leading-tight tracking-tight mb-2 line-clamp-2 min-h-[3rem] group-hover:text-blue-400 transition-colors pr-32">
                                             {file.name}
                                         </h3>
-                                        {file.description && (
-                                            <p className="text-xs text-slate-300 leading-relaxed line-clamp-3 mb-5 opacity-70">
+                                        {file.description ? (
+                                            <p className="text-sm text-slate-400 leading-relaxed line-clamp-3 mb-5 opacity-70">
                                                 {file.description}
                                             </p>
+                                        ) : (
+                                            <p className="text-sm text-slate-400 leading-relaxed mb-5 italic opacity-60">Aucune description</p>
                                         )}
                                         <div className="flex items-center gap-3">
-                                            <div className="px-3 py-1.5 bg-white/5 border border-white/5 rounded-lg flex items-center gap-2">
-                                                <Calendar size={12} className="text-slate-500" />
-                                                <span className="text-xs font-bold text-slate-300">{file.date}</span>
+                                            <div className="px-3 py-1.5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors border border-white/5 rounded-xl flex items-center gap-2">
+                                                <Calendar size={12} className="text-emerald-400" />
+                                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{file.date}</span>
                                             </div>
-                                            <div className="px-3 py-1.5 bg-white/5 border border-white/5 rounded-lg flex items-center gap-2">
-                                                <Clock size={12} className="text-slate-500" />
-                                                <span className="text-xs font-bold text-slate-300">
+                                            <div className="px-3 py-1.5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors border border-white/5 rounded-xl flex items-center gap-2">
+                                                <Clock size={12} className="text-blue-400" />
+                                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
                                                     Deadline {guard?.projected_end_date ? new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
                                                 </span>
                                             </div>
@@ -642,7 +646,7 @@ const DataDrivenManager = () => {
                                     <div className="h-px w-full bg-white/5 mb-6" />
 
                                     {/* Progression Section */}
-                                    <div className="bg-[#131b26]/60 backdrop-blur-md border border-white/10 rounded-[1.5rem] p-5 mb-4">
+                                    <div className="bg-white/[0.02] backdrop-blur-md border border-white/5 hover:bg-white/[0.04] transition-colors rounded-[1.5rem] p-5 mb-4 relative z-10">
                                         <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest mb-6">
                                             <TrendingUp size={12} />
                                             PROGRESSION & CADENCE
@@ -798,14 +802,15 @@ const DataDrivenManager = () => {
 
                                         <button
                                             onClick={() => handleOpenPreview(file)}
-                                            className="w-full py-4 bg-white/5 hover:bg-white/[0.08] border border-white/10 rounded-2xl flex items-center justify-center gap-4 text-xs font-black uppercase tracking-widest text-white transition-all group/footer shadow-lg"
+                                            className="w-full py-4 bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-blue-500/30 rounded-2xl flex items-center justify-between px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-400 transition-all group/footer relative z-10"
                                         >
-                                            <div className="flex flex-col gap-1 group-hover/footer:scale-110 transition-transform">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                                            </div>
-                                            VOIR LE CAHIER DE TESTS
+                                            <span className="opacity-0 group-hover/footer:opacity-100 transition-opacity absolute left-6 text-blue-400">
+                                                Accéder
+                                            </span>
+                                            <span className="group-hover/footer:opacity-0 transition-opacity">
+                                                Voir le cahier de tests
+                                            </span>
+                                            <ArrowRight size={14} className="group-hover/footer:translate-x-1 transition-transform text-slate-500 group-hover/footer:text-blue-400" />
                                         </button>
                                     </div>
                                 </div>
@@ -985,6 +990,7 @@ const DataDrivenManager = () => {
                                                         if (e.target.checked) {
                                                             // Ouvre le popup pour ce testeur spécifique
                                                             setPendingTester(tester);
+                                                            setTempQuota(campaignForm.nb_test_cases || 0);
                                                             setIsSingleQuotaModalOpen(true);
                                                         } else {
                                                             // Supprime simplement
@@ -1082,8 +1088,14 @@ const DataDrivenManager = () => {
                                             type="number"
                                             autoFocus
                                             value={tempQuota || ''}
-                                            placeholder="10"
-                                            onChange={(e) => setTempQuota(parseInt(e.target.value) || 0)}
+                                            placeholder={campaignForm.nb_test_cases?.toString() || '10'}
+                                            min="0"
+                                            max={campaignForm.nb_test_cases || undefined}
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value) || 0;
+                                                const maxVal = campaignForm.nb_test_cases || Infinity;
+                                                setTempQuota(Math.min(Math.max(0, val), maxVal));
+                                            }}
                                             onKeyDown={(e) => e.key === 'Enter' && confirmSingleQuota()}
                                             className="w-24 bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white font-black text-center focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                         />

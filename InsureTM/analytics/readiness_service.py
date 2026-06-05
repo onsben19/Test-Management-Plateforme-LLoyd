@@ -47,7 +47,7 @@ class ReleaseReadinessManager:
                 
                 # 2. ML status (worst-case for project)
                 try:
-                    c_ml = self.ml_guard.get_campaign_status(camp.id)
+                    c_ml = self.ml_guard.get_campaign_status(camp.id, generate_insight=False)
                     c_status = c_ml.get('status', 'INITIAL')
                     
                     # Order of severity: CRITICAL (4) > WARNING (3) > WAITING/INITIAL (2) > OPTIMAL (0)

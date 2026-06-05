@@ -4,6 +4,7 @@ from django.conf import settings
 class BusinessProject(models.Model):
     name = models.CharField(max_length=200, verbose_name="Nom du Projet")
     description = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=[('ACTIF', 'Actif'), ('TERMINÉ', 'Terminé')], default='ACTIF')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Date de Création")
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

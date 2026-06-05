@@ -104,6 +104,8 @@ export const anomalyService = {
         api.patch(`/anomalies/${id}/`, data, { headers: multipartHeaders(data) }),
     exportAnomaliesPdf: (params?: Record<string, unknown>) =>
         api.get('/anomalies/export_pdf/', { params, responseType: 'blob' }),
+    diagnoseExternalLogs: (data: { logs: string; code?: string }) =>
+        api.post('/anomalies/diagnose_external_logs/', data),
     deleteAnomaly: (id: string) => api.delete(`/anomalies/${id}/`),
 };
 
@@ -167,6 +169,12 @@ export const aiService = {
         api.post('/analytics/apply-recommendation/', { campaign_id: campaignId, action_id: actionId }),
     getReinforcementStatus: (campaignId: string | number) =>
         api.get(`/analytics/reinforcement-status/${campaignId}/`),
+    getPendingReinforcements: () =>
+        api.get('/analytics/pending-reinforcements/'),
+    acceptReinforcement: (campaignId: string | number, managerEmail: string) =>
+        api.post('/analytics/respond-n8n/', { campaign_id: campaignId, statut: 'accepte', manager_email: managerEmail }),
+    refuseReinforcement: (campaignId: string | number, managerEmail: string) =>
+        api.post('/analytics/respond-n8n/', { campaign_id: campaignId, statut: 'refuse', manager_email: managerEmail }),
     ollamaChat: (query: string, context?: string) =>
         api.post('/analytics/ollama-chat/', { query, context }),
 };

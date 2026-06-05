@@ -534,6 +534,24 @@ class AcceptReinforcementView(APIView):
             ReinforcementNotification.objects.filter(
                 campaign=campaign, tester_id=tester_id
             ).update(status='ACCEPTED', replied_at=timezone.now())
+
+            # Notify the manager (campaign.imported_by)
+            manager = campaign.imported_by
+            if manager:
+                from notifications.models import Notification
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                try:
+                    tester = User.objects.get(id=tester_id)
+                    Notification.objects.create(
+                        recipient=manager,
+                        title="Renfort Accepté",
+                        message=f"{tester.get_full_name() or tester.username} a accepté votre demande de renfort pour la campagne : {campaign.title}",
+                        type='info',
+                        related_campaign=campaign
+                    )
+                except Exception as notif_err:
+                    logger.error(f"Failed to create accepted reinforcement notification: {notif_err}")
             
             return Response({'status': 'success', 'message': f'Tester {tester_id} assigned to campaign {campaign_id}'})
         except Exception as e:
@@ -566,10 +584,114 @@ class RefuseReinforcementView(APIView):
                 campaign=campaign, tester_id=tester_id
             ).update(status='REFUSED', replied_at=timezone.now())
 
+            # Notify the manager (campaign.imported_by)
+            manager = campaign.imported_by
+            if manager:
+                from notifications.models import Notification
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                try:
+                    tester = User.objects.get(id=tester_id)
+                    Notification.objects.create(
+                        recipient=manager,
+                        title="Renfort Refusé",
+                        message=f"{tester.get_full_name() or tester.username} a refusé votre demande de renfort pour la campagne : {campaign.title}",
+                        type='info',
+                        related_campaign=campaign
+                    )
+                except Exception as notif_err:
+                    logger.error(f"Failed to create refused reinforcement notification: {notif_err}")
+
             return Response({'status': 'refused', 'updated': updated})
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class PendingReinforcementsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'TESTER':
+            return Response([])
+            
+        from .models import ReinforcementNotification
+        pending = ReinforcementNotification.objects.filter(
+            tester=request.user,
+            status='PENDING'
+        ).select_related('campaign')
+        
+        data = []
+        for p in pending:
+            data.append({
+                'campaign_id': p.campaign.id,
+                'campaign_title': p.campaign.title,
+                'manager_email': 'manager@lloyd.com', # Default or fetch from campaign/owner
+                'sent_at': p.sent_at.isoformat() if p.sent_at else None
+            })
+        return Response(data)
+
+class RespondToN8NView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        campaign_id = request.data.get('campaign_id')
+        statut = request.data.get('statut')
+        manager_email = request.data.get('manager_email')
+        tester_id = request.user.id
+        
+        import requests
+        try:
+            url = f"http://n8n:5678/webhook/reponse-testeur?statut={statut}&campaign_id={campaign_id}&tester_id={tester_id}&manager_email={manager_email}"
+            # In docker, n8n is accessible via 'n8n' hostname, but locally it might be localhost
+            try:
+                requests.get(url, timeout=5)
+            except requests.exceptions.ConnectionError:
+                requests.get(f"http://localhost:5678/webhook/reponse-testeur?statut={statut}&campaign_id={campaign_id}&tester_id={tester_id}&manager_email={manager_email}", timeout=5)
+            return Response({'status': 'success'})
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+
+class N8NCreateNotificationView(APIView):
+    """Called by n8n to push in-app notifications instead of sending emails."""
+    from rest_framework.permissions import AllowAny
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        import os
+        expected_token = os.environ.get('N8N_WEBHOOK_TOKEN', '')
+        received_token = request.data.get('token')
+        if expected_token and received_token != expected_token:
+            return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+            
+        tester_id = request.data.get('tester_id')
+        email = request.data.get('email')
+        title = request.data.get('title')
+        message = request.data.get('message')
+        notif_type = request.data.get('type', 'info')
+        campaign_id = request.data.get('campaign_id')
+        
+        from notifications.models import Notification
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        try:
+            if tester_id:
+                user = User.objects.get(id=tester_id)
+            elif email:
+                user = User.objects.get(email=email)
+            else:
+                return Response({'error': 'Missing user identifier'}, status=400)
+                
+            Notification.objects.create(
+                recipient=user,
+                title=title,
+                message=message,
+                type=notif_type,
+                related_campaign_id=campaign_id
+            )
+            return Response({'status': 'success'})
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=404)
 
 class ReinforcementStatusView(APIView):
     """Returns the reinforcement notification status for a campaign (for dashboard monitoring)."""

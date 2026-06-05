@@ -28,8 +28,8 @@ class TestCase(models.Model):
     # État actuel du test pour le testeur
     status = models.CharField(
         max_length=20, 
-        choices=[('PASSED', 'Succès'), ('FAILED', 'Échec')],
-        default='PASSED'
+        choices=[('PENDING', 'À faire'), ('PASSED', 'Succès'), ('FAILED', 'Échec')],
+        default='PENDING'
     )
     
     tester = models.ForeignKey(
@@ -42,6 +42,32 @@ class TestCase(models.Model):
     
     # Preuve d'exécution (Capture écran ou fichier)
     proof_file = models.FileField(upload_to='executions/proofs/%Y/%m/%d/', blank=True, null=True)
+    proof_hash = models.CharField(max_length=64, blank=True, null=True, db_index=True)
+
+    def save(self, *args, **kwargs):
+        if self.proof_file:
+            import hashlib
+            hasher = hashlib.sha256()
+            try:
+                opened_here = False
+                if self.proof_file.closed:
+                    self.proof_file.open('rb')
+                    opened_here = True
+                else:
+                    self.proof_file.seek(0)
+                
+                for chunk in self.proof_file.chunks():
+                    hasher.update(chunk)
+                
+                self.proof_hash = hasher.hexdigest()
+                
+                if opened_here:
+                    self.proof_file.close()
+            except Exception:
+                pass
+        else:
+            self.proof_hash = None
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.test_case_ref} - {self.campaign.title}"

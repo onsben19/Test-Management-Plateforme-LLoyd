@@ -190,8 +190,8 @@ const ReleaseManager = () => {
 
     const getStatusStyles = (status: string) => {
         switch (status) {
-            case 'ACTIVE': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-            case 'COMPLETED': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+            case 'ACTIVE': return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+            case 'COMPLETED': return 'bg-rose-500/10 text-rose-500 border-rose-500/20';
             default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
         }
     };
@@ -293,8 +293,10 @@ const ReleaseManager = () => {
                                     initial={{ opacity: 0, y: 30 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.5, delay: idx * 0.05 }}
-                                    className="group relative bg-white/60 dark:bg-[#131722]/80 backdrop-blur-xl border border-slate-200/50 dark:border-white/5 rounded-[2rem] p-8 hover:shadow-blue-500/10 transition-all duration-500 shadow-2xl"
+                                    className="group relative bg-[#0f1729]/80 backdrop-blur-xl hover:bg-[#131c31] border border-white/5 hover:border-blue-500/30 rounded-[2.5rem] p-8 overflow-hidden shadow-xl hover:shadow-[0_15px_40px_-10px_rgba(59,130,246,0.15)] cursor-pointer transition-all duration-500"
                                 >
+                                    {/* Subtle ambient glow */}
+                                    <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                                     <div className="absolute top-8 right-8">
                                         <div className="relative">
                                             <Button
@@ -326,7 +328,7 @@ const ReleaseManager = () => {
                                                                 <button
                                                                     key={status}
                                                                     onClick={() => handleStatusChange(release, status)}
-                                                                    className={`w-full flex items-center gap-3 px-6 py-3 text-[9px] font-black uppercase tracking-widest rounded-2xl transition-all ${release.status === status ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/5' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                                                                    className={`w-full flex items-center gap-3 px-6 py-3 text-[9px] font-black uppercase tracking-widest rounded-2xl transition-all ${release.status === status ? (status === 'ACTIVE' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/5' : 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/5') : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5'}`}
                                                                 >
                                                                     <Activity className={`w-3.5 h-3.5 ${release.status === status ? 'animate-pulse' : 'opacity-40'}`} />
                                                                     {getStatusLabel(status)}
@@ -364,12 +366,12 @@ const ReleaseManager = () => {
                                         </div>
 
                                         {/* Title & Description */}
-                                        <div className="mb-8">
-                                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors tracking-tight truncate uppercase">
+                                        <div className="mb-8 relative z-10">
+                                            <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white mb-2 group-hover:text-blue-400 transition-colors tracking-tight truncate uppercase">
                                                 {release.name}
                                             </h3>
-                                            <p className="text-slate-500 text-sm font-medium leading-relaxed line-clamp-2 h-10">
-                                                {release.description}
+                                            <p className="text-slate-400 text-sm font-medium leading-relaxed line-clamp-2 h-10">
+                                                {release.description || <span className="italic opacity-60">Aucune description</span>}
                                             </p>
                                         </div>
 
@@ -403,35 +405,37 @@ const ReleaseManager = () => {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4 mb-10">
-                                            <div className="p-4 bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl space-y-2">
-                                                <div className="flex items-center gap-2 text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest">
-                                                    <Calendar className="w-3.5 h-3.5" />
-                                                    Créé le
+                                        <div className="grid grid-cols-2 gap-3 mb-10 relative z-10">
+                                            <div className="p-4 bg-white/[0.02] group-hover:bg-white/[0.04] transition-colors border border-white/5 rounded-2xl flex flex-col justify-between">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Créé le</p>
                                                 </div>
-                                                <div className="text-slate-900 dark:text-white text-sm font-bold">{formatDate(release.created_at)}</div>
+                                                <div className="flex items-baseline gap-1.5">
+                                                    <p className="text-xl font-black text-white leading-tight uppercase tracking-tighter">
+                                                        {new Date(release.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }).replace('.', '')}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 font-bold">{new Date(release.created_at).getFullYear()}</p>
+                                                </div>
                                             </div>
-                                            <div className="p-4 bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl space-y-2">
-                                                <div className="flex items-center gap-2 text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest">
-                                                    <BookOpen className="w-3.5 h-3.5" />
-                                                    Campagnes
+                                            <div className="p-4 bg-white/[0.02] group-hover:bg-white/[0.04] transition-colors border border-white/5 rounded-2xl flex flex-col justify-between">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <BookOpen className="w-3.5 h-3.5 text-blue-400" />
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Campagnes</p>
                                                 </div>
-                                                <div className="text-slate-900 dark:text-white text-sm font-bold">{release.campaign_count || 1} Set{release.campaign_count > 1 ? 's' : ''}</div>
+                                                <p className="text-2xl font-black text-white">{release.campaign_count || 1}</p>
                                             </div>
                                         </div>
 
-                                        <div className="mt-auto pt-6 border-t border-slate-100 dark:border-white/5 flex flex-wrap items-center justify-between gap-4">
-                                            <div className="flex items-center gap-2.5">
-                                                <div className="w-9 h-9 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-[11px] font-black text-blue-600 dark:text-blue-500 shrink-0">
-                                                    M
-                                                </div>
-                                                <span className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">{release.created_by_username || 'MANAGER'}</span>
-                                            </div>
+                                        <div className="mt-auto pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-between relative z-10">
+                                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                Explorer la release
+                                            </span>
                                             <button
                                                 onClick={() => navigate('/manager', { state: { releaseName: release.name, releaseId: release.id } })}
-                                                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#3b82f6] hover:text-blue-300 transition-all group/btn whitespace-nowrap"
+                                                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-400 transition-colors group/btn whitespace-nowrap"
                                             >
-                                                {t('releaseManager.card.viewTests')}
+                                                Ouvrir
                                                 <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                                             </button>
                                         </div>
@@ -502,12 +506,13 @@ const ReleaseManager = () => {
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('releaseManager.modal.initialStatus')}</label>
-                                        <div className="relative bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden group">
+                                        <div className={`relative border rounded-2xl overflow-hidden group ${!editingRelease ? 'bg-slate-100 dark:bg-white/[0.02] border-transparent opacity-70' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10'}`}>
                                             <Activity className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-500 transition-colors" />
                                             <select
-                                                className="w-full bg-transparent pl-16 pr-6 py-3 text-slate-900 dark:text-white font-bold outline-none cursor-pointer appearance-none"
+                                                className={`w-full bg-transparent pl-16 pr-6 py-3 text-slate-900 dark:text-white font-bold outline-none appearance-none ${!editingRelease ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                                                 value={newRelease.status}
                                                 onChange={(e) => setNewRelease({ ...newRelease, status: e.target.value })}
+                                                disabled={!editingRelease}
                                             >
                                                 <option value="ACTIVE" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{t('releaseManager.status.active')}</option>
                                                 <option value="COMPLETED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">{t('releaseManager.status.completed')}</option>
@@ -533,12 +538,13 @@ const ReleaseManager = () => {
 
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Projet Parent (Portefeuille)</label>
-                                    <div className="relative bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden group">
+                                    <div className={`relative border rounded-2xl overflow-hidden group ${businessProjectId ? 'bg-slate-100 dark:bg-white/[0.02] border-transparent opacity-70' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10'}`}>
                                         <BookOpen className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-500 transition-colors" />
                                         <select
-                                            className="w-full bg-transparent pl-16 pr-6 py-3 text-slate-900 dark:text-white font-bold outline-none cursor-pointer appearance-none"
+                                            className={`w-full bg-transparent pl-16 pr-6 py-3 text-slate-900 dark:text-white font-bold outline-none appearance-none ${businessProjectId ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                                             value={newRelease.business_project}
                                             onChange={(e) => setNewRelease({ ...newRelease, business_project: e.target.value })}
+                                            disabled={!!businessProjectId}
                                         >
                                             <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Aucun projet (Global)</option>
                                             {businessProjects.map(bp => (

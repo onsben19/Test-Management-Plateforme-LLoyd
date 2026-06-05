@@ -241,16 +241,18 @@ const ProjectPortfolio = () => {
                                                 animate={{ opacity: 1, scale: 1 }}
                                                 transition={{ delay: idx * 0.05 }}
                                                 onClick={() => navigate('/releases', { state: { businessProjectId: project.id, businessProjectName: project.name } })}
-                                                className="group relative glass-card rounded-[2.5rem] p-8 overflow-hidden shadow-xl hover:shadow-2xl cursor-pointer"
+                                                className="group relative bg-[#0f1729]/80 backdrop-blur-xl hover:bg-[#131c31] border border-white/5 hover:border-blue-500/30 rounded-[2.5rem] p-8 overflow-hidden shadow-xl hover:shadow-[0_15px_40px_-10px_rgba(59,130,246,0.15)] cursor-pointer transition-all duration-500"
                                             >
+                                                {/* Subtle ambient glow */}
+                                                <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                                                 {/* Card Header - Title & Status & Actions */}
                                                 <div className="flex items-start justify-between mb-6">
                                                     <div className="space-y-2 flex-1 min-w-0 pr-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                                                            <span className="text-[10px] font-black text-blue-600 dark:text-blue-500 uppercase tracking-widest">{t('portfolio.active', 'Actif')}</span>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <div className={`w-1.5 h-1.5 rounded-full ${project.status === 'TERMINÉ' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'}`} />
+                                                            <span className={`text-[9px] font-black uppercase tracking-widest ${project.status === 'TERMINÉ' ? 'text-rose-500' : 'text-emerald-500'}`}>{project.status || 'ACTIF'}</span>
                                                         </div>
-                                                        <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase truncate">{project.name}</h3>
+                                                        <h3 className="text-xl md:text-2xl font-black text-white tracking-tight leading-none group-hover:text-blue-400 transition-colors uppercase truncate relative z-10">{project.name}</h3>
                                                     </div>
                                                     <div className="relative shrink-0" onClick={e => e.stopPropagation()}>
                                                         <Button
@@ -269,6 +271,23 @@ const ProjectPortfolio = () => {
                                                                     className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
                                                                 >
                                                                     <div className="p-2 space-y-1">
+                                                                        <button
+                                                                            onClick={async (e) => {
+                                                                                e.stopPropagation();
+                                                                                try {
+                                                                                    await businessProjectService.updateBusinessProject(project.id, { name: project.name, description: project.description, status: project.status === 'ACTIF' ? 'TERMINÉ' : 'ACTIF' });
+                                                                                    fetchProjects();
+                                                                                    toast.success("Statut mis à jour");
+                                                                                } catch (error) {
+                                                                                    toast.error("Erreur lors de la mise à jour");
+                                                                                }
+                                                                                setOpenMenuId(null);
+                                                                            }}
+                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-all"
+                                                                        >
+                                                                            <Activity className={`w-3.5 h-3.5 ${project.status === 'ACTIF' ? 'text-rose-600 dark:text-rose-500/70' : 'text-emerald-600 dark:text-emerald-500/70'}`} />
+                                                                            {project.status === 'ACTIF' ? 'Marquer Terminé' : 'Marquer Actif'}
+                                                                        </button>
                                                                         <button
                                                                             onClick={() => { setEditingProject(project); setNewProject({ name: project.name, description: project.description }); setIsModalOpen(true); setOpenMenuId(null); }}
                                                                             className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-all"
@@ -292,31 +311,29 @@ const ProjectPortfolio = () => {
                                                 </div>
 
                                                 {/* Description */}
-                                                <div className="space-y-2 mb-6">
-                                                    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium leading-relaxed line-clamp-2">{project.description || t('portfolio.defaultDesc', 'Description du projet métier')}</p>
+                                                <div className="space-y-2 mb-8 relative z-10">
+                                                    <p className="text-slate-400 text-sm font-medium leading-relaxed line-clamp-2">{project.description || <span className="italic opacity-60">{t('portfolio.defaultDesc', 'Aucune description fournie pour ce projet métier.')}</span>}</p>
                                                 </div>
 
-                                                <div className="h-px w-full bg-slate-200 dark:bg-white/5 mb-6" />
-
                                                 {/* Stats */}
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="p-5 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[1.5rem] space-y-3">
-                                                        <div className="flex items-center gap-2">
-                                                            <Layers className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600" />
+                                                <div className="grid grid-cols-2 gap-3 relative z-10">
+                                                    <div className="p-4 bg-white/[0.02] group-hover:bg-white/[0.04] transition-colors border border-white/5 rounded-2xl flex flex-col justify-between">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <Layers className="w-3.5 h-3.5 text-blue-400" />
                                                             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('portfolio.table.releases', 'Releases')}</p>
                                                         </div>
-                                                        <p className="text-3xl font-black text-slate-900 dark:text-white">{project.releases_count || 0}</p>
+                                                        <p className="text-2xl font-black text-white">{project.releases_count || 0}</p>
                                                     </div>
-                                                    <div className="p-5 bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[1.5rem] space-y-3">
-                                                        <div className="flex items-center gap-2">
-                                                            <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600" />
+                                                    <div className="p-4 bg-white/[0.02] group-hover:bg-white/[0.04] transition-colors border border-white/5 rounded-2xl flex flex-col justify-between">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <Calendar className="w-3.5 h-3.5 text-emerald-400" />
                                                             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('portfolio.table.createdAt', 'Créé le')}</p>
                                                         </div>
-                                                        <div>
-                                                            <p className="text-xl font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter">
-                                                                {new Date(project.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                                                        <div className="flex items-baseline gap-1.5">
+                                                            <p className="text-xl font-black text-white leading-tight uppercase tracking-tighter">
+                                                                {new Date(project.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }).replace('.', '')}
                                                             </p>
-                                                            <p className="text-xs text-slate-500 dark:text-slate-600 font-bold mt-0.5">{new Date(project.created_at).getFullYear()}</p>
+                                                            <p className="text-xs text-slate-500 font-bold">{new Date(project.created_at).getFullYear()}</p>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -338,9 +355,14 @@ const ProjectPortfolio = () => {
                                                 </div>
 
                                                 {/* Hover indicator */}
-                                                <div className="mt-5 flex items-center gap-2 text-[10px] font-black text-slate-600 group-hover:text-blue-500 transition-colors uppercase tracking-widest">
-                                                    <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                                                    {t('portfolio.viewReleases', 'Voir les releases')}
+                                                <div className="mt-8 flex items-center justify-between relative z-10">
+                                                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                        {project.releases_count > 0 ? "Explorer le projet" : "Commencer"}
+                                                    </span>
+                                                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 group-hover:text-blue-400 transition-colors uppercase tracking-widest">
+                                                        {t('portfolio.viewReleases', 'Ouvrir')}
+                                                        <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                                    </div>
                                                 </div>
                                             </motion.div>
                                         ))

@@ -14,6 +14,7 @@ import { Target, Activity, FileText as FileIcon } from 'lucide-react';
 import ReadinessDetailModal from '../components/ReadinessDetailModal';
 import QANewsHub from '../components/QANewsHub';
 import ValidateCasDeTest from '../components/ValidateCasDeTest';
+import { PendingReinforcements } from '../components/PendingReinforcements';
 
 const TesterDashboard = () => {
     const { t } = useTranslation();
@@ -58,7 +59,8 @@ const TesterDashboard = () => {
     });
     const [generatingCode, setGeneratingCode] = useState(false);
     const [executingCode, setExecutingCode] = useState(false);
-    const [executionResult, setExecutionResult] = useState<{ status: string; logs: string } | null>(null);
+    const [executionResult, setExecutionResult] = useState<{ status: string; logs: string; anomaly_id?: string } | null>(null);
+    const [liveLogs, setLiveLogs] = useState<string>('');
 
     useEffect(() => {
         if (user) {
@@ -201,6 +203,10 @@ const TesterDashboard = () => {
                 return;
             }
             setExecutingCode(true);
+            setLiveLogs('');
+            setExecutionResult(null);
+
+            let ws: WebSocket | null = null;
             try {
                 // 1. Create TestCase with status PENDING
                 const executionData = new FormData();
@@ -216,6 +222,44 @@ const TesterDashboard = () => {
                 // 2. Save script
                 await executionService.saveScript(testId, testCaseForm.code);
 
+                // 2b. Connect WebSocket for live logs
+                const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+                const token = localStorage.getItem('access_token');
+                const wsUrl = `${protocol}://${window.location.host}/ws/testcases/${testId}/logs/${token ? `?token=${token}` : ''}`;
+                
+                try {
+                    ws = new WebSocket(wsUrl);
+                    ws.onmessage = (e) => {
+                        const data = JSON.parse(e.data);
+                        if (data.type === 'log') {
+                            setLiveLogs(prev => prev + data.message);
+                        }
+                    };
+                    ws.onerror = (err) => {
+                        console.error("WS Error:", err);
+                    };
+                    
+                    // Attendre l'ouverture du WebSocket avant de lancer l'exécution (résout la race condition)
+                    await new Promise<void>((resolve) => {
+                        if (!ws) return resolve();
+                        let resolved = false;
+                        ws.onopen = () => {
+                            if (!resolved) {
+                                resolved = true;
+                                resolve();
+                            }
+                        };
+                        setTimeout(() => {
+                            if (!resolved) {
+                                resolved = true;
+                                resolve(); // fallback
+                            }
+                        }, 2000);
+                    });
+                } catch (err) {
+                    console.error("Failed to connect WebSocket for logs", err);
+                }
+
                 // 3. Execute script (backend handles PASSED/FAILED and Anomaly creation)
                 const execRes = await executionService.executeScript(testId);
 
@@ -227,7 +271,8 @@ const TesterDashboard = () => {
 
                 setExecutionResult({
                     status: execRes.data.status,
-                    logs: execRes.data.logs
+                    logs: execRes.data.logs,
+                    anomaly_id: execRes.data.anomaly_id
                 });
 
                 fetchAssignedCampaigns(currentPage);
@@ -236,6 +281,9 @@ const TesterDashboard = () => {
                 toast.error("Erreur lors de l'exécution automatique");
             } finally {
                 setExecutingCode(false);
+                if (ws) {
+                    ws.close();
+                }
             }
             return;
         }
@@ -266,17 +314,44 @@ const TesterDashboard = () => {
                 if (testCaseForm.anomaly_file) {
                     anomalyData.append('preuve_image', testCaseForm.anomaly_file);
                 }
-                await anomalyService.createAnomaly(anomalyData);
+                const anomalyRes = await anomalyService.createAnomaly(anomalyData);
                 toast.warning(t('testerDashboard.toasts.anomalyReported'));
+                
+                setExecutionResult({
+                    status: 'FAILED',
+                    logs: 'Exécution manuelle échouée. L\'anomalie a été déclarée avec succès dans le système.',
+                    anomaly_id: anomalyRes.data?.id || anomalyRes.data?.anomaly_id
+                });
             } else {
                 toast.success(t('testerDashboard.toasts.testValidated'));
+                setValidationModal({ isOpen: false, campaign: null });
             }
 
             setValidationModal({ isOpen: false, campaign: null });
             fetchAssignedCampaigns(currentPage);
         } catch (error) {
             console.error("Submission failed", error);
-            toast.error(t('testerDashboard.toasts.validationError'));
+            let errMsg = t('testerDashboard.toasts.validationError');
+            const axiosError = error as any;
+            if (axiosError.response?.data) {
+                const data = axiosError.response.data;
+                if (data.proof_file) {
+                    errMsg = Array.isArray(data.proof_file) ? data.proof_file[0] : data.proof_file;
+                } else if (data.preuve_image) {
+                    errMsg = Array.isArray(data.preuve_image) ? data.preuve_image[0] : data.preuve_image;
+                } else if (data.non_field_errors) {
+                    errMsg = Array.isArray(data.non_field_errors) ? data.non_field_errors[0] : data.non_field_errors;
+                } else if (data.detail) {
+                    errMsg = data.detail;
+                } else if (typeof data === 'object') {
+                    const keys = Object.keys(data);
+                    if (keys.length > 0) {
+                        const val = data[keys[0]];
+                        errMsg = Array.isArray(val) ? val[0] : String(val);
+                    }
+                }
+            }
+            toast.error(errMsg);
         }
     };
 
@@ -322,6 +397,14 @@ const TesterDashboard = () => {
         const score = readinessScores[camp.id];
         const ml = mlInsights[camp.id];
 
+        const getEnvColor = (env: string) => {
+            if (env === 'PREPROD') return 'teal';
+            if (env === 'RECETTE') return 'amber';
+            return 'blue';
+        };
+        const envColor = getEnvColor(camp.release_type);
+        const ringColor = envColor === 'teal' ? 'text-teal-500' : envColor === 'amber' ? 'text-amber-500' : 'text-blue-500';
+
         return (
             <motion.div
                 key={camp.id}
@@ -329,7 +412,24 @@ const TesterDashboard = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="group relative overflow-hidden bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 hover:bg-white/10 transition-all duration-500 flex flex-col h-full shadow-2xl shadow-black/20"
             >
-                <div className="flex justify-between items-start mb-8">
+                <div className="flex justify-between items-start mb-6">
+                    {/* Top Left: Badges */}
+                    <div className="flex flex-col items-start gap-2">
+                        {camp.release_type && (
+                            <div className={`px-3 py-1 rounded-full border text-[9px] font-black tracking-[0.2em] uppercase ${
+                                envColor === 'teal' ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' : 
+                                envColor === 'amber' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 
+                                'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                            }`}>
+                                {camp.release_type}
+                            </div>
+                        )}
+                        <div className="px-3 py-1 bg-white/5 rounded-full text-[9px] font-black text-slate-400 tracking-widest uppercase border border-white/5">
+                            {camp.nb_test_cases} TEST{camp.nb_test_cases > 1 ? 'S' : ''}
+                        </div>
+                    </div>
+
+                    {/* Top Right: Progress Ring */}
                     <div className="flex items-center gap-4">
                         {score !== undefined && (
                             <button
@@ -352,65 +452,58 @@ const TesterDashboard = () => {
                                         strokeDasharray={150.8}
                                         strokeDashoffset={150.8 - (150.8 * score) / 100}
                                         strokeLinecap="round"
-                                        className={`${score >= 80 ? 'text-emerald-500' : score >= 40 ? 'text-amber-500' : 'text-rose-500'} transition-all duration-1000`}
+                                        className={`${ringColor} transition-all duration-1000`}
                                     />
                                 </svg>
                                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                                     <span className="text-[10px] font-black text-white leading-none">{score}%</span>
-                                    <TrendingUp className={`w-2 h-2 mt-0.5 ${score >= 80 ? 'text-emerald-400' : 'text-amber-400'}`} />
                                 </div>
                                 <div className="absolute -top-1 -right-1">
                                     <div className="bg-blue-600 text-white p-1 rounded-full shadow-lg opacity-0 group-hover/readiness:opacity-100 transition-opacity">
-                                        <Sparkles className="w-2 h-2" />
+                                        <TrendingUp className="w-2 h-2" />
                                     </div>
                                 </div>
                             </button>
                         )}
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                        <div className="px-4 py-2 bg-white/5 rounded-2xl text-[10px] font-black text-slate-400 tracking-widest uppercase border border-white/5">
-                            {t('testerDashboard.card.testsPlanned', { count: camp.nb_test_cases })}
-                        </div>
-                        <div className="flex gap-2">
-                            {camp.release_type && (
-                                <div className={`px-3 py-1 rounded-full border text-[8px] font-black tracking-[0.2em] uppercase ${camp.release_type === 'PREPROD' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
-                                    {camp.release_type}
-                                </div>
-                            )}
-                        </div>
-                    </div>
                 </div>
 
                 <div className="flex-1">
-                    <h3 className="text-2xl font-black text-white mb-4 tracking-tighter leading-tight group-hover:text-blue-400 transition-colors">
+                    <h3 className="text-xl font-black text-white mb-3 tracking-tighter leading-tight group-hover:text-blue-400 transition-colors">
                         {camp.title}
                     </h3>
-                    <p className="text-sm text-slate-400 mb-8 line-clamp-3 leading-relaxed font-medium">
-                        {camp.description || t('testerDashboard.card.noDescription')}
-                    </p>
+                    {camp.description ? (
+                        <p className="text-sm text-slate-400 mb-8 line-clamp-3 leading-relaxed font-medium">
+                            {camp.description}
+                        </p>
+                    ) : (
+                        <p className="text-sm text-slate-500/60 mb-8 italic font-medium">
+                            Aucune description pour cette campagne.
+                        </p>
+                    )}
                 </div>
 
-                <div className="space-y-4 mb-10 border-t border-white/5 pt-6">
-                    <div className="flex items-center gap-3 text-[11px] font-black text-slate-500 uppercase tracking-widest">
-                        <Calendar className="w-4 h-4 opacity-70" />
-                        {new Date(camp.created_at).toLocaleDateString(t('common.dateLocale'))}
+                <div className="flex flex-wrap items-center gap-3 mb-8 border-t border-white/5 pt-6">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                        <Calendar className="w-3.5 h-3.5 opacity-70" />
+                        Créé le {new Date(camp.created_at).toLocaleDateString(t('common.dateLocale'))}
                     </div>
                     {ml?.projected_end_date && (
-                        <div className="flex items-center gap-3 text-[10px] font-black text-blue-400/70 uppercase tracking-widest">
-                            <Clock className="w-4 h-4 opacity-70" />
-                            AI Forecast: {new Date(ml.projected_end_date).toLocaleDateString()}
+                        <div className="flex items-center gap-2 text-[10px] font-black text-purple-400 uppercase tracking-widest bg-purple-500/10 border border-purple-500/20 px-3 py-1.5 rounded-lg">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            Fin IA : {new Date(ml.projected_end_date).toLocaleDateString()}
                         </div>
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-auto">
+                <div className="grid grid-cols-2 gap-3 mt-auto relative z-10">
                     <button
                         type="button"
                         onClick={() => handleOpenExcel(camp.excel_file)}
-                        className="px-6 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 active:scale-95 border border-white/5 cursor-pointer"
+                        className="py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 border border-white/5"
                     >
-                        <Eye className="w-4 h-4 text-blue-400" />
-                        {t('testerDashboard.card.viewExcel')}
+                        <FileIcon className="w-3.5 h-3.5 text-slate-400" />
+                        Excel
                     </button>
                     <button
                         type="button"
@@ -418,10 +511,10 @@ const TesterDashboard = () => {
                             e.stopPropagation();
                             handleOpenValidation(camp);
                         }}
-                        className="px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-[11px] font-black tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-3 shadow-lg shadow-blue-500/20 active:scale-95 cursor-pointer z-10"
+                        className="py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95"
                     >
-                        <CheckCircle className="w-4 h-4" />
-                        {t('testerDashboard.card.validateTask')}
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Valider
                     </button>
                 </div>
                 <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-blue-600/10 rounded-full blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
@@ -435,29 +528,35 @@ const TesterDashboard = () => {
             subtitle={t('testerDashboard.subtitle')}
         >
             <div className="space-y-12">
-                {/* QA Intelligence Hub Teaser - NEW */}
+                <PendingReinforcements />
+
+                {/* QA Intelligence Hub Teaser - Finesse */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="relative overflow-hidden bg-gradient-to-r from-indigo-600/20 to-cyan-600/20 border border-white/10 rounded-[2.5rem] p-8 group cursor-pointer"
+                    className="relative overflow-hidden bg-white/[0.02] border border-white/5 rounded-2xl p-4 md:p-5 group cursor-pointer hover:bg-white/[0.04] hover:border-indigo-500/30 transition-all duration-500 shadow-lg shadow-black/10"
                     onClick={() => navigate('/qa-intelligence')}
                 >
-                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                        <div className="flex items-center gap-6">
-                            <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 border border-indigo-500/30">
-                                <Sparkles size={32} />
+                    {/* Glowing left accent */}
+                    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-purple-500 opacity-30 group-hover:opacity-100 transition-opacity duration-500" />
+                    
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4 ml-2">
+                        <div className="flex items-center gap-4 w-full md:w-auto">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500/10 to-purple-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20 group-hover:scale-110 transition-transform duration-500">
+                                <Sparkles size={18} className="group-hover:animate-pulse" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">QA Intelligence Hub</h2>
-                                <p className="text-sm text-slate-400 font-medium">Découvrez les dernières tendances et conseils IA pour booster vos tests.</p>
+                                <h2 className="text-sm font-bold text-white tracking-wide flex items-center gap-2">
+                                    QA Intelligence Hub
+                                    <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-[9px] uppercase tracking-widest rounded-full font-black">Nouveau</span>
+                                </h2>
+                                <p className="text-xs text-slate-400 mt-1 font-medium">Explorez les dernières tendances IA pour booster vos stratégies de test.</p>
                             </div>
                         </div>
-                        <button className="px-8 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all border border-white/10 group-hover:scale-105 active:scale-95">
-                            Accéder au Hub →
-                        </button>
+                        <div className="flex items-center gap-2 text-[11px] font-black text-indigo-400 uppercase tracking-widest group-hover:text-indigo-300 group-hover:translate-x-1 transition-all duration-300 w-full md:w-auto justify-end">
+                            Découvrir <ChevronRight size={14} />
+                        </div>
                     </div>
-                    {/* Background decoration */}
-                    <div className="absolute top-0 right-0 w-64 h-full bg-white/5 skew-x-[-20deg] translate-x-20 group-hover:translate-x-10 transition-transform duration-700" />
                 </motion.div>
 
                 {/* Stats Section */}
@@ -620,6 +719,7 @@ const TesterDashboard = () => {
                             generatingCode={generatingCode}
                             executionResult={executionResult}
                             setExecutionResult={setExecutionResult}
+                            liveLogs={liveLogs}
                         />
                     )}
                 </AnimatePresence>

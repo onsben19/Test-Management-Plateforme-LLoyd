@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, Menu, X, Sun, Moon, CheckCircle, AlertTriangle, MessageSquare } from 'lucide-react';
+import { Bell, Menu, X, Sun, Moon, CheckCircle, AlertTriangle, MessageSquare, Mail } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { notificationService, type Notification } from '../services/notificationService';
@@ -20,7 +20,9 @@ const Header = () => {
       case 'campaign_assignment': return <Bell className="w-5 h-5 text-blue-500" />;
       case 'execution_validated': return <CheckCircle className="w-5 h-5 text-emerald-500" />;
       case 'anomaly_reported': return <AlertTriangle className="w-5 h-5 text-red-500" />;
+      case 'reinforcement_request': return <AlertTriangle className="w-5 h-5 text-blue-500" />;
       case 'comment_posted': return <MessageSquare className="w-5 h-5 text-amber-500" />;
+      case 'email_received': return <Mail className="w-5 h-5 text-indigo-500" />;
       default: return <Bell className="w-5 h-5 text-slate-400" />;
     }
   };
@@ -41,8 +43,8 @@ const Header = () => {
 
   useEffect(() => {
     fetchNotifications();
-    // Poll every 5 seconds
-    const interval = setInterval(fetchNotifications, 5000);
+    // Poll every 15 seconds to optimize performance
+    const interval = setInterval(fetchNotifications, 15000);
     return () => clearInterval(interval);
   }, [user]);
 
@@ -55,10 +57,15 @@ const Header = () => {
       // Close the popover before navigating
       setPopoverOpen(false);
 
-      if (notif.type === 'campaign_assignment') {
+      if (notif.type === 'campaign_assignment' || notif.type === 'reinforcement_request') {
         navigate('/tester-dashboard');
       } else if (notif.type === 'execution_validated') {
-        navigate(`/admin/executions?highlight=${notif.related_object_id}`);
+        const role = user?.role?.toUpperCase();
+        if (role === 'ADMIN') {
+          navigate(`/admin/executions?highlight=${notif.related_object_id}`);
+        } else {
+          navigate(`/execution?testId=${notif.related_object_id}`);
+        }
       } else if (notif.type === 'anomaly_reported') {
         const role = user?.role?.toUpperCase();
         const baseRoute = role === 'ADMIN' ? '/admin/anomalies' : '/anomalies';

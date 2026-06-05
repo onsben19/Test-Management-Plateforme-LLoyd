@@ -30,7 +30,7 @@ class MLTimelineGuard:
         
         self.model = MLTimelineGuard._cached_model
 
-    def get_campaign_status(self, campaign_id):
+    def get_campaign_status(self, campaign_id, generate_insight=True):
         try:
             campaign = Campaign.objects.get(id=campaign_id)
             db_total = TestCase.objects.filter(campaign=campaign).count()
@@ -106,14 +106,17 @@ class MLTimelineGuard:
                 risk_status = "OPTIMAL"
             
             # 5. Insight IA (Groq)
-            ai_message = self._generate_ai_insight(
-                campaign.title, 
-                finished_count, 
-                total_cases, 
-                velocity, 
-                projected_end_date,
-                campaign.estimated_end_date
-            )
+            if generate_insight:
+                ai_message = self._generate_ai_insight(
+                    campaign.title, 
+                    finished_count, 
+                    total_cases, 
+                    velocity, 
+                    projected_end_date,
+                    campaign.estimated_end_date
+                )
+            else:
+                ai_message = "Analyse IA désactivée pour optimisation."
 
             return self._format_response(
                 risk_status, 

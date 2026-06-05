@@ -12,6 +12,7 @@ from channels.auth import AuthMiddlewareStack
 from chat.middleware import TokenAuthMiddleware
 import campaigns.routing
 import chat.routing
+import testCases.routing
 
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
@@ -19,7 +20,8 @@ application = ProtocolTypeRouter({
         AuthMiddlewareStack(
             URLRouter(
                 campaigns.routing.websocket_urlpatterns +
-                chat.routing.websocket_urlpatterns
+                chat.routing.websocket_urlpatterns +
+                testCases.routing.websocket_urlpatterns
             )
         )
     ),

@@ -25,7 +25,40 @@ class AnomalieSerializer(serializers.ModelSerializer):
         except AttributeError:
             return "Inconnu"
 
+    playwright_script = serializers.SerializerMethodField()
+
+    def get_playwright_script(self, obj):
+        """Retourne le script Playwright généré par l'IA associé à ce cas de test."""
+        try:
+            return obj.test_case.automation_code if obj.test_case else None
+        except AttributeError:
+            return None
+
+    def validate_preuve_image(self, value):
+        if value:
+            import hashlib
+            hasher = hashlib.sha256()
+            try:
+                for chunk in value.chunks():
+                    hasher.update(chunk)
+                file_hash = hasher.hexdigest()
+                
+                # Check if hash already exists in base
+                queryset = Anomalie.objects.filter(preuve_hash=file_hash)
+                if self.instance:
+                    queryset = queryset.exclude(id=self.instance.id)
+                
+                if queryset.exists():
+                    raise serializers.ValidationError(
+                        "Ce fichier de preuve existe déjà dans la base de données (doublon détecté via SHA-256)."
+                    )
+            except serializers.ValidationError:
+                raise
+            except Exception:
+                pass
+        return value
+
     class Meta:
         model = Anomalie
-        fields = ['id', 'titre', 'description', 'impact', 'priorite', 'visibilite', 'statut', 'preuve_image', 'cree_le', 'cree_par', 'cree_par_nom', 'test_case', 'test_case_ref', 'campaign_title', 'project_name']
-        read_only_fields = ['cree_par', 'cree_le', 'cree_par_nom', 'test_case_ref', 'campaign_title', 'project_name']
+        fields = ['id', 'titre', 'description', 'impact', 'priorite', 'visibilite', 'statut', 'preuve_image', 'preuve_hash', 'cree_le', 'cree_par', 'cree_par_nom', 'test_case', 'test_case_ref', 'campaign_title', 'project_name', 'playwright_script']
+        read_only_fields = ['cree_par', 'cree_le', 'cree_par_nom', 'preuve_hash', 'test_case_ref', 'campaign_title', 'project_name', 'playwright_script']

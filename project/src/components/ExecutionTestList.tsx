@@ -51,6 +51,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
 }) => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
     const [testToDelete, setTestToDelete] = React.useState<TestItem | null>(null);
+    const [logModal, setLogModal] = React.useState<{ title: string; content: string } | null>(null);
 
     // Fallback if no tests provided
     const displayTests = tests.length > 0 ? tests : [];
@@ -144,12 +145,29 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                     </div>
                 </td>
 
-                {/* Dynamic Cells */}
-                {dynamicColumns.map(col => (
-                    <td key={`${test.id}-${col}`} className="px-8 py-6 text-slate-400 text-xs font-medium transition-colors">
-                        {String((test as any)[col] || '-')}
-                    </td>
-                ))}
+                {/* Dynamic Cells — texte long tronqué avec bouton Voir */}
+                {dynamicColumns.map(col => {
+                    const raw = (test as any)[col];
+                    const value = raw != null ? String(raw) : '-';
+                    const isLong = value.length > 80;
+                    return (
+                        <td key={`${test.id}-${col}`} className="px-8 py-6 text-slate-400 text-xs font-medium max-w-[200px]">
+                            {isLong ? (
+                                <div className="flex flex-col gap-1">
+                                    <span className="truncate block text-slate-400">{value.slice(0, 60)}…</span>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setLogModal({ title: col.toUpperCase(), content: value }); }}
+                                        className="text-blue-400 hover:text-blue-300 text-[10px] font-bold uppercase tracking-widest text-left transition-colors"
+                                    >
+                                        Lire la suite →
+                                    </button>
+                                </div>
+                            ) : (
+                                <span>{value}</span>
+                            )}
+                        </td>
+                    );
+                })}
 
                 {/* Realized By - Conditional */}
                 {!isTester && (
@@ -161,18 +179,29 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                 )}
                 <td className="px-8 py-6">
                     {(test.captures && test.captures.length > 0) ? (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                const fileUrl = test.captures![0];
-                                if (fileUrl) {
-                                    window.open(fileUrl, '_blank');
-                                }
-                            }}
-                            className="text-slate-500 hover:text-blue-400 text-[10px] font-bold uppercase tracking-widest transition-all"
-                        >
-                            VOIR
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                            {test.captures.slice(0, 3).map((url, i) => (
+                                <button
+                                    key={i}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setLogModal({ title: `Capture ${i + 1} — ${test.name}`, content: `__IMAGE__${url}` });
+                                    }}
+                                    className="relative group/cap"
+                                    title={`Voir capture ${i + 1}`}
+                                >
+                                    <img
+                                        src={url}
+                                        alt={`Capture ${i + 1}`}
+                                        className="w-10 h-10 object-cover rounded-lg border border-white/10 group-hover/cap:border-blue-400/60 group-hover/cap:scale-110 transition-all duration-200"
+                                    />
+                                    <div className="absolute inset-0 bg-blue-400/0 group-hover/cap:bg-blue-400/10 rounded-lg transition-all" />
+                                </button>
+                            ))}
+                            {test.captures.length > 3 && (
+                                <span className="text-[9px] text-slate-500 font-bold">+{test.captures.length - 3}</span>
+                            )}
+                        </div>
                     ) : (
                         <span className="text-slate-600 font-bold uppercase tracking-widest text-[9px] opacity-40">AUCUNE</span>
                     )}
@@ -195,47 +224,19 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                     </div>
                 </td>
 
-                {(canManage || canDelete || onAutomateTest) && (
+                {canDelete && (
                     <td className="px-8 py-6 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                            {onAutomateTest && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onAutomateTest(test);
-                                    }}
-                                    className="text-amber-400/70 hover:text-amber-400 transition-all p-1.5 hover:bg-amber-400/10 rounded-lg"
-                                    title="Générer Script IA"
-                                >
-                                    <Sparkles className="w-4 h-4" />
-                                </button>
-                            )}
-                            {canManage && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onEditTest?.(test);
-                                    }}
-                                    className="text-slate-400 hover:text-blue-400 transition-all"
-                                    title="Modifier"
-                                >
-                                    <Pencil className="w-4 h-4" />
-                                </button>
-                            )}
-                            {canDelete && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setTestToDelete(test);
-                                        setIsDeleteModalOpen(true);
-                                    }}
-                                    className="text-slate-400 hover:text-rose-400 transition-all"
-                                    title="Supprimer"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            )}
-                        </div>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setTestToDelete(test);
+                                setIsDeleteModalOpen(true);
+                            }}
+                            className="text-slate-400 hover:text-rose-400 transition-all"
+                            title="Supprimer"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
                     </td>
                 )}
             </tr>
@@ -305,6 +306,58 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                 confirmText="Supprimer"
                 type="danger"
             />
+
+            {/* Modale texte long (logs, scripts) ou image (captures) */}
+            {logModal && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                    onClick={() => setLogModal(null)}
+                >
+                    <div
+                        className="relative bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-3xl mx-4 flex flex-col max-h-[85vh]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
+                            <span className="text-sm font-black text-white uppercase tracking-widest">{logModal.title}</span>
+                            <div className="flex items-center gap-3">
+                                {/* Bouton download — uniquement pour le texte (pas les images) */}
+                                {!logModal.content.startsWith('__IMAGE__') && (
+                                    <a
+                                        href={`data:text/plain;charset=utf-8,${encodeURIComponent(logModal.content)}`}
+                                        download={
+                                            logModal.title.toLowerCase().includes('automation') || logModal.title.toLowerCase().includes('script')
+                                                ? `script_${Date.now()}.spec.ts`
+                                                : `logs_${Date.now()}.txt`
+                                        }
+                                        className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors px-3 py-1.5 bg-blue-500/10 rounded-lg border border-blue-500/20 hover:bg-blue-500/20"
+                                    >
+                                        ↓ Télécharger
+                                    </a>
+                                )}
+                                <button
+                                    onClick={() => setLogModal(null)}
+                                    className="text-slate-500 hover:text-white transition-colors text-xl font-bold"
+                                >✕</button>
+                            </div>
+                        </div>
+                        {logModal.content.startsWith('__IMAGE__') ? (
+                            // Affichage image
+                            <div className="overflow-auto flex-1 flex items-center justify-center p-4">
+                                <img
+                                    src={logModal.content.replace('__IMAGE__', '')}
+                                    alt={logModal.title}
+                                    className="max-w-full max-h-full object-contain rounded-xl border border-white/10"
+                                />
+                            </div>
+                        ) : (
+                            // Affichage texte/logs/script
+                            <pre className="overflow-auto p-6 text-xs text-slate-300 font-mono leading-relaxed whitespace-pre-wrap break-words flex-1">
+                                {logModal.content}
+                            </pre>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

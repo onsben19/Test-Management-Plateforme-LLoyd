@@ -9,7 +9,7 @@ class BusinessProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = BusinessProject
         fields = [
-            'id', 'name', 'description', 'created_at', 
+            'id', 'name', 'description', 'status', 'created_at', 
             'created_by', 'created_by_username', 'releases_count',
             'recent_releases'
         ]

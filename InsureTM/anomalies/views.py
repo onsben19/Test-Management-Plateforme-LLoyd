@@ -25,6 +25,10 @@ class AnomalieViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = Anomalie.objects.all()
+        
+        if self.request.user.role == 'TESTER':
+            queryset = queryset.filter(cree_par=self.request.user)
+
         search = self.request.query_params.get('search')
         impact = self.request.query_params.get('impact')
 
@@ -158,3 +162,31 @@ class AnomalieViewSet(viewsets.ModelViewSet):
         response = HttpResponse(bytes(pdf.output()), content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="rapport_anomalies.pdf"'
         return response
+
+    @action(detail=False, methods=['post'])
+    def diagnose_external_logs(self, request):
+        logs = request.data.get('logs', '')
+        code = request.data.get('code', '')
+        
+        if not logs:
+            from rest_framework.response import Response
+            return Response({'error': 'Les logs sont requis pour le diagnostic.'}, status=400)
+            
+        from analytics.groq_service import GroqService
+        groq_service = GroqService()
+        
+        try:
+            # S'il y a du code on l'intègre aux logs pour que l'IA comprenne le contexte
+            full_context = logs
+            if code:
+                full_context = f"CODE TESTÉ:\n{code}\n\nLOGS D'ERREUR:\n{logs}"
+                
+            title, desc = groq_service.generate_anomaly_from_logs("Anomalie Manuelle / Externe", full_context)
+            from rest_framework.response import Response
+            return Response({
+                "titre": title,
+                "description": desc
+            })
+        except Exception as e:
+            from rest_framework.response import Response
+            return Response({"error": str(e)}, status=500)

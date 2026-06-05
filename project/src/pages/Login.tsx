@@ -103,7 +103,7 @@ const Login = () => {
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight transition-colors">
               <span className="text-gradient">{t('login.title')}</span>
             </h1>
-            {!is2FAMode && (
+            {!is2FAMode && !isForgotPasswordMode && (
               <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">
                 {t('login.subtitle')}
               </p>
@@ -216,6 +216,8 @@ const Login = () => {
                   </label>
                   <input
                     type="text"
+                    id="email"
+                    name="email"
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
@@ -231,6 +233,8 @@ const Login = () => {
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}
+                      id="password"
+                      name="password"
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, Play } from 'lucide-react';
 import Button from './ui/Button';
 import { executionService } from '../services/api';
@@ -17,6 +17,15 @@ const AIAutomationModal: React.FC<AIAutomationModalProps> = ({ test, onClose, on
     const [executing, setExecuting] = useState(false);
     const [executionResult, setExecutionResult] = useState<{status: string, logs: string} | null>(null);
     const [manualData, setManualData] = useState<string>('');
+    const [liveLogs, setLiveLogs] = useState<string>('');
+    
+    const logsEndRef = useRef<HTMLPreElement>(null);
+
+    useEffect(() => {
+        if (logsEndRef.current) {
+            logsEndRef.current.scrollTop = logsEndRef.current.scrollHeight;
+        }
+    }, [liveLogs]);
 
     const handleGenerate = async () => {
         if (!manualData.trim()) {
@@ -37,6 +46,47 @@ const AIAutomationModal: React.FC<AIAutomationModalProps> = ({ test, onClose, on
 
     const handleSaveAndExecute = async () => {
         setExecuting(true);
+        setLiveLogs('');
+        setExecutionResult(null);
+
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const token = localStorage.getItem('access_token');
+        const wsUrl = `${protocol}://${window.location.host}/ws/testcases/${test.id}/logs/${token ? `?token=${token}` : ''}`;
+        
+        let ws: WebSocket | null = null;
+        try {
+            ws = new WebSocket(wsUrl);
+            ws.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                if (data.type === 'log') {
+                    setLiveLogs(prev => prev + data.message);
+                }
+            };
+            ws.onerror = (err) => {
+                console.error("WS Error:", err);
+            };
+
+            // Attendre l'ouverture du WebSocket avant de lancer l'exécution (résout la race condition)
+            await new Promise<void>((resolve) => {
+                if (!ws) return resolve();
+                let resolved = false;
+                ws.onopen = () => {
+                    if (!resolved) {
+                        resolved = true;
+                        resolve();
+                    }
+                };
+                setTimeout(() => {
+                    if (!resolved) {
+                        resolved = true;
+                        resolve(); // fallback
+                    }
+                }, 2000);
+            });
+        } catch (err) {
+            console.error("Failed to connect WebSocket for logs", err);
+        }
+
         try {
             await executionService.saveScript(test.id, code);
             const execRes = await executionService.executeScript(test.id);
@@ -47,6 +97,9 @@ const AIAutomationModal: React.FC<AIAutomationModalProps> = ({ test, onClose, on
             alert("Erreur lors de l'exécution");
         } finally {
             setExecuting(false);
+            if (ws) {
+                ws.close();
+            }
         }
     };
 
@@ -119,6 +172,16 @@ const AIAutomationModal: React.FC<AIAutomationModalProps> = ({ test, onClose, on
                                 />
                             </div>
                             
+                            {executing && (
+                                <div className="p-4 rounded-xl border bg-slate-900 border-white/5 text-slate-300">
+                                    <h4 className="font-bold text-sm mb-2 animate-pulse flex items-center gap-2 text-amber-400">
+                                        <div className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                                        Exécution en cours - Logs en direct...
+                                    </h4>
+                                    <pre ref={logsEndRef} className="text-xs whitespace-pre-wrap font-mono max-h-60 overflow-y-auto custom-scrollbar opacity-85">{liveLogs || 'Démarrage du conteneur de test...'}</pre>
+                                </div>
+                            )}
+
                             {executionResult && (
                                 <div className={`p-4 rounded-xl border ${executionResult.status === 'PASSED' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
                                     <h4 className="font-bold text-sm mb-2">Résultat : {executionResult.status}</h4>

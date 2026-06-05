@@ -12,3 +12,8 @@ class BusinessProjectViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         # Optionnel: Filtrer par utilisateur si besoin, mais ici on veut tout le portfolio
         return super().get_queryset()
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        if instance.status == 'TERMINÉ':
+            instance.releases.update(status='COMPLETED')
