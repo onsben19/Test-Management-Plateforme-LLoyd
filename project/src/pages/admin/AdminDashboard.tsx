@@ -46,7 +46,8 @@ const AdminDashboard = () => {
         activeProjects: 0,
         totalExecutions: 0,
         pendingAnomalies: 0,
-        successRate: 0
+        successRate: 0,
+        roleCounts: { admin: 0, manager: 0, tester: 0 }
     });
 
     // Data State
@@ -93,7 +94,12 @@ const AdminDashboard = () => {
                 activeProjects: projData.length,
                 totalExecutions: execData.length,
                 pendingAnomalies: anomData.filter((a: any) => (a.statut || a.status) === 'OUVERTE' || (a.statut || a.status) === 'open').length,
-                successRate: rate
+                successRate: rate,
+                roleCounts: {
+                    admin: userData.filter((u: any) => u.role === 'ADMIN').length,
+                    manager: userData.filter((u: any) => u.role === 'MANAGER').length,
+                    tester: userData.filter((u: any) => u.role === 'TESTER').length
+                }
             });
 
             // Prepare Trend Data (Real calculation based on last 7 days)
@@ -128,9 +134,9 @@ const AdminDashboard = () => {
 
             // Prepare Anomaly Distribution
             const dist = [
-                { name: t('adminAnomalies.badges.critical'), value: anomData.filter((a: any) => (a.criticite || a.severity) === 'CRITIQUE' || (a.criticite || a.severity) === 'critical').length, color: '#f43f5e' },
-                { name: t('adminAnomalies.badges.medium'), value: anomData.filter((a: any) => (a.criticite || a.severity) === 'MOYENNE' || (a.criticite || a.severity) === 'medium').length, color: '#f59e0b' },
-                { name: t('adminAnomalies.badges.low'), value: anomData.filter((a: any) => (a.criticite || a.severity) === 'FAIBLE' || (a.criticite || a.severity) === 'low').length, color: '#3b82f6' },
+                { name: 'Critique / Bloquante', value: anomData.filter((a: any) => (a.impact || a.criticite) === 'CRITIQUE' || (a.impact || a.criticite) === 'BLOQUANTES').length, color: '#f43f5e' },
+                { name: 'Majeur', value: anomData.filter((a: any) => (a.impact || a.criticite) === 'MAJEUR').length, color: '#f59e0b' },
+                { name: 'Mineur / Autre', value: anomData.filter((a: any) => !['CRITIQUE', 'BLOQUANTES', 'MAJEUR'].includes((a.impact || a.criticite))).length, color: '#3b82f6' },
             ].filter(d => d.value > 0);
             setAnomalyDistribution(dist.length > 0 ? dist : [{ name: 'N/A', value: 1, color: '#94a3b8' }]);
 
@@ -385,9 +391,9 @@ const AdminDashboard = () => {
                             >
                                 <div className="space-y-6">
                                     {[
-                                        { role: t('adminDashboard.roles.admins'), count: stats.totalUsers > 0 ? 1 : 0, total: stats.totalUsers, color: 'bg-blue-500' },
-                                        { role: t('adminDashboard.roles.managers'), count: Math.ceil(stats.totalUsers * 0.3), total: stats.totalUsers, color: 'bg-purple-500' },
-                                        { role: t('adminDashboard.roles.testers'), count: Math.floor(stats.totalUsers * 0.6), total: stats.totalUsers, color: 'bg-emerald-500' }
+                                        { role: t('adminDashboard.roles.admins'), count: stats.roleCounts.admin, total: stats.totalUsers, color: 'bg-blue-500' },
+                                        { role: t('adminDashboard.roles.managers'), count: stats.roleCounts.manager, total: stats.totalUsers, color: 'bg-purple-500' },
+                                        { role: t('adminDashboard.roles.testers'), count: stats.roleCounts.tester, total: stats.totalUsers, color: 'bg-emerald-500' }
                                     ].map((item, i) => (
                                         <div key={i} className="space-y-2">
                                             <div className="flex justify-between text-sm font-bold">

@@ -370,6 +370,8 @@ const Anomalies: React.FC = () => {
     }
   };
 
+  const tdClass = "px-6 py-5 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-100 dark:group-hover:bg-white/5 transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-300 dark:group-hover:border-white/10";
+
   return (
     <>
       <PageLayout
@@ -426,6 +428,63 @@ const Anomalies: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-8">
+            {/* Insights Card - Compact Version */}
+            <div className="bg-white dark:bg-[#0b0e14]/50 backdrop-blur-md border border-slate-200 dark:border-white/[0.05] rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-6">
+              <div className="flex-1 space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-500/10 rounded-full border border-blue-100 dark:border-blue-500/20">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                  <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{t('anomalies.chart.title')}</span>
+                </div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">
+                  Analyse de <span className="text-blue-500">Distribution</span>
+                </h3>
+                <p className="text-slate-500 dark:text-slate-400 text-xs font-medium leading-relaxed max-w-lg">
+                  Aperçu dynamique de la criticité des anomalies actuelles. Les éléments bloquants nécessitent une attention immédiate.
+                </p>
+              </div>
+
+              <div className="w-full lg:w-[320px] h-[140px]">
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={stats.distribution}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={45}
+                        outerRadius={60}
+                        paddingAngle={8}
+                        cornerRadius={12}
+                        dataKey="value"
+                        stroke="rgba(255,255,255,0.05)"
+                        strokeWidth={2}
+                      >
+                        {stats.distribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#0f172a',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '20px',
+                          padding: '12px 20px',
+                          fontSize: '10px',
+                          fontWeight: 'black',
+                          textTransform: 'uppercase'
+                        }}
+                      />
+                      <Legend
+                        verticalAlign="middle"
+                        align="right"
+                        layout="vertical"
+                        iconType="circle"
+                        formatter={(val) => <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-3">{val}</span>}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+              </div>
+            </div>
+
             <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
               <div className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
                 <Search className="w-4 h-4 text-slate-400 ml-2" />
@@ -498,26 +557,28 @@ const Anomalies: React.FC = () => {
             <div className="bg-slate-900/40 border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden shadow-2xl">
 
               <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse table-fixed min-w-[1000px]">
+                <table className="w-full text-left border-separate border-spacing-y-3 table-fixed min-w-[1000px]">
                   <thead>
-                    <tr className="border-b border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.01]">
-                      <th className="w-[30%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('anomalies.table.anomaly')}</th>
-                      <th className="w-[12%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Impact</th>
-                      <th className="w-[12%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Priorité</th>
-                      <th className="w-[10%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Capture</th>
-                      <th className="w-[18%] px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">{t('anomalies.table.actions')}</th>
+                    <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                      <th className="w-[8%] px-6 py-2">ID</th>
+                      <th className="w-[25%] px-6 py-2">{t('anomalies.table.anomaly')}</th>
+                      <th className="w-[12%] px-6 py-2">Impact</th>
+                      <th className="w-[12%] px-6 py-2">Priorité</th>
+                      <th className="w-[15%] px-6 py-2">Date Signalée</th>
+                      <th className="w-[10%] px-6 py-2">Capture</th>
+                      <th className="w-[18%] px-6 py-2 text-right">{t('anomalies.table.actions')}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                  <tbody>
                     {loading ? (
                       Array.from({ length: 5 }).map((_, i) => (
                         <tr key={i} className="animate-pulse">
-                          <td colSpan={5} className="px-6 py-8"><div className="h-4 bg-slate-100 dark:bg-white/5 rounded-full w-full" /></td>
+                          <td colSpan={7} className="px-6 py-8"><div className="h-4 bg-slate-100 dark:bg-white/5 rounded-full w-full" /></td>
                         </tr>
                       ))
                     ) : data.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-16 text-center text-slate-500 font-bold uppercase tracking-widest text-xs italic">
+                        <td colSpan={7} className="px-6 py-16 text-center text-slate-500 font-bold uppercase tracking-widest text-xs italic">
                           {t('anomalies.table.empty')}
                         </td>
                       </tr>
@@ -525,17 +586,19 @@ const Anomalies: React.FC = () => {
                       <tr
                         key={an.id}
                         onClick={() => setSelectedAnomaly(an)}
-                        className="hover:bg-slate-50 dark:hover:bg-white/10 transition-all duration-300 group cursor-pointer border-b border-slate-100 dark:border-white/5 last:border-0"
+                        className="group transition-all duration-300 cursor-pointer"
                       >
-                        <td className="px-6 py-4">
+                        <td className={tdClass}>
+                          <span className="font-mono text-[10px] text-slate-500">{String(an.id).substring(0, 8)}</span>
+                        </td>
+                        <td className={tdClass}>
                           <div className="flex items-center gap-4">
-                            <div className={`p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 group-hover:scale-110 transition-transform ${impactStyles[an.impact]?.text || 'text-slate-400'}`}>
-                              <ShieldAlert className="w-5 h-5" />
-                            </div>
                             <div className="flex flex-col gap-0.5 min-w-0">
                               <span className="text-[14px] font-bold text-slate-900 dark:text-white tracking-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
-                                <span className="text-blue-500/50 mr-2 font-mono text-[11px]">#{an.id}</span>
-                                {an.title.length > 60 ? an.title.substring(0, 60) + '...' : an.title}
+                                {(() => {
+                                  const cleanTitle = an.title.replace(/^\[SCRIPT\]\s*/i, '');
+                                  return cleanTitle.length > 60 ? cleanTitle.substring(0, 60) + '...' : cleanTitle;
+                                })()}
                               </span>
                               <div className="flex items-center gap-2">
                                 <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">{an.release}</span>
@@ -545,7 +608,7 @@ const Anomalies: React.FC = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 relative">
+                        <td className={`relative ${tdClass}`}>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -574,7 +637,7 @@ const Anomalies: React.FC = () => {
                             </>
                           )}
                         </td>
-                        <td className="px-6 py-4 relative">
+                        <td className={`relative ${tdClass}`}>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -602,7 +665,16 @@ const Anomalies: React.FC = () => {
                             </>
                           )}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className={tdClass}>
+                          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                            {new Date(an.created_at).toLocaleDateString(t('common.dateLocale') || 'fr-FR', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric'
+                            })}
+                          </span>
+                        </td>
+                        <td className={tdClass}>
                           {an.proofImage ? (
                             <Button
                               variant="secondary"
@@ -621,7 +693,7 @@ const Anomalies: React.FC = () => {
                             </div>
                           )}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className={`text-right ${tdClass}`}>
                           <div className="flex items-center justify-end gap-2 transition-all duration-300">
                             <Button
                               variant="secondary"
@@ -683,66 +755,7 @@ const Anomalies: React.FC = () => {
               </div>
             </div>
 
-            {/* Insights Card - Re-designed for decluttering */}
-            <div className="bg-white dark:bg-white/5 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-[3rem] p-10 shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
-                <ShieldAlert className="w-48 h-48" />
-              </div>
 
-              <div className="flex flex-col lg:flex-row items-center gap-12 relative">
-                <div className="flex-1 space-y-6">
-                  <div className="inline-flex items-center gap-3 px-4 py-2 bg-blue-50 dark:bg-blue-500/10 rounded-full border border-blue-100 dark:border-blue-500/20">
-                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                    <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{t('anomalies.chart.title')}</span>
-                  </div>
-                  <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">
-                    Analyse de <span className="text-blue-500">Distribution</span>
-                  </h3>
-                  <p className="text-slate-600 dark:text-slate-400 text-sm font-medium leading-relaxed max-w-md">
-                    Visualisation dynamique des points de friction identifiés. Les anomalies critiques nécessitent une attention immédiate pour garantir la stabilité de la release.
-                  </p>
-                </div>
-
-                <div className="w-full lg:w-[450px] h-[300px] bg-white dark:bg-white/[0.02] rounded-[2.5rem] border border-slate-100 dark:border-white/5 p-6 shadow-xl dark:shadow-none backdrop-blur-md">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={stats.distribution}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={80}
-                        outerRadius={105}
-                        paddingAngle={8}
-                        dataKey="value"
-                        stroke="none"
-                      >
-                        {stats.distribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#0f172a',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          borderRadius: '20px',
-                          padding: '12px 20px',
-                          fontSize: '10px',
-                          fontWeight: 'black',
-                          textTransform: 'uppercase'
-                        }}
-                      />
-                      <Legend
-                        verticalAlign="middle"
-                        align="right"
-                        layout="vertical"
-                        iconType="circle"
-                        formatter={(val) => <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-3">{val}</span>}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
 
             <div className="pt-4">
               <Pagination

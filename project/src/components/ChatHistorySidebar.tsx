@@ -55,9 +55,6 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
             {/* Header */}
             <div className="p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/40">
                 <div className="flex items-center gap-3 mb-8">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                        <span className="font-black text-blue-600 dark:text-blue-400">IA</span>
-                    </div>
                     <div className="flex flex-col">
                         <h2 className="font-bold text-slate-900 dark:text-white tracking-tight text-lg leading-none uppercase">{t('analytics.history.title')}</h2>
                         <span className="text-[10px] text-slate-400 dark:text-slate-500 font-black tracking-widest mt-1 uppercase">VOTRE HISTORIQUE</span>

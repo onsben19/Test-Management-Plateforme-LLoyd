@@ -63,11 +63,7 @@ const DashboardWidget: React.FC<DashboardWidgetProps> = ({
             {/* Header */}
             <div className="px-8 py-7 flex items-center justify-between border-b border-slate-100/50 dark:border-white/5 bg-slate-200 dark:bg-white/10 dark:bg-white/2">
                 <div className="flex items-center gap-4">
-                    {Icon && (
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-inner">
-                            <Icon className="w-6 h-6" />
-                        </div>
-                    )}
+
                     <div>
                         <div className="flex items-center gap-2 mb-1.5">
                             <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] animate-pulse" />

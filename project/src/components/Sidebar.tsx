@@ -5,7 +5,7 @@ import {
   BarChart3, AlertTriangle, Brain, Settings,
   Users, LogOut, MessageSquare, List, Mail, Layers,
   ChevronLeft, ChevronRight, TestTube, Sparkles, Layout,
-  LayoutDashboard, Briefcase, Wand2, Activity, Cpu
+  LayoutDashboard, Briefcase, WandSparkles, Activity, Cpu
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -45,8 +45,8 @@ const Sidebar = () => {
         { name: t('sidebar.items.comments'), href: '/admin/comments', icon: MessageSquare, roles: ['ADMIN'] },
         { name: t('sidebar.items.messages'), href: '/messages', icon: Mail, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
         { name: t('sidebar.items.chat'), href: '/chat', icon: MessageSquare, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
-        { name: 'Veille & Innovations IA', href: '/qa-intelligence', icon: Wand2, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
-        { name: t('sidebar.items.aiAnalytics'), href: '/analytics', icon: Sparkles, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+        { name: 'Veille & Innovations IA', href: isAdmin ? '/admin/qa-intelligence' : '/qa-intelligence', icon: WandSparkles, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+        { name: t('sidebar.items.aiAnalytics'), href: isAdmin ? '/management/analytics' : '/analytics', icon: Sparkles, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
       ]
 
     }

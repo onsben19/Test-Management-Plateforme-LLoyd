@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
     Send, Bot, User, Database, Sparkles,
     PanelLeft, PanelLeftClose, Paperclip, X, Plus, Pencil, Check, Download,
-    CheckCircle, PieChart, Activity, Zap, Loader, Wand2
+    CheckCircle, PieChart, Activity, Zap, Loader, WandSparkles
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -354,12 +354,18 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
             return (
                 <div className="mt-3 h-[450px] w-full p-6 rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-white/50 dark:bg-slate-900/80 shadow-inner">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={normalized} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
+                        <BarChart data={normalized} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                            <defs>
+                                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                                </linearGradient>
+                            </defs>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.12)" />
-                            <XAxis dataKey={labelKey} fontSize={12} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500 dark:text-slate-400" angle={-35} textAnchor="end" interval={0} />
+                            <XAxis dataKey={labelKey} fontSize={12} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500 dark:text-slate-400" angle={-35} textAnchor="end" interval="preserveStartEnd" padding={{ left: 20, right: 20 }} />
                             <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500 dark:text-slate-400" width={40} />
-                            <Tooltip contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '12px', fontSize: '12px', border: '1px solid var(--border)', color: 'var(--foreground)' }} />
-                            <Bar dataKey={valueKey} fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                            <Tooltip contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '12px', fontSize: '12px', border: '1px solid var(--border)', color: 'var(--foreground)', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }} />
+                            <Bar dataKey={valueKey} fill="url(#colorValue)" radius={[8, 8, 0, 0]} maxBarSize={60} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
@@ -526,7 +532,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                                 className="p-2 rounded-xl text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed group/btn"
                                 title="Améliorer le prompt avec l'IA"
                             >
-                                {isReformulating ? <Loader className="w-5 h-5 animate-spin text-blue-400" /> : <Wand2 className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />}
+                                {isReformulating ? <Loader className="w-5 h-5 animate-spin text-blue-400" /> : <WandSparkles className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />}
                             </button>
                         </div>
                         
@@ -626,14 +632,9 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                 <div className="shrink-0 bg-slate-50/90 dark:bg-slate-950/90 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2.5">
-                            <div className="relative">
-                                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-xl shadow-blue-500/10 border border-blue-400/20">
-                                    <span className="font-black text-slate-900 dark:text-white text-lg">IA</span>
-                                </div>
-                                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-950 rounded-full shadow-lg" />
-                            </div>
+
                             <div>
-                                <h3 className="font-black text-slate-800 dark:text-white text-xs uppercase tracking-widest leading-none mb-1">Expert Analyst IA</h3>
+                                <h3 className="font-black text-slate-800 dark:text-white text-xs uppercase tracking-widest leading-none mb-1">Assistant IA</h3>
                                 <div className="flex items-center gap-1.5">
                                     <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                     <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-black tracking-[0.2em] uppercase">Moteur Cognitif Actif</span>
@@ -672,7 +673,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                         <button onClick={onToggleSidebar} className="p-2 -ml-2 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-800 rounded-lg transition-all">{isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}</button>
                     )}
                     <div>
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />Analyseur de Données IA</h2>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />Assistant IA</h2>
                         <p className="text-xs text-slate-400 dark:text-slate-500 font-medium tracking-wide uppercase">Mode Intelligence Active</p>
                     </div>
                 </div>

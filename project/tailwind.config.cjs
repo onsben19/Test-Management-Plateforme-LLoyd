@@ -16,6 +16,9 @@ module.exports = {
       }
     },
     extend: {
+      fontWeight: {
+        black: '800',
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -68,29 +71,29 @@ module.exports = {
       },
       fontFamily: {
         sans: [
-          "'Plus Jakarta Sans'",
-          "'Inter'",
+          "Plus Jakarta Sans",
+          "Inter",
           "ui-sans-serif",
           "system-ui",
           "sans-serif"
         ],
         heading: [
-          "'Outfit'",
-          "'Plus Jakarta Sans'",
+          "Outfit",
+          "Plus Jakarta Sans",
           "sans-serif"
         ],
         serif: [
-          "'Lora'",
+          "Lora",
           "ui-serif",
           "serif"
         ],
         mono: [
-          "'Space Mono'",
+          "Space Mono",
           "ui-monospace",
           "monospace"
         ]
       }
     }
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
 };

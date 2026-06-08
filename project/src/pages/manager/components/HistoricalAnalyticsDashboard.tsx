@@ -54,9 +54,9 @@ interface ModuleHealth {
 // ---------------------------------------------------------------------------
 
 const SparkBars = ({ data, color }: { data: number[], color: string }) => {
-    // Generate 5 bars for the mockup look
+    // Generate bars up to 5
     const displayData = data.slice(-5);
-    while (displayData.length < 5) displayData.unshift(Math.random() * 40 + 30); // Fill with mock if missing
+    const maxVal = Math.max(...displayData, 1);
 
     return (
         <div className="flex items-end gap-1 h-8">
@@ -64,7 +64,7 @@ const SparkBars = ({ data, color }: { data: number[], color: string }) => {
                 <motion.div
                     key={i}
                     initial={{ height: 0 }}
-                    animate={{ height: `${(val / 100) * 100}%` }}
+                    animate={{ height: `${(val / maxVal) * 100}%` }}
                     className={`w-1.5 rounded-full ${color}`}
                 />
             ))}
@@ -124,6 +124,8 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
     const readinessScore = totalReleases > 0
         ? Math.round((healthyReleases / totalReleases) * 100)
         : 85;
+
+    const tdClass = "p-4 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-100 dark:group-hover:bg-white/5 transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-300 dark:group-hover:border-white/10";
 
     if (loading) {
         return <div className="p-10 text-slate-500 font-bold animate-pulse">Chargement des analytics...</div>;
@@ -198,13 +200,13 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
 
                         {qualityViewMode === 'table' ? (
                             <div className="overflow-x-auto rounded-[1.5rem] border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/[0.02] max-h-[300px] overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="sticky top-0 bg-slate-100 dark:bg-slate-900 z-10 shadow-sm">
-                                    <tr className="border-b border-slate-200 dark:border-white/10 text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                                        <th className="p-4 font-bold">{t('historicalAnalytics.qualityTab.release')}</th>
-                                        <th className="p-4 font-bold">{t('historicalAnalytics.qualityTab.successRate')}</th>
-                                        <th className="p-4 font-bold">{t('historicalAnalytics.qualityTab.anomalies')}</th>
-                                        <th className="p-4 font-bold text-right">{t('historicalAnalytics.qualityTab.status')}</th>
+                            <table className="w-full text-left border-separate border-spacing-y-3">
+                                <thead>
+                                    <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                        <th className="px-4 py-2">{t('historicalAnalytics.qualityTab.release')}</th>
+                                        <th className="px-4 py-2">{t('historicalAnalytics.qualityTab.successRate')}</th>
+                                        <th className="px-4 py-2">{t('historicalAnalytics.qualityTab.anomalies')}</th>
+                                        <th className="px-4 py-2 text-right">{t('historicalAnalytics.qualityTab.status')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -219,9 +221,9 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                         const isMid = rel.pass_rate >= 60;
                                         
                                         return (
-                                            <tr key={idx} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors">
-                                                <td className="p-4 font-black text-slate-900 dark:text-white">{rel.version}</td>
-                                                <td className="p-4">
+                                            <tr key={idx} className="group transition-all duration-300 cursor-default">
+                                                <td className={`font-black text-slate-900 dark:text-white ${tdClass}`}>{rel.version}</td>
+                                                <td className={tdClass}>
                                                     <div className="flex items-center gap-3">
                                                         <span className={`font-black w-10 ${isHigh ? 'text-emerald-500 dark:text-emerald-400' : isMid ? 'text-amber-500 dark:text-amber-400' : 'text-rose-500 dark:text-rose-400'}`}>
                                                             {rel.pass_rate}%
@@ -234,11 +236,11 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="p-4 text-slate-600 dark:text-slate-300 text-sm font-medium flex items-center gap-2">
+                                                <td className={`font-medium flex items-center gap-2 ${tdClass}`}>
                                                     <Activity size={14} className="opacity-50" />
                                                     {rel.anomaly_count} <span className="opacity-50 text-xs">{rel.anomaly_count !== 1 ? t('historicalAnalytics.qualityTab.reportedPlural') : t('historicalAnalytics.qualityTab.reported')}</span>
                                                 </td>
-                                                <td className="p-4 text-right">
+                                                <td className={`text-right ${tdClass}`}>
                                                     <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
                                                         isHigh 
                                                             ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' 
@@ -320,7 +322,13 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                         </div>
 
                         <div className="divide-y divide-white/5">
-                            {testerData.length ? [...testerData].sort((a, b) => b.ml_score - a.ml_score).map((tester, i) => (
+                            {testerData.length ? [...testerData].sort((a, b) => b.ml_score - a.ml_score).map((tester, i) => {
+                                const latestVel = tester.releases.length > 0 ? tester.releases[tester.releases.length - 1].velocity : 0;
+                                const firstVel = tester.releases.length > 0 ? tester.releases[0].velocity : 0;
+                                const deltaVel = latestVel - firstVel;
+                                const deltaVelPercent = firstVel > 0 ? (deltaVel / firstVel) * 100 : 0;
+
+                                return (
                                 <div key={i} className="py-6 flex items-center justify-between group cursor-default">
                                     <div className="flex items-center gap-6">
                                         <div className="relative">
@@ -349,19 +357,21 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                         <div className="text-right">
                                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Activité</p>
                                             <SparkBars
-                                                data={tester.releases.map(r => r.pass_rate)}
-                                                color={tester.delta_vs_first > 5 ? 'bg-emerald-500/80' : tester.delta_vs_first < -5 ? 'bg-orange-500/80' : 'bg-blue-500/80'}
+                                                data={tester.releases.map(r => r.velocity)}
+                                                color={deltaVel > 0 ? 'bg-emerald-500/80' : deltaVel < 0 ? 'bg-orange-500/80' : 'bg-blue-500/80'}
                                             />
                                         </div>
                                         <div className="text-right w-20">
-                                            <p className="text-lg font-black text-slate-900 dark:text-white">{tester.latest_pass_rate}%</p>
-                                            <span className={`text-[10px] font-black uppercase tracking-widest ${tester.delta_vs_first > 5 ? 'text-emerald-500' : tester.delta_vs_first < -5 ? 'text-rose-500' : 'text-slate-500'}`}>
-                                                {tester.delta_vs_first > 0 ? '↑' : '↓'} {Math.abs(tester.delta_vs_first)}%
+                                            <p className="text-lg font-black text-slate-900 dark:text-white">
+                                                {latestVel} <span className="text-[10px]">/j</span>
+                                            </p>
+                                            <span className={`text-[10px] font-black uppercase tracking-widest ${deltaVel > 0 ? 'text-emerald-500' : deltaVel < 0 ? 'text-rose-500' : 'text-slate-500'}`}>
+                                                {deltaVel > 0 ? '↑' : deltaVel < 0 ? '↓' : ''} {Math.abs(Number(deltaVelPercent.toFixed(1)))}%
                                             </span>
                                         </div>
                                     </div>
                                 </div>
-                            )) : (
+                            )}) : (
                                 <div className="p-20 text-center space-y-4">
                                     <Activity className="w-12 h-12 text-slate-700 mx-auto" />
                                     <p className="text-slate-500 font-bold">Données de performance en attente</p>

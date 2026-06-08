@@ -33,6 +33,7 @@ import AdminComments from './src/pages/admin/AdminComments';
 import AdminEmails from './src/pages/admin/AdminEmails';
 import AdminAnalytics from './src/pages/admin/AdminAnalytics';
 import AdminDashboard from './src/pages/admin/AdminDashboard';
+import AdminQANews from './src/pages/admin/AdminQANews';
 import ManagerDashboard from './src/pages/manager/ManagerDashboard';
 import EmailDashboard from './src/pages/EmailDashboard';
 import ChatCenter from './src/pages/ChatCenter';
@@ -188,6 +189,11 @@ const App: React.FC = () => {
                     <Route path="/management/analytics" element={
                       <RoleGuard allowedRoles={['ADMIN']}>
                         <AdminAnalytics />
+                      </RoleGuard>
+                    } />
+                    <Route path="/admin/qa-intelligence" element={
+                      <RoleGuard allowedRoles={['ADMIN']}>
+                        <AdminQANews />
                       </RoleGuard>
                     } />
 

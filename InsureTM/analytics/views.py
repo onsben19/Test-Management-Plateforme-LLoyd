@@ -70,23 +70,73 @@ class AskAgentView(APIView):
         )
 
         try:
-            result = GroqService().process_query(question, request.user, uploaded_file=uploaded_file)
+            # S'il y a un fichier, on pourrait extraire le texte, mais pour un chatbot général simple on va utiliser le texte
+            file_context = ""
+            if uploaded_file:
+                file_context = f"\n\nL'utilisateur a uploadé un fichier: {uploaded_file.name}. "
+                if uploaded_file.name.endswith('.txt') or uploaded_file.name.endswith('.csv'):
+                    try:
+                        file_content = uploaded_file.read().decode('utf-8')[:2000] # Limiter la taille
+                        file_context += f"Voici un extrait du contenu:\n{file_content}\n"
+                    except:
+                        pass
+                elif uploaded_file.name.endswith('.pdf'):
+                    try:
+                        from pypdf import PdfReader
+                        reader = PdfReader(uploaded_file)
+                        text = ""
+                        for page in reader.pages[:3]: # Limiter à 3 pages
+                            text += page.extract_text() + "\n"
+                        file_context += f"Voici un extrait du PDF:\n{text[:2000]}\n"
+                    except:
+                        pass
+            
+            # Construire l'historique de la conversation
+            messages = [{"role": "system", "content": """Tu es un assistant IA général et polyvalent.
+Ton objectif est de répondre à n'importe quelle question posée par l'utilisateur, qu'il s'agisse de rédaction, de traduction, de culture générale, d'analyse ou de toute autre tâche.
+
+TES MISSIONS ET RÈGLES :
+1. **Formatage Strict :** Utilise systématiquement le **Markdown** pour structurer tes réponses. Mets en gras les termes clés, utilise des listes à puces pour énumérer des idées, et intègre des blocs de code pour tout aspect technique.
+2. **Concision et Clarté :** Sois direct et utile. Tes réponses doivent être claires et pertinentes.
+3. **Polyvalence Totale :** Tu réponds de manière générale, sans être limité à une base de données ou un domaine précis. Tu ne génères JAMAIS de graphiques.
+4. **Langue :** Tu t'exprimes en Français par défaut, de manière chaleureuse et professionnelle."""}]
+
+            # Fetch recent messages for context
+            recent_msgs = conversation.messages.all().order_by('created_at')[:10]
+            for msg in recent_msgs:
+                if msg.sender == 'user':
+                    messages.append({"role": "user", "content": msg.text})
+                elif msg.sender == 'agent':
+                    messages.append({"role": "assistant", "content": msg.text})
+            
+            # Ajouter le contexte du fichier si présent (à la dernière question)
+            if file_context and messages and messages[-1]['role'] == 'user':
+                messages[-1]['content'] += file_context
+
+            from analytics.groq_service import GroqService
+            groq = GroqService()
+            completion = groq.client.chat.completions.create(
+                messages=messages,
+                model="llama-3.3-70b-versatile",
+                temperature=0.7,
+            )
+            answer = completion.choices[0].message.content
 
             Message.objects.create(
                 conversation=conversation,
                 sender='agent',
-                text=result['answer'],
-                type=result.get('type', 'text'),
-                sql=result.get('sql', ''),
-                data=result.get('data', []),
+                text=answer,
+                type='text',
+                sql='',
+                data=[],
             )
             conversation.save()
 
             return Response({
-                'answer': result['answer'],
-                'data': result.get('data', []),
-                'sql': result.get('sql', ''),
-                'type': result.get('type', 'text'),
+                'answer': answer,
+                'data': [],
+                'sql': '',
+                'type': 'text',
                 'conversation_id': conversation.id,
                 'conversation_title': conversation.title,
             })
@@ -117,14 +167,15 @@ class OllamaChatView(APIView):
             groq = GroqService()
             # More general-purpose system prompt
             system_prompt = """
-            Tu es un assistant IA universel et omniscient intégré à la plateforme InsureTM.
-            TES MISSIONS :
-            1. Répondre avec expertise à TOUTE question sur la plateforme InsureTM (tests, QA, anomalies).
-            2. Répondre de manière polyvalente à TOUTE question hors-plateforme (culture générale, météo, conseils, e-mails, cuisine, etc.).
-            3. Si tu ne connais pas une information en temps réel (comme la météo exacte à l'instant T), fournis une estimation basée sur tes connaissances ou guide l'utilisateur, mais ne refuse jamais d'aider.
-            
-            TON STYLE : Professionnel, chaleureux, concis et extrêmement intelligent. Réponds en Français.
-            """
+Tu es un assistant IA général et polyvalent.
+Ton objectif est de répondre à n'importe quelle question posée par l'utilisateur, qu'il s'agisse de rédaction, de traduction, de culture générale, d'analyse ou de toute autre tâche.
+
+TES MISSIONS ET RÈGLES :
+1. **Formatage Strict :** Utilise systématiquement le **Markdown** pour structurer tes réponses. Mets en gras les termes clés, utilise des listes à puces pour énumérer des idées, et intègre des blocs de code pour tout aspect technique.
+2. **Concision et Clarté :** Sois direct et utile. Tes réponses doivent être claires et pertinentes.
+3. **Polyvalence Totale :** Tu réponds de manière générale, sans être limité à une base de données ou un domaine précis.
+4. **Langue :** Tu t'exprimes en Français par défaut, de manière chaleureuse et professionnelle.
+"""
             
             completion = groq.client.chat.completions.create(
                 messages=[
@@ -283,7 +334,8 @@ class CampaignClosureReportView(APIView):
                 reasons = [str(reasons)]
             for reason in reasons:
                 # Force a narrower width and explicit move to next line
-                pdf.multi_cell(w=pdf.epw - 15, h=6, txt=f"- {str(reason)}", border=0, align='L')
+                safe_reason = str(reason).encode('latin-1', 'replace').decode('latin-1')
+                pdf.multi_cell(w=pdf.epw - 15, h=6, txt=f"- {safe_reason}", border=0, align='L')
                 pdf.ln(2)
             pdf.ln(5)
             
@@ -320,8 +372,9 @@ class CampaignClosureReportView(APIView):
                 pdf.ln()
                 pdf.set_font('helvetica', '', 9)
                 for an in critical_anomalies[:20]: # Show up to 20
+                    safe_titre = str(an.titre).encode('latin-1', 'replace').decode('latin-1')
                     pdf.cell(30, 8, str(an.id), 1)
-                    pdf.cell(120, 8, str(an.titre)[:65], 1)
+                    pdf.cell(120, 8, safe_titre[:65], 1)
                     pdf.cell(40, 8, str(an.statut), 1)
                     pdf.ln()
 
@@ -859,11 +912,14 @@ class HistoricalTestersView(APIView):
                 
                 ml_perf = ml_guard.score_tester(tester_id=user.id)
                 
+                name = user.get_full_name() or user.username
+                initials = "".join([part[0] for part in name.split()[:2]]).upper()
+
                 data.append({
                     "tester": {
                         "id": user.id, 
-                        "name": user.get_full_name() or user.username, 
-                        "initials": "".join([n[0] for n in user.username[:2].upper()])
+                        "name": name, 
+                        "initials": initials
                     },
                     "releases": releases_perf,
                     "trend": trend,
@@ -946,10 +1002,9 @@ class QANewsListView(APIView):
         if QANews.objects.count() < 3:
             try:
                 QAScrapingService().scrape_and_update()
-            except:
+            except Exception:
                 pass
-            
-        news = QANews.objects.all()[:5]
+        news = QANews.objects.all().order_by('-created_at')[:50]
         data = []
         for n in news:
             data.append({
@@ -961,6 +1016,18 @@ class QANewsListView(APIView):
                 'created_at': n.created_at.strftime('%d/%m/%Y')
             })
         return Response(data)
+
+    def delete(self, request):
+        from .models import QANews
+        news_id = request.query_params.get('id')
+        if news_id:
+            try:
+                news = QANews.objects.get(id=news_id)
+                news.delete()
+                return Response({"message": "Article supprimé."})
+            except QANews.DoesNotExist:
+                return Response({"error": "Article non trouvé."}, status=404)
+        return Response({"error": "ID requis."}, status=400)
 
     def post(self, request):
         """Manually trigger scraping."""

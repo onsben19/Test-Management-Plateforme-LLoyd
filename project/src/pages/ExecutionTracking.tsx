@@ -273,11 +273,11 @@ const ExecutionTracking = () => {
                             isLoading={loading}
                         />
                         <StatCard
-                            title={t('execution.stats.successRate')}
-                            value={`${stats.successRate}%`}
+                            title="TESTS RÉUSSIS"
+                            value={stats.passed}
                             icon={CheckCircle}
                             variant="blue"
-                            description={t('execution.stats.successDesc')}
+                            description="Nombre de tests validés"
                             isLoading={loading}
                         />
                         <StatCard
@@ -373,8 +373,8 @@ const ExecutionTracking = () => {
                         </div>
                     </div>
 
-                    <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl overflow-hidden">
-                        <div className="max-h-[60vh] overflow-auto custom-scrollbar">
+                    <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl overflow-hidden shadow-sm">
+                        <div className="w-full overflow-x-auto">
                             <ExecutionTestList
                                 tests={filteredTests}
                                 onSelectTest={handleSelectTest}
@@ -460,14 +460,14 @@ const ExecutionTracking = () => {
                                 <div key={idx} className="snap-center shrink-0 max-w-[85vw] max-h-[75vh] flex flex-col items-center group">
                                     <div className="relative border-2 border-slate-300 dark:border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
                                         {cap.startsWith('data:') ? (
-                                            <img src={cap} alt={`Capture ${idx}`} className="max-h-[70vh] object-contain transition-transform duration-500 group-hover:scale-[1.02]" />
+                                            <img src={cap} alt={`Preuve ${idx + 1}`} className="max-h-[70vh] object-contain transition-transform duration-500 group-hover:scale-[1.02]" />
                                         ) : (
                                             <div className="w-96 h-64 bg-slate-100 dark:bg-white/5 flex items-center justify-center rounded-[2.5rem]">
                                                 <span className="text-slate-500 font-bold uppercase tracking-widest text-xs opacity-50">{cap}</span>
                                             </div>
                                         )}
                                         <div className="absolute top-6 left-6 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-slate-300 dark:border-white/10">
-                                            <p className="text-slate-900 dark:text-white/70 font-bold uppercase tracking-[0.2em] text-[8px]">CAPTURE {idx + 1} / {(viewingCaptures?.captures || []).length}</p>
+                                            <p className="text-slate-900 dark:text-white/70 font-bold uppercase tracking-[0.2em] text-[8px]">PREUVE {idx + 1} / {(viewingCaptures?.captures || []).length}</p>
                                         </div>
                                     </div>
                                     <div className="mt-6 flex flex-col items-center gap-1">

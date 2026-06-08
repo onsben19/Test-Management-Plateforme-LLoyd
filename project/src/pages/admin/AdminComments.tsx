@@ -101,6 +101,10 @@ const AdminComments = () => {
 
     const conversationColumns = [
         {
+            header: 'ID',
+            accessor: (item: any) => <span className="font-mono text-[10px] text-slate-500">{String(item.id).substring(0, 8)}</span>
+        },
+        {
             header: 'Discussion / Contexte',
             accessor: (conv: any) => (
                 <div className="flex flex-col gap-0.5">

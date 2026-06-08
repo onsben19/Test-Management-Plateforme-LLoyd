@@ -81,7 +81,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
         if (displayTests.length === 0) return [];
         const first = displayTests[0];
         const keys = Object.keys(first);
-        const excluded = ['id', 'status', 'assigned_to', 'realized_by', 'lastRun', 'duration', 'name', 'module', 'captures', 'release', 'manual', 'rawDate', 'businessProject', 'releaseType'];
+        const excluded = ['id', 'status', 'assigned_to', 'realized_by', 'lastRun', 'duration', 'name', 'module', 'captures', 'release', 'manual', 'rawDate', 'businessProject', 'releaseType', 'execution_logs', 'automation_code'];
         return keys.filter(k =>
             !excluded.includes(k) &&
             !k.toLowerCase().includes('titre') &&
@@ -111,13 +111,15 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
     // Inside <tbody>, we can simply map groups.
 
     const renderRow = (test: TestItem, index: number) => {
+        const tdClass = "px-8 py-5 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-100 dark:group-hover:bg-white/5 transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-300 dark:group-hover:border-white/10";
+
         return (
             <tr
                 key={test.id || index}
                 onClick={() => onSelectTest(test)}
-                className={`cursor-pointer transition-all duration-300 group ${variant === 'transparent' ? 'hover:bg-slate-100 dark:bg-white/5 border-b border-slate-200 dark:border-white/5' : 'hover:bg-slate-50 dark:hover:bg-slate-700/30'} ${selectedTestId === test.id ? (variant === 'transparent' ? 'bg-blue-600/10' : 'bg-blue-600/5') : ''}`}
+                className={`group transition-all duration-300 cursor-pointer ${selectedTestId === test.id ? 'bg-blue-600/5' : ''}`}
             >
-                <td className="px-8 py-6">
+                <td className={tdClass}>
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-3">
                             <div className="flex flex-col gap-1">
@@ -131,7 +133,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                         </div>
                     </div>
                 </td>
-                <td className="px-8 py-6">
+                <td className={tdClass}>
                     <div className="flex flex-col gap-1.5">
                         <span className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-widest">{test.businessProject || 'GLOBAL'}</span>
                         <div className="flex items-center gap-2 text-slate-500">
@@ -151,7 +153,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                     const value = raw != null ? String(raw) : '-';
                     const isLong = value.length > 80;
                     return (
-                        <td key={`${test.id}-${col}`} className="px-8 py-6 text-slate-400 text-xs font-medium max-w-[200px]">
+                        <td key={`${test.id}-${col}`} className={`max-w-[200px] ${tdClass}`}>
                             {isLong ? (
                                 <div className="flex flex-col gap-1">
                                     <span className="truncate block text-slate-400">{value.slice(0, 60)}…</span>
@@ -171,13 +173,13 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
 
                 {/* Realized By - Conditional */}
                 {!isTester && (
-                    <td className="px-8 py-6">
+                    <td className={tdClass}>
                         <div className="flex items-center gap-3">
                             <span className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">{test.realized_by || '-'}</span>
                         </div>
                     </td>
                 )}
-                <td className="px-8 py-6">
+                <td className={tdClass}>
                     {(test.captures && test.captures.length > 0) ? (
                         <div className="flex items-center gap-1.5">
                             {test.captures.slice(0, 3).map((url, i) => (
@@ -185,14 +187,14 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                                     key={i}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setLogModal({ title: `Capture ${i + 1} — ${test.name}`, content: `__IMAGE__${url}` });
+                                        setLogModal({ title: `Preuve ${i + 1} — ${test.name}`, content: `__IMAGE__${url}` });
                                     }}
                                     className="relative group/cap"
-                                    title={`Voir capture ${i + 1}`}
+                                    title={`Voir preuve ${i + 1}`}
                                 >
                                     <img
                                         src={url}
-                                        alt={`Capture ${i + 1}`}
+                                        alt={`Preuve ${i + 1}`}
                                         className="w-10 h-10 object-cover rounded-lg border border-slate-300 dark:border-white/10 group-hover/cap:border-blue-400/60 group-hover/cap:scale-110 transition-all duration-200"
                                     />
                                     <div className="absolute inset-0 bg-blue-400/0 group-hover/cap:bg-blue-400/10 rounded-lg transition-all" />
@@ -206,7 +208,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                         <span className="text-slate-600 font-bold uppercase tracking-widest text-[9px] opacity-40">AUCUNE</span>
                     )}
                 </td>
-                <td className="px-8 py-6">
+                <td className={tdClass}>
                     <span className={`inline-flex items-center gap-3 px-6 py-2 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${test.status === 'passed'
                         ? 'bg-blue-500/5 text-blue-400 border border-blue-500/10'
                         : test.status === 'failed'
@@ -217,64 +219,78 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                         {test.status}
                     </span>
                 </td>
-                <td className="px-8 py-6 whitespace-nowrap">
+                <td className={tdClass}>
+                    <div className="flex items-center gap-2">
+                        {test.execution_logs && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLogModal({ title: `Logs d'exécution — ${test.name}`, content: test.execution_logs! });
+                                }}
+                                className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-500/10 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border border-slate-200 dark:border-white/10"
+                            >
+                                Logs
+                            </button>
+                        )}
+                        {test.automation_code && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLogModal({ title: `Code Source — ${test.name}`, content: test.automation_code! });
+                                }}
+                                className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border border-slate-200 dark:border-white/10"
+                            >
+                                Code
+                            </button>
+                        )}
+                        {!test.execution_logs && !test.automation_code && (
+                            <span className="text-slate-600 font-bold uppercase tracking-widest text-[9px] opacity-40">-</span>
+                        )}
+                    </div>
+                </td>
+                <td className={`whitespace-nowrap ${tdClass}`}>
                     <div className="flex flex-col gap-0.5">
                         <span className="text-slate-700 dark:text-slate-300 text-[10px] font-bold tracking-tight">{test.lastRun.split(' ')[0]}</span>
                         <span className="text-slate-500 text-[9px] font-bold uppercase tracking-widest opacity-60 italic">{test.lastRun.split(' ')[1]}</span>
                     </div>
                 </td>
 
-                {canDelete && (
-                    <td className="px-8 py-6 text-right">
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setTestToDelete(test);
-                                setIsDeleteModalOpen(true);
-                            }}
-                            className="text-slate-400 hover:text-rose-400 transition-all"
-                            title="Supprimer"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
-                    </td>
-                )}
+
             </tr>
         );
     };
 
     return (
         <div className={`table-container animate-fade-in overflow-x-auto ${variant === 'transparent' ? '' : 'min-h-[400px]'}`}>
-            <table className="w-full text-left">
-                <thead className="border-b border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.01]">
-                    <tr>
-                        <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">TEST & CAMPAGNE</th>
-                        <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">PROJET & RELEASE</th>
+            <table className="w-full text-left border-separate border-spacing-y-3">
+                <thead>
+                    <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        <th className="px-8 py-2">TEST & CAMPAGNE</th>
+                        <th className="px-8 py-2">PROJET & RELEASE</th>
 
                         {/* Dynamic Headers */}
                         {dynamicColumns.map(col => (
-                            <th key={col} className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                            <th key={col} className="px-8 py-2">
                                 {col.toUpperCase()}
                             </th>
                         ))}
 
                         {!isTester && (
-                            <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">RÉALISÉ PAR</th>
+                            <th className="px-8 py-2">RÉALISÉ PAR</th>
                         )}
-                        <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">CAPTURES</th>
-                        <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">STATUT</th>
-                        <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">DATE</th>
-                        <th className="px-8 py-6 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] text-right">
-                            {(canManage || canDelete || onAutomateTest) ? 'ACTIONS' : ''}
-                        </th>
+                        <th className="px-8 py-2">PREUVE(S)</th>
+                        <th className="px-8 py-2">STATUT</th>
+                        <th className="px-8 py-2">DÉTAILS</th>
+                        <th className="px-8 py-2">DATE</th>
+
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200/50 dark:divide-slate-700/50 transition-colors">
+                <tbody>
                     {groupedData ? (
                         Object.entries(groupedData).map(([groupTitle, groupTests]) => (
                             <React.Fragment key={groupTitle}>
-                                <tr className="bg-slate-100 dark:bg-slate-800/50">
-                                    <td colSpan={6 + dynamicColumns.length + (isTester ? 0 : 1)} className="px-4 py-2 font-bold text-slate-700 dark:text-slate-200 text-sm border-l-4 border-blue-500">
+                                <tr>
+                                    <td colSpan={6 + dynamicColumns.length + (isTester ? 0 : 1)} className="px-8 py-4 font-bold text-slate-700 dark:text-slate-200 text-sm border-l-4 border-blue-500 bg-slate-100 dark:bg-white/5 rounded-2xl">
                                         {groupBy === 'campaign' ? 'Campagne : ' : groupBy === 'release' ? 'Release : ' : 'Projet : '}
                                         {groupTitle}
                                         <span className="ml-2 text-xs font-normal text-slate-500">({groupTests.length} tests)</span>

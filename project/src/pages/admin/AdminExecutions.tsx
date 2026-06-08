@@ -136,9 +136,8 @@ const AdminExecutions = () => {
             title={t('adminExecutions.title')}
             subtitle="EXECUTION AUDIT"
             noPadding
-            fullHeight
         >
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col">
                 {/* Stats Section */}
                 <div className="p-8 pb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 shrink-0">
                     <StatCard
@@ -219,6 +218,10 @@ const AdminExecutions = () => {
                     <AdminTable
                         columns={[
                             {
+                                header: 'ID',
+                                accessor: (item: any) => <span className="font-mono text-[10px] text-slate-500">{String(item.id).substring(0, 8)}</span>
+                            },
+                            {
                                 header: 'TEST & CAMPAGNE',
                                 accessor: (item: TestItem) => (
                                     <div className="flex flex-col gap-1">
@@ -244,8 +247,13 @@ const AdminExecutions = () => {
                                 )
                             },
                             {
-                                header: 'RÉALISÉ PAR',
-                                accessor: (item: TestItem) => <span className="text-xs font-bold text-slate-900 dark:text-white tracking-tight">{item.realized_by}</span>
+                                header: 'CRÉÉ PAR',
+                                accessor: (item: TestItem) => (
+                                    <div className="flex flex-col">
+                                        <span className="text-slate-700 dark:text-slate-300 text-[11px] font-bold tracking-tight">{item.realized_by || 'Système'}</span>
+                                        <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest italic opacity-60">Exécuteur</span>
+                                    </div>
+                                )
                             },
                             {
                                 header: 'CAPTURES',
@@ -273,11 +281,11 @@ const AdminExecutions = () => {
                                 )
                             },
                             {
-                                header: 'DATE',
+                                header: 'DATE DE CRÉATION',
                                 accessor: (item: TestItem) => (
-                                    <div className="flex flex-col">
-                                        <span className="text-slate-700 dark:text-slate-300 text-[10px] font-bold tracking-tight">{item.lastRun.split(' ')[0]}</span>
-                                        <span className="text-slate-500 text-[9px] font-bold uppercase tracking-widest opacity-60 italic">{item.lastRun.split(' ')[1]}</span>
+                                    <div className="flex flex-col gap-0.5">
+                                        <span className="text-slate-700 dark:text-slate-300 text-[11px] font-bold tracking-tight">{item.lastRun.split(' ')[0]}</span>
+                                        <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest italic opacity-60">Enregistré</span>
                                     </div>
                                 )
                             }
@@ -300,7 +308,7 @@ const AdminExecutions = () => {
                     <div className="mt-8 flex justify-center">
                         <Pagination
                             currentPage={currentPage}
-                            totalCount={filteredTests.length}
+                            totalItems={filteredTests.length}
                             pageSize={pageSize}
                             onPageChange={setCurrentPage}
                         />

@@ -172,7 +172,7 @@ const ManagerDashboard = () => {
             ? []
             : projects
                 .filter((p: any) => {
-                    const bpId = p.business_project_id ?? (typeof p.business_project === 'object' ? p.business_project.id : p.business_project);
+                    const bpId = p.business_project_id ?? (p.business_project && typeof p.business_project === 'object' ? p.business_project.id : p.business_project);
                     return String(bpId) === selectedProjectId;
                 })
                 .map((p: any) => p.id);
@@ -180,7 +180,7 @@ const ManagerDashboard = () => {
         const filteredCamps = selectedProjectId === 'all'
             ? campaigns
             : campaigns.filter((c: any) => {
-                const pId = c.project_id ?? (typeof c.project === 'object' ? c.project.id : c.project);
+                const pId = c.project_id ?? (c.project && typeof c.project === 'object' ? c.project.id : c.project);
                 return validReleaseIds.includes(pId);
             });
 

@@ -160,6 +160,10 @@ const ProjectPortfolio = () => {
 
     const columns = [
         {
+            header: 'ID',
+            accessor: (item: any) => <span className="font-mono text-[10px] text-slate-500">{String(item.id).substring(0, 8)}</span>
+        },
+        {
             header: t('portfolio.table.project', 'Projet'),
             accessor: (item: any) => (
                 <div className="flex items-center cursor-pointer">
@@ -171,8 +175,24 @@ const ProjectPortfolio = () => {
         },
         { header: t('portfolio.table.description'), accessor: (item: any) => <DescriptionCell text={item.description} /> },
         { header: t('portfolio.table.releases'), accessor: (item: any) => <span className="font-bold text-blue-600 dark:text-blue-400">{item.releases_count || 0}</span> },
-        { header: t('portfolio.table.createdAt'), accessor: (item: any) => new Date(item.created_at).toLocaleDateString() },
-        { header: t('portfolio.table.owner'), accessor: 'created_by_username' }
+        {
+            header: t('portfolio.table.createdAt', 'Date de création'),
+            accessor: (item: any) => (
+                <div className="flex flex-col gap-0.5">
+                    <span className="text-slate-700 dark:text-slate-300 text-[11px] font-bold tracking-tight">{new Date(item.created_at).toLocaleDateString('fr-FR')}</span>
+                    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest italic opacity-60">Enregistré</span>
+                </div>
+            )
+        },
+        {
+            header: t('portfolio.table.owner', 'Créé par'),
+            accessor: (item: any) => (
+                <div className="flex flex-col">
+                    <span className="text-slate-700 dark:text-slate-300 text-[11px] font-bold tracking-tight">{item.created_by_username || 'Système'}</span>
+                    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest italic opacity-60">Créateur</span>
+                </div>
+            )
+        }
     ];
 
     const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
@@ -416,6 +436,7 @@ const ProjectPortfolio = () => {
                                 isLoading={loading}
                                 searchable
                                 onSearch={setSearchQuery}
+                                onRowClick={(item) => navigate('/admin/releases', { state: { businessProjectId: item.id, businessProjectName: item.name } })}
                                 filters={
                                     <>
                                         <select

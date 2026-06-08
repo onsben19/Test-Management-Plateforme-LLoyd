@@ -27,7 +27,7 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
     const { user } = useAuth();
 
     // Initial States
-    const [title, setTitle] = useState(anomaly?.title || '');
+    const [title, setTitle] = useState(anomaly?.title?.replace(/^\[SCRIPT\]\s*/i, '') || '');
     const [description, setDescription] = useState(anomaly?.description || '');
     const [impact, setImpact] = useState<string>(anomaly?.impact || 'MINEURS');
     const [priority, setPriority] = useState<string>(anomaly?.priority || 'NORMALE');

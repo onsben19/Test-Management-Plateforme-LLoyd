@@ -80,7 +80,10 @@ const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClos
                                 </div>
                             </div>
                             <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-tight max-w-2xl break-words">
-                                {anomaly.title.length > 150 ? anomaly.title.substring(0, 150) + '...' : anomaly.title}
+                                {(() => {
+                                  const cleanTitle = anomaly.title.replace(/^\[SCRIPT\]\s*/i, '');
+                                  return cleanTitle.length > 150 ? cleanTitle.substring(0, 150) + '...' : cleanTitle;
+                                })()}
                             </h2>
                         </div>
                         <button

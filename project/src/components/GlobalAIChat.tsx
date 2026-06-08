@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, X, Send, Sparkles, MessageCircle, Minimize2, Maximize2, Zap } from 'lucide-react';
+import { Bot, X, Send, Sparkles, MessageCircle, Minimize2, Maximize2, Zap, ArrowRight } from 'lucide-react';
 import { aiService } from '../services/api';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const GlobalAIChat = () => {
     const { t } = useTranslation();
@@ -11,9 +13,17 @@ const GlobalAIChat = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
     const [messages, setMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([
-        { role: 'assistant', content: "Bonjour ! Je suis votre assistant expert InsureTM. Comment puis-je vous aider aujourd'hui ?" }
+        { role: 'assistant', content: "Bonjour ! Je suis votre **Assistant IA Général**. Posez-moi n'importe quelle question (rédaction, traduction, explication), je suis là pour vous aider !" }
     ]);
     const [input, setInput] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(true);
+
+    const suggestions = [
+        "Rédige un e-mail professionnel",
+        "Explique-moi un concept complexe",
+        "Traduire un texte en anglais",
+        "Donne-moi des idées d'organisation"
+    ];
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -38,17 +48,19 @@ const GlobalAIChat = () => {
         return null;
     }
 
-    const handleSend = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!input.trim() || loading) return;
+    const handleSend = async (e?: React.FormEvent, customInput?: string) => {
+        if (e) e.preventDefault();
+        const text = customInput || input;
+        if (!text.trim() || loading) return;
 
-        const userMsg = { role: 'user' as const, content: input };
+        const userMsg = { role: 'user' as const, content: text };
         setMessages(prev => [...prev, userMsg]);
-        setInput('');
+        if (!customInput) setInput('');
+        setShowSuggestions(false);
         setLoading(true);
 
         try {
-            const response = await aiService.ollamaChat(input, `Page actuelle: ${window.location.pathname}`);
+            const response = await aiService.ollamaChat(text, `Page actuelle: ${window.location.pathname}`);
             const assistantMsg = { role: 'assistant' as const, content: response.data.answer };
             setMessages(prev => [...prev, assistantMsg]);
         } catch (error) {
@@ -79,10 +91,10 @@ const GlobalAIChat = () => {
                         <div className="p-5 bg-slate-50 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                                    <span className="text-slate-900 dark:text-white font-black text-lg">AI</span>
+                                    <Sparkles className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest leading-none mb-1">Votre Agent AI</h3>
+                                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest leading-none mb-1">Assistant IA</h3>
                                     <div className="flex items-center gap-1.5">
                                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
                                         <span className="text-[9px] font-bold text-blue-500 uppercase tracking-widest">Connecté</span>
@@ -118,10 +130,20 @@ const GlobalAIChat = () => {
                                             }`}>
                                                 {msg.role === 'assistant' && (
                                                     <div className="flex items-center gap-1.5 mb-2 pb-1 border-b border-slate-200 dark:border-white/5">
-                                                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Réponse de l'IA</span>
+                                                        <Sparkles className="w-3 h-3 text-indigo-500" />
+                                                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Assistant IA</span>
                                                     </div>
                                                 )}
-                                                {msg.content}
+                                                {msg.role === 'assistant' ? (
+                                                    <ReactMarkdown 
+                                                        remarkPlugins={[remarkGfm]}
+                                                        className="prose prose-sm dark:prose-invert prose-p:leading-relaxed prose-pre:bg-slate-800 prose-pre:text-slate-100 max-w-none"
+                                                    >
+                                                        {msg.content}
+                                                    </ReactMarkdown>
+                                                ) : (
+                                                    msg.content
+                                                )}
                                             </div>
                                         </div>
                                     ))}
@@ -139,6 +161,29 @@ const GlobalAIChat = () => {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* Suggestions */}
+                                    {showSuggestions && messages.length === 1 && !loading && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="flex flex-wrap gap-2 mt-4"
+                                        >
+                                            {suggestions.map((sug, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={(e) => {
+                                                        handleSend(undefined, sug);
+                                                    }}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 hover:border-blue-500/30 transition-all shadow-sm"
+                                                >
+                                                    {sug}
+                                                    <ArrowRight className="w-3 h-3 opacity-50" />
+                                                </button>
+                                            ))}
+                                        </motion.div>
+                                    )}
+
                                     <div ref={messagesEndRef} />
                                 </div>
 

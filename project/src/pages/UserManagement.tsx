@@ -11,6 +11,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import StatCard from '../components/StatCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../components/ui/Button';
+import AdminTable from '../components/AdminTable';
 
 interface UserData {
     id: string;
@@ -19,6 +20,7 @@ interface UserData {
     role: 'Admin' | 'Manager' | 'Tester' | 'Viewer';
     status: 'active' | 'inactive';
     username: string;
+    dateJoined: string;
 }
 
 const UserManagement = () => {
@@ -36,7 +38,6 @@ const UserManagement = () => {
     const [totalItems, setTotalItems] = useState(0);
     const pageSize = 12;
 
-    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [isAddUserOpen, setIsAddUserOpen] = useState(false);
     const [newUser, setNewUser] = useState({
         username: '',
@@ -91,7 +92,8 @@ const UserManagement = () => {
                 email: u.email,
                 role: mapBackendRole(u.role),
                 status: u.is_active ? 'active' : 'inactive',
-                username: u.username
+                username: u.username,
+                dateJoined: u.date_joined || new Date().toISOString()
             }));
             setUsers(apiUsers);
         } catch (error) {
@@ -231,6 +233,66 @@ const UserManagement = () => {
         </Button>
     );
 
+    const columns = [
+        {
+            header: 'ID',
+            accessor: (item: any) => <span className="font-mono text-[10px] text-slate-500">{String(item.id).substring(0, 8)}</span>
+        },
+        {
+            header: 'UTILISATEUR',
+            accessor: (u: UserData) => (
+                <div className="flex items-center gap-5">
+                    <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center text-blue-500 font-bold text-base border border-blue-600/20">
+                        {u.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">{u.name}</div>
+                        <div className="text-slate-500 text-[10px] flex items-center gap-1.5 mt-0.5 font-medium opacity-70">
+                            <Mail className="w-3 h-3 opacity-50" />
+                            {u.email}
+                        </div>
+                    </div>
+                </div>
+            )
+        },
+        {
+            header: 'RÔLE',
+            accessor: (u: UserData) => (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-slate-300 dark:border-white/10 rounded-xl bg-slate-100 dark:bg-white/5">
+                    <Shield className="w-3 h-3 text-blue-500/70" />
+                    <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">{u.role}</span>
+                </div>
+            )
+        },
+        {
+            header: 'STATUT',
+            accessor: (u: UserData) => (
+                <button
+                    onClick={(e) => { e.stopPropagation(); handleToggleStatus(u.id, u.status); }}
+                    className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-blue-500 ${
+                        u.status === 'active' ? 'bg-emerald-500/20 border border-emerald-500/30' : 'bg-slate-700/50 border border-white/10'
+                    }`}
+                >
+                    <span
+                        className={`inline-block w-4 h-4 transform rounded-full bg-white transition-transform ${
+                            u.status === 'active' ? 'translate-x-6 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'translate-x-1 bg-slate-400'
+                        }`}
+                    />
+                </button>
+            )
+        },
+
+        {
+            header: 'DATE DE CRÉATION',
+            accessor: (u: UserData) => (
+                <div className="flex flex-col gap-0.5">
+                    <span className="text-slate-700 dark:text-slate-300 text-[11px] font-bold tracking-tight">{new Date(u.dateJoined).toLocaleDateString()}</span>
+                    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest italic opacity-60">Inscrit</span>
+                </div>
+            )
+        }
+    ];
+
     return (
         <PageLayout
             title={t('userManagement.title')}
@@ -275,179 +337,68 @@ const UserManagement = () => {
                 </div>
 
                 {/* Filters & Table Card */}
-                <div className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-white/10 rounded-[3rem] overflow-hidden shadow-2xl shadow-black/20">
-                    {/* Filters Bar - Refined to match screenshot */}
-                    <div className="p-10 border-b border-slate-200 dark:border-white/5 flex flex-col xl:flex-row items-center gap-6">
-                        <div className="relative flex-1 group w-full">
-                            <Search className="absolute left-8 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-                            <input
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Rechercher un utilisateur..."
-                                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-[2rem] pl-20 pr-10 py-5 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-medium placeholder-slate-500"
-                            />
+                <AdminTable
+                    columns={columns}
+                    data={users}
+                    isLoading={loading}
+                    searchable
+                    onSearch={(val) => setSearchTerm(val)}
+                    filters={
+                        <>
+                            <select
+                                className="bg-transparent border-none text-xs font-bold text-slate-700 dark:text-slate-300 focus:ring-0 outline-none cursor-pointer appearance-none"
+                                value={roleFilter}
+                                onChange={(e) => setRoleFilter(e.target.value)}
+                            >
+                                <option value="ALL" className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300">TOUS LES RÔLES</option>
+                                <option value="Admin" className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300">ADMIN</option>
+                                <option value="Manager" className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300">MANAGER</option>
+                                <option value="Tester" className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300">TESTER</option>
+                            </select>
+                            <div className="w-px h-4 bg-slate-200 dark:bg-white/10 mx-2" />
+                            <select
+                                className="bg-transparent border-none text-xs font-bold text-slate-700 dark:text-slate-300 focus:ring-0 outline-none cursor-pointer appearance-none"
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                            >
+                                <option value="ALL" className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300">TOUS LES STATUTS</option>
+                                <option value="active" className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300">ACTIF</option>
+                                <option value="inactive" className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300">INACTIF</option>
+                            </select>
+                        </>
+                    }
+                    actions={isAdmin ? (u: UserData) => (
+                        <div className="flex items-center gap-2 pr-4">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const selectedUser = users.find(usr => usr.id === u.id);
+                                    if (selectedUser) {
+                                        setEditingUser({
+                                            ...selectedUser,
+                                            first_name: selectedUser.name.split(' ')[0],
+                                            last_name: selectedUser.name.split(' ').slice(1).join(' ')
+                                        });
+                                    }
+                                }}
+                                className="p-2.5 bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all"
+                                title={t('userManagement.menu.edit')}
+                            >
+                                <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(u.id);
+                                }}
+                                className="p-2.5 bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
+                                title={t('userManagement.menu.delete')}
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
                         </div>
-
-                        <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
-                            <div className="relative bg-slate-100 dark:bg-white/5 rounded-[1.5rem] border border-slate-200 dark:border-white/5 overflow-hidden min-w-[200px] hover:bg-slate-200 dark:bg-white/10 transition-all">
-                                <select
-                                    className="w-full bg-transparent text-slate-900 dark:text-white text-[10px] font-bold uppercase tracking-[0.2em] pl-8 pr-12 py-5 outline-none cursor-pointer appearance-none relative z-10"
-                                    value={roleFilter}
-                                    onChange={(e) => setRoleFilter(e.target.value)}
-                                >
-                                    <option value="ALL" className="bg-slate-900">TOUS LES RÔLES</option>
-                                    <option value="Admin" className="bg-slate-900">ADMIN</option>
-                                    <option value="Manager" className="bg-slate-900">MANAGER</option>
-                                    <option value="Tester" className="bg-slate-900">TESTER</option>
-                                </select>
-                                <Filter className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                            </div>
-
-                            <div className="relative bg-slate-100 dark:bg-white/5 rounded-[1.5rem] border border-slate-200 dark:border-white/5 overflow-hidden min-w-[200px] hover:bg-slate-200 dark:bg-white/10 transition-all">
-                                <select
-                                    className="w-full bg-transparent text-slate-900 dark:text-white text-[10px] font-bold uppercase tracking-[0.2em] pl-8 pr-12 py-5 outline-none cursor-pointer appearance-none relative z-10"
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                >
-                                    <option value="ALL" className="bg-slate-900">TOUS LES STATUTS</option>
-                                    <option value="active" className="bg-slate-900">ACTIF</option>
-                                    <option value="inactive" className="bg-slate-900">INACTIF</option>
-                                </select>
-                                <Filter className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="overflow-x-auto h-full">
-                        <table className="w-full text-left border-collapse min-w-[800px]">
-                            <thead>
-                                <tr className="border-b border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.01]">
-                                    <th className="px-10 py-8 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">UTILISATEUR</th>
-                                    <th className="px-10 py-8 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">RÔLE</th>
-                                    <th className="px-10 py-8 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">STATUT</th>
-                                    {isAdmin && <th className="px-10 py-8 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] text-right">ACTIONS</th>}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-white/5">
-                                {loading && users.length === 0 ? (
-                                    [1, 2, 3].map(i => (
-                                        <tr key={i} className="animate-pulse">
-                                            <td colSpan={4} className="px-10 py-10">
-                                                <div className="h-12 bg-slate-100 dark:bg-white/5 rounded-2xl w-full" />
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : users.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={4} className="px-10 py-32 text-center">
-                                            <div className="max-w-xs mx-auto opacity-30">
-                                                <Users className="w-16 h-16 mx-auto mb-4 text-slate-500" />
-                                                <p className="font-black uppercase tracking-widest text-[10px]">{t('userManagement.filters.noResults') || "No users found"}</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : users.map((u) => (
-                                    <tr key={u.id} className="group hover:bg-slate-100 dark:bg-white/5 transition-all duration-300">
-                                        <td className="px-10 py-6">
-                                            <div className="flex items-center gap-5">
-                                                <div className="w-12 h-12 rounded-2xl bg-blue-600/20 flex items-center justify-center text-blue-400 font-bold text-lg border border-blue-600/20 group-hover:scale-105 transition-all duration-500">
-                                                    {u.name.charAt(0).toUpperCase()}
-                                                </div>
-                                                <div>
-                                                    <div className="text-base font-bold text-slate-900 dark:text-white group-hover:text-blue-400 transition-colors tracking-tight">{u.name}</div>
-                                                    <div className="text-slate-500 text-[11px] flex items-center gap-2 mt-0.5 font-medium opacity-70">
-                                                        <Mail className="w-3.5 h-3.5 opacity-50" />
-                                                        {u.email}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-10 py-8">
-                                            <div className="inline-flex items-center gap-3 px-6 py-2 border border-slate-300 dark:border-white/10 rounded-2xl bg-slate-100 dark:bg-white/5 group-hover:bg-blue-600/5 group-hover:border-blue-500/30 transition-all">
-                                                <Shield className="w-3.5 h-3.5 text-blue-500/70" />
-                                                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">{u.role}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-10 py-8">
-                                            <span className={`inline-flex items-center gap-3 px-6 py-2 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${u.status === 'active'
-                                                ? 'bg-emerald-500/5 text-emerald-400 border border-emerald-500/10'
-                                                : 'bg-rose-500/5 text-rose-400 border border-rose-500/10'
-                                                }`}>
-                                                <div className={`w-1.5 h-1.5 rounded-full ${u.status === 'active' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-rose-500'}`} />
-                                                {u.status === 'active' ? 'ACTIF' : 'INACTIF'}
-                                            </span>
-                                        </td>
-                                        {isAdmin && (
-                                            <td className="px-10 py-6 text-right relative">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setOpenMenuId(openMenuId === u.id ? null : u.id);
-                                                    }}
-                                                    className={`p-3 rounded-2xl transition-all ${openMenuId === u.id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-white/5 text-slate-500 hover:text-white hover:bg-slate-200 dark:bg-white/10 border border-slate-200 dark:border-white/5'}`}
-                                                >
-                                                    <MoreVertical className="w-5 h-5" />
-                                                </button>
-
-                                                <AnimatePresence>
-                                                    {openMenuId === u.id && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, scale: 0.95, x: 20 }}
-                                                            animate={{ opacity: 1, scale: 1, x: 0 }}
-                                                            exit={{ opacity: 0, scale: 0.95, x: 20 }}
-                                                            className="absolute right-24 top-6 w-56 bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-white/10 rounded-[2rem] shadow-2xl z-50 overflow-hidden"
-                                                        >
-                                                            <div className="p-3 space-y-1">
-                                                                <button
-                                                                    className="w-full flex items-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:bg-white/5 rounded-2xl transition-all"
-                                                                    onClick={() => {
-                                                                        const selectedUser = users.find(usr => usr.id === u.id);
-                                                                        if (selectedUser) {
-                                                                            setEditingUser({
-                                                                                ...selectedUser,
-                                                                                first_name: selectedUser.name.split(' ')[0],
-                                                                                last_name: selectedUser.name.split(' ').slice(1).join(' ')
-                                                                            });
-                                                                        }
-                                                                        setOpenMenuId(null);
-                                                                    }}
-                                                                >
-                                                                    <Edit className="w-4 h-4 text-blue-500/70" />
-                                                                    {t('userManagement.menu.edit')}
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        handleToggleStatus(u.id, u.status);
-                                                                        setOpenMenuId(null);
-                                                                    }}
-                                                                    className="w-full flex items-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:bg-white/5 rounded-2xl transition-all"
-                                                                >
-                                                                    {u.status === 'active' ? <Lock className="w-4 h-4 text-amber-500/70" /> : <Unlock className="w-4 h-4 text-emerald-500/70" />}
-                                                                    {u.status === 'active' ? t('userManagement.menu.deactivate') : t('userManagement.menu.activate')}
-                                                                </button>
-                                                                <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 my-2" />
-                                                                <button
-                                                                    onClick={() => {
-                                                                        handleDelete(u.id);
-                                                                        setOpenMenuId(null);
-                                                                    }}
-                                                                    className="w-full flex items-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                    {t('userManagement.menu.delete')}
-                                                                </button>
-                                                            </div>
-                                                        </motion.div>
-                                                    )}
-                                                </AnimatePresence>
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                    ) : undefined}
+                />
 
                 <div className="pt-6">
                     <Pagination

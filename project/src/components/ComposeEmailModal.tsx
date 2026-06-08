@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Paperclip, Send, Loader, Wand2, UserPlus, Trash2 } from 'lucide-react';
+import { X, Paperclip, Send, Loader, WandSparkles, UserPlus, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { userService, emailService, aiService } from '../services/api';
 import { toast } from 'react-toastify';
@@ -254,7 +254,7 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed group/btn"
                                 title="Reformuler l'objet avec l'IA"
                             >
-                                {subjectReformulating ? <Loader className="w-4 h-4 animate-spin text-blue-400" /> : <Wand2 className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />}
+                                {subjectReformulating ? <Loader className="w-4 h-4 animate-spin text-blue-400" /> : <WandSparkles className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />}
                             </button>
                         </div>
                     </div>
@@ -278,7 +278,7 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                                     className="flex items-center gap-2 p-3 rounded-2xl text-slate-400 hover:text-blue-400 bg-slate-100 dark:bg-white/5 hover:bg-blue-500/10 border border-slate-200/50 dark:border-white/5 hover:border-blue-500/20 shadow-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed group/btn backdrop-blur-md"
                                     title="Reformuler le message avec l'IA"
                                 >
-                                    {reformulating ? <Loader className="w-4 h-4 animate-spin text-blue-400" /> : <Wand2 className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />}
+                                    {reformulating ? <Loader className="w-4 h-4 animate-spin text-blue-400" /> : <WandSparkles className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />}
                                     <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Améliorer</span>
                                 </button>
                             </div>

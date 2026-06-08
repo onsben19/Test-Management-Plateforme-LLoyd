@@ -94,10 +94,10 @@ const AdminAnalytics = () => {
     const columns = [
         {
             header: 'ID',
-            accessor: (item: any) => <span className="font-mono text-[10px] text-slate-500">#{String(item.id).substring(0, 8)}</span>
+            accessor: (item: any) => <span className="font-mono text-[10px] text-slate-500">{String(item.id).substring(0, 8)}</span>
         },
         {
-            header: 'Utilisateur',
+            header: 'CRÉÉ PAR',
             accessor: (item: any) => (
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20 group-hover:scale-110 transition-transform">
@@ -105,7 +105,7 @@ const AdminAnalytics = () => {
                     </div>
                     <div className="flex flex-col gap-0.5">
                         <span className="font-bold text-slate-900 dark:text-white group-hover:text-blue-400 transition-colors tracking-tight text-base">{item.user_name || `User #${item.user}`}</span>
-                        <span className="text-[10px] text-slate-500 font-medium">ID: #{String(item.id).substring(0, 8)}</span>
+                        <span className="text-[10px] text-slate-500 font-medium uppercase tracking-widest italic opacity-60">Créateur</span>
                     </div>
                 </div>
             )
@@ -119,15 +119,14 @@ const AdminAnalytics = () => {
             )
         },
         {
-            header: 'Date d\'Analyse',
+            header: 'DATE DE CRÉATION',
             accessor: (item: any) => (
                 <div className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-2 text-slate-500 font-bold text-[10px] uppercase tracking-widest">
-                        <Calendar className="w-3.5 h-3.5 opacity-60 text-blue-500" />
+                    <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-bold text-[11px] tracking-tight">
                         {new Date(item.created_at).toLocaleDateString('fr-FR')}
                     </div>
-                    <div className="flex items-center gap-2 text-slate-600 font-medium text-[9px] lowercase italic pl-5">
-                        {new Date(item.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    <div className="text-[9px] text-slate-600 font-bold uppercase tracking-widest italic opacity-60">
+                        Enregistré à {new Date(item.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                     </div>
                 </div>
             )
@@ -143,42 +142,42 @@ const AdminAnalytics = () => {
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatCard
-                        title={t('analytics.stats.totalSessions')}
+                        title={t('analytics.stats.totalSessions') || "TOTAL SESSIONS"}
                         value={conversations.length}
                         icon={MessageSquare}
                         variant="blue"
-                        description={t('analytics.stats.history')}
+                        description={t('analytics.stats.history') || "HISTORIQUE GLOBAL"}
                         isLoading={loading}
                     />
                     <StatCard
-                        title={t('analytics.stats.activeUsers')}
+                        title={t('analytics.stats.activeUsers') || "UTILISATEURS ACTIFS"}
                         value={new Set(conversations.map(c => c.user)).size}
                         icon={User}
                         variant="purple"
-                        description={t('analytics.stats.contributors')}
+                        description={t('analytics.stats.contributors') || "CONTRIBUTEURS UNIQUES"}
                         isLoading={loading}
                     />
                     <StatCard
-                        title={t('analytics.stats.totalMessages')}
+                        title={t('analytics.stats.totalMessages') || "TOTAL MESSAGES"}
                         value={conversations.reduce((acc, conv) => acc + (conv.messages?.length || 0), 0)}
                         icon={Zap}
                         variant="green"
-                        description={t('analytics.stats.totalInteractions')}
+                        description={t('analytics.stats.totalInteractions') || "INTERACTIONS IA"}
                         isLoading={loading}
                     />
                     <StatCard
-                        title={t('analytics.stats.avgResponseTime')}
+                        title={t('analytics.stats.avgResponseTime') || "TEMPS DE RÉPONSE"}
                         value="1.2s"
                         icon={Clock}
                         variant="yellow"
-                        description={t('analytics.stats.efficiency')}
+                        description={t('analytics.stats.efficiency') || "EFFICACITÉ GLOBALE"}
                         isLoading={loading}
                     />
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                     <div className="xl:col-span-2 space-y-6">
-                        <div className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
+                        <div className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl max-h-[65vh] overflow-y-auto custom-scrollbar">
                             <AdminTable
                                 columns={columns}
                                 data={paginatedConversations}

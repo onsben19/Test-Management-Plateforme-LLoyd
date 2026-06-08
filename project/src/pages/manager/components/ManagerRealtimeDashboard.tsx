@@ -338,14 +338,30 @@ const KPIComponent = ({ label, value, unit, icon: Icon, delta, deltaType, color,
         rose: 'text-rose-500 bg-rose-500/10 border-rose-500/20',
     };
 
+    const sweepClasses: any = {
+        blue: 'from-blue-500/0 via-blue-500/10 to-blue-500/0',
+        emerald: 'from-emerald-500/0 via-emerald-500/10 to-emerald-500/0',
+        rose: 'from-rose-500/0 via-rose-500/10 to-rose-500/0',
+    };
+
+    const borderHoverClasses: any = {
+        blue: 'hover:border-blue-500/40 hover:bg-blue-500/[0.02]',
+        emerald: 'hover:border-emerald-500/40 hover:bg-emerald-500/[0.02]',
+        rose: 'hover:border-rose-500/40 hover:bg-rose-500/[0.02]',
+    };
+
     return (
-        <div className={`p-6 rounded-[2.5rem] bg-white dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 relative overflow-hidden group`}>
+        <div className={`p-6 rounded-[2.5rem] bg-white dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 relative overflow-hidden group transition-all duration-500 ${borderHoverClasses[color]}`}>
             {pulse && <div className="absolute inset-0 bg-rose-500/5 animate-pulse" />}
-            <div className="flex justify-between items-start relative z-10">
+            
+            {/* Sweep Hover Effect */}
+            <div className={`absolute inset-0 bg-gradient-to-r ${sweepClasses[color]} translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none`} />
+
+            <div className="flex justify-between items-start relative z-10 pointer-events-none">
                 <div className="space-y-1">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{label}</p>
+                    <p className={`text-[10px] font-black text-slate-500 uppercase tracking-widest transition-colors duration-300 group-hover:text-${color}-500`}>{label}</p>
                     <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{value}</span>
+                        <span className="text-3xl font-black text-slate-900 dark:text-white tabular-nums group-hover:scale-[1.02] transition-transform origin-left">{value}</span>
                         {unit && <span className="text-xs font-bold text-slate-400">{unit}</span>}
                     </div>
                 </div>

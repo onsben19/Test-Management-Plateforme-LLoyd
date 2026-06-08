@@ -64,8 +64,11 @@ const QANewsHub: React.FC = () => {
                     >
                         {/* Hover Gradient Overlay */}
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        
+                        {/* Sweep Hover Effect */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-blue-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none" />
 
-                        <div className="relative flex justify-between items-start mb-6">
+                        <div className="relative flex justify-between items-start mb-6 pointer-events-none">
                             <span className="text-[11px] font-semibold text-blue-400/80 uppercase tracking-widest">
                                 {item.source}
                             </span>

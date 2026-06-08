@@ -139,7 +139,9 @@ class AnomalieViewSet(viewsets.ModelViewSet):
             pdf.cell(15, 12, f"#{an.id}", border='TB', fill=fill)
             pdf.set_x(25)
             desc = (an.description or "")[:120] + "..." if an.description and len(an.description) > 120 else (an.description or "")
-            pdf.multi_cell(100, 6, f"{an.titre}\n{desc}", border='TB', align='L', fill=fill)
+            safe_titre = str(an.titre).encode('latin-1', 'replace').decode('latin-1')
+            safe_desc = desc.encode('latin-1', 'replace').decode('latin-1')
+            pdf.multi_cell(100, 6, f"{safe_titre}\n{safe_desc}", border='TB', align='L', fill=fill)
             pdf.set_xy(125, text_y)
             if an.impact in ['CRITIQUE', 'BLOQUANTES']:
                 pdf.set_text_color(239, 68, 68)

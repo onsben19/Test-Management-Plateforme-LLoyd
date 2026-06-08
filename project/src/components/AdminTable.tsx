@@ -132,7 +132,7 @@ const AdminTable = <T extends { id?: string | number }>({
                                     {columns.map((col, colIdx) => (
                                         <td
                                             key={colIdx}
-                                            className="px-8 py-5 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-50 dark:bg-white/[0.02] transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-200 dark:border-white/[0.05]"
+                                            className="px-8 py-5 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-100 dark:group-hover:bg-white/5 transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-300 dark:group-hover:border-white/10"
                                         >
                                             {typeof col.accessor === 'function'
                                                 ? col.accessor(item)
@@ -140,7 +140,7 @@ const AdminTable = <T extends { id?: string | number }>({
                                         </td>
                                     ))}
                                     {actions && (
-                                        <td className="px-8 py-5 text-right bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-50 dark:bg-white/[0.02] transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-200 dark:border-white/[0.05]">
+                                        <td className="px-8 py-5 text-right bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-100 dark:group-hover:bg-white/5 transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-300 dark:group-hover:border-white/10">
                                             <div className="flex justify-end gap-2">
                                                 {actions(item)}
                                             </div>

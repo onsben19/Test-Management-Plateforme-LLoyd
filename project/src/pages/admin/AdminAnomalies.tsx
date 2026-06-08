@@ -143,6 +143,10 @@ const AdminAnomalies = () => {
 
     const columns = [
         {
+            header: 'ID',
+            accessor: (item: any) => <span className="font-mono text-[10px] text-slate-500">{String(item.id).substring(0, 8)}</span>
+        },
+        {
             header: t('adminAnomalies.table.anomaly'),
             accessor: (item: any) => (
                 <div className="flex items-center group/item">
@@ -187,47 +191,21 @@ const AdminAnomalies = () => {
         {
             header: t('adminAnomalies.table.createdBy'),
             accessor: (item: any) => (
-                <div className="flex items-center gap-3">
-                    <div className="flex flex-col">
-                        <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate max-w-[120px]">{item.cree_par_nom || 'Auditeur Système'}</span>
-                        <span className="text-[9px] text-slate-500 font-medium">{new Date(item.cree_le).toLocaleDateString()}</span>
-                    </div>
+                <div className="flex flex-col">
+                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate max-w-[120px]">{item.cree_par_nom || 'Système'}</span>
+                    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest italic opacity-60">Créateur</span>
                 </div>
             )
         },
          {
             header: t('adminAnomalies.table.date'),
             accessor: (item: any) => (
-                <div className="flex flex-col">
-                    <span className="text-slate-900 dark:text-white text-xs font-bold">{new Date(item.cree_le).toLocaleDateString(t('common.dateLocale'))}</span>
-                    <span className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Reported</span>
+                <div className="flex flex-col gap-0.5">
+                    <span className="text-slate-700 dark:text-slate-300 text-[11px] font-bold tracking-tight">{new Date(item.cree_le).toLocaleDateString(t('common.dateLocale') || 'fr-FR')}</span>
+                    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest italic opacity-60">Enregistré</span>
                 </div>
             )
         },
-        {
-            header: "Épreuve",
-            accessor: (item: any) => {
-                const hasCapture = !!item.capture;
-                return (
-                    <div className="flex items-center">
-                        {hasCapture ? (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setViewImage(item.capture);
-                                }}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/5 text-blue-400 rounded-lg border border-blue-500/10 hover:bg-blue-500/10 transition-all group/eye"
-                            >
-                                <Eye className="w-3.5 h-3.5 group-hover/eye:scale-110 transition-transform" />
-                                <span className="text-[9px] font-black uppercase tracking-widest">Voir</span>
-                            </button>
-                        ) : (
-                            <span className="text-slate-600 text-[10px] font-black tracking-widest uppercase opacity-40 italic">- N/A -</span>
-                        )}
-                    </div>
-                );
-            }
-        }
     ];
 
     return (

@@ -497,7 +497,7 @@ const TesterDashboard = () => {
                         Créé le {new Date(camp.created_at).toLocaleDateString(t('common.dateLocale'))}
                     </div>
                     {ml?.projected_end_date && (
-                        <div className="flex items-center gap-2 text-[10px] font-black text-purple-400 uppercase tracking-widest bg-purple-500/10 border border-purple-500/20 px-3 py-1.5 rounded-lg">
+                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 px-3 py-1.5 rounded-lg">
                             Fin estimée  : {new Date(ml.projected_end_date).toLocaleDateString()}
                         </div>
                     )}
@@ -665,9 +665,6 @@ const TesterDashboard = () => {
                             {Object.keys(groupedCampaigns || {}).map(releaseName => (
                                 <div key={releaseName} className="space-y-6">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-blue-600/20 flex items-center justify-center border border-blue-600/30">
-                                            <Layers className="w-5 h-5 text-blue-400" />
-                                        </div>
                                         <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-widest uppercase">
                                             {groupMode === 'project' ? (
                                                 <span className="text-blue-500">{releaseName}</span>

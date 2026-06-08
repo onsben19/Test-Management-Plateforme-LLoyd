@@ -184,6 +184,8 @@ export const analyticsService = {
     getHistoricalTesters: (projectId: string | number) => api.get('/analytics/testers/', { params: { project_id: projectId, period: '6_releases' } }),
     getHistoricalModules: (projectId: string | number) => api.get('/analytics/modules/', { params: { project_id: projectId } }),
     getQANews: () => api.get('/analytics/qa-news/'),
+    deleteQANews: (id: string | number) => api.delete('/analytics/qa-news/', { params: { id } }),
+    triggerQAScraping: () => api.post('/analytics/qa-news/'),
 };
 
 export default api;

@@ -163,6 +163,10 @@ const AdminCampaigns = () => {
 
     const columns = [
         {
+            header: 'ID',
+            accessor: (item: any) => <span className="font-mono text-[10px] text-slate-500">{String(item.id).substring(0, 8)}</span>
+        },
+        {
             header: t('adminCampaigns.table.title'),
             accessor: (item: any) => (
                 <div className="flex items-center gap-3">
@@ -177,22 +181,39 @@ const AdminCampaigns = () => {
         {
             header: t('adminCampaigns.table.project'),
             accessor: (item: any) => (
-                item.project_name ? (
-                    <Link
-                        to={`/admin/releases?search=${encodeURIComponent(item.project_name)}`}
-                        className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full text-[9px] font-bold uppercase tracking-widest hover:bg-blue-500/20 transition-all"
-                    >
-                        <Rocket className="w-2.5 h-2.5" />
-                        {item.project_name}
-                    </Link>
-                ) : <span className="text-slate-600 font-bold text-[9px] uppercase tracking-widest italic opacity-50">Aucun projet</span>
+                <div className="flex flex-col gap-2 items-start">
+                    {item.business_project_name && (
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full text-[9px] font-bold uppercase tracking-widest">
+                            <Briefcase className="w-2.5 h-2.5" />
+                            {item.business_project_name}
+                        </div>
+                    )}
+                    {item.project_name ? (
+                        <Link
+                            to={`/admin/releases?search=${encodeURIComponent(item.project_name)}`}
+                            className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full text-[9px] font-bold uppercase tracking-widest hover:bg-blue-500/20 transition-all"
+                        >
+                            <Rocket className="w-2.5 h-2.5" />
+                            {item.project_name}
+                        </Link>
+                    ) : <span className="text-slate-600 font-bold text-[9px] uppercase tracking-widest italic opacity-50">Aucun projet</span>}
+                </div>
             )
         },
         {
-            header: t('adminCampaigns.table.createdAt'),
+            header: 'Créé par',
+            accessor: (item: any) => (
+                <div className="flex flex-col">
+                    <span className="text-slate-700 dark:text-slate-300 text-[11px] font-bold tracking-tight">{item.created_by_username || 'Système'}</span>
+                    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest italic opacity-60">Créateur</span>
+                </div>
+            )
+        },
+        {
+            header: 'Date de création',
             accessor: (item: any) => (
                 <div className="flex flex-col gap-0.5">
-                    <span className="text-slate-700 dark:text-slate-300 text-[11px] font-bold tracking-tight">{new Date(item.created_at).toLocaleDateString(t('common.dateLocale'))}</span>
+                    <span className="text-slate-700 dark:text-slate-300 text-[11px] font-bold tracking-tight">{new Date(item.created_at).toLocaleDateString(t('common.dateLocale') || 'fr-FR')}</span>
                     <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest italic opacity-60">Enregistré</span>
                 </div>
             )

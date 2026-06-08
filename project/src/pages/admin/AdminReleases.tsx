@@ -17,6 +17,8 @@ import { Award, Info } from 'lucide-react';
 const AdminReleases = () => {
     const { isOpen } = useSidebar();
     const location = useLocation();
+    const { businessProjectId, businessProjectName } = (location.state as any) || {};
+    
     const [releases, setReleases] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState(() => {
@@ -41,7 +43,11 @@ const AdminReleases = () => {
 
     const fetchReleases = async () => {
         try {
-            const response = await projectService.getProjects();
+            const params: any = {};
+            if (businessProjectId) {
+                params.business_project = businessProjectId;
+            }
+            const response = await projectService.getProjects(params);
             const data = response.data.results || response.data;
             setReleases(data);
 
@@ -148,12 +154,15 @@ const AdminReleases = () => {
 
     const columns = [
         {
+            header: 'ID',
+            accessor: (item: any) => <span className="font-mono text-[10px] text-slate-500">{String(item.id).substring(0, 8)}</span>
+        },
+        {
             header: 'Nom de la Release',
             accessor: (item: any) => (
                 <div className="flex items-center gap-4">
                     <div className="flex flex-col gap-0.5">
                         <span className="text-[15px] font-bold text-slate-900 dark:text-white group-hover:text-blue-400 transition-colors tracking-tight">{item.name}</span>
-                        <span className="text-[10px] text-slate-500 font-medium">ID: #{item.id}</span>
                     </div>
                 </div>
             )
@@ -184,11 +193,21 @@ const AdminReleases = () => {
         },
         {
             header: 'Créé par',
-            accessor: 'created_by_username'
+            accessor: (item: any) => (
+                <div className="flex flex-col">
+                    <span className="text-slate-700 dark:text-slate-300 text-[11px] font-bold tracking-tight">{item.created_by_username || 'Système'}</span>
+                    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest italic opacity-60">Créateur</span>
+                </div>
+            )
         },
         {
             header: 'Date de création',
-            accessor: (item: any) => new Date(item.created_at).toLocaleDateString('fr-FR')
+            accessor: (item: any) => (
+                <div className="flex flex-col gap-0.5">
+                    <span className="text-slate-700 dark:text-slate-300 text-[11px] font-bold tracking-tight">{new Date(item.created_at).toLocaleDateString('fr-FR')}</span>
+                    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest italic opacity-60">Enregistré</span>
+                </div>
+            )
         },
         {
             header: 'Readiness Score',
@@ -219,10 +238,10 @@ const AdminReleases = () => {
     return (
         <>
             <PageLayout
-                title="Administration des Releases"
-                subtitle="Vision globale et historique complet des livrables"
+                title={businessProjectName ? `Administration des Releases : ${businessProjectName}` : 'Administration des Releases'}
+                subtitle={businessProjectName ? `RELEASES POUR LE PROJET SÉLECTIONNÉ` : 'VISION GLOBALE ET HISTORIQUE COMPLET DES LIVRABLES'}
             >
-                <div className="space-y-12">
+            <div className="space-y-10">
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                         <StatCard
