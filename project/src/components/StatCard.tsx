@@ -12,6 +12,7 @@ interface StatCardProps {
   description?: string;
   isLoading?: boolean;
   onClick?: () => void;
+  size?: 'sm' | 'md' | 'lg';
 }
 
 const StatCard: React.FC<StatCardProps> = ({
@@ -23,7 +24,8 @@ const StatCard: React.FC<StatCardProps> = ({
   variant = 'blue',
   description,
   isLoading = false,
-  onClick
+  onClick,
+  size = 'md'
 }) => {
   const variants: any = {
     blue: { bg: 'bg-blue-500/5', border: 'border-blue-500/20', accent: 'bg-blue-600', iconColor: 'text-blue-500', sweep: 'from-blue-500/0 via-blue-500/10 to-blue-500/0', titleHover: 'group-hover:text-blue-500', borderHover: 'hover:border-blue-500/40 hover:bg-blue-500/[0.03] hover:shadow-blue-500/10' },
@@ -37,14 +39,19 @@ const StatCard: React.FC<StatCardProps> = ({
 
   const currentVariant = variants[variant] || variants.blue;
 
+  const paddingClass = size === 'sm' ? 'p-4' : size === 'lg' ? 'p-6' : 'p-5';
+  const titleMarginClass = size === 'sm' ? 'mb-1.5' : size === 'lg' ? 'mb-3' : 'mb-2';
+  const valueTextClass = size === 'sm' ? 'text-xl' : size === 'lg' ? 'text-4xl' : 'text-2xl';
+  const descMarginClass = size === 'sm' ? 'mt-1.5' : size === 'lg' ? 'mt-3' : 'mt-2';
+
   if (isLoading) {
-    return <div className="h-32 bg-slate-100 dark:bg-white/5 animate-pulse rounded-2xl" />;
+    return <div className={`${size === 'sm' ? 'h-24' : size === 'lg' ? 'h-36' : 'h-28'} bg-slate-100 dark:bg-white/5 animate-pulse rounded-2xl`} />;
   }
 
   return (
     <div 
       onClick={onClick}
-      className={`relative p-6 rounded-2xl bg-gradient-to-br from-white/60 to-white/30 dark:from-slate-900/60 dark:to-slate-900/30 backdrop-blur-xl border ${currentVariant.border} ${currentVariant.borderHover} cursor-pointer hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-500 group overflow-hidden shadow-sm`}
+      className={`relative ${paddingClass} rounded-2xl bg-gradient-to-br from-white/60 to-white/30 dark:from-slate-900/60 dark:to-slate-900/30 backdrop-blur-xl border ${currentVariant.border} ${currentVariant.borderHover} cursor-pointer hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all duration-500 group overflow-hidden shadow-sm`}
     >
       {/* Sweep Hover Effect (from Analytics Assistant) */}
       <div className={`absolute inset-0 bg-gradient-to-r ${currentVariant.sweep} translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none`} />
@@ -57,18 +64,18 @@ const StatCard: React.FC<StatCardProps> = ({
       
       <div className="flex justify-between items-start pl-2 relative z-10 pointer-events-none">
         <div className="w-full">
-          <p className={`text-[11px] font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400 mb-3 transition-colors duration-300 ${currentVariant.titleHover}`}>{title}</p>
+          <p className={`text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400 ${titleMarginClass} transition-colors duration-300 ${currentVariant.titleHover}`}>{title}</p>
           <div className="flex items-baseline gap-3">
-            <h3 className={`text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 group-hover:scale-[1.02] transition-transform origin-left`}>
+            <h3 className={`${valueTextClass} font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 group-hover:scale-[1.02] transition-transform origin-left`}>
               {value}
             </h3>
             {change && (
-              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${changeType === 'positive' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${changeType === 'positive' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>
                 {change}
               </span>
             )}
           </div>
-          {description && <p className="mt-3 text-[11px] text-slate-500/80 dark:text-slate-400/80 font-medium leading-relaxed">{description}</p>}
+          {description && <p className={`${descMarginClass} text-[11px] text-slate-500/80 dark:text-slate-400/80 font-medium leading-relaxed`}>{description}</p>}
         </div>
       </div>
     </div>

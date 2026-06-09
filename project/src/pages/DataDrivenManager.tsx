@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import {
     Upload, FileSpreadsheet, Calendar, Eye, Trash2, Edit, Search, Filter, MoreVertical,
@@ -37,7 +37,6 @@ import Pagination from '../components/Pagination';
 import StarBorder from '../components/bits/StarBorder';
 import StatCard from '../components/StatCard';
 import ReadinessGauge from '../components/ReadinessGauge';
-import ReadinessDetailModal from '../components/ReadinessDetailModal';
 import AIInsightModal from '../components/AIInsightModal';
 import CatchupPlanIA from '../components/CatchupPlanIA';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -86,6 +85,7 @@ interface User {
 const DataDrivenManager = () => {
     const { t } = useTranslation();
     const location = useLocation();
+    const navigate = useNavigate();
     useSidebar();
 
     const [activeReleaseId, setActiveReleaseId] = useState<string | undefined>(location.state?.releaseId?.toString());
@@ -111,14 +111,10 @@ const DataDrivenManager = () => {
 
     const [importedFiles, setImportedFiles] = useState<ImportedFile[]>([]);
     const [timelineGuards, setTimelineGuards] = useState<Record<string, TimelineGuardData>>({});
-    const [readinessScores, setReadinessScores] = useState<Record<string, any>>({});
     const [loading, setLoading] = useState(true);
-    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isAIModalOpen, setIsAIModalOpen] = useState(false);
-    const [selectedReadinessData, setSelectedReadinessData] = useState<any>(null);
     const [selectedEntityName, setSelectedEntityName] = useState("");
     const [selectedAIInsight, setSelectedAIInsight] = useState<string | undefined>(undefined);
-    const [isCatchupPlanOpen, setIsCatchupPlanOpen] = useState(false);
     const [activeCampaignId, setActiveCampaignId] = useState<number | null>(null);
 
     const [currentPage, setCurrentPage] = useState(1);
@@ -167,23 +163,7 @@ const DataDrivenManager = () => {
         }
     }, [activeReleaseId, searchQuery, testerFilter, sortOrder]);
 
-    const handleOpenReadinessDetails = (campaignId: string, name: string) => {
-        const readiness = readinessScores[campaignId];
-        const guard = timelineGuards[campaignId];
-        setSelectedAIInsight(guard?.message);
 
-        if (readiness) {
-            setSelectedReadinessData(readiness);
-            setSelectedEntityName(name);
-            setIsDetailModalOpen(true);
-        } else {
-            aiService.getReadinessScore(campaignId).then(res => {
-                setSelectedReadinessData(res.data);
-                setSelectedEntityName(name);
-                setIsDetailModalOpen(true);
-            });
-        }
-    };
 
     const handleOpenAIInsight = (campaignId: string, name: string) => {
         const guard = timelineGuards[campaignId];
@@ -237,7 +217,6 @@ const DataDrivenManager = () => {
 
             mappedCampaigns.forEach((camp: any) => {
                 fetchTimelineGuard(camp.id);
-                fetchReadinessScore(camp.id);
             });
         } catch (error) {
             console.error("Failed to fetch campaigns", error);
@@ -261,17 +240,7 @@ const DataDrivenManager = () => {
         }
     };
 
-    const fetchReadinessScore = async (campaignId: string) => {
-        try {
-            const response = await aiService.getReadinessScore(campaignId);
-            setReadinessScores(prev => ({
-                ...prev,
-                [campaignId]: response.data
-            }));
-        } catch (error) {
-            console.error(`Failed to fetch readiness score for ${campaignId}`, error);
-        }
-    };
+
 
     const fetchTesters = async () => {
         try {
@@ -535,7 +504,6 @@ const DataDrivenManager = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {(filteredAndSortedFiles || []).map((file, index) => {
                             const guard = timelineGuards[file.id];
-                            const readiness = readinessScores[file.id];
                             const total = guard?.progress?.total || file.rowCount || 0;
                             const passed = guard?.progress?.finished || 0;
                             const failed = Math.max(0, total - passed);
@@ -551,19 +519,6 @@ const DataDrivenManager = () => {
                                     <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                                     {/* Top Right Area (Badges + Actions) */}
                                     <div className="absolute top-6 right-6 flex items-center gap-3 z-20">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleOpenReadinessDetails(file.id, file.name); }}
-                                            className="px-4 py-2 bg-slate-50 dark:bg-white/[0.03] hover:bg-blue-500/10 border border-slate-300 dark:border-white/10 hover:border-blue-500/30 rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer group/readiness relative overflow-hidden shrink-0"
-                                        >
-                                            <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover/readiness:opacity-100 transition-opacity" />
-                                            <span className="text-base font-black text-slate-900 dark:text-white leading-none relative z-10">
-                                                {readiness?.score || 0}<span className="text-xs opacity-40 ml-0.5">%</span>
-                                            </span>
-                                            <div className="mt-1 flex items-center gap-1 relative z-10">
-                                                <div className={`w-1 h-1 rounded-full animate-pulse ${readiness?.score >= 80 ? 'bg-emerald-500' : readiness?.score >= 40 ? 'bg-amber-500' : 'bg-rose-500'}`} />
-                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover/readiness:text-blue-400 transition-colors">READY</span>
-                                            </div>
-                                        </button>
 
                                         {/* Dropdown Menu */}
                                         <div className="relative" onClick={e => e.stopPropagation()}>
@@ -832,41 +787,21 @@ const DataDrivenManager = () => {
                     loading={loading}
                 />
 
-                <ReadinessDetailModal
-                    isOpen={isDetailModalOpen}
-                    onClose={() => setIsDetailModalOpen(false)}
-                    data={selectedReadinessData}
-                    title={selectedEntityName}
-                    aiInsight={selectedAIInsight}
-                />
+
 
                 <AIInsightModal
                     isOpen={isAIModalOpen}
                     onClose={() => setIsAIModalOpen(false)}
                     title={selectedEntityName}
                     insight={selectedAIInsight || "Analyse en attente..."}
-                    onOptimize={() => setIsCatchupPlanOpen(true)}
+                    onOptimize={() => {
+                        setIsAIModalOpen(false);
+                        if (activeCampaignId) {
+                            navigate(`/manager/optimization/${activeCampaignId}`);
+                        }
+                    }}
                     showOptimizeButton={activeCampaignId ? ['CRITICAL', 'WARNING'].includes(timelineGuards[activeCampaignId.toString()]?.status) : false}
                 />
-
-                {/* AI Catchup Plan Modal via Portal */}
-                {isCatchupPlanOpen && activeCampaignId && createPortal(
-                    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto">
-                        <div className="relative w-full max-w-2xl my-8">
-                            <button
-                                onClick={() => setIsCatchupPlanOpen(false)}
-                                className="absolute -top-12 right-0 text-slate-900 dark:text-white/50 hover:text-slate-900 dark:hover:text-white transition-colors"
-                            >
-                                <X className="w-8 h-8" />
-                            </button>
-                            <CatchupPlanIA
-                                campaignId={activeCampaignId}
-                                onClose={() => setIsCatchupPlanOpen(false)}
-                            />
-                        </div>
-                    </div>,
-                    document.body
-                )}
             </div>
 
             {/* Campaign Modal */}

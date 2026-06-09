@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
     Send, Bot, User, Database, Sparkles,
     PanelLeft, PanelLeftClose, Paperclip, X, Plus, Pencil, Check, Download,
-    CheckCircle, PieChart, Activity, Zap, Loader, WandSparkles
+    CheckCircle, PieChart, Activity, Zap, Loader, WandSparkles, Play, Bookmark, Edit2
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -14,7 +14,7 @@ import {
     ResponsiveContainer
 } from 'recharts';
 import Plot from 'react-plotly.js';
-import { aiService } from '../services/api';
+import { aiService, savedVisualizationService } from '../services/api';
 import StarBorder from './bits/StarBorder';
 
 interface Message {
@@ -64,6 +64,13 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
     const [activeConvId, setActiveConvId] = useState<string | null>(conversationId ?? null);
     const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
     const [editingText, setEditingText] = useState('');
+    
+    // SQL Editor & Custom Dashboard States
+    const [editingSqlMessageId, setEditingSqlMessageId] = useState<string | null>(null);
+    const [editingSqlText, setEditingSqlText] = useState('');
+    const [isExecutingSql, setIsExecutingSql] = useState(false);
+    const [saveVisModal, setSaveVisModal] = useState<{ isOpen: boolean; msg: Message | null; title: string }>({ isOpen: false, msg: null, title: '' });
+    const [isSavingVis, setIsSavingVis] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -216,6 +223,54 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
         setEditingMessageId(null);
         setEditingText('');
         await handleSendMessage(undefined, text);
+    };
+
+    const handleExecuteSql = async (messageId: string) => {
+        if (!editingSqlText.trim()) return;
+        setIsExecutingSql(true);
+        try {
+            const response = await aiService.executeSql(editingSqlText, messageId);
+            const updatedMsg = response.data;
+            setMessages(prev => prev.map(m => m.id === messageId ? {
+                ...m,
+                sql: updatedMsg.sql,
+                data: updatedMsg.data,
+                type: updatedMsg.type
+            } : m));
+            setEditingSqlMessageId(null);
+            toast.success("Requête SQL exécutée avec succès !");
+        } catch (error: any) {
+            console.error("SQL execution error", error);
+            const errMsg = error.response?.data?.error || "Erreur lors de l'exécution de la requête SQL.";
+            toast.error(`Erreur SQL : ${errMsg}`, { autoClose: 7000 });
+        } finally {
+            setIsExecutingSql(false);
+        }
+    };
+
+    const handleSaveVisualization = async () => {
+        if (!saveVisModal.title.trim() || !saveVisModal.msg) {
+            toast.error("Veuillez saisir un titre.");
+            return;
+        }
+        setIsSavingVis(true);
+        try {
+            const payload = {
+                title: saveVisModal.title,
+                query: saveVisModal.msg.text,
+                sql: saveVisModal.msg.sql || '',
+                type: saveVisModal.msg.type || 'table',
+                data: saveVisModal.msg.data || []
+            };
+            await savedVisualizationService.save(payload);
+            setSaveVisModal({ isOpen: false, msg: null, title: '' });
+            toast.success("Visualisation ajoutée à votre tableau de bord !");
+        } catch (error) {
+            console.error("Failed to save visualization", error);
+            toast.error("Impossible d'enregistrer la visualisation.");
+        } finally {
+            setIsSavingVis(false);
+        }
     };
 
     const handleExportPDF = () => {
@@ -450,15 +505,72 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                                                 <Zap className="w-3 h-3 text-amber-500" />
                                                 Raisonnement Cognitif
                                             </span>
-                                            <span className="text-[8px] font-medium text-slate-400 bg-slate-50 dark:bg-white/5 px-2 py-0.5 rounded-full border border-slate-200 dark:border-white/5">SQL-Llama-3.3</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[8px] font-medium text-slate-400 bg-slate-50 dark:bg-white/5 px-2 py-0.5 rounded-full border border-slate-200 dark:border-white/5">SQL-Llama-3.3</span>
+                                                {editingSqlMessageId !== msg.id && (
+                                                    <button
+                                                        onClick={() => { setEditingSqlMessageId(msg.id); setEditingSqlText(msg.sql || ''); }}
+                                                        className="p-1 hover:bg-slate-100 dark:hover:bg-white/5 rounded-md text-slate-400 hover:text-blue-500 transition-colors"
+                                                        title="Modifier la requête SQL"
+                                                    >
+                                                        <Edit2 className="w-3 h-3" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="bg-slate-950/90 rounded-xl p-3 font-mono text-[10px] text-blue-300/80 overflow-x-auto border border-slate-200 dark:border-white/5 shadow-inner">
-                                            <code className="whitespace-pre">{msg.sql}</code>
-                                        </div>
+                                        {editingSqlMessageId === msg.id ? (
+                                            <div className="space-y-2 mt-2">
+                                                <textarea
+                                                    value={editingSqlText}
+                                                    onChange={e => setEditingSqlText(e.target.value)}
+                                                    className="w-full bg-slate-950/90 text-emerald-400 font-mono text-[10px] rounded-xl p-3 border border-blue-500/50 focus:border-blue-500 outline-none resize-none h-32 custom-scrollbar"
+                                                    disabled={isExecutingSql}
+                                                />
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => setEditingSqlMessageId(null)}
+                                                        className="px-2.5 py-1 text-[10px] uppercase font-bold tracking-widest text-slate-400 hover:bg-white/5 rounded-lg border border-slate-200 dark:border-white/5 transition-all"
+                                                        disabled={isExecutingSql}
+                                                    >
+                                                        Annuler
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleExecuteSql(msg.id)}
+                                                        className="px-2.5 py-1 text-[10px] uppercase font-bold tracking-widest bg-blue-600 hover:bg-blue-500 text-white rounded-lg flex items-center gap-1 transition-all"
+                                                        disabled={isExecutingSql}
+                                                    >
+                                                        {isExecutingSql ? (
+                                                            <Loader className="w-3 h-3 animate-spin" />
+                                                        ) : (
+                                                            <Play className="w-3 h-3" />
+                                                        )}
+                                                        Exécuter
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-slate-950/90 rounded-xl p-3 font-mono text-[10px] text-blue-300/80 overflow-x-auto border border-slate-200 dark:border-white/5 shadow-inner">
+                                                <code className="whitespace-pre">{msg.sql}</code>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
-                                {!isUser && msg.type !== 'text' && msg.type !== 'error' && <div className="mt-1">{renderVisualization(msg)}</div>}
+                                {!isUser && msg.type !== 'text' && msg.type !== 'error' && (
+                                    <div className="mt-2 space-y-2">
+                                        <div className="flex justify-end">
+                                            <button
+                                                onClick={() => setSaveVisModal({ isOpen: true, msg: msg, title: '' })}
+                                                className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest font-black text-blue-500 hover:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-xl border border-blue-500/20 active:scale-95 transition-all shadow-md"
+                                                title="Sauvegarder cette visualisation dans le tableau de bord"
+                                            >
+                                                <Bookmark className="w-3.5 h-3.5" />
+                                                Épingler au Dashboard
+                                            </button>
+                                        </div>
+                                        {renderVisualization(msg)}
+                                    </div>
+                                )}
                             </div>
                             {isUser && <button onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }} className="mt-1.5 opacity-0 group-hover:opacity-100 flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><Pencil className="w-3 h-3" />{t('analytics.chat.edit')}</button>}
                         </>
@@ -626,6 +738,59 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
         </div>
     );
 
+    const renderSaveVisModal = () => (
+        <AnimatePresence>
+            {saveVisModal.isOpen && (
+                <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-2xl space-y-6"
+                    >
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-wider">Épingler au Dashboard</h3>
+                            <button
+                                onClick={() => setSaveVisModal({ isOpen: false, msg: null, title: '' })}
+                                className="p-1.5 hover:bg-slate-100 dark:bg-white/5 rounded-full text-slate-400 hover:text-white transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Titre de la visualisation</label>
+                            <input
+                                type="text"
+                                value={saveVisModal.title}
+                                onChange={e => setSaveVisModal(prev => ({ ...prev, title: e.target.value }))}
+                                placeholder="Ex: Répartition des bugs par gravité"
+                                className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-sm font-medium"
+                                disabled={isSavingVis}
+                            />
+                        </div>
+                        <div className="flex items-center justify-end gap-3 pt-2">
+                            <button
+                                onClick={() => setSaveVisModal({ isOpen: false, msg: null, title: '' })}
+                                className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/5 transition-all"
+                                disabled={isSavingVis}
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={handleSaveVisualization}
+                                className="px-5 py-2 text-xs font-bold uppercase tracking-widest bg-blue-600 hover:bg-blue-500 text-white rounded-xl flex items-center gap-1.5 shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+                                disabled={isSavingVis}
+                            >
+                                {isSavingVis ? <Loader className="w-4 h-4 animate-spin" /> : <Bookmark className="w-4 h-4" />}
+                                Sauvegarder
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+    );
+
     if (embedded) {
         return (
             <div className="w-full h-full flex flex-col bg-white dark:bg-slate-900 relative overflow-hidden">
@@ -661,6 +826,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                 </div>
                 {renderMessages()}
                 {renderInput()}
+                {renderSaveVisModal()}
             </div>
         );
     }
@@ -692,6 +858,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
             </div>
             {renderMessages()}
             {renderInput()}
+            {renderSaveVisModal()}
         </div>
     );
 };

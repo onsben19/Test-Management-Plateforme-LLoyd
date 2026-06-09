@@ -19,6 +19,7 @@ import TesterDashboard from './src/pages/TesterDashboard';
 import NotFound from './src/pages/NotFound';
 import Analytics from './src/pages/Analytics';
 import QANewsPage from './src/pages/QANewsPage';
+import CatchupPlanPage from './src/pages/CatchupPlanPage';
 
 
 import UserManagement from './src/pages/UserManagement';
@@ -78,6 +79,12 @@ const App: React.FC = () => {
                     <Route path="/manager" element={
                       <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
                         <DataDrivenManager />
+                      </RoleGuard>
+                    } />
+
+                    <Route path="/manager/optimization/:campaignId" element={
+                      <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
+                        <CatchupPlanPage />
                       </RoleGuard>
                     } />
 

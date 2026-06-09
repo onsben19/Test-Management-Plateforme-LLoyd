@@ -16,11 +16,11 @@ from datetime import datetime
 from campaigns.models import Campaign
 from anomalies.models import Anomalie
 from testCases.models import TestCase
-from .models import Conversation, Message
+from .models import Conversation, Message, SavedVisualization
 from .groq_service import GroqService
 from .ml_service import MLTimelineGuard
 from .readiness_service import ReleaseReadinessManager
-from .serializers import ConversationSerializer, MessageSerializer
+from .serializers import ConversationSerializer, MessageSerializer, SavedVisualizationSerializer
 from .ollama_service import OllamaService
 
 logger = logging.getLogger(__name__)
@@ -194,6 +194,76 @@ TES MISSIONS ET RÈGLES :
             })
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ExecuteSQLView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        sql_query = request.data.get('sql')
+        message_id = request.data.get('message_id')
+
+        if not sql_query or not message_id:
+            return Response({'error': 'SQL and message_id are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        message = get_object_or_404(Message, id=message_id, conversation__user=request.user)
+
+        try:
+            groq = GroqService()
+            data = groq.execute_query(sql_query)
+
+            # Heuristics for chart type
+            chart_type = "table"
+            if len(data) > 0:
+                keys = list(data[0].keys())
+                if len(data) == 1 and len(keys) == 1:
+                    chart_type = "metric"
+                elif any(k in str(keys).lower() for k in ["count", "total", "nb"]):
+                    chart_type = "bar"
+                elif any(k in str(keys).lower() for k in ["date", "time", "day", "mois"]):
+                    chart_type = "line"
+
+            message.sql = sql_query
+            message.data = data
+            message.type = chart_type
+            message.save()
+
+            return Response({
+                'id': message.id,
+                'sender': message.sender,
+                'text': message.text,
+                'type': message.type,
+                'sql': message.sql,
+                'data': message.data,
+                'created_at': message.created_at
+            })
+        except Exception as e:
+            logger.exception("Error executing manual SQL query")
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SavedVisualizationViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = SavedVisualizationSerializer
+
+    def get_queryset(self):
+        return SavedVisualization.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def refresh(self, request, pk=None):
+        vis = self.get_object()
+        try:
+            groq = GroqService()
+            data = groq.execute_query(vis.sql)
+            vis.data = data
+            vis.save()
+            serializer = self.get_serializer(vis)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CampaignTimelineGuardView(APIView):

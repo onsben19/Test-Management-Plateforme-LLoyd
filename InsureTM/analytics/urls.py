@@ -22,14 +22,18 @@ from .views import (
     RespondToN8NView,
     QANewsListView,
     OllamaChatView,
+    ExecuteSQLView,
+    SavedVisualizationViewSet,
 )
 
 router = DefaultRouter()
 router.register(r'conversations', ConversationViewSet, basename='conversation')
+router.register(r'saved-visualizations', SavedVisualizationViewSet, basename='saved-visualization')
 
 urlpatterns = [
     path('', include(router.urls)),
     path('ask/', AskAgentView.as_view(), name='ask-agent'),
+    path('execute-sql/', ExecuteSQLView.as_view(), name='execute-sql'),
     path('reformulate/', ReformulateMessageView.as_view(), name='reformulate-message'),
     path('timeline-guard/<int:campaign_id>/', CampaignTimelineGuardView.as_view(), name='timeline-guard'),
     path('readiness-score/<int:campaign_id>/', ReleaseReadinessView.as_view(), name='readiness-score'),

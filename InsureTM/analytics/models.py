@@ -85,3 +85,19 @@ class QANews(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class SavedVisualization(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='saved_visualizations')
+    title = models.CharField(max_length=255)
+    query = models.TextField(blank=True, null=True)
+    sql = models.TextField()
+    type = models.CharField(max_length=20, default='table') # bar, line, table, metric, plotly
+    data = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title

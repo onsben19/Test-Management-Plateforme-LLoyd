@@ -11,7 +11,6 @@ import Pagination from '../components/Pagination';
 import { motion, AnimatePresence } from 'framer-motion';
 import StatCard from '../components/StatCard';
 import { Target, Activity, FileText as FileIcon } from 'lucide-react';
-import ReadinessDetailModal from '../components/ReadinessDetailModal';
 import QANewsHub from '../components/QANewsHub';
 import ValidateCasDeTest from '../components/ValidateCasDeTest';
 import { PendingReinforcements } from '../components/PendingReinforcements';
@@ -35,14 +34,12 @@ const TesterDashboard = () => {
         campaign: null
     });
 
-    const [readinessScores, setReadinessScores] = useState<Record<string, number>>({});
     const [mlInsights, setMlInsights] = useState<Record<string, any>>({});
-    const [selectedReadiness, setSelectedReadiness] = useState<{ isOpen: boolean; data: any; title: string } | null>(null);
     const [expandedDescMap, setExpandedDescMap] = useState<Record<string, boolean>>({});
     const [stats, setStats] = useState({
         totalTests: 0,
         openAnomalies: 0,
-        avgReadiness: 0
+        avgCompletion: 0
     });
 
     const [testCaseForm, setTestCaseForm] = useState({
@@ -85,36 +82,25 @@ const TesterDashboard = () => {
             setTotalItems(count);
             setCampaigns(data);
 
-            // Calculate total tests planned
+            // Calculate total tests planned & passed
             const total = Array.isArray(data) ? data.reduce((sum: number, c: any) => sum + (c.nb_test_cases || 0), 0) : 0;
+            const totalPassed = Array.isArray(data) ? data.reduce((sum: number, c: any) => sum + (c.passed_count || 0), 0) : 0;
+            const avgCompletion = total > 0 ? Math.round((totalPassed / total) * 100) : 0;
 
             // Fetch Anomalies for the user
             try {
                 const anomaliesRes = await anomalyService.getAnomalies();
                 const anomData = anomaliesRes.data.results || anomaliesRes.data;
                 const openAnom = anomData.filter((a: any) => a.statut !== 'REALISE').length;
-                setStats(prev => ({ ...prev, totalTests: total, openAnomalies: openAnom }));
+                setStats(prev => ({ ...prev, totalTests: total, openAnomalies: openAnom, avgCompletion }));
             } catch (err) {
                 console.error("Failed to fetch anomalies for stats", err);
+                setStats(prev => ({ ...prev, totalTests: total, avgCompletion }));
             }
 
-            // Fetch AI data for each campaign
+            // Fetch AI data for each campaign (ML Insights only)
             const campaignIds = data.map((c: any) => c.id);
             if (campaignIds.length > 0) {
-                // Readiness scores
-                Promise.all(campaignIds.map((id: any) => aiService.getReadinessScore(id).catch(() => ({ data: { score: 0 } }))))
-                    .then(results => {
-                        const scoreMap: Record<string, number> = {};
-                        let totalReadiness = 0;
-                        results.forEach((res, i) => {
-                            const s = res.data.score !== undefined ? res.data.score : (res.data.readiness_score || 0);
-                            scoreMap[campaignIds[i]] = s;
-                            totalReadiness += s;
-                        });
-                        setReadinessScores(prev => ({ ...prev, ...scoreMap }));
-                        setStats(prev => ({ ...prev, avgReadiness: Math.round(totalReadiness / results.length) }));
-                    }).catch(err => console.error("Error fetching readiness", err));
-
                 // ML Insights (Timeline Guard)
                 Promise.all(campaignIds.map((id: any) => aiService.getTimelineGuard(id).catch(() => null)))
                     .then(results => {
@@ -367,22 +353,7 @@ const TesterDashboard = () => {
         window.open(link, '_blank');
     };
 
-    const handleOpenReadiness = async (campaign: any) => {
-        const score = readinessScores[campaign.id];
-        if (score === undefined) return;
 
-        try {
-            const res = await aiService.getReadinessScore(campaign.id);
-            setSelectedReadiness({
-                isOpen: true,
-                data: res.data,
-                title: campaign.title
-            });
-        } catch (error) {
-            console.error("Failed to fetch readiness details", error);
-            toast.error("Impossible de récupérer les détails du readiness");
-        }
-    };
 
     const getMLStatusStyle = (status: string) => {
         switch (status) {
@@ -394,7 +365,6 @@ const TesterDashboard = () => {
     };
 
     const renderCampaignCard = (camp: any) => {
-        const score = readinessScores[camp.id];
         const ml = mlInsights[camp.id];
 
         const getEnvColor = (env: string) => {
@@ -430,40 +400,32 @@ const TesterDashboard = () => {
 
                     {/* Top Right: Progress Ring */}
                     <div className="flex items-center gap-4">
-                        {score !== undefined && (
-                            <button
-                                onClick={() => handleOpenReadiness(camp)}
-                                className="relative w-14 h-14 group/readiness active:scale-95 group-hover:scale-110 transition-all duration-500"
-                            >
-                                <svg className="w-full h-full transform -rotate-90">
-                                    <circle
-                                        cx="28" cy="28" r="24"
-                                        stroke="currentColor"
-                                        strokeWidth="4"
-                                        fill="transparent"
-                                        className="text-slate-100 dark:text-white/5"
-                                    />
-                                    <circle
-                                        cx="28" cy="28" r="24"
-                                        stroke="currentColor"
-                                        strokeWidth="4"
-                                        fill="transparent"
-                                        strokeDasharray={150.8}
-                                        strokeDashoffset={150.8 - (150.8 * score) / 100}
-                                        strokeLinecap="round"
-                                        className={`${ringColor} transition-all duration-1000`}
-                                    />
-                                </svg>
-                                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span className="text-[10px] font-black text-slate-900 dark:text-white leading-none">{score}%</span>
-                                </div>
-                                <div className="absolute -top-1 -right-1">
-                                    <div className="bg-blue-600 text-white p-1 rounded-full shadow-lg opacity-0 group-hover/readiness:opacity-100 transition-opacity">
-                                        <TrendingUp className="w-2 h-2" />
-                                    </div>
-                                </div>
-                            </button>
-                        )}
+                        <div className="relative w-14 h-14 transition-all duration-500">
+                            <svg className="w-full h-full transform -rotate-90">
+                                <circle
+                                    cx="28" cy="28" r="24"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                    fill="transparent"
+                                    className="text-slate-100 dark:text-white/5"
+                                />
+                                <circle
+                                    cx="28" cy="28" r="24"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                    fill="transparent"
+                                    strokeDasharray={150.8}
+                                    strokeDashoffset={150.8 - (150.8 * (camp.nb_test_cases > 0 ? Math.round(((camp.passed_count || 0) / camp.nb_test_cases) * 100) : 0)) / 100}
+                                    strokeLinecap="round"
+                                    className={`${ringColor} transition-all duration-1000`}
+                                />
+                            </svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-[10px] font-black text-slate-900 dark:text-white leading-none">
+                                    {camp.nb_test_cases > 0 ? Math.round(((camp.passed_count || 0) / camp.nb_test_cases) * 100) : 0}%
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -578,12 +540,12 @@ const TesterDashboard = () => {
                         description="Volume de tests à couvrir"
                     />
                     <StatCard
-                        title={t('testerDashboard.stats.avgReadiness')}
-                        value={stats.avgReadiness}
+                        title={t('testerDashboard.stats.avgCompletion')}
+                        value={stats.avgCompletion}
                         icon={TrendingUp}
                         variant="green"
-                        description="Score de préparation moyen"
-                        change={`${stats.avgReadiness}%`}
+                        description="Progression moyenne des campagnes"
+                        change={`${stats.avgCompletion}%`}
                         changeType="positive"
                     />
                     <StatCard
@@ -723,12 +685,7 @@ const TesterDashboard = () => {
                     )}
                 </AnimatePresence>
 
-                <ReadinessDetailModal
-                    isOpen={!!selectedReadiness?.isOpen}
-                    onClose={() => setSelectedReadiness(null)}
-                    data={selectedReadiness?.data}
-                    title={selectedReadiness?.title || ''}
-                />
+
             </div>
         </PageLayout>
     );

@@ -121,6 +121,10 @@ class ReleaseReadinessManager:
             # Global score calculation
             total_score = round(pass_rate_score + ml_stability_score + anomaly_score + blocking_score)
             
+            # Critical Rule: If there is any blocking anomaly, the campaign is strictly not ready
+            if blocking_count > 0:
+                total_score = 0
+            
             # Reasons for transparency
             reasons = []
             if total_executed == 0:

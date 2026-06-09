@@ -142,6 +142,9 @@ class CatchupRecommendationManager:
             if not final_distribution:
                 final_distribution = [t for t in tester_stats if t['is_already_in']]
 
+            start_date_val = campaign.start_date.isoformat() if campaign.start_date else campaign.created_at.date().isoformat()
+            projected_end_date_val = ml_status.get('projected_end_date')
+
             plan_data = {
                 "campaign_id": campaign_id,
                 "campaign_title": campaign.title,
@@ -153,6 +156,8 @@ class CatchupRecommendationManager:
                 "progress_percentage": ml_status.get('progress', {}).get('percentage', 0),
                 "tester_distribution": final_distribution,
                 "deadline": target_date.isoformat(),
+                "start_date": start_date_val,
+                "projected_end_date": projected_end_date_val,
                 "recommendation_engine": "ML Performance Model v1.0"
             }
 

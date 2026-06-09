@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Conversation, Message
+from .models import Conversation, Message, SavedVisualization
 
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -12,3 +12,10 @@ class ConversationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conversation
         fields = ['id', 'user', 'user_name', 'title', 'created_at', 'updated_at']
+
+
+class SavedVisualizationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SavedVisualization
+        fields = ['id', 'user', 'title', 'query', 'sql', 'type', 'data', 'created_at']
+        read_only_fields = ['user']

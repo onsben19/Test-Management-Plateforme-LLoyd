@@ -177,6 +177,8 @@ export const aiService = {
         api.post('/analytics/respond-n8n/', { campaign_id: campaignId, statut: 'refuse', manager_email: managerEmail }),
     ollamaChat: (query: string, context?: string) =>
         api.post('/analytics/ollama-chat/', { query, context }),
+    executeSql: (sql: string, messageId: string | number) =>
+        api.post('/analytics/execute-sql/', { sql, message_id: messageId }),
 };
 
 export const analyticsService = {
@@ -186,6 +188,14 @@ export const analyticsService = {
     getQANews: () => api.get('/analytics/qa-news/'),
     deleteQANews: (id: string | number) => api.delete('/analytics/qa-news/', { params: { id } }),
     triggerQAScraping: () => api.post('/analytics/qa-news/'),
+};
+
+export const savedVisualizationService = {
+    getSaved: () => api.get('/analytics/saved-visualizations/'),
+    save: (data: { title: string; query: string; sql: string; type: string; data: any }) =>
+        api.post('/analytics/saved-visualizations/', data),
+    delete: (id: string | number) => api.delete(`/analytics/saved-visualizations/${id}/`),
+    refresh: (id: string | number) => api.post(`/analytics/saved-visualizations/${id}/refresh/`),
 };
 
 export default api;

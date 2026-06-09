@@ -12,7 +12,8 @@ import ConfirmModal from '../components/ConfirmModal';
 import ReadinessGauge from '../components/ReadinessGauge';
 import ReadinessDetailModal from '../components/ReadinessDetailModal';
 import { aiService } from '../services/api';
-import { Award, Info, XCircle } from 'lucide-react';
+import { Award, Info, XCircle, GitMerge } from 'lucide-react';
+import TraceabilityGraphModal from '../components/TraceabilityGraphModal';
 
 // --- Composant réutilisable : description extensible ---
 const ExpandableDescription = ({ text, maxChars = 90, emptyLabel = 'Aucune description.' }: { text?: string; maxChars?: number; emptyLabel?: string }) => {
@@ -54,6 +55,7 @@ const ReleaseManager = () => {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [selectedReadinessData, setSelectedReadinessData] = useState<any>(null);
     const [selectedEntityName, setSelectedEntityName] = useState("");
+    const [isGraphOpen, setIsGraphOpen] = useState(false);
 
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
@@ -231,13 +233,25 @@ const ReleaseManager = () => {
         return new Date(dateString).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
     };
 
-    const HeaderActions = isAdminOrManager && (
-        <Button
-            onClick={() => { resetForm(); setIsModalOpen(true); }}
-            icon={Plus}
-        >
-            {t('releaseManager.newRelease')}
-        </Button>
+    const HeaderActions = (
+        <div className="flex gap-3">
+            <Button
+                variant="secondary"
+                onClick={() => setIsGraphOpen(true)}
+                className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/20"
+            >
+                <GitMerge size={16} className="mr-2" />
+                VUE GRAPHE
+            </Button>
+            {isAdminOrManager && (
+                <Button
+                    variant="secondary"
+                    onClick={() => { resetForm(); setIsModalOpen(true); }}
+                >
+                    {t('releaseManager.newRelease')}
+                </Button>
+            )}
+        </div>
     );
 
     return (
@@ -318,80 +332,102 @@ const ReleaseManager = () => {
                                 >
                                     {/* Subtle ambient glow */}
                                     <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                                    <div className="absolute top-8 right-8">
-                                        <div className="relative">
-                                            <Button
-                                                variant="secondary"
-                                                size="icon"
-                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === release.id ? null : release.id); }}
-                                                icon={MoreVertical}
-                                            />
 
-                                            <AnimatePresence>
-                                                {openMenuId === release.id && isAdminOrManager && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                        className="absolute right-0 mt-4 w-56 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-2xl z-50 overflow-hidden"
-                                                    >
-                                                        <div className="p-3 space-y-1">
-                                                            <button
-                                                                onClick={() => handleEditClick(release)}
-                                                                className="w-full flex items-center gap-3 px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10 rounded-2xl transition-all"
-                                                            >
-                                                                <Edit className="w-4 h-4 text-blue-600 dark:text-blue-500/70" />
-                                                                {t('releaseManager.menu.edit')}
-                                                            </button>
-                                                            <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 my-2" />
-                                                            <p className="px-6 py-2 text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">{t('releaseManager.status.label')}</p>
-                                                            {['ACTIVE', 'COMPLETED'].map(status => (
-                                                                <button
-                                                                    key={status}
-                                                                    onClick={() => handleStatusChange(release, status)}
-                                                                    className={`w-full flex items-center gap-3 px-6 py-3 text-[9px] font-black uppercase tracking-widest rounded-2xl transition-all ${release.status === status ? (status === 'ACTIVE' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/5' : 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/5') : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/10'}`}
-                                                                >
-                                                                    <Activity className={`w-3.5 h-3.5 ${release.status === status ? 'animate-pulse' : 'opacity-40'}`} />
-                                                                    {getStatusLabel(status)}
-                                                                </button>
-                                                            ))}
-                                                            <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 my-2" />
-                                                            <button
-                                                                onClick={() => { setReleaseToDelete(release.id); setIsDeleteModalOpen(true); setOpenMenuId(null); }}
-                                                                className="w-full flex items-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-2xl transition-all"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                                {t('releaseManager.menu.delete')}
-                                                            </button>
-                                                        </div>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-col h-full">
-                                        {/* Header: Status & Type (No icon) */}
-                                        <div className="flex items-center gap-2 mb-6">
-                                            <div className="flex flex-col gap-2">
+                                    <div className="flex flex-col h-full relative z-10">
+                                        {/* Header: Badges & Right Actions */}
+                                        <div className="flex items-start justify-between mb-6">
+                                            <div className="flex flex-wrap gap-2">
                                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black border ${getStatusStyles(release.status)}`}>
                                                     <div className={`w-1 h-1 rounded-full ${release.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : 'bg-current'}`} />
                                                     {getStatusLabel(release.status)}
                                                 </span>
                                                 {release.release_type && (
-                                                    <span className="inline-flex items-center px-3 py-1 bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-full text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                                                        {release.release_type}
+                                                    <span className="inline-flex items-center px-3 py-1.5 bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-full text-[10px] font-black text-slate-500 dark:text-slate-400 capitalize">
+                                                        {release.release_type.toLowerCase()}
                                                     </span>
                                                 )}
+                                            </div>
+
+                                            <div className="flex items-start gap-4">
+                                                {/* Readiness Text */}
+                                                <div
+                                                    className="flex flex-col items-end cursor-pointer group/readiness"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (readinessScores[release.id]) {
+                                                            setSelectedReadinessData(readinessScores[release.id]);
+                                                            setSelectedEntityName(release.name);
+                                                            setIsDetailModalOpen(true);
+                                                        }
+                                                    }}
+                                                >
+                                                    <span className="text-xl font-black text-slate-900 dark:text-white leading-none">
+                                                        {readinessScores[release.id]?.score || 0}%
+                                                    </span>
+                                                    <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mt-1 group-hover/readiness:text-emerald-400 transition-colors">
+                                                        {t('releaseManager.readiness.ready', 'PRÊT')}
+                                                    </span>
+                                                </div>
+
+                                                {/* Options Menu */}
+                                                <div className="relative">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === release.id ? null : release.id); }}
+                                                        className="p-1.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl border border-slate-200 dark:border-white/10 text-slate-400 transition-colors"
+                                                    >
+                                                        <MoreVertical size={16} />
+                                                    </button>
+
+                                                    <AnimatePresence>
+                                                        {openMenuId === release.id && isAdminOrManager && (
+                                                            <motion.div
+                                                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                                className="absolute right-0 mt-4 w-56 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-2xl z-50 overflow-hidden"
+                                                            >
+                                                                <div className="p-3 space-y-1">
+                                                                    <button
+                                                                        onClick={() => handleEditClick(release)}
+                                                                        className="w-full flex items-center gap-3 px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10 rounded-2xl transition-all"
+                                                                    >
+                                                                        <Edit className="w-4 h-4 text-blue-600 dark:text-blue-500/70" />
+                                                                        {t('releaseManager.menu.edit')}
+                                                                    </button>
+                                                                    <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 my-2" />
+                                                                    <p className="px-6 py-2 text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">{t('releaseManager.status.label')}</p>
+                                                                    {['ACTIVE', 'COMPLETED'].map(status => (
+                                                                        <button
+                                                                            key={status}
+                                                                            onClick={() => handleStatusChange(release, status)}
+                                                                            className={`w-full flex items-center gap-3 px-6 py-3 text-[9px] font-black uppercase tracking-widest rounded-2xl transition-all ${release.status === status ? (status === 'ACTIVE' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/5' : 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/5') : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/10'}`}
+                                                                        >
+                                                                            <Activity className={`w-3.5 h-3.5 ${release.status === status ? 'animate-pulse' : 'opacity-40'}`} />
+                                                                            {getStatusLabel(status)}
+                                                                        </button>
+                                                                    ))}
+                                                                    <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 my-2" />
+                                                                    <button
+                                                                        onClick={() => { setReleaseToDelete(release.id); setIsDeleteModalOpen(true); setOpenMenuId(null); }}
+                                                                        className="w-full flex items-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-2xl transition-all"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                        {t('releaseManager.menu.delete')}
+                                                                    </button>
+                                                                </div>
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
+                                                </div>
                                             </div>
                                         </div>
 
                                         {/* Title & Description */}
-                                        <div className="mb-8 relative z-10">
-                                            <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white mb-2 group-hover:text-blue-400 transition-colors tracking-tight truncate uppercase">
+                                        <div className="mb-8">
+                                            <h3 className="text-2xl md:text-3xl font-semibold text-blue-500 mb-3 tracking-tight truncate">
                                                 {release.name}
                                             </h3>
-                                             <p className="text-slate-400 text-sm font-medium leading-relaxed min-h-[2.5rem]">
+                                            <p className="text-slate-500 dark:text-slate-400 text-xs font-medium leading-relaxed min-h-[2.5rem]">
                                                 <ExpandableDescription
                                                     text={release.description}
                                                     maxChars={90}
@@ -401,67 +437,59 @@ const ReleaseManager = () => {
                                         </div>
 
                                         {/* Horizontal Progression */}
-                                        <div className="mb-10">
-                                            <div
-                                                className="flex items-center justify-between mb-3 cursor-pointer group/audit"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (readinessScores[release.id]) {
-                                                        setSelectedReadinessData(readinessScores[release.id]);
-                                                        setSelectedEntityName(release.name);
-                                                        setIsDetailModalOpen(true);
-                                                    }
-                                                }}
-                                            >
-                                                <span className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.15em] group-hover/audit:text-blue-600 dark:group-hover/audit:text-blue-400 transition-colors">
+                                        <div className="mb-8">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.15em]">
                                                     Progression
                                                 </span>
-                                                <span className={`text-xs font-black tracking-wider group-hover/audit:scale-110 transition-transform ${(readinessScores[release.id]?.score || 0) >= 80 ? 'text-emerald-500' : (readinessScores[release.id]?.score || 0) >= 40 ? 'text-blue-500' : 'text-rose-500'}`}>
+                                                <span className={`text-[10px] font-black ${(readinessScores[release.id]?.score || 0) >= 80 ? 'text-emerald-500' : (readinessScores[release.id]?.score || 0) >= 40 ? 'text-amber-500' : 'text-rose-500'}`}>
                                                     {readinessScores[release.id]?.score || 0}%
                                                 </span>
                                             </div>
-                                            <div className="h-1.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                            <div className="h-1 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                                                 <motion.div
                                                     initial={{ width: 0 }}
                                                     animate={{ width: `${readinessScores[release.id]?.score || 0}%` }}
                                                     transition={{ duration: 1, ease: 'easeOut' }}
-                                                    className={`h-full rounded-full ${(readinessScores[release.id]?.score || 0) >= 80 ? 'bg-emerald-500' : (readinessScores[release.id]?.score || 0) >= 40 ? 'bg-blue-500' : 'bg-rose-500'}`}
+                                                    className={`h-full rounded-full ${(readinessScores[release.id]?.score || 0) >= 80 ? 'bg-emerald-500' : (readinessScores[release.id]?.score || 0) >= 40 ? 'bg-amber-500' : 'bg-rose-500'}`}
                                                 />
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-3 mb-10 relative z-10">
-                                            <div className="p-4 bg-slate-50 dark:bg-white/[0.02] group-hover:bg-slate-50 dark:group-hover:bg-white/[0.04] transition-colors border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                                        {/* Compact Stats Grid */}
+                                        <div className="grid grid-cols-2 gap-3 mb-8">
+                                            <div className="p-3 bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl flex flex-col justify-center">
+                                                <div className="flex items-center gap-1.5 mb-1.5">
+                                                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
                                                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Créé le</p>
                                                 </div>
-                                                <div className="flex items-baseline gap-1.5">
-                                                    <p className="text-xl font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter">
+                                                <div className="flex items-baseline gap-1">
+                                                    <p className="text-lg font-black text-slate-900 dark:text-white leading-none">
                                                         {new Date(release.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }).replace('.', '')}
                                                     </p>
-                                                    <p className="text-xs text-slate-500 font-bold">{new Date(release.created_at).getFullYear()}</p>
+                                                    <p className="text-[10px] text-slate-500 font-bold">{new Date(release.created_at).getFullYear()}</p>
                                                 </div>
                                             </div>
-                                            <div className="p-4 bg-slate-50 dark:bg-white/[0.02] group-hover:bg-slate-50 dark:group-hover:bg-white/[0.04] transition-colors border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <BookOpen className="w-3.5 h-3.5 text-blue-400" />
+                                            <div className="p-3 bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl flex flex-col justify-center">
+                                                <div className="flex items-center gap-1.5 mb-1.5">
+                                                    <Layers className="w-3.5 h-3.5 text-slate-400" />
                                                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Campagnes</p>
                                                 </div>
-                                                <p className="text-2xl font-black text-slate-900 dark:text-white">{release.campaign_count || 1}</p>
+                                                <p className="text-lg font-black text-slate-900 dark:text-white leading-none">{release.campaign_count || 1}</p>
                                             </div>
                                         </div>
 
-                                        <div className="mt-auto pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-between relative z-10">
-                                            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                        {/* Footer */}
+                                        <div className="mt-auto pt-5 border-t border-slate-200 dark:border-slate-700/50 flex items-center justify-between">
+                                            <span className="text-xs font-black text-blue-500 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => navigate('/manager', { state: { releaseName: release.name, releaseId: release.id } })}>
                                                 Explorer la release
                                             </span>
                                             <button
                                                 onClick={() => navigate('/manager', { state: { releaseName: release.name, releaseId: release.id } })}
-                                                className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-400 transition-colors group/btn whitespace-nowrap"
+                                                className="flex items-center gap-2 px-4 py-2 bg-transparent hover:bg-slate-100 dark:hover:bg-white/5 border border-slate-300 dark:border-slate-600 rounded-xl text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest transition-colors group/btn"
                                             >
+                                                <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
                                                 Ouvrir
-                                                <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                                             </button>
                                         </div>
                                     </div>
@@ -578,23 +606,23 @@ const ReleaseManager = () => {
                                         </select>
                                     </div>
                                 </div>
-                                </div>
-                                
-                                <div className="p-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-end gap-5 flex-shrink-0">
-                                    <Button
-                                        variant="ghost"
-                                        onClick={resetForm}
-                                    >
-                                        {t('releaseManager.modal.cancel')}
-                                    </Button>
-                                    <Button
-                                        onClick={handleSaveRelease}
-                                        disabled={!newRelease.name}
-                                        icon={editingRelease ? Save : Plus}
-                                    >
-                                        {editingRelease ? t('releaseManager.modal.save') : t('releaseManager.modal.create')}
-                                    </Button>
-                                </div>
+                            </div>
+
+                            <div className="p-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-end gap-5 flex-shrink-0">
+                                <Button
+                                    variant="ghost"
+                                    onClick={resetForm}
+                                >
+                                    {t('releaseManager.modal.cancel')}
+                                </Button>
+                                <Button
+                                    onClick={handleSaveRelease}
+                                    disabled={!newRelease.name}
+                                    icon={editingRelease ? Save : Plus}
+                                >
+                                    {editingRelease ? t('releaseManager.modal.save') : t('releaseManager.modal.create')}
+                                </Button>
+                            </div>
                         </motion.div>
                     </div>
                 )
@@ -616,6 +644,11 @@ const ReleaseManager = () => {
                 onClose={() => setIsDetailModalOpen(false)}
                 data={selectedReadinessData}
                 title={selectedEntityName}
+            />
+
+            <TraceabilityGraphModal 
+                isOpen={isGraphOpen} 
+                onClose={() => setIsGraphOpen(false)} 
             />
         </PageLayout >
     );

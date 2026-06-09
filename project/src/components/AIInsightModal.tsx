@@ -35,7 +35,6 @@ const AIInsightModal: React.FC<AIInsightModalProps> = ({ isOpen, onClose, title,
                             <div className="flex items-center gap-4">
                                 <div>
                                     <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{title}</h2>
-                                    <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">ANALYSE IA GÉNÉRATIVE</span>
                                 </div>
                             </div>
                             <button 
@@ -70,7 +69,6 @@ const AIInsightModal: React.FC<AIInsightModalProps> = ({ isOpen, onClose, title,
                                 <Button 
                                     variant="primary"
                                     onClick={onOptimize}
-                                    icon={Zap}
                                     className="flex-[1.5]"
                                 >
                                     OPTIMISER MAINTENANT

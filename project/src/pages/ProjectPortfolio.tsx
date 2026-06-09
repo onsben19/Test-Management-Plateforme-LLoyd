@@ -128,6 +128,7 @@ const ProjectPortfolio = () => {
 
     const HeaderActions = isAdminOrManager && (
         <Button
+            variant="secondary"
             onClick={() => { setEditingProject(null); setNewProject({ name: '', description: '' }); setIsModalOpen(true); }}
             className="text-[10px] font-bold tracking-wider rounded-lg"
         >
@@ -297,7 +298,7 @@ const ProjectPortfolio = () => {
                                                             <div className={`w-1.5 h-1.5 rounded-full ${project.status === 'TERMINÉ' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'}`} />
                                                             <span className={`text-[9px] font-black uppercase tracking-widest ${project.status === 'TERMINÉ' ? 'text-rose-500' : 'text-emerald-500'}`}>{project.status || 'ACTIF'}</span>
                                                         </div>
-                                                        <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-blue-400 transition-colors uppercase truncate relative z-10">{project.name}</h3>
+                                                        <h3 className="text-xl md:text-2xl font-semibold text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-blue-400 transition-colors uppercase truncate relative z-10">{project.name}</h3>
                                                     </div>
                                                     <div className="relative shrink-0" onClick={e => e.stopPropagation()}>
                                                         <Button
@@ -370,14 +371,14 @@ const ProjectPortfolio = () => {
                                                 <div className="grid grid-cols-2 gap-3 relative z-10">
                                                     <div className="p-4 bg-slate-50 dark:bg-white/[0.02] group-hover:bg-slate-50 dark:group-hover:bg-white/[0.04] transition-colors border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between">
                                                         <div className="flex items-center gap-2 mb-2">
-                                                            <Layers className="w-3.5 h-3.5 text-blue-400" />
+                                                            <Layers className="w-3.5 h-3.5 text-slate-400" />
                                                             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('portfolio.table.releases', 'Releases')}</p>
                                                         </div>
                                                         <p className="text-2xl font-black text-slate-900 dark:text-white">{project.releases_count || 0}</p>
                                                     </div>
                                                     <div className="p-4 bg-slate-50 dark:bg-white/[0.02] group-hover:bg-slate-50 dark:group-hover:bg-white/[0.04] transition-colors border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between">
                                                         <div className="flex items-center gap-2 mb-2">
-                                                            <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                                                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
                                                             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('portfolio.table.createdAt', 'Créé le')}</p>
                                                         </div>
                                                         <div className="flex items-baseline gap-1.5">

@@ -39,7 +39,7 @@ const Pagination: React.FC<PaginationProps> = ({
                     key={i}
                     onClick={() => onPageChange(i)}
                     disabled={loading}
-                    className={`min-w-[40px] h-10 flex items-center justify-center rounded-lg border transition-all text-sm font-medium
+                    className={`min-w-[32px] h-8 flex items-center justify-center rounded-md border transition-all text-xs font-bold
                         ${currentPage === i
                             ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20'
                             : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400'
@@ -53,8 +53,8 @@ const Pagination: React.FC<PaginationProps> = ({
     };
 
     return (
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-8 py-6 px-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="text-sm text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700/50 whitespace-nowrap">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 py-6 px-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-bold tracking-wider uppercase bg-slate-100 dark:bg-slate-800/50 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700/50 whitespace-nowrap">
                 Affichage de <span className="text-slate-900 dark:text-white">{(currentPage - 1) * pageSize + 1}</span> à <span className="text-slate-900 dark:text-white">{Math.min(currentPage * pageSize, totalItems)}</span> sur <span className="text-slate-900 dark:text-white">{totalItems}</span> résultats
             </div>
 
@@ -63,18 +63,18 @@ const Pagination: React.FC<PaginationProps> = ({
                     <button
                         onClick={() => onPageChange(1)}
                         disabled={!canPrevious || loading}
-                        className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-0 transition-all rounded-lg"
+                        className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-0 transition-all rounded-md"
                         title="Première page"
                     >
-                        <ChevronsLeft className="w-5 h-5" />
+                        <ChevronsLeft className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => onPageChange(currentPage - 1)}
                         disabled={!canPrevious || loading}
-                        className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-0 transition-all rounded-lg"
+                        className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-0 transition-all rounded-md"
                         title="Précédent"
                     >
-                        <ChevronLeft className="w-5 h-5" />
+                        <ChevronLeft className="w-4 h-4" />
                     </button>
 
                     <div className="flex items-center gap-1 mx-1">
@@ -84,18 +84,18 @@ const Pagination: React.FC<PaginationProps> = ({
                     <button
                         onClick={() => onPageChange(currentPage + 1)}
                         disabled={!canNext || loading}
-                        className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-0 transition-all rounded-lg"
+                        className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-0 transition-all rounded-md"
                         title="Suivant"
                     >
-                        <ChevronRight className="w-5 h-5" />
+                        <ChevronRight className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => onPageChange(totalPages)}
                         disabled={!canNext || loading}
-                        className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-0 transition-all rounded-lg"
+                        className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-0 transition-all rounded-md"
                         title="Dernière page"
                     >
-                        <ChevronsRight className="w-5 h-5" />
+                        <ChevronsRight className="w-4 h-4" />
                     </button>
                 </div>
             </div>
