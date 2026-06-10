@@ -12,8 +12,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import ReadinessGauge from '../components/ReadinessGauge';
 import ReadinessDetailModal from '../components/ReadinessDetailModal';
 import { aiService } from '../services/api';
-import { Award, Info, XCircle, GitMerge } from 'lucide-react';
-import TraceabilityGraphModal from '../components/TraceabilityGraphModal';
+import { Award, Info, XCircle } from 'lucide-react';
 
 // --- Composant réutilisable : description extensible ---
 const ExpandableDescription = ({ text, maxChars = 90, emptyLabel = 'Aucune description.' }: { text?: string; maxChars?: number; emptyLabel?: string }) => {
@@ -55,7 +54,6 @@ const ReleaseManager = () => {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [selectedReadinessData, setSelectedReadinessData] = useState<any>(null);
     const [selectedEntityName, setSelectedEntityName] = useState("");
-    const [isGraphOpen, setIsGraphOpen] = useState(false);
 
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
@@ -235,14 +233,6 @@ const ReleaseManager = () => {
 
     const HeaderActions = (
         <div className="flex gap-3">
-            <Button
-                variant="secondary"
-                onClick={() => setIsGraphOpen(true)}
-                className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/20"
-            >
-                <GitMerge size={16} className="mr-2" />
-                VUE GRAPHE
-            </Button>
             {isAdminOrManager && (
                 <Button
                     variant="secondary"
@@ -644,11 +634,6 @@ const ReleaseManager = () => {
                 onClose={() => setIsDetailModalOpen(false)}
                 data={selectedReadinessData}
                 title={selectedEntityName}
-            />
-
-            <TraceabilityGraphModal 
-                isOpen={isGraphOpen} 
-                onClose={() => setIsGraphOpen(false)} 
             />
         </PageLayout >
     );

@@ -185,8 +185,8 @@ class TestCaseViewSet(viewsets.ModelViewSet):
             
         storage_state_path = f"tests/{role}/.auth/{role}.json"
         
-        config_injection = f"test.use({{ screenshot: 'only-on-failure', baseURL: '{frontend_url}', storageState: '{storage_state_path}' }});\n"
-        
+        config_injection = f"test.use({{ screenshot: 'on', baseURL: '{frontend_url}', storageState: '{storage_state_path}' }});\n"
+            
         if 'test.use' not in code:
             code = code.replace("from '@playwright/test';", f"from '@playwright/test';\n\n{config_injection}")
 
@@ -205,6 +205,25 @@ class TestCaseViewSet(viewsets.ModelViewSet):
             return Response({"error": "Script not found"}, status=404)
             
         project_dir = os.path.abspath(os.path.join(settings.BASE_DIR, '..', 'project'))
+        
+        # Check if storageState path exists, if not, remove it to prevent ENOENT crash
+        try:
+            with open(path, 'r') as f:
+                content = f.read()
+            import re
+            storage_match = re.search(r'storageState:\s*(["\'])(.*?)\1', content)
+            if storage_match:
+                storage_rel_path = storage_match.group(2)
+                storage_abs_path = os.path.abspath(os.path.join(project_dir, storage_rel_path))
+                if not os.path.exists(storage_abs_path):
+                    new_content = re.sub(r',\s*storageState:\s*(["\'])(.*?)\1', '', content)
+                    new_content = re.sub(r'storageState:\s*(["\'])(.*?)\1\s*,?', '', new_content)
+                    if new_content != content:
+                        with open(path, 'w') as f:
+                            f.write(new_content)
+        except Exception as e:
+            logger.error(f"Failed to check/remove missing storageState: {e}")
+            
         output_dir = os.path.join(project_dir, 'test-results', f'test_{test_case.id}')
         
         try:
@@ -217,13 +236,17 @@ class TestCaseViewSet(viewsets.ModelViewSet):
             channel_layer = get_channel_layer()
             group_name = f'testcase_logs_{test_case.id}'
 
+            env = os.environ.copy()
+            env['SKIP_WEBSERVER'] = 'true'
+
             process = subprocess.Popen(
                 ['npx', 'playwright', 'test', path, f'--output={output_dir}'],
                 cwd=project_dir,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
-                bufsize=1
+                bufsize=1,
+                env=env
             )
 
             logs_list = []
@@ -253,11 +276,24 @@ class TestCaseViewSet(viewsets.ModelViewSet):
             test_case.status = status
             test_case.execution_date = timezone.now()
             test_case.tester = request.user
-            test_case.save()
+            
+            # Look for the screenshot (captured by Playwright)
+            from django.core.files import File
+            screenshot_path = None
+            for root, _, files in os.walk(output_dir):
+                for file in files:
+                    if file.endswith('.png'):
+                        screenshot_path = os.path.join(root, file)
+                        break
+                if screenshot_path: break
+            
+            if screenshot_path and os.path.exists(screenshot_path):
+                with open(screenshot_path, 'rb') as f:
+                    file_obj = File(f)
+                    test_case.proof_file.save(f'screenshot_tc_{test_case.id}.png', file_obj, save=False)
             
             if status == 'FAILED':
                 from anomalies.models import Anomalie
-                from django.core.files import File
                 
                 groq_service = GroqService()
                 try:
@@ -282,23 +318,14 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                     cree_par=request.user
                 )
                 
-                # Look for the screenshot
-                screenshot_path = None
-                for root, _, files in os.walk(output_dir):
-                    for file in files:
-                        if file.endswith('.png'):
-                            screenshot_path = os.path.join(root, file)
-                            break
-                    if screenshot_path: break
-                
                 if screenshot_path and os.path.exists(screenshot_path):
                     with open(screenshot_path, 'rb') as f:
                         file_obj = File(f)
                         anomaly.preuve_image.save(f'screenshot_tc_{test_case.id}.png', file_obj, save=False)
-                        test_case.proof_file.save(f'screenshot_tc_{test_case.id}.png', file_obj, save=False)
                         
                 anomaly.save()
-                test_case.save()
+
+            test_case.save()
 
             response_data = {
                 "status": test_case.status,

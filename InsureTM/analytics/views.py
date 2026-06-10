@@ -70,73 +70,49 @@ class AskAgentView(APIView):
         )
 
         try:
-            # S'il y a un fichier, on pourrait extraire le texte, mais pour un chatbot général simple on va utiliser le texte
-            file_context = ""
-            if uploaded_file:
-                file_context = f"\n\nL'utilisateur a uploadé un fichier: {uploaded_file.name}. "
-                if uploaded_file.name.endswith('.txt') or uploaded_file.name.endswith('.csv'):
-                    try:
-                        file_content = uploaded_file.read().decode('utf-8')[:2000] # Limiter la taille
-                        file_context += f"Voici un extrait du contenu:\n{file_content}\n"
-                    except:
-                        pass
-                elif uploaded_file.name.endswith('.pdf'):
-                    try:
-                        from pypdf import PdfReader
-                        reader = PdfReader(uploaded_file)
-                        text = ""
-                        for page in reader.pages[:3]: # Limiter à 3 pages
-                            text += page.extract_text() + "\n"
-                        file_context += f"Voici un extrait du PDF:\n{text[:2000]}\n"
-                    except:
-                        pass
-            
-            # Construire l'historique de la conversation
+            # Construire l'historique de la conversation pour le contexte du chatbot (exclure le système et construire messages)
             messages = [{"role": "system", "content": """Tu es un assistant IA général et polyvalent.
-Ton objectif est de répondre à n'importe quelle question posée par l'utilisateur, qu'il s'agisse de rédaction, de traduction, de culture générale, d'analyse ou de toute autre tâche.
+Ton objectif est de répondre à n'importe quelle question posée par l'utilisateur.
 
 TES MISSIONS ET RÈGLES :
 1. **Formatage Strict :** Utilise systématiquement le **Markdown** pour structurer tes réponses. Mets en gras les termes clés, utilise des listes à puces pour énumérer des idées, et intègre des blocs de code pour tout aspect technique.
 2. **Concision et Clarté :** Sois direct et utile. Tes réponses doivent être claires et pertinentes.
-3. **Polyvalence Totale :** Tu réponds de manière générale, sans être limité à une base de données ou un domaine précis. Tu ne génères JAMAIS de graphiques.
+3. **Polyvalence Totale :** Tu réponds de manière générale, sans être limité à une base de données ou un domaine précis.
 4. **Langue :** Tu t'exprimes en Français par défaut, de manière chaleureuse et professionnelle."""}]
 
-            # Fetch recent messages for context
+            # Fetch recent messages (excluding the system message we will insert, but fetching recent ones)
+            # Fetch up to 10 messages of this conversation
             recent_msgs = conversation.messages.all().order_by('created_at')[:10]
             for msg in recent_msgs:
                 if msg.sender == 'user':
                     messages.append({"role": "user", "content": msg.text})
                 elif msg.sender == 'agent':
                     messages.append({"role": "assistant", "content": msg.text})
-            
-            # Ajouter le contexte du fichier si présent (à la dernière question)
-            if file_context and messages and messages[-1]['role'] == 'user':
-                messages[-1]['content'] += file_context
 
             from analytics.groq_service import GroqService
             groq = GroqService()
-            completion = groq.client.chat.completions.create(
-                messages=messages,
-                model="llama-3.3-70b-versatile",
-                temperature=0.7,
+            result = groq.process_query(
+                question=question,
+                user=request.user,
+                uploaded_file=uploaded_file,
+                history=messages
             )
-            answer = completion.choices[0].message.content
 
             Message.objects.create(
                 conversation=conversation,
                 sender='agent',
-                text=answer,
-                type='text',
-                sql='',
-                data=[],
+                text=result.get('answer', ''),
+                type=result.get('type', 'text'),
+                sql=result.get('sql', ''),
+                data=result.get('data', []),
             )
             conversation.save()
 
             return Response({
-                'answer': answer,
-                'data': [],
-                'sql': '',
-                'type': 'text',
+                'answer': result.get('answer', ''),
+                'data': result.get('data', []),
+                'sql': result.get('sql', ''),
+                'type': result.get('type', 'text'),
                 'conversation_id': conversation.id,
                 'conversation_title': conversation.title,
             })

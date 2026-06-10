@@ -4,10 +4,11 @@ import PageLayout from '../components/PageLayout';
 import {
     Briefcase, Plus, Search, MoreVertical, Edit, Trash2,
     Layers, Calendar, ChevronRight, LayoutGrid, LayoutList, ArrowRight, Pencil, Trash,
-    BarChart3, Activity, List
+    BarChart3, Activity, List, GitMerge
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { businessProjectService } from '../services/api';
+import TraceabilityGraphModal from '../components/TraceabilityGraphModal';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -59,6 +60,8 @@ const ProjectPortfolio = () => {
     const [filterOwner, setFilterOwner] = useState('ALL');
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [isGraphOpen, setIsGraphOpen] = useState(false);
+    const [selectedProjectForGraph, setSelectedProjectForGraph] = useState<any>(null);
     const [totalItems, setTotalItems] = useState(0);
     const pageSize = 10;
 
@@ -341,6 +344,18 @@ const ProjectPortfolio = () => {
                                                                             <Pencil className="w-3.5 h-3.5 text-blue-600 dark:text-blue-500/70" />
                                                                             {t('releaseManager.menu.edit') || 'Modifier'}
                                                                         </button>
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setSelectedProjectForGraph(project);
+                                                                                setIsGraphOpen(true);
+                                                                                setOpenMenuId(null);
+                                                                            }}
+                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl transition-all"
+                                                                        >
+                                                                            <GitMerge className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-500/70" />
+                                                                            Vue Graphe
+                                                                        </button>
                                                                         <div className="h-px bg-slate-100 dark:bg-white/5 mx-2 my-1" />
                                                                         <button
                                                                             onClick={() => { setProjectToDelete(project.id); setIsDeleteModalOpen(true); setOpenMenuId(null); }}
@@ -565,6 +580,12 @@ const ProjectPortfolio = () => {
                 onCancel={() => setIsDeleteModalOpen(false)}
                 confirmText="Supprimer"
                 type="danger"
+            />
+
+            <TraceabilityGraphModal 
+                isOpen={isGraphOpen} 
+                onClose={() => setIsGraphOpen(false)} 
+                projectData={selectedProjectForGraph}
             />
         </PageLayout>
     );
