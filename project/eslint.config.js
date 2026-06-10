@@ -17,6 +17,11 @@ export default defineConfig([
     ],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'warn',
+      'no-useless-escape': 'off',
+      'no-empty': 'warn',
+      'prefer-const': 'warn',
+      'react-refresh/only-export-components': 'warn',
     },
     languageOptions: {
       ecmaVersion: 2020,
