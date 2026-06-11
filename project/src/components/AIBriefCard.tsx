@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Sparkles, BrainCircuit, ArrowRight, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { BrainCircuit, ArrowRight, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
 interface AIBriefCardProps {
@@ -52,7 +52,7 @@ const AIBriefCard: React.FC<AIBriefCardProps> = ({
         return isFR
             ? `Performance optimale confirmée. Avec ${stats.activeProjects} projets en cours et un taux de succès de ${stats.successRate}%, vos objectifs QA sont atteints.`
             : `Optimal performance confirmed. With ${stats.activeProjects} ongoing projects and a ${stats.successRate}% success rate, your QA goals are met.`;
-    }, [stats, loading, i18n.language]);
+    }, [stats, loading, i18n.language, customBrief]);
 
     useEffect(() => {
         let i = 0;

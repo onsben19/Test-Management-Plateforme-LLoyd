@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    Send, Bot, User, Database, Sparkles,
+    Send, Bot, User, Database,
     PanelLeft, PanelLeftClose, Paperclip, X, Plus, Pencil, Check, Download,
     CheckCircle, PieChart, Activity, Zap, Loader, WandSparkles, Play, Bookmark, Edit2
 } from 'lucide-react';

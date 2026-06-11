@@ -1,5 +1,4 @@
 import React from 'react';
-import { Loader, Search, Filter } from 'lucide-react';
 
 interface Column<T> {
     header: string;
