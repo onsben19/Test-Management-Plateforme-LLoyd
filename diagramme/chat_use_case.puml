@@ -1,0 +1,43 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam Shadowing false
+
+title Diagramme de Cas d'Utilisation\nFocus : Communication Interne et Collaboration
+
+actor "Manager" as Manager
+actor "Testeur" as Testeur
+
+rectangle "Système InsureTM" {
+
+    usecase "S'authentifier" as UC_Auth
+
+    usecase "Gérer la messagerie interne\n(Chat et E-mails)" as UC_Gerer
+    
+    usecase "Consulter" as UC_Consulter
+    usecase "Écrire" as UC_Ecrire
+    usecase "Modifier" as UC_Modifier
+    usecase "Supprimer" as UC_Supprimer
+    usecase "Archiver" as UC_Archiver
+    
+    usecase "Partager des pièces jointes" as UC_Pieces
+
+}
+
+actor "Serveur SMTP" as SMTP <<system>>
+
+Manager -- UC_Gerer
+Testeur -- UC_Gerer
+
+UC_Gerer <|-- UC_Consulter
+UC_Gerer <|-- UC_Ecrire
+UC_Gerer <|-- UC_Modifier
+UC_Gerer <|-- UC_Supprimer
+UC_Gerer <|-- UC_Archiver
+
+UC_Ecrire <.. UC_Pieces : <<extend>>
+
+UC_Gerer ..> UC_Auth : <<include>>
+UC_Gerer ..> SMTP : <<include>>
+
+@enduml

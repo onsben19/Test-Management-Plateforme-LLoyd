@@ -71,6 +71,7 @@ interface Anomaly {
   author?: string;
   created_at: string;
   playwright_script?: string;
+  execution_logs?: string;
 }
 
 const impactStyles: Record<string, { bg: string, text: string, border: string, dot: string }> = {
@@ -124,6 +125,7 @@ const Anomalies: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [anomalyToDelete, setAnomalyToDelete] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [logModal, setLogModal] = useState<{ title: string; content: string } | null>(null);
   const [isImpactMenuOpen, setIsImpactMenuOpen] = useState(false);
   const [viewingList, setViewingList] = useState<{ type: 'priorities' | 'ageing', items: any[] } | null>(null);
   const [quickEditDropdown, setQuickEditDropdown] = useState<{ id: string, field: 'impact' | 'priority' } | null>(null);
@@ -187,7 +189,8 @@ const Anomalies: React.FC = () => {
         campaign: a.campaign_title || 'Inconnue',
         author_name: a.cree_par_nom,
         created_at: a.cree_le,
-        playwright_script: a.playwright_script || null,
+        playwright_script: a.playwright_script || a.script || null,
+        execution_logs: a.execution_logs || a.logs || a.log_execution || a.logs_execution || a.data_json?.execution_logs || a.data_json?.logs || null,
       }));
       setData(mappedAnomalies);
 
@@ -565,7 +568,8 @@ const Anomalies: React.FC = () => {
                       <th className="w-[12%] px-6 py-2">Impact</th>
                       <th className="w-[12%] px-6 py-2">Priorité</th>
                       <th className="w-[15%] px-6 py-2">Date Signalée</th>
-                      <th className="w-[10%] px-6 py-2">Capture</th>
+                      <th className="w-[10%] px-6 py-2">PREUVE(S)</th>
+                      <th className="w-[15%] px-6 py-2">DÉTAILS</th>
                       <th className="w-[18%] px-6 py-2 text-right">{t('anomalies.table.actions')}</th>
                     </tr>
                   </thead>
@@ -573,20 +577,19 @@ const Anomalies: React.FC = () => {
                     {loading ? (
                       Array.from({ length: 5 }).map((_, i) => (
                         <tr key={i} className="animate-pulse">
-                          <td colSpan={7} className="px-6 py-8"><div className="h-4 bg-slate-100 dark:bg-white/5 rounded-full w-full" /></td>
+                          <td colSpan={8} className="px-6 py-8"><div className="h-4 bg-slate-100 dark:bg-white/5 rounded-full w-full" /></td>
                         </tr>
                       ))
                     ) : data.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-6 py-16 text-center text-slate-500 font-bold uppercase tracking-widest text-xs italic">
+                        <td colSpan={8} className="px-6 py-16 text-center text-slate-500 font-bold uppercase tracking-widest text-xs italic">
                           {t('anomalies.table.empty')}
                         </td>
                       </tr>
                     ) : data.map((an) => (
                       <tr
                         key={an.id}
-                        onClick={() => setSelectedAnomaly(an)}
-                        className="group transition-all duration-300 cursor-pointer"
+                        className="group transition-all duration-300"
                       >
                         <td className={tdClass}>
                           <span className="font-mono text-[10px] text-slate-500">{String(an.id).substring(0, 8)}</span>
@@ -676,36 +679,52 @@ const Anomalies: React.FC = () => {
                         </td>
                         <td className={tdClass}>
                           {an.proofImage ? (
-                            <Button
-                              variant="secondary"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.open(an.proofImage, '_blank');
-                              }}
-                              icon={Eye}
-                              title="Voir la capture"
-                              className="rounded-xl"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 border border-dashed border-slate-300 dark:border-white/10 flex items-center justify-center">
-                              <Info className="w-4 h-4 text-slate-700" />
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                  onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLogModal({ title: `Preuve — ${an.title}`, content: `__IMAGE__${an.proofImage}` });
+                                  }}
+                                  className="relative group/cap"
+                                  title={`Voir preuve`}
+                              >
+                                  <img
+                                      src={an.proofImage}
+                                      alt={`Preuve`}
+                                      className="w-10 h-10 object-cover rounded-lg border border-slate-300 dark:border-white/10 group-hover/cap:border-blue-400/60 group-hover/cap:scale-110 transition-all duration-200"
+                                  />
+                                  <div className="absolute inset-0 bg-blue-400/0 group-hover/cap:bg-blue-400/10 rounded-lg transition-all" />
+                              </button>
                             </div>
+                          ) : (
+                            <span className="text-slate-600 font-bold uppercase tracking-widest text-[9px] opacity-40">AUCUNE</span>
                           )}
+                        </td>
+                        <td className={tdClass}>
+                          <div className="flex items-center gap-2">
+                              <button
+                                  onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLogModal({ title: `Logs d'exécution — ${an.title}`, content: an.execution_logs || "Aucun log d'exécution disponible." });
+                                  }}
+                                  className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-500/10 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border border-slate-200 dark:border-white/10"
+                              >
+                                  Logs
+                              </button>
+                              <button
+                                  onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLogModal({ title: `Code Source — ${an.title}`, content: an.playwright_script || "Aucun code source disponible." });
+                                  }}
+                                  className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border border-slate-200 dark:border-white/10"
+                              >
+                                  Code
+                              </button>
+                          </div>
                         </td>
                         <td className={`text-right ${tdClass}`}>
                           <div className="flex items-center justify-end gap-2 transition-all duration-300">
-                            <Button
-                              variant="secondary"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedAnomaly(an);
-                              }}
-                              icon={Info}
-                              title="Voir détails"
-                              className="rounded-xl"
-                            />
+
                             <div className="relative">
                               <Button
                                 variant="secondary"
@@ -886,6 +905,66 @@ const Anomalies: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
+      {/* Modale texte long (logs, scripts) ou image (captures) */}
+      {logModal && (
+          <div
+              className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+              onClick={() => setLogModal(null)}
+          >
+              <div
+                  className="relative bg-slate-900 border border-slate-300 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-3xl mx-4 flex flex-col max-h-[85vh]"
+                  onClick={(e) => e.stopPropagation()}
+              >
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-slate-300 dark:border-white/10 flex-shrink-0">
+                      <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">{logModal.title}</span>
+                      <div className="flex items-center gap-3">
+                          {!logModal.content.startsWith('__IMAGE__') && (
+                              <a
+                                  href={`data:text/plain;charset=utf-8,${encodeURIComponent(logModal.content)}`}
+                                  download={
+                                      logModal.title.toLowerCase().includes('automation') || logModal.title.toLowerCase().includes('script') || logModal.title.toLowerCase().includes('code')
+                                          ? `script_${Date.now()}.spec.ts`
+                                          : `logs_${Date.now()}.txt`
+                                  }
+                                  className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors px-3 py-1.5 bg-blue-500/10 rounded-lg border border-blue-500/20 hover:bg-blue-500/20"
+                              >
+                                  ↓ Télécharger
+                              </a>
+                          )}
+                          <button
+                              onClick={() => setLogModal(null)}
+                              className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors text-xl font-bold"
+                          >✕</button>
+                      </div>
+                  </div>
+                  {logModal.content.startsWith('__IMAGE__') ? (
+                      <div className="overflow-auto flex-1 flex items-center justify-center p-4">
+                          <img
+                              src={logModal.content.replace('__IMAGE__', '')}
+                              alt={logModal.title}
+                              className="max-w-full max-h-full object-contain rounded-xl border border-slate-300 dark:border-white/10"
+                          />
+                      </div>
+                  ) : (
+                      <pre className="overflow-auto p-6 text-xs text-slate-700 dark:text-slate-300 font-mono leading-relaxed whitespace-pre-wrap break-words flex-1">
+                          {logModal.title.toLowerCase().includes('automation') || logModal.title.toLowerCase().includes('script') || logModal.title.toLowerCase().includes('code') ? (
+                              <span dangerouslySetInnerHTML={{ __html: 
+                                  logModal.content
+                                  .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                                  .replace(/\b(\d+)\b/g, '<span style=color:#c084fc>$1</span>')
+                                  .replace(/\b(import|from|const|let|var|await|async|function|return|if|else|for|while|try|catch)\b/g, '<span style=color:#f472b6>$1</span>')
+                                  .replace(/\b(test|expect|page|locator|click|fill|goto|toBeVisible|toContainText|first|catch|timeout|Promise|all)\b/g, '<span style=color:#60a5fa>$1</span>')
+                                  .replace(/([{}()\[\]])/g, '<span style=color:#fbbf24>$1</span>')
+                                  .replace(/(['"`])(.*?)\1/g, '<span style=color:#34d399>$&</span>')
+                              }} />
+                          ) : (
+                              logModal.content
+                          )}
+                      </pre>
+                  )}
+              </div>
+          </div>
+      )}
     </>
   );
 };

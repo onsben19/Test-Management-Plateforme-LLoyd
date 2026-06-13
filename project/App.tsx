@@ -20,7 +20,7 @@ import NotFound from './src/pages/NotFound';
 import Analytics from './src/pages/Analytics';
 import QANewsPage from './src/pages/QANewsPage';
 import CatchupPlanPage from './src/pages/CatchupPlanPage';
-
+import Profile from './src/pages/Profile';
 
 import UserManagement from './src/pages/UserManagement';
 import Unauthorized from './src/pages/Unauthorized';
@@ -136,6 +136,12 @@ const App: React.FC = () => {
                     <Route path="/settings" element={
                       <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
                         <Settings />
+                      </RoleGuard>
+                    } />
+
+                    <Route path="/profile" element={
+                      <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
+                        <Profile />
                       </RoleGuard>
                     } />
 

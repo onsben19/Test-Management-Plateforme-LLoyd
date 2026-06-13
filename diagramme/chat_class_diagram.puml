@@ -1,0 +1,56 @@
+@startuml
+skinparam Shadowing false
+skinparam classAttributeIconSize 0
+
+enum TypeConversation <<enumeration>> {
+  DIRECTE
+  GROUPE
+}
+
+class User {
+  - id : Integer
+  - username : String
+  - email : String
+  - password : String
+  - role : RoleType
+  - is_active : Boolean
+  - date_joined : DateTime
+  --
+  + save()
+  + generate_random_password()
+}
+
+class Conversation {
+  - id : Integer
+  - titre : String
+  - type : TypeConversation
+  - date_creation : DateTime
+}
+
+class Message {
+  - id : Integer
+  - contenu : Text
+  - piece_jointe : File
+  - est_modifie : Boolean
+  - date_envoi : DateTime
+}
+
+class Mail {
+  - id : Integer
+  - texte : Text
+  - piece_jointe : File
+  - date_creation : DateTime
+  - date_modification : DateTime
+  - auteur : User
+  - destinataire : User
+}
+
+User "2..*" --> "0..*" Conversation : "participer à >"
+Conversation "1" *-- "0..*" Message : "contenir >"
+User "1" --> "0..*" Message : "créer >"
+
+User "1" --> "0..*" Mail : "envoyer / recevoir >"
+
+Conversation ..> TypeConversation : uses
+
+@enduml

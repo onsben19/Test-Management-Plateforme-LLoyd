@@ -1,0 +1,108 @@
+@startuml
+
+title Vue Runtime Détaillée - Création de Campagne avec Import Excel\nInsureTM - Plateforme de Gestion de Campagnes de Test Lloyd
+
+skinparam Shadowing false
+hide footbox
+skinparam ParticipantPadding 15
+
+skinparam sequence {
+    ArrowColor #000000
+    ActorBorderColor #000000
+    LifeLineBorderColor #000000
+    LifeLineBackgroundColor #FFFFFF
+    ParticipantBorderColor #000000
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantFontName Helvetica
+    ParticipantFontSize 12
+    ParticipantFontColor #000000
+    ActorBackgroundColor #FFFFFF
+    ActorFontName Helvetica
+    ActorFontSize 12
+    ActorFontColor #000000
+}
+
+actor ":Manager QA" as Manager
+participant "«IHM»\nInterface React" as Frontend
+participant "«Contrôleur»\nBackend Django" as Backend
+participant "«Service»\nService Notification" as Notif
+database "«Entité»\nBase de Données" as DB
+
+group Sélection du contexte de la campagne
+
+    Manager -> Frontend: ouvrirFormulaireCampagne()
+
+    Frontend -> Backend: chargerListeProjets()
+    activate Backend
+    Backend -> DB: recupererProjetsActifs()
+    activate DB
+    DB --> Backend: retours listeProjets()
+    deactivate DB
+    Backend --> Frontend: retours listeProjets()
+    deactivate Backend
+
+    Manager -> Frontend: selectionnerProjet(projectId)
+
+    Frontend -> Backend: chargerReleasesProjet(projectId)
+    activate Backend
+    Backend -> DB: recupererReleasesDuProjet(projectId)
+    activate DB
+    DB --> Backend: retours listeReleases()
+    deactivate DB
+    Backend --> Frontend: retours listeReleases()
+    deactivate Backend
+
+    Manager -> Frontend: selectionnerRelease(releaseId)
+
+end
+
+group Saisie et soumission du formulaire
+
+    Manager -> Frontend: remplirFormulaire(\ntitre, dates, fichierExcel, quotasTesteurs)
+    Manager -> Frontend: clicCreerCampagne()
+    Frontend -> Backend: creerCampagne(FormData Multipart)
+    activate Backend
+
+    Backend -> Backend: validerDonnees(\ntitre, dates, extension)
+
+    alt Données invalides
+        Backend --> Frontend: retours erreurValidation(HTTP 400)
+        Frontend --> Manager: afficherErreurs("Données incorrectes")
+    else Données valides
+
+        Backend -> DB: enregistrerCampagne(\ntitre, dates, fichierExcel)
+        activate DB
+        DB --> Backend: retours campagneCree(id)
+        deactivate DB
+
+        Backend -> Backend: extraireQuotasJSON(tester_quotas)
+
+        loop Pour chaque testeur assigné
+            Backend -> DB: creerCampaignAssignment(\ncampaignId, testeurId, quota)
+            activate DB
+            DB --> Backend: retours confirmation()
+            deactivate DB
+        end
+
+    end
+
+end
+
+group Notifications post-création
+
+    Backend -> Notif: notifierAdminsEtManagers(\n"Nouvelle campagne créée")
+    activate Notif
+    Notif -> DB: creerNotifications(recipients)
+    activate DB
+    DB --> Notif: retours confirmation()
+    deactivate DB
+    Notif -> Notif: envoyerEmailsCampagne(\nrecipients, campaign)
+    deactivate Notif
+
+    Backend --> Frontend: retours campagneCreee(HTTP 201)
+    deactivate Backend
+    Frontend --> Manager: afficherToast("Campagne créée avec succès")
+
+end
+
+@enduml

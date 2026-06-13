@@ -1,0 +1,37 @@
+@startuml
+skinparam style strictuml
+skinparam Shadowing false
+skinparam activity {
+  BackgroundColor #EAECEE
+  BorderColor #2C3E50
+  DiamondBackgroundColor #FCF3CF
+  DiamondBorderColor #F1C40F
+  FontName Helvetica
+  FontSize 12
+}
+skinparam ArrowColor #2C3E50
+
+title Diagramme d'Activité - Traitement de la Messagerie Interne et du Chat
+
+start
+
+:Initialiser le module de communication;
+
+if () then ([Chat Temps Réel])
+    :Ouvrir le salon de discussion (Direct / Groupe);
+    :Réceptionner le message textuel;
+    :Traiter le flux via la passerelle WebSocket;
+    :Sauvegarder le message en base de données;
+    :Diffuser l'instance JSON aux membres connectés;
+else ([E-mail In-App])
+    :Ouvrir le formulaire de messagerie interne;
+    :Associer le destinataire et le sujet;
+    :Réceptionner le corps du message et les pièces jointes;
+    :Traiter la requête via l'API REST Django;
+    :Enregistrer l'entité Email en base de données (is_read=False);
+endif
+
+:Générer la notification d'interface pour le destinataire;
+
+stop
+@enduml

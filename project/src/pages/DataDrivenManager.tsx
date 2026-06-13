@@ -4,11 +4,11 @@ import { toast } from 'react-toastify';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import {
-    Upload, FileSpreadsheet, Calendar, Eye, Trash2, Edit, Search, Filter, MoreVertical,
+    Upload, FileSpreadsheet, Calendar, Eye, Trash2, Edit, Search, Filter, MoreVertical, FileText,
     Layers, X, CheckCircle, ShieldAlert, ShieldCheck, ShieldQuestion,
-    Zap, TrendingUp, Clock, AlertTriangle, ArrowRight, LayoutGrid,
+    Zap, TrendingUp, Clock, AlertTriangle, ArrowRight, ArrowLeft, LayoutGrid,
     Sparkles, ChevronRight, History, XCircle, Briefcase, Activity, Target,
-    Award, Info, SortAsc
+    Award, Info, SortAsc, Bot, Flag, Users
 } from 'lucide-react';
 
 // --- Composant réutilisable : description extensible ---
@@ -116,6 +116,8 @@ const DataDrivenManager = () => {
     const [selectedEntityName, setSelectedEntityName] = useState("");
     const [selectedAIInsight, setSelectedAIInsight] = useState<string | undefined>(undefined);
     const [activeCampaignId, setActiveCampaignId] = useState<number | null>(null);
+    const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+    const [isOptimizingSidebar, setIsOptimizingSidebar] = useState(false);
 
     const [currentPage, setCurrentPage] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
@@ -383,6 +385,30 @@ const DataDrivenManager = () => {
         }
     };
 
+    const handleQuickUnassign = async (e: React.MouseEvent, file: any, testerId: number) => {
+        e.stopPropagation();
+        
+        try {
+            const formData = new FormData();
+            formData.append('title', file.title || file.name);
+            if (file.description) formData.append('description', file.description);
+            formData.append('project', activeReleaseId?.toString() || '');
+            formData.append('nb_test_cases', file.nb_test_cases?.toString() || '0');
+            
+            const newTesters = (file.assigned_testers || []).filter((id: number) => id !== testerId);
+            newTesters.forEach((id: number) => {
+                formData.append('assigned_testers', id.toString());
+            });
+
+            await campaignService.updateCampaign(file.id, formData);
+            fetchCampaigns();
+            toast.success("Testeur retiré avec succès");
+        } catch (error) {
+            console.error(error);
+            toast.error("Erreur lors du retrait du testeur");
+        }
+    };
+
     const handleDeleteFile = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         setDeleteModal({ isOpen: true, fileId: id });
@@ -501,274 +527,134 @@ const DataDrivenManager = () => {
                         <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Chargement des campagnes...</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {(filteredAndSortedFiles || []).map((file, index) => {
-                            const guard = timelineGuards[file.id];
-                            const total = guard?.progress?.total || file.rowCount || 0;
-                            const passed = guard?.progress?.finished || 0;
-                            const failed = Math.max(0, total - passed);
-                            const rate = guard?.progress?.percentage || 0;
-
-                            return (
-                                <div
-                                    key={file.id}
-                                    style={{ animationDelay: `${index * 100}ms` }}
-                                    className="group relative bg-slate-50 dark:bg-[#0f1729]/80 backdrop-blur-xl hover:bg-slate-50 dark:hover:bg-[#131c31] border border-slate-200 dark:border-white/5 hover:border-blue-500/30 rounded-[2.5rem] p-8 overflow-hidden shadow-xl hover:shadow-[0_15px_40px_-10px_rgba(59,130,246,0.15)] animate-in fade-in slide-in-from-bottom-4 transition-all duration-500 flex flex-col h-full"
-                                >
-                                    {/* Subtle ambient glow */}
-                                    <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                                    {/* Top Right Area (Badges + Actions) */}
-                                    <div className="absolute top-6 right-6 flex items-center gap-3 z-20">
-
-                                        {/* Dropdown Menu */}
-                                        <div className="relative" onClick={e => e.stopPropagation()}>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === file.id ? null : file.id); }}
-                                                className="p-2.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:bg-white/10 rounded-xl border border-slate-200 dark:border-white/5 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-all"
-                                            >
-                                                <MoreVertical size={14} />
-                                            </button>
-
-                                            <AnimatePresence>
-                                                {openMenuId === file.id && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                        className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
-                                                    >
-                                                        <div className="p-2 space-y-1">
-                                                            <button
-                                                                onClick={(e) => { openEditModal(file, e); setOpenMenuId(null); }}
-                                                                className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:bg-white/5 rounded-xl transition-all"
-                                                            >
-                                                                <Edit className="w-3.5 h-3.5 text-blue-500/70" />
-                                                                Modifier
-                                                            </button>
-                                                            <div className="h-px bg-slate-100 dark:bg-white/5 mx-2 my-1" />
-                                                            <button
-                                                                onClick={(e) => { handleDeleteFile(file.id, e); setOpenMenuId(null); }}
-                                                                className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
-                                                            >
-                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                                Supprimer
-                                                            </button>
-                                                        </div>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
-                                        </div>
-                                    </div>
-
-                                    {/* Top Left Status (No Icon) */}
-                                    <div className="flex items-start justify-between mb-6">
-                                        <div className="flex flex-col gap-4">
-                                            {['CRITICAL', 'WARNING'].includes(guard?.status) && (
-                                                <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center gap-1.5 text-[10px] font-black text-amber-500 uppercase tracking-widest w-fit">
-                                                    <AlertTriangle size={10} />
-                                                    DÉRIVE
+                    <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {/* 1. EN RETARD */}
+                        <div className="bg-[#111827] border border-white/[0.07] rounded-xl overflow-hidden flex flex-col h-[700px]">
+                            <div className="px-3.5 py-3 border-b border-white/[0.07] flex items-center justify-between shrink-0">
+                                <span className="text-[11px] font-medium tracking-[0.07em] text-[#F09595]">EN RETARD</span>
+                                <span className="bg-white/[0.07] text-white/40 text-[11px] px-2 py-0.5 rounded-full">
+                                    {(filteredAndSortedFiles || []).filter(f => ['CRITICAL', 'WARNING'].includes(timelineGuards[f.id]?.status) && timelineGuards[f.id]?.progress?.percentage !== 100).length}
+                                </span>
+                            </div>
+                            <div className="p-2.5 flex flex-col gap-2 overflow-y-auto flex-1 custom-scrollbar">
+                                {(filteredAndSortedFiles || []).filter(f => ['CRITICAL', 'WARNING'].includes(timelineGuards[f.id]?.status) && timelineGuards[f.id]?.progress?.percentage !== 100).map(file => {
+                                    const guard = timelineGuards[file.id];
+                                    const rate = guard?.progress?.percentage || 0;
+                                    return (
+                                        <div key={file.id} onClick={() => setSelectedCampaignId(file.id)} className="bg-[#1a2235] border border-white/[0.07] rounded-lg p-3 cursor-pointer hover:border-[#F09595]/50 hover:bg-[#1f2937] transition-all">
+                                            <div className="text-[13px] font-medium text-[#e8eaf6] whitespace-nowrap overflow-hidden text-ellipsis mb-1.5">{file.name}</div>
+                                            <div className="h-[3px] bg-white/[0.07] rounded-full w-full mb-3">
+                                                <div className="h-full bg-[#E24B4A] rounded-full" style={{ width: `${rate}%` }} />
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[#E24B4A] font-bold text-[11px]">{Math.round(rate)}%</span>
+                                                <div className="flex items-center gap-1 text-white/30 text-[11px]">
+                                                    <FileText size={10} /> {file.rowCount} cas
+                                                </div>
+                                            </div>
+                                            {file.assigned_testers_names && file.assigned_testers_names.length > 0 && (
+                                                <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.04]">
+                                                    <div className="flex -space-x-1.5">
+                                                        {file.assigned_testers_names.slice(0, 3).map((n, i) => (
+                                                            <div key={i} className="w-5 h-5 rounded-full bg-[#185FA5] border-[1.5px] border-[#1a2235] flex items-center justify-center text-[8px] font-bold text-white uppercase" title={n}>
+                                                                {n.charAt(0)}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-[10px] text-white/30">{guard?.projected_end_date ? `Fin : ${new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}` : ''}</span>
                                                 </div>
                                             )}
                                         </div>
-                                    </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
 
-                                    {/* Title & Metas */}
-                                    <div className="mb-6 relative z-10">
-                                        <h3 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white leading-tight tracking-tight mb-2 line-clamp-2 min-h-[3rem] group-hover:text-blue-400 transition-colors pr-32">
-                                            {file.name}
-                                        </h3>
-                                        {file.description ? (
-                                            <ExpandableDescription text={file.description} maxChars={90} />
-                                        ) : (
-                                            <ExpandableDescription text={undefined} emptyLabel="Aucune description" />
-                                        )}
-                                        <div className="flex items-center gap-3">
-                                            <div className="px-3 py-1.5 bg-slate-50 dark:bg-white/[0.02] hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors border border-slate-200 dark:border-white/5 rounded-xl flex items-center gap-2">
-                                                <Calendar size={12} className="text-emerald-400" />
-                                                <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">{file.date}</span>
+                        {/* 2. EN COURS */}
+                        <div className="bg-[#111827] border border-white/[0.07] rounded-xl overflow-hidden flex flex-col h-[700px]">
+                            <div className="px-3.5 py-3 border-b border-white/[0.07] flex items-center justify-between shrink-0">
+                                <span className="text-[11px] font-medium tracking-[0.07em] text-[#EF9F27]">EN COURS</span>
+                                <span className="bg-white/[0.07] text-white/40 text-[11px] px-2 py-0.5 rounded-full">
+                                    {(filteredAndSortedFiles || []).filter(f => !['CRITICAL', 'WARNING'].includes(timelineGuards[f.id]?.status) && timelineGuards[f.id]?.progress?.percentage !== 100).length}
+                                </span>
+                            </div>
+                            <div className="p-2.5 flex flex-col gap-2 overflow-y-auto flex-1 custom-scrollbar">
+                                {(filteredAndSortedFiles || []).filter(f => !['CRITICAL', 'WARNING'].includes(timelineGuards[f.id]?.status) && timelineGuards[f.id]?.progress?.percentage !== 100).map(file => {
+                                    const guard = timelineGuards[file.id];
+                                    const rate = guard?.progress?.percentage || 0;
+                                    return (
+                                        <div key={file.id} onClick={() => setSelectedCampaignId(file.id)} className="bg-[#1a2235] border border-white/[0.07] rounded-lg p-3 cursor-pointer hover:border-[#EF9F27]/50 hover:bg-[#1f2937] transition-all">
+                                            <div className="text-[13px] font-medium text-[#e8eaf6] whitespace-nowrap overflow-hidden text-ellipsis mb-1.5">{file.name}</div>
+                                            <div className="h-[3px] bg-white/[0.07] rounded-full w-full mb-3">
+                                                <div className="h-full bg-[#1D9E75] rounded-full" style={{ width: `${rate}%` }} />
                                             </div>
-                                            <div className="px-3 py-1.5 bg-slate-50 dark:bg-white/[0.02] hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors border border-slate-200 dark:border-white/5 rounded-xl flex items-center gap-2">
-                                                <Clock size={12} className="text-blue-400" />
-                                                <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-                                                    Deadline {guard?.projected_end_date ? new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="h-px w-full bg-slate-100 dark:bg-white/5 mb-6" />
-
-                                    {/* Progression Section */}
-                                    <div className="bg-slate-50 dark:bg-white/[0.02] backdrop-blur-md border border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-colors rounded-[1.5rem] p-5 mb-4 relative z-10">
-                                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest mb-6">
-                                            <TrendingUp size={12} />
-                                            PROGRESSION & CADENCE
-                                        </div>
-
-                                        <div className="flex items-center gap-4 mb-6">
-                                            <div className="relative w-16 h-16 flex-shrink-0">
-                                                <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                                                    <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="10" />
-                                                    <motion.circle
-                                                        cx="50" cy="50" r="42" fill="none"
-                                                        stroke={rate >= 80 ? '#10b981' : rate >= 40 ? '#3b82f6' : '#ef4444'}
-                                                        strokeWidth="10"
-                                                        strokeDasharray={2 * Math.PI * 42}
-                                                        initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
-                                                        animate={{ strokeDashoffset: (2 * Math.PI * 42) * (1 - rate / 100) }}
-                                                        transition={{ duration: 1.5, ease: 'easeOut' }}
-                                                        strokeLinecap="round"
-                                                    />
-                                                </svg>
-                                                <div className="absolute inset-0 flex items-center justify-center">
-                                                    <span className="text-sm font-black text-slate-900 dark:text-white">{Math.round(rate)}%</span>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[#1D9E75] font-bold text-[11px]">{Math.round(rate)}%</span>
+                                                <div className="flex items-center gap-1 text-white/30 text-[11px]">
+                                                    <FileText size={10} /> {file.rowCount} cas
                                                 </div>
                                             </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex flex-col gap-2 mb-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <CheckCircle size={12} className="text-emerald-500" />
-                                                        <span className="text-xs font-black text-emerald-400">{passed} validés</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <XCircle size={12} className="text-blue-500" />
-                                                        <span className="text-xs font-black text-blue-400">{failed} restants</span>
-                                                    </div>
-                                                </div>
-                                                <div className="h-1.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden mb-2">
-                                                    <motion.div
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${rate}%` }}
-                                                        className={`h-full rounded-full ${rate >= 80 ? 'bg-emerald-500' : rate >= 40 ? 'bg-blue-500' : 'bg-rose-500'}`}
-                                                    />
-                                                </div>
-                                                <div className="flex justify-between text-[10px] font-black text-slate-600 uppercase tracking-widest">
-                                                    <span>{passed} TESTS VALIDÉS</span>
-                                                    <span>CIBLE : {total}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 rounded-xl p-3">
-                                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">
-                                                    <History size={10} />
-                                                    CADENCE IA
-                                                </div>
-                                                <div className="text-sm font-black text-slate-900 dark:text-white">{guard?.velocity || 0} <span className="text-xs text-slate-500">tests/j</span></div>
-                                            </div>
-                                            <div className={`border rounded-xl p-3 ${['CRITICAL', 'WARNING'].includes(guard?.status) ? 'bg-rose-500/5 border-rose-500/10' : 'bg-slate-50 dark:bg-white/[0.02] border-slate-200 dark:border-white/5'}`}>
-                                                <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest mb-1 ${['CRITICAL', 'WARNING'].includes(guard?.status) ? 'text-rose-500/50' : 'text-slate-600'}`}>
-                                                    <Clock size={10} />
-                                                    FIN ESTIMÉE
-                                                </div>
-                                                <div className="text-sm font-black text-slate-900 dark:text-white">
-                                                    {guard?.projected_end_date ? new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Insight IA Area - Intelligent Integration */}
-                                    <div className="bg-blue-600/5 backdrop-blur-md border border-blue-600/10 rounded-2xl p-5 border-l-2 border-l-blue-500/50 mb-4 flex-1 shadow-lg shadow-blue-900/5 group/insight">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <div className="w-6 h-6 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400">
-                                                <Zap size={14} className="fill-blue-400/20" />
-                                            </div>
-                                            <span className="text-xs font-black text-blue-400 uppercase tracking-widest">INSIGHT IA</span>
-                                        </div>
-                                        <p className="text-xs text-slate-400 leading-relaxed mb-4 line-clamp-2 italic">
-                                            {guard?.message || "Il est essentiel d'accélérer le rythme des tests pour respecter la date limite."}
-                                        </p>
-                                        <button
-                                            onClick={() => handleOpenAIInsight(file.id, file.name)}
-                                            className="px-4 py-2 bg-slate-100 dark:bg-white/5 hover:bg-white hover:text-black border border-slate-300 dark:border-white/10 rounded-lg text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white transition-all flex items-center gap-2 group/btn"
-                                        >
-                                            Lire la suite
-                                            <ArrowRight size={12} className="group-hover/btn:translate-x-1 transition-transform" />
-                                        </button>
-                                    </div>
-
-                                    {/* Footer */}
-                                    <div className="pt-4 border-t border-slate-200 dark:border-white/5 space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div 
-                                                    className="flex items-center gap-3 cursor-pointer relative"
-                                                    onClick={(e) => { e.stopPropagation(); setOpenTestersId(openTestersId === file.id ? null : file.id); }}
-                                                >
-                                                    <div className="flex -space-x-2">
-                                                        {(file.assigned_testers_names || []).slice(0, 2).map((name, i) => (
-                                                            <div key={i} className="w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-200 dark:border-[#0b0e14] flex items-center justify-center text-[10px] font-black text-slate-900 dark:text-white" title={name}>
-                                                                {name.charAt(0).toUpperCase()}
+                                            {file.assigned_testers_names && file.assigned_testers_names.length > 0 && (
+                                                <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.04]">
+                                                    <div className="flex -space-x-1.5">
+                                                        {file.assigned_testers_names.slice(0, 3).map((n, i) => (
+                                                            <div key={i} className="w-5 h-5 rounded-full bg-[#185FA5] border-[1.5px] border-[#1a2235] flex items-center justify-center text-[8px] font-bold text-white uppercase" title={n}>
+                                                                {n.charAt(0)}
                                                             </div>
                                                         ))}
-                                                        {(file.assigned_testers_names || []).length > 2 && (
-                                                            <div className="w-8 h-8 rounded-full bg-slate-900 border-2 border-slate-200 dark:border-[#0b0e14] flex items-center justify-center text-[8px] font-black text-slate-500">
-                                                                +{(file.assigned_testers_names || []).length - 2}
-                                                            </div>
-                                                        )}
                                                     </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-xs font-black text-slate-900 dark:text-white">{(file.assigned_testers_names || []).length}</span>
-                                                        <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">TESTEURS</span>
-                                                    </div>
+                                                    <span className="text-[10px] text-white/30">{guard?.projected_end_date ? `Fin : ${new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}` : ''}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
 
-                                                    {/* Popover with names */}
-                                                    <AnimatePresence>
-                                                        {openTestersId === file.id && (
-                                                            <motion.div
-                                                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                                exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                                className="absolute bottom-full left-0 mb-2 w-48 bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
-                                                            >
-                                                                <div className="p-3 space-y-2">
-                                                                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-200 dark:border-white/5 pb-1">
-                                                                        Testeurs Assignés
-                                                                    </div>
-                                                                    {(file.assigned_testers_names || []).map((name, i) => (
-                                                                        <div key={i} className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
-                                                                            <div className="w-5 h-5 rounded-full bg-blue-500/10 flex items-center justify-center text-[8px] font-black text-blue-400">
-                                                                                {name.charAt(0).toUpperCase()}
-                                                                            </div>
-                                                                            <span>{name}</span>
-                                                                        </div>
-                                                                    ))}
-                                                                    {(file.assigned_testers_names || []).length === 0 && (
-                                                                        <div className="text-xs font-bold text-slate-500 italic">
-                                                                            Aucun testeur assigné
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </motion.div>
-                                                        )}
-                                                    </AnimatePresence>
+                        {/* 3. TERMINÉ */}
+                        <div className="bg-[#111827] border border-white/[0.07] rounded-xl overflow-hidden flex flex-col h-[700px]">
+                            <div className="px-3.5 py-3 border-b border-white/[0.07] flex items-center justify-between shrink-0">
+                                <span className="text-[11px] font-medium tracking-[0.07em] text-[#5DCAA5]">TERMINÉ</span>
+                                <span className="bg-white/[0.07] text-white/40 text-[11px] px-2 py-0.5 rounded-full">
+                                    {(filteredAndSortedFiles || []).filter(f => timelineGuards[f.id]?.progress?.percentage === 100).length}
+                                </span>
+                            </div>
+                            <div className="p-2.5 flex flex-col gap-2 overflow-y-auto flex-1 custom-scrollbar">
+                                {(filteredAndSortedFiles || []).filter(f => timelineGuards[f.id]?.progress?.percentage === 100).map(file => {
+                                    const guard = timelineGuards[file.id];
+                                    const rate = guard?.progress?.percentage || 0;
+                                    return (
+                                        <div key={file.id} onClick={() => setSelectedCampaignId(file.id)} className="bg-[#1a2235] border border-white/[0.07] rounded-lg p-3 cursor-pointer hover:border-[#5DCAA5]/50 hover:bg-[#1f2937] transition-all">
+                                            <div className="text-[13px] font-medium text-[#e8eaf6] whitespace-nowrap overflow-hidden text-ellipsis mb-1.5">{file.name}</div>
+                                            <div className="h-[3px] bg-white/[0.07] rounded-full w-full mb-3">
+                                                <div className="h-full bg-[#5DCAA5] rounded-full" style={{ width: `100%` }} />
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[#5DCAA5] font-bold text-[11px]">100%</span>
+                                                <div className="flex items-center gap-1 text-white/30 text-[11px]">
+                                                    <FileText size={10} /> {file.rowCount} cas
                                                 </div>
                                             </div>
-                                            <div className="px-5 py-3 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl flex flex-col items-center">
-                                                <span className="text-lg font-black text-slate-900 dark:text-white">{total}</span>
-                                                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">CAS TEST</span>
-                                            </div>
+                                            {file.assigned_testers_names && file.assigned_testers_names.length > 0 && (
+                                                <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.04]">
+                                                    <div className="flex -space-x-1.5">
+                                                        {file.assigned_testers_names.slice(0, 3).map((n, i) => (
+                                                            <div key={i} className="w-5 h-5 rounded-full bg-[#185FA5] border-[1.5px] border-[#1a2235] flex items-center justify-center text-[8px] font-bold text-white uppercase" title={n}>
+                                                                {n.charAt(0)}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-[10px] text-white/30">{guard?.projected_end_date ? `Fin : ${new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}` : ''}</span>
+                                                </div>
+                                            )}
                                         </div>
-
-                                        <button
-                                            onClick={() => handleOpenPreview(file)}
-                                            className="w-full py-4 bg-slate-50 dark:bg-white/[0.02] hover:bg-slate-50 dark:hover:bg-white/[0.04] border border-slate-200 dark:border-white/5 hover:border-blue-500/30 rounded-2xl flex items-center justify-between px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-400 transition-all group/footer relative z-10"
-                                        >
-                                            <span className="opacity-0 group-hover/footer:opacity-100 transition-opacity absolute left-6 text-blue-400">
-                                                Accéder
-                                            </span>
-                                            <span className="group-hover/footer:opacity-0 transition-opacity">
-                                                Voir le cahier de tests
-                                            </span>
-                                            <ArrowRight size={14} className="group-hover/footer:translate-x-1 transition-transform text-slate-500 group-hover/footer:text-blue-400" />
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        </div>
                         {importedFiles.length === 0 && (
                             <div className="col-span-full py-24 text-center bg-slate-100 dark:bg-white/5 rounded-[3rem] border-2 border-dashed border-slate-300 dark:border-white/10">
                                 <FileSpreadsheet className="w-16 h-16 text-slate-700 mx-auto mb-6" />
@@ -776,7 +662,7 @@ const DataDrivenManager = () => {
                                 <p className="text-slate-500 text-sm max-w-sm mx-auto">Importez votre premier cahier de tests Excel pour commencer le suivi.</p>
                             </div>
                         )}
-                    </div>
+                    </>
                 )}
 
                 <Pagination
@@ -804,7 +690,235 @@ const DataDrivenManager = () => {
                 />
             </div>
 
+            
+            {/* Campaign Sidebar */}
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {selectedCampaignId && (() => {
+                        const file = importedFiles.find(f => f.id === selectedCampaignId);
+                        if (!file) return null;
+                        const guard = timelineGuards[file.id];
+                        const total = guard?.progress?.total || file.rowCount || 0;
+                        const passed = guard?.progress?.finished || 0;
+                        const failed = Math.max(0, total - passed);
+                        const rate = guard?.progress?.percentage || 0;
+
+                        return (
+                            <div className="fixed inset-0 z-[99999] flex justify-end">
+                                <motion.div
+                                    key="sidebar-bg"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+                                    onClick={() => { setSelectedCampaignId(null); setIsOptimizingSidebar(false); }}
+                                />
+                                <motion.div
+                                    key="sidebar-panel"
+                                    initial={{ x: '100%' }}
+                                    animate={{ x: 0 }}
+                                    exit={{ x: '100%' }}
+                                    transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                    className="relative w-full max-w-3xl bg-[#0f172a] border-l border-white/[0.07] h-full shadow-2xl flex flex-col"
+                                >
+                                    {/* Header */}
+                                <div className="p-6 border-b border-white/[0.05] flex items-center justify-between shrink-0">
+                                    <h2 className="text-lg font-bold text-white truncate pr-4">{file.name}</h2>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={(e) => { openEditModal(file, e); }} className="p-2 text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                                            <Edit size={16} />
+                                        </button>
+                                        <button onClick={(e) => { handleDeleteFile(file.id, e); setSelectedCampaignId(null); }} className="p-2 text-rose-500/70 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors">
+                                            <Trash2 size={16} />
+                                        </button>
+                                        <div className="w-px h-6 bg-white/[0.07] mx-1" />
+                                        <button onClick={() => { setSelectedCampaignId(null); setIsOptimizingSidebar(false); }} className="p-2 text-white/50 hover:text-white bg-white/[0.03] hover:bg-white/10 rounded-lg transition-colors">
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Body */}
+                                <div className="p-6 overflow-y-auto flex-1 custom-scrollbar space-y-6 relative">
+                                    {isOptimizingSidebar ? (
+                                        <div className="animate-fade-in">
+                                            <button onClick={() => setIsOptimizingSidebar(false)} className="mb-4 flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white uppercase tracking-widest transition-colors">
+                                                <ArrowLeft size={14} /> Retour aux détails
+                                            </button>
+                                            <CatchupPlanIA campaignId={file.id} onClose={() => setIsOptimizingSidebar(false)} />
+                                        </div>
+                                    ) : (
+                                        <>
+                                    {/* Section 1 — Meta dates */}
+                                        <div className="flex gap-2">
+                                            <div className="flex items-center gap-1.5 px-[11px] py-[5px] bg-white/[0.06] border-[0.5px] border-white/10 rounded-[20px]">
+                                                <Calendar size={12} className="text-white/50" />
+                                                <span className="text-[11px] font-medium text-white/50">{file.date}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 px-[11px] py-[5px] bg-[#E24B4A]/12 border-[0.5px] border-[#E24B4A]/25 rounded-[20px]">
+                                                <Clock size={12} className="text-[#F09595]" />
+                                                <span className="text-[11px] font-medium text-[#F09595]">
+                                                    Deadline {guard?.projected_end_date ? new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Section 2 — Description */}
+                                        {file.description && (
+                                            <div className="bg-[#1a2235] rounded-[12px] border-[0.5px] border-white/[0.07] p-[14px]">
+                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">
+                                                    <FileText size={12} />
+                                                    DESCRIPTION
+                                                </div>
+                                                <p className="text-[13px] text-white/55 leading-[1.6]">{file.description}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Section 3 — Progression & Cadence */}
+                                        <div className="bg-[#1a2235] rounded-[12px] border-[0.5px] border-white/[0.07] p-[14px]">
+                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">
+                                                <TrendingUp size={12} />
+                                                PROGRESSION & CADENCE
+                                            </div>
+
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="relative w-[56px] h-[56px] shrink-0">
+                                                    <svg viewBox="0 0 50 50" className="w-full h-full -rotate-90">
+                                                        <circle cx="25" cy="25" r="22" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="4" />
+                                                        <motion.circle
+                                                            cx="25" cy="25" r="22" fill="none"
+                                                            stroke="#E24B4A"
+                                                            strokeWidth="4"
+                                                            strokeDasharray={2 * 3.14159 * 22}
+                                                            initial={{ strokeDashoffset: 2 * 3.14159 * 22 }}
+                                                            animate={{ strokeDashoffset: (2 * 3.14159 * 22) * (1 - rate / 100) }}
+                                                            transition={{ duration: 1.5, ease: 'easeOut' }}
+                                                            strokeLinecap="round"
+                                                        />
+                                                    </svg>
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <span className="text-[13px] font-bold text-white">{Math.round(rate)}%</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex flex-col justify-center gap-1.5">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <CheckCircle size={12} className="text-[#5DCAA5]" />
+                                                        <span className="text-[12px] font-medium text-[#5DCAA5]">{passed} validés</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Clock size={12} className="text-[#85B7EB]" />
+                                                        <span className="text-[12px] font-medium text-[#85B7EB]">{failed} restants</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="relative h-[4px] w-full bg-white/[0.07] rounded-[2px] overflow-hidden mb-2">
+                                                <motion.div
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${rate}%` }}
+                                                    className="h-full rounded-[2px] bg-[#E24B4A]"
+                                                />
+                                            </div>
+                                            <div className="flex justify-between text-[11px] text-white/40 mb-4 font-medium">
+                                                <span>{passed} tests validés</span>
+                                                <span>Cible : {total}</span>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-[8px]">
+                                                <div className="bg-[#111827] rounded-[8px] px-[12px] py-[10px]">
+                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">
+                                                        <Bot size={10} />
+                                                        CADENCE IA
+                                                    </div>
+                                                    <div className="flex items-baseline gap-1 mt-1">
+                                                        <span className="text-[16px] font-bold text-white leading-none">{guard?.velocity || 0}</span>
+                                                        <span className="text-[12px] text-white/40">test/j</span>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-[#1a0f0f] border-[0.5px] border-[#E24B4A]/15 rounded-[8px] px-[12px] py-[10px]">
+                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#F09595] uppercase tracking-widest mb-1">
+                                                        <Flag size={10} />
+                                                        FIN ESTIMÉE
+                                                    </div>
+                                                    <div className="text-[16px] font-bold text-[#F09595] leading-none mt-1">
+                                                        {guard?.projected_end_date ? new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Section 4 — Insight IA */}
+                                        <div className="bg-[#0d1a2e] border-l-[3px] border-l-[#378ADD] rounded-r-[12px] p-[14px]">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <div className="w-[26px] h-[26px] bg-[#378ADD]/15 rounded-[8px] flex items-center justify-center shrink-0">
+                                                    <Sparkles size={12} className="text-[#378ADD]" />
+                                                </div>
+                                                <span className="text-[11px] font-bold text-[#378ADD] uppercase tracking-[0.07em]">INSIGHT IA</span>
+                                            </div>
+                                            <p className="text-[12px] italic text-white/45 leading-[1.6] mb-4 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' }}>
+                                                {guard?.message || "Il est essentiel d'accélérer le rythme des tests pour atteindre l'échéance."}
+                                            </p>
+                                            <button
+                                                onClick={() => setIsOptimizingSidebar(true)}
+                                                className="px-[16px] py-[8px] bg-[#185FA5] text-[#B5D4F4] border-[0.5px] border-[#378ADD] rounded-[8px] text-[12px] font-medium transition-all hover:bg-[#1a68b5] flex items-center gap-2"
+                                            >
+                                                <Sparkles size={14} className="text-[#B5D4F4]" />
+                                                Optimiser
+                                            </button>
+                                        </div>
+
+                                        {/* Section 5 — Testeurs assignés */}
+                                        <div className="bg-[#1a2235] rounded-[12px] border-[0.5px] border-white/[0.07] p-[14px]">
+                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">
+                                                <Users size={12} />
+                                                TESTEURS ASSIGNÉS ({(file.assigned_testers_names || []).length})
+                                            </div>
+                                            <div className="flex flex-col gap-3">
+                                                {(file.assigned_testers_names || []).map((name, i) => (
+                                                    <div key={i} className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-[32px] h-[32px] rounded-full bg-[#185FA5] flex items-center justify-center text-[13px] font-medium text-white shrink-0">
+                                                                {name ? name.charAt(0).toUpperCase() : '?'}
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[13px] font-medium text-white leading-tight mb-0.5">{name}</span>
+                                                                <span className="text-[11px] text-white/40">Charge : {guard?.velocity || 1} test/j</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="px-[9px] py-[3px] bg-[#1D9E75]/15 border-[0.5px] border-[#1D9E75]/25 rounded-[20px]">
+                                                            <span className="text-[11px] font-medium text-[#5DCAA5]">Actif</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {(file.assigned_testers_names || []).length === 0 && (
+                                                    <div className="text-[12px] text-white/40 italic">Aucun testeur assigné.</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        </>
+                                    )}
+                                    
+                                    {!isOptimizingSidebar && (
+                                        <button
+                                            onClick={() => handleOpenPreview(file)}
+                                            className="w-full bg-[#1a2235] border-[0.5px] border-white/[0.08] hover:bg-[#202940] transition-colors rounded-[12px] p-[14px] px-[16px] flex items-center justify-between mt-2"
+                                        >
+                                            <span className="text-[13px] font-medium text-white/60">Voir le cahier de tests</span>
+                                            <ArrowRight size={16} className="text-white/25" />
+                                        </button>
+                                    )}
+
+                                </div>
+                            </motion.div>
+                        </div>
+                    );
+                })()}
+                </AnimatePresence>,
+                document.body
+            )}
             {/* Campaign Modal */}
+
             {isModalOpen && (
                 <div className="fixed inset-0 z-[99999] flex items-start justify-center bg-slate-950/80 backdrop-blur-xl p-4 overflow-y-auto pt-24">
                     <div className="bg-slate-900 border border-slate-300 dark:border-white/10 rounded-[2rem] w-full max-w-3xl shadow-[0_0_100px_rgba(37,99,235,0.1)] overflow-hidden flex flex-col max-h-[85vh]">

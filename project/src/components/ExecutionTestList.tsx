@@ -368,7 +368,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                         ) : (
                             // Affichage texte/logs/script
                             <pre className="overflow-auto p-6 text-xs text-slate-700 dark:text-slate-300 font-mono leading-relaxed whitespace-pre-wrap break-words flex-1">
-                                {logModal.title.toLowerCase().includes('automation') || logModal.title.toLowerCase().includes('script') ? (
+                                {logModal.title.toLowerCase().includes('automation') || logModal.title.toLowerCase().includes('script') || logModal.title.toLowerCase().includes('code') ? (
                                     <span dangerouslySetInnerHTML={{ __html: 
                                         logModal.content
                                         .replace(/</g, '&lt;').replace(/>/g, '&gt;')

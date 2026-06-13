@@ -402,37 +402,7 @@ const ExecutionTracking = () => {
                 </div>
             </div>
 
-                {typeof document !== 'undefined' && createPortal(
-                    <AnimatePresence>
-                        {selectedTest && (
-                            <>
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    onClick={() => setSelectedTest(null)}
-                                    className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm"
-                                />
-                                <motion.div
-                                    initial={{ x: '100%' }}
-                                    animate={{ x: 0 }}
-                                    exit={{ x: '100%' }}
-                                    transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                                    className="fixed right-0 top-0 bottom-0 z-[1010] w-full max-w-[500px] bg-slate-50 dark:bg-[#0b0e14] border-l border-slate-200 dark:border-white/5 flex flex-col shadow-2xl"
-                                >
-                                    <ReviewPanel
-                                        test={selectedTest}
-                                        onClose={() => setSelectedTest(null)}
-                                        onUpdate={(updates) => handleTestUpdate(selectedTest.id, updates)}
-                                        embed={true}
-                                        readOnly={!canManage}
-                                    />
-                                </motion.div>
-                            </>
-                        )}
-                    </AnimatePresence>,
-                    document.body
-                )}
+
 
             {typeof document !== 'undefined' && editingTest && createPortal(
                 <EditExecutionModal

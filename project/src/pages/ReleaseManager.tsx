@@ -299,192 +299,156 @@ const ReleaseManager = () => {
                     </div>
                 </div>
 
-                {/* Grid of Releases */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
+                {/* Timeline of Releases */}
+                <div className="flex flex-col max-w-6xl mx-auto pb-10 w-full overflow-visible">
                     <AnimatePresence mode="popLayout">
                         {loading && releases.length === 0 ? (
-                            [1, 2, 3, 4].map(i => (
-                                <div key={i} className="h-64 bg-slate-100 dark:bg-white/5 rounded-[2.5rem] animate-pulse border border-slate-300 dark:border-white/10" />
-                            ))
+                            [1, 2, 3].map(i => <div key={i} className="h-24 bg-[#111827] border border-white/[0.07] rounded-[10px] animate-pulse mb-6" />)
                         ) : releases.length === 0 ? (
-                            <div className="col-span-full py-40 text-center opacity-30">
+                            <div className="py-40 text-center opacity-30">
                                 <Sparkles className="w-16 h-16 mx-auto mb-6 text-slate-500" />
                                 <h3 className="font-bold text-sm text-slate-500">{t('releaseManager.card.noReleases')}</h3>
                             </div>
                         ) : (
-                            releases.map((release, idx) => (
-                                <motion.div
-                                    key={release.id}
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.5, delay: idx * 0.05 }}
-                                    className="group relative bg-slate-50 dark:bg-[#0f1729]/80 backdrop-blur-xl hover:bg-slate-50 dark:hover:bg-[#131c31] border border-slate-200 dark:border-white/5 hover:border-blue-500/30 rounded-[2.5rem] p-8 overflow-hidden shadow-xl hover:shadow-[0_15px_40px_-10px_rgba(59,130,246,0.15)] transition-all duration-500"
-                                >
-                                    {/* Subtle ambient glow */}
-                                    <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                            releases.map((release, idx) => {
+                                const isActive = release.status === 'ACTIVE';
+                                const readinessScore = readinessScores[release.id]?.score || 0;
+                                const isReady = readinessScore >= 80;
+                                
+                                return (
+                                    <motion.div
+                                        key={release.id}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: idx * 0.05 }}
+                                        onClick={() => navigate('/manager', { state: { releaseName: release.name, releaseId: release.id } })}
+                                        className="relative flex items-stretch gap-6 cursor-pointer group"
+                                    >
+                                        {/* Left column (Timeline Fixed) */}
+                                        <div className="w-14 flex flex-col items-center mt-5 relative shrink-0">
+                                            <div className={`w-9 h-9 rounded-full flex items-center justify-center relative z-10 border ${isActive ? 'bg-[#1D9E75]/15 border-[#1D9E75]/30 shadow-[0_0_15px_rgba(29,158,117,0.15)]' : 'bg-[#E24B4A]/15 border-[#E24B4A]/30 shadow-[0_0_15px_rgba(226,75,74,0.15)]'}`}>
+                                                <div className={`w-2.5 h-2.5 rounded-full ${isActive ? 'bg-[#5DCAA5] shadow-[0_0_8px_rgba(93,202,165,0.6)]' : 'bg-[#F09595] shadow-[0_0_8px_rgba(240,149,149,0.6)]'}`} />
+                                            </div>
+                                            {idx !== releases.length - 1 && (
+                                                <div className="absolute top-9 bottom-[-24px] w-px bg-white/[0.07]" style={{ left: '50%', transform: 'translateX(-50%)' }} />
+                                            )}
+                                        </div>
 
-                                    <div className="flex flex-col h-full relative z-10">
-                                        {/* Header: Badges & Right Actions */}
-                                        <div className="flex items-start justify-between mb-6">
-                                            <div className="flex flex-wrap gap-2">
-                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black border ${getStatusStyles(release.status)}`}>
-                                                    <div className={`w-1 h-1 rounded-full ${release.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : 'bg-current'}`} />
-                                                    {getStatusLabel(release.status)}
-                                                </span>
+                                        {/* Right area */}
+                                        <div className="flex-1 pb-6 min-w-0">
+                                            <div className="flex items-center gap-2 text-[11px] font-medium text-white/30 uppercase tracking-[0.06em] mb-2 ml-1">
+                                                {formatDate(release.created_at).replace('.', '').toUpperCase()}
                                                 {release.release_type && (
-                                                    <span className="inline-flex items-center px-3 py-1.5 bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-full text-[10px] font-black text-slate-500 dark:text-slate-400 capitalize">
-                                                        {release.release_type.toLowerCase()}
-                                                    </span>
+                                                    <>
+                                                        <span className="w-1 h-1 rounded-full bg-white/20" />
+                                                        <span className="text-white/40 font-bold">{release.release_type.toLowerCase()}</span>
+                                                    </>
                                                 )}
                                             </div>
+                                            <div className="bg-[#111827] border border-white/[0.07] rounded-[14px] py-5 px-7 flex flex-col justify-center hover:border-blue-500/30 hover:bg-[#1f2937] transition-all max-w-full shadow-lg">
+                                                <div className="flex items-center gap-5">
+                                                    {/* Left: Name & Desc */}
+                                                    <div className="flex-1 min-w-0 pr-4">
+                                                        <h4 className="text-[16px] font-semibold text-[#e8eaf6] truncate leading-tight group-hover:text-blue-400 transition-colors">{release.name}</h4>
+                                                        <div className="text-[13px] text-white/[0.35] mt-1 max-w-[500px]" onClick={(e) => e.stopPropagation()}>
+                                                            <ExpandableDescription
+                                                                text={release.description}
+                                                                maxChars={70}
+                                                                emptyLabel="Aucune description"
+                                                            />
+                                                        </div>
+                                                    </div>
 
-                                            <div className="flex items-start gap-4">
-                                                {/* Readiness Text */}
-                                                <div
-                                                    className="flex flex-col items-end cursor-pointer group/readiness"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (readinessScores[release.id]) {
-                                                            setSelectedReadinessData(readinessScores[release.id]);
-                                                            setSelectedEntityName(release.name);
-                                                            setIsDetailModalOpen(true);
-                                                        }
-                                                    }}
-                                                >
-                                                    <span className="text-xl font-black text-slate-900 dark:text-white leading-none">
-                                                        {readinessScores[release.id]?.score || 0}%
-                                                    </span>
-                                                    <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mt-1 group-hover/readiness:text-emerald-400 transition-colors">
-                                                        {t('releaseManager.readiness.ready', 'PRÊT')}
-                                                    </span>
-                                                </div>
+                                                    {/* Center: Readiness Score & Campaigns */}
+                                                    <div className="flex items-center gap-4 shrink-0 border-l border-white/[0.07] pl-5 h-8">
+                                                        <div 
+                                                            className="flex flex-col items-center gap-1 cursor-pointer group/readiness hover:opacity-80 transition-opacity" 
+                                                            title="Readiness Score"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (readinessScores[release.id]) {
+                                                                    setSelectedReadinessData(readinessScores[release.id]);
+                                                                    setSelectedEntityName(release.name);
+                                                                    setIsDetailModalOpen(true);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <span className={`text-[15px] font-black leading-none ${isReady ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                                {readinessScore}%
+                                                            </span>
+                                                            <span className={`text-[8px] font-black uppercase tracking-widest leading-none ${isReady ? 'text-emerald-500/70' : 'text-rose-500/70'}`}>
+                                                                {isReady ? 'Prêt' : 'À Risque'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="w-1 h-1 rounded-full bg-white/10" />
+                                                        <div className="flex items-center gap-1.5 text-white/50" title="Cahiers de test">
+                                                            <span className="text-[13px] font-bold leading-tight text-white/70">{release.campaign_count || 0}</span>
+                                                            <span className="text-[10px] font-medium uppercase tracking-widest text-white/40">{(release.campaign_count || 0) > 1 ? 'Cahiers de test' : 'Cahier de test'}</span>
+                                                        </div>
+                                                    </div>
 
-                                                {/* Options Menu */}
-                                                <div className="relative">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === release.id ? null : release.id); }}
-                                                        className="p-1.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl border border-slate-200 dark:border-white/10 text-slate-400 transition-colors"
-                                                    >
-                                                        <MoreVertical size={16} />
-                                                    </button>
+                                                    {/* Right: Progress & Status */}
+                                                    <div className="flex items-center gap-5 shrink-0 border-l border-white/[0.07] pl-5 h-8">
 
-                                                    <AnimatePresence>
-                                                        {openMenuId === release.id && isAdminOrManager && (
-                                                            <motion.div
-                                                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                                exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                                className="absolute right-0 mt-4 w-56 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-[2rem] shadow-2xl z-50 overflow-hidden"
-                                                            >
-                                                                <div className="p-3 space-y-1">
-                                                                    <button
-                                                                        onClick={() => handleEditClick(release)}
-                                                                        className="w-full flex items-center gap-3 px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10 rounded-2xl transition-all"
-                                                                    >
-                                                                        <Edit className="w-4 h-4 text-blue-600 dark:text-blue-500/70" />
-                                                                        {t('releaseManager.menu.edit')}
-                                                                    </button>
-                                                                    <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 my-2" />
-                                                                    <p className="px-6 py-2 text-[8px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">{t('releaseManager.status.label')}</p>
-                                                                    {['ACTIVE', 'COMPLETED'].map(status => (
+
+                                                        <span className={`text-[11px] px-[10px] py-[4px] rounded-[20px] font-bold uppercase tracking-wider border leading-tight ${isActive ? 'bg-[#1D9E75]/15 text-[#5DCAA5] border-[#1D9E75]/25' : 'bg-[#E24B4A]/15 text-[#F09595] border-[#E24B4A]/25'}`}>
+                                                            {getStatusLabel(release.status)}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Far Right: Actions */}
+                                                    <div className="flex items-center shrink-0 border-l border-white/[0.07] pl-4 h-8 relative">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === release.id ? null : release.id); }}
+                                                            className="p-1.5 text-white/30 hover:text-white rounded-md hover:bg-white/5 transition-colors"
+                                                        >
+                                                            <MoreVertical className="w-4 h-4" />
+                                                        </button>
+                                                        
+                                                        <AnimatePresence>
+                                                            {openMenuId === release.id && isAdminOrManager && (
+                                                                <motion.div
+                                                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                                    className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[100] overflow-hidden"
+                                                                    onClick={e => e.stopPropagation()}
+                                                                >
+                                                                    <div className="p-2 space-y-1">
                                                                         <button
-                                                                            key={status}
-                                                                            onClick={() => handleStatusChange(release, status)}
-                                                                            className={`w-full flex items-center gap-3 px-6 py-3 text-[9px] font-black uppercase tracking-widest rounded-2xl transition-all ${release.status === status ? (status === 'ACTIVE' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/5' : 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/5') : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/10'}`}
+                                                                            onClick={() => handleEditClick(release)}
+                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl transition-all"
                                                                         >
-                                                                            <Activity className={`w-3.5 h-3.5 ${release.status === status ? 'animate-pulse' : 'opacity-40'}`} />
-                                                                            {getStatusLabel(status)}
+                                                                            <Edit className="w-3.5 h-3.5 text-blue-600 dark:text-blue-500/70" />
+                                                                            {t('releaseManager.menu.edit')}
                                                                         </button>
-                                                                    ))}
-                                                                    <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 my-2" />
-                                                                    <button
-                                                                        onClick={() => { setReleaseToDelete(release.id); setIsDeleteModalOpen(true); setOpenMenuId(null); }}
-                                                                        className="w-full flex items-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-2xl transition-all"
-                                                                    >
-                                                                        <Trash2 className="w-4 h-4" />
-                                                                        {t('releaseManager.menu.delete')}
-                                                                    </button>
-                                                                </div>
-                                                            </motion.div>
-                                                        )}
-                                                    </AnimatePresence>
+                                                                        <div className="h-px bg-slate-100 dark:bg-white/5 mx-2 my-1" />
+                                                                        <button
+                                                                            onClick={() => handleStatusChange(release, release.status === 'ACTIVE' ? 'COMPLETED' : 'ACTIVE')}
+                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl transition-all"
+                                                                        >
+                                                                            <Activity className={`w-3.5 h-3.5 ${release.status === 'ACTIVE' ? 'text-rose-600 dark:text-rose-500/70' : 'text-emerald-600 dark:text-emerald-500/70'}`} />
+                                                                            {release.status === 'ACTIVE' ? getStatusLabel('COMPLETED') : getStatusLabel('ACTIVE')}
+                                                                        </button>
+                                                                        <div className="h-px bg-slate-100 dark:bg-white/5 mx-2 my-1" />
+                                                                        <button
+                                                                            onClick={() => { setReleaseToDelete(release.id); setIsDeleteModalOpen(true); setOpenMenuId(null); }}
+                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-rose-600 dark:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all"
+                                                                        >
+                                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                                            {t('releaseManager.menu.delete')}
+                                                                        </button>
+                                                                    </div>
+                                                                </motion.div>
+                                                            )}
+                                                        </AnimatePresence>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-
-                                        {/* Title & Description */}
-                                        <div className="mb-8">
-                                            <h3 className="text-2xl md:text-3xl font-semibold text-blue-500 mb-3 tracking-tight truncate">
-                                                {release.name}
-                                            </h3>
-                                            <p className="text-slate-500 dark:text-slate-400 text-xs font-medium leading-relaxed min-h-[2.5rem]">
-                                                <ExpandableDescription
-                                                    text={release.description}
-                                                    maxChars={90}
-                                                    emptyLabel="Aucune description"
-                                                />
-                                            </p>
-                                        </div>
-
-                                        {/* Horizontal Progression */}
-                                        <div className="mb-8">
-                                            <div className="flex items-center justify-between mb-3">
-                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.15em]">
-                                                    Progression
-                                                </span>
-                                                <span className={`text-[10px] font-black ${(readinessScores[release.id]?.score || 0) >= 80 ? 'text-emerald-500' : (readinessScores[release.id]?.score || 0) >= 40 ? 'text-amber-500' : 'text-rose-500'}`}>
-                                                    {readinessScores[release.id]?.score || 0}%
-                                                </span>
-                                            </div>
-                                            <div className="h-1 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                                                <motion.div
-                                                    initial={{ width: 0 }}
-                                                    animate={{ width: `${readinessScores[release.id]?.score || 0}%` }}
-                                                    transition={{ duration: 1, ease: 'easeOut' }}
-                                                    className={`h-full rounded-full ${(readinessScores[release.id]?.score || 0) >= 80 ? 'bg-emerald-500' : (readinessScores[release.id]?.score || 0) >= 40 ? 'bg-amber-500' : 'bg-rose-500'}`}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Compact Stats Grid */}
-                                        <div className="grid grid-cols-2 gap-3 mb-8">
-                                            <div className="p-3 bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl flex flex-col justify-center">
-                                                <div className="flex items-center gap-1.5 mb-1.5">
-                                                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Créé le</p>
-                                                </div>
-                                                <div className="flex items-baseline gap-1">
-                                                    <p className="text-lg font-black text-slate-900 dark:text-white leading-none">
-                                                        {new Date(release.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }).replace('.', '')}
-                                                    </p>
-                                                    <p className="text-[10px] text-slate-500 font-bold">{new Date(release.created_at).getFullYear()}</p>
-                                                </div>
-                                            </div>
-                                            <div className="p-3 bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 rounded-xl flex flex-col justify-center">
-                                                <div className="flex items-center gap-1.5 mb-1.5">
-                                                    <Layers className="w-3.5 h-3.5 text-slate-400" />
-                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Campagnes</p>
-                                                </div>
-                                                <p className="text-lg font-black text-slate-900 dark:text-white leading-none">{release.campaign_count || 1}</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Footer */}
-                                        <div className="mt-auto pt-5 border-t border-slate-200 dark:border-slate-700/50 flex items-center justify-between">
-                                            <span className="text-xs font-black text-blue-500 cursor-pointer hover:text-blue-400 transition-colors" onClick={() => navigate('/manager', { state: { releaseName: release.name, releaseId: release.id } })}>
-                                                Explorer la release
-                                            </span>
-                                            <button
-                                                onClick={() => navigate('/manager', { state: { releaseName: release.name, releaseId: release.id } })}
-                                                className="flex items-center gap-2 px-4 py-2 bg-transparent hover:bg-slate-100 dark:hover:bg-white/5 border border-slate-300 dark:border-slate-600 rounded-xl text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest transition-colors group/btn"
-                                            >
-                                                <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
-                                                Ouvrir
-                                            </button>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))
+                                    </motion.div>
+                                )
+                            })
                         )}
                     </AnimatePresence>
                 </div>

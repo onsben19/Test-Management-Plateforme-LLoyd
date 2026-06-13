@@ -1,0 +1,73 @@
+@startuml
+
+title Vue Runtime Détaillée - Interrogation Text-to-SQL (Agent Analytics)\nInsureTM - Plateforme de Gestion de Campagnes de Test Lloyd
+
+skinparam Shadowing false
+hide footbox
+skinparam ParticipantPadding 15
+
+skinparam sequence {
+    ArrowColor #000000
+    ActorBorderColor #000000
+    LifeLineBorderColor #000000
+    LifeLineBackgroundColor #FFFFFF
+    ParticipantBorderColor #000000
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantFontName Helvetica
+    ParticipantFontSize 12
+    ParticipantFontColor #000000
+    ActorBackgroundColor #FFFFFF
+    ActorFontName Helvetica
+    ActorFontSize 12
+    ActorFontColor #000000
+    NoteBackgroundColor #FFFFCC
+    NoteBorderColor #999999
+}
+
+actor ":Manager QA" as Manager
+participant "«IHM»\nInterface React/Plotly" as Front
+participant "«Contrôleur»\nBackend Django" as Back
+participant "«Service»\nAPI Groq (Llama 3)" as Groq
+database "«Entité»\nBase PostgreSQL" as DB
+
+group Saisie et traduction Text-to-SQL
+
+    Manager -> Front : saisirQuestion(naturel)
+    activate Front
+    Front -> Back : interrogerAnalytics(question)
+    activate Back
+
+    Back -> Groq : traduireTexteEnSQL(question, schema)
+    activate Groq
+    Groq --> Back : retours requete_sql
+    deactivate Groq
+
+end
+
+group Vérification de sécurité et Exécution
+
+    Back -> Back : validerSecuriteSQL(requete_sql)
+    note right: Le backend agit comme\nun Fail-Safe interne
+
+    alt Requête malveillante (DROP, DELETE...)
+        Back --> Front : retours erreurSecurite(HTTP 403)
+        Front --> Manager : afficherErreurs("Injection SQL bloquée")
+        
+    else Requête valide (SELECT uniquement)
+        Back -> DB : executerRequeteSQL(lecture_seule)
+        activate DB
+        DB --> Back : retours donnees_brutes
+        deactivate DB
+        
+        Back --> Front : retours donnees_json
+        
+        Front -> Front : renderGraphiqueInteractif(Plotly)
+        Front --> Manager : afficherGraphique()
+    end
+
+end
+
+deactivate Back
+deactivate Front
+
+@enduml

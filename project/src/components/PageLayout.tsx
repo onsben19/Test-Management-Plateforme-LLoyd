@@ -46,7 +46,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({
             <Header />
             <div className="flex relative">
                 <Sidebar />
-                <main className={`flex-1 transition-all duration-500 ${isOpen ? 'lg:ml-64' : 'lg:ml-16'} ${fullHeight ? 'h-[calc(100vh-64px)] overflow-hidden' : 'p-4 lg:p-8 overflow-y-auto'}`}>
+                <main className={`flex-1 transition-all duration-500 ${isOpen ? 'lg:ml-72' : 'lg:ml-0'} ${fullHeight ? 'h-[calc(100vh-64px)] overflow-hidden' : 'p-4 lg:p-8 overflow-y-auto'}`}>
                     <div className={`${fullHeight ? 'h-full' : ''} max-w-[1600px] mx-auto relative z-10 flex flex-col`}>
 
                         {/* Page Header section if title provided */}

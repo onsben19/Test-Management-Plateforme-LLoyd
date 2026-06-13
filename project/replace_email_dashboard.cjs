@@ -1,122 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import PageLayout from '../components/PageLayout';
-import EmailList from '../components/EmailList';
-import ComposeEmailModal from '../components/ComposeEmailModal';
-import { emailService } from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import { Mail, Inbox, Send, Paperclip, FileText, Reply, Forward, Trash2, Search, X, ChevronLeft, Download } from 'lucide-react';
-import { toast } from 'react-toastify';
-import ConfirmModal from '../components/ConfirmModal';
-import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'framer-motion';
-import Button from '../components/ui/Button';
+const fs = require('fs');
+const filePath = '/Users/user/Desktop/projet fe/project/src/pages/EmailDashboard.tsx';
+let content = fs.readFileSync(filePath, 'utf8');
 
-const EmailDashboard = () => {
-    const { t } = useTranslation();
-    const { user } = useAuth();
-    const [emails, setEmails] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [activeTab, setActiveTab] = useState<'inbox' | 'sent'>('inbox');
-    const [composeModalOpen, setComposeModalOpen] = useState(false);
-    const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
-    const [composeInitialData, setComposeInitialData] = useState<any>(undefined);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [emailToDelete, setEmailToDelete] = useState<any | null>(null);
+// Add Download to imports
+content = content.replace(
+  "import { Mail, Inbox, Send, Paperclip, FileText, Reply, Forward, Trash2, Search, X, ChevronLeft } from 'lucide-react';",
+  "import { Mail, Inbox, Send, Paperclip, FileText, Reply, Forward, Trash2, Search, X, ChevronLeft, Download } from 'lucide-react';"
+);
 
-    const fetchEmails = async () => {
-        try {
-            setLoading(true);
-            const response = await emailService.getEmails();
-            const data = response.data.results || response.data;
-            setEmails(data);
-        } catch (error) {
-            console.error("Failed to fetch emails", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchEmails();
-    }, []);
-
-    const filteredEmails = emails.filter(email => {
-        const isInbox = activeTab === 'inbox' ? email.recipient === user?.id : email.sender === user?.id;
-        if (!isInbox) return false;
-
-        if (!searchQuery) return true;
-        const query = searchQuery.toLowerCase();
-        return (
-            email.subject.toLowerCase().includes(query) ||
-            email.body.toLowerCase().includes(query) ||
-            (email.sender_name || '').toLowerCase().includes(query) ||
-            (email.recipient_name || '').toLowerCase().includes(query)
-        );
-    });
-
-    const handleEmailClick = async (email: any) => {
-        setSelectedEmail(email);
-        if (activeTab === 'inbox' && !email.is_read) {
-            try {
-                await emailService.markAsRead(email.id);
-                setEmails(prev => prev.map(e => e.id === email.id ? { ...e, is_read: true } : e));
-            } catch (error) {
-                console.error("Failed to mark as read", error);
-            }
-        }
-    };
-
-    const handleReply = (email: any) => {
-        setComposeInitialData({
-            mode: 'reply',
-            recipientId: String(email.sender),
-            subject: email.subject.startsWith('Re:') ? email.subject : `Re: ${email.subject}`,
-            body: `\n\n--- ${t('email.details.originalMessage')} ---\n${t('email.details.from')} ${email.sender_name}\n${email.body}`,
-        });
-        setComposeModalOpen(true);
-    };
-
-    const handleForward = (email: any) => {
-        setComposeInitialData({
-            mode: 'forward',
-            subject: email.subject.startsWith('Fwd:') ? email.subject : `Fwd: ${email.subject}`,
-            body: `\n\n--- ${t('email.details.forwardedMessage')} ---\n${t('email.details.from')} ${email.sender_name}\n${t('email.details.date')} ${new Date(email.created_at).toLocaleString(t('common.dateLocale'))}\n${t('email.details.subject')} ${email.subject}\n\n${email.body}`,
-        });
-        setComposeModalOpen(true);
-    };
-
-    const handleDeleteEmail = (email: any) => {
-        setEmailToDelete(email);
-        setIsDeleteModalOpen(true);
-    };
-
-    const confirmDeleteEmail = async () => {
-        if (!emailToDelete) return;
-        try {
-            await emailService.deleteEmail(emailToDelete.id);
-            setEmails(prev => prev.filter(e => e.id !== emailToDelete.id));
-            if (selectedEmail?.id === emailToDelete.id) setSelectedEmail(null);
-            toast.success(t('email.toasts.deleted'));
-        } catch {
-            toast.error(t('email.toasts.deleteError'));
-        } finally {
-            setEmailToDelete(null);
-            setIsDeleteModalOpen(false);
-        }
-    };
-
-    const HeaderActions = (
-        <Button
-            onClick={() => { setComposeInitialData(undefined); setComposeModalOpen(true); }}
-            icon={Mail}
-        >
-            {t('email.new')}
-        </Button>
-    );
-
-    return (
-                <PageLayout 
+// Replace PageLayout block
+const newPageLayoutBlock = `        <PageLayout 
             title={<span className="text-[20px] font-medium text-[#e8eaf6]">Messagerie</span>} 
             subtitle="Messaging Center" 
             actions={
@@ -129,13 +22,13 @@ const EmailDashboard = () => {
             <div className="grid gap-[10px] h-[560px]" style={{ gridTemplateColumns: '180px 280px 1fr' }}>
                 {/* Colonne 1 — Sidebar */}
                 <div className="bg-[#111827] rounded-[12px] border-[0.5px] border-white/[0.08] p-[12px] flex flex-col gap-[4px]">
-                    <button onClick={() => { setActiveTab('inbox'); setSelectedEmail(null); }} className={`flex items-center gap-2 p-[10px] rounded-[10px] text-[12px] font-medium w-full text-left transition-all ${activeTab === 'inbox' ? 'bg-[#378ADD]/15 border-[0.5px] border-[#378ADD]/25 text-[#85B7EB]' : 'bg-transparent text-white/40 border-[0.5px] border-transparent hover:bg-white/5'}`}>
+                    <button onClick={() => { setActiveTab('inbox'); setSelectedEmail(null); }} className={\`flex items-center gap-2 p-[10px] rounded-[10px] text-[12px] font-medium w-full text-left transition-all \${activeTab === 'inbox' ? 'bg-[#378ADD]/15 border-[0.5px] border-[#378ADD]/25 text-[#85B7EB]' : 'bg-transparent text-white/40 border-[0.5px] border-transparent hover:bg-white/5'}\`}>
                         <Inbox size={16} /> Boîte de réception
                         {activeTab === 'inbox' && filteredEmails.length > 0 && (
                             <span className="bg-[#185FA5] text-white text-[10px] px-[7px] py-[2px] rounded-[20px] ml-auto">{filteredEmails.length}</span>
                         )}
                     </button>
-                    <button onClick={() => { setActiveTab('sent'); setSelectedEmail(null); }} className={`flex items-center gap-2 p-[10px] rounded-[10px] text-[12px] font-medium w-full text-left transition-all ${activeTab === 'sent' ? 'bg-[#378ADD]/15 border-[0.5px] border-[#378ADD]/25 text-[#85B7EB]' : 'bg-transparent text-white/40 border-[0.5px] border-transparent hover:bg-white/5'}`}>
+                    <button onClick={() => { setActiveTab('sent'); setSelectedEmail(null); }} className={\`flex items-center gap-2 p-[10px] rounded-[10px] text-[12px] font-medium w-full text-left transition-all \${activeTab === 'sent' ? 'bg-[#378ADD]/15 border-[0.5px] border-[#378ADD]/25 text-[#85B7EB]' : 'bg-transparent text-white/40 border-[0.5px] border-transparent hover:bg-white/5'}\`}>
                         <Send size={16} /> Envoyés
                         {activeTab === 'sent' && filteredEmails.length > 0 && (
                             <span className="bg-[#185FA5] text-white text-[10px] px-[7px] py-[2px] rounded-[20px] ml-auto">{filteredEmails.length}</span>
@@ -165,7 +58,7 @@ const EmailDashboard = () => {
                                 <button
                                     key={email.id}
                                     onClick={() => handleEmailClick(email)}
-                                    className={`p-[10px] rounded-[10px] border-[0.5px] flex items-start gap-3 transition-all text-left ${isActive ? 'bg-[#378ADD]/10 border-[#378ADD]/20' : 'bg-transparent border-white/[0.05] hover:bg-white/[0.02]'}`}
+                                    className={\`p-[10px] rounded-[10px] border-[0.5px] flex items-start gap-3 transition-all text-left \${isActive ? 'bg-[#378ADD]/10 border-[#378ADD]/20' : 'bg-transparent border-white/[0.05] hover:bg-white/[0.02]'}\`}
                                 >
                                     <div className="w-[30px] h-[30px] shrink-0 bg-[#185FA5] text-[#B5D4F4] text-[12px] font-bold rounded-full flex items-center justify-center">
                                         {(displayName?.charAt(0) || 'M').toUpperCase()}
@@ -176,7 +69,7 @@ const EmailDashboard = () => {
                                             <span className="text-[10px] text-white/40 shrink-0 ml-2">{displayDate}</span>
                                         </div>
                                         <div className="text-[11px] text-white/55 truncate mb-[1px]">
-                                            {email.subject?.replace(/\*/g, '') || "Sujet..."}
+                                            {email.subject?.replace(/\\*/g, '') || "Sujet..."}
                                         </div>
                                         <div className="text-[11px] text-white/30 truncate flex items-center justify-between">
                                             <span className="truncate">{email.body ? email.body.substring(0, 30) + '...' : "Aucun aperçu disponible"}</span>
@@ -196,7 +89,7 @@ const EmailDashboard = () => {
                             {/* Header du message */}
                             <div className="px-[18px] py-[16px] border-b-[0.5px] border-white/[0.07] shrink-0">
                                 <h2 className="text-[15px] font-medium text-white mb-2" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                    {(selectedEmail.subject || "Sans sujet").replace(/\*/g, '')}
+                                    {(selectedEmail.subject || "Sans sujet").replace(/\\*/g, '')}
                                 </h2>
                                 <div className="flex items-center">
                                     <div className="w-[22px] h-[22px] bg-[#185FA5] rounded-full flex items-center justify-center text-[10px] font-bold text-[#B5D4F4] mr-2">
@@ -294,8 +187,15 @@ const EmailDashboard = () => {
                 confirmText={t('common.delete')}
                 type="danger"
             />
-        </PageLayout>
-    );
-};
+        </PageLayout>`;
 
-export default EmailDashboard;
+const pageLayoutStart = content.indexOf('<PageLayout');
+const pageLayoutEndStr = '</PageLayout>';
+const pageLayoutEnd = content.lastIndexOf(pageLayoutEndStr) + pageLayoutEndStr.length;
+
+if (pageLayoutStart !== -1 && pageLayoutEnd !== -1) {
+  content = content.substring(0, pageLayoutStart) + newPageLayoutBlock + content.substring(pageLayoutEnd);
+}
+
+fs.writeFileSync(filePath, content, 'utf8');
+console.log('Successfully updated EmailDashboard.tsx');

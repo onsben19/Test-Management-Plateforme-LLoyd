@@ -1,0 +1,76 @@
+@startuml
+
+title Diagramme de Séquence : Modification des Droits et du Profil Utilisateur\nInsureTM - Plateforme de Gestion de Campagnes de Test Lloyd
+
+skinparam Shadowing false
+hide footbox
+skinparam ParticipantPadding 15
+
+skinparam sequence {
+    ArrowColor #000000
+    ActorBorderColor #000000
+    LifeLineBorderColor #000000
+    LifeLineBackgroundColor #FFFFFF
+    ParticipantBorderColor #000000
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantFontName Helvetica
+    ParticipantFontSize 12
+    ParticipantFontColor #000000
+    ActorBackgroundColor #FFFFFF
+    ActorFontName Helvetica
+    ActorFontSize 12
+    ActorFontColor #000000
+}
+
+actor ":Administrateur" as Admin
+participant "«IHM»\nInterface React" as Frontend
+participant "«Contrôleur»\nBackend Django" as Backend
+database "«Entité»\nBase de Données" as DB
+
+group Chargement du profil utilisateur
+
+    Admin -> Frontend: selectionnerUtilisateur(userId)
+    Frontend -> Backend: chargerProfilUtilisateur(userId)
+    activate Backend
+    Backend -> DB: recupererUtilisateur(userId)
+    activate DB
+    DB --> Backend: retours profilUtilisateur(\nnom, email, role, statut)
+    deactivate DB
+    Backend --> Frontend: retours donneesUtilisateur()
+    deactivate Backend
+    Frontend --> Admin: afficherFormulairePreRempli(\nnom, email, role, statut)
+
+end
+
+group Modification et soumission
+
+    Admin -> Frontend: modifierChamps(\nrole?, nom?, email?, statut?)
+    Admin -> Frontend: clicEnregistrer()
+    Frontend -> Backend: mettreAJourUtilisateur(\nuserId, champsModifies)
+    activate Backend
+
+    Backend -> Backend: validerDonnees(champsModifies)
+
+    alt Données invalides
+        Backend --> Frontend: retours erreurValidation(HTTP 400)
+        Frontend --> Admin: afficherErreurs("Données incorrectes")
+    else Données valides
+
+        alt Nouveau mot de passe fourni
+            Backend -> Backend: hashMotDePasse(newPassword)
+        end
+
+        Backend -> DB: mettreAJourProfil(\nnom, email, role, statut, passwordHash?)
+        activate DB
+        DB --> Backend: retours profilMisAJour()
+        deactivate DB
+
+        Backend --> Frontend: retours utilisateurMisAJour(HTTP 200)
+        deactivate Backend
+        Frontend --> Admin: afficherToast(\n"Profil mis à jour avec succès")
+
+    end
+
+end
+
+@enduml

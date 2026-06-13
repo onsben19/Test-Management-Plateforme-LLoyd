@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 
-from .serializers import UserSerializer, UserRegistrationSerializer
+from .serializers import UserSerializer, UserRegistrationSerializer, UserProfileUpdateSerializer
 from notifications.models import Notification
 from utils.email_service import send_account_created_email, send_otp_email, send_password_reset_email
 from django.utils import timezone
@@ -162,3 +162,35 @@ class ForgotPasswordView(APIView):
         send_password_reset_email(user, new_pwd)
         
         return Response({"message": "Si votre compte existe, un nouveau mot de passe vous a été envoyé."}, status=status.HTTP_200_OK)
+
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
+
+    def put(self, request):
+        serializer = UserProfileUpdateSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(UserSerializer(request.user).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        old_password = request.data.get("old_password")
+        new_password = request.data.get("new_password")
+        
+        if not old_password or not new_password:
+            return Response({"detail": "Ancien et nouveau mot de passe requis."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        user = request.user
+        if not user.check_password(old_password):
+            return Response({"detail": "Ancien mot de passe incorrect."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        user.set_password(new_password)
+        user.save()
+        return Response({"message": "Mot de passe mis à jour avec succès."}, status=status.HTTP_200_OK)

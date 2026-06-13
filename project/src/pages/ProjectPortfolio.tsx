@@ -4,7 +4,7 @@ import PageLayout from '../components/PageLayout';
 import {
     Briefcase, Plus, Search, MoreVertical, Edit, Trash2,
     Layers, Calendar, ChevronRight, LayoutGrid, LayoutList, ArrowRight, Pencil, Trash,
-    BarChart3, Activity, List, GitMerge
+    BarChart3, Activity, List, GitMerge, Target
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { businessProjectService } from '../services/api';
@@ -68,7 +68,7 @@ const ProjectPortfolio = () => {
     const fetchProjects = async (page = 1) => {
         try {
             setLoading(true);
-            const response = await businessProjectService.getBusinessProjects({ 
+            const response = await businessProjectService.getBusinessProjects({
                 search: searchQuery,
                 page,
                 owner: filterOwner,
@@ -142,16 +142,16 @@ const ProjectPortfolio = () => {
     const DescriptionCell = ({ text }: { text: string }) => {
         const [expanded, setExpanded] = useState(false);
         if (!text) return <span className="text-xs text-slate-500 dark:text-slate-400">N/A</span>;
-        
+
         const isLong = text.length > 80;
-        
+
         return (
             <div className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
                 <span className={expanded ? "whitespace-normal break-words" : "line-clamp-2"}>
                     {text}
                 </span>
                 {isLong && (
-                    <button 
+                    <button
                         onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
                         className="text-blue-500 hover:text-blue-400 font-bold mt-1 text-[10px] uppercase tracking-widest transition-colors"
                     >
@@ -273,51 +273,97 @@ const ProjectPortfolio = () => {
                                 </div>
                             </div>
 
-                            {/* Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-10">
+                            {/* List View */}
+                            <div className="flex flex-col gap-3 max-w-6xl mx-auto pb-10 w-full">
+                                {/* LIST HEADER ROW */}
+                                {!loading && paginatedProjects.length > 0 && (
+                                    <div className="flex items-center px-5 py-2 mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 border-b border-slate-200/50 dark:border-white/5 pb-3">
+                                        <div className="flex-1 min-w-[200px] ml-6">{t('portfolio.table.project', 'Projet')}</div>
+                                        <div className="flex-[2] min-w-[300px] hidden lg:block">{t('portfolio.table.description', 'Description')}</div>
+                                        <div className="flex-1 text-center">{t('portfolio.table.releases', 'Releases')}</div>
+                                        <div className="flex-1 text-center hidden md:block">{t('portfolio.table.createdAt', 'Créé le')}</div>
+                                        <div className="flex-1 text-center">Santé</div>
+                                        <div className="flex-1 text-center">Statut</div>
+                                        <div className="w-10"></div>
+                                    </div>
+                                )}
                                 {loading ? (
-                                    [1, 2, 3].map(i => <div key={i} className="h-64 bg-slate-100 dark:bg-white/5 rounded-[2rem] animate-pulse border border-slate-300 dark:border-white/10" />)
+                                    [1, 2, 3].map(i => <div key={i} className="h-16 bg-[#111827] border border-white/[0.07] rounded-[10px] animate-pulse mb-6" />)
                                 ) : paginatedProjects.length === 0 ? (
-                                    <div className="col-span-full py-40 text-center opacity-30">
+                                    <div className="py-40 text-center opacity-30">
                                         <p className="text-sm font-bold uppercase tracking-widest">{t('portfolio.noProjects', 'Aucun projet trouvé')}</p>
                                     </div>
                                 ) : (
-                                    paginatedProjects
-                                        .map((project, idx) => (
+                                    paginatedProjects.map((project, idx) => {
+                                        const isActive = project.status !== 'TERMINÉ';
+                                        const progressWidth = isActive ? Math.min(100, Math.max(15, (project.releases_count || 0) * 20)) : 100;
+                                        
+                                        return (
                                             <motion.div
                                                 key={project.id}
-                                                initial={{ opacity: 0, scale: 0.95 }}
-                                                animate={{ opacity: 1, scale: 1 }}
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: idx * 0.05 }}
                                                 onClick={() => navigate('/releases', { state: { businessProjectId: project.id, businessProjectName: project.name } })}
-                                                className="group relative bg-slate-50 dark:bg-[#0f1729]/80 backdrop-blur-xl hover:bg-slate-50 dark:hover:bg-[#131c31] border border-slate-200 dark:border-white/5 hover:border-blue-500/30 rounded-[2.5rem] p-8 overflow-hidden shadow-xl hover:shadow-[0_15px_40px_-10px_rgba(59,130,246,0.15)] cursor-pointer transition-all duration-500"
+                                                className={`bg-[#111827] border border-white/[0.07] rounded-[14px] py-5 px-7 flex items-center hover:border-blue-500/30 hover:bg-[#1f2937] transition-all cursor-pointer group shadow-sm gap-6 relative ${openMenuId === project.id ? 'z-50' : 'z-0'}`}
                                             >
-                                                {/* Subtle ambient glow */}
-                                                <div className="absolute -top-32 -right-32 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                                                {/* Card Header - Title & Status & Actions */}
-                                                <div className="flex items-start justify-between mb-6">
-                                                    <div className="space-y-2 flex-1 min-w-0 pr-4">
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <div className={`w-1.5 h-1.5 rounded-full ${project.status === 'TERMINÉ' ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'}`} />
-                                                            <span className={`text-[9px] font-black uppercase tracking-widest ${project.status === 'TERMINÉ' ? 'text-rose-500' : 'text-emerald-500'}`}>{project.status || 'ACTIF'}</span>
-                                                        </div>
-                                                        <h3 className="text-xl md:text-2xl font-semibold text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-blue-400 transition-colors uppercase truncate relative z-10">{project.name}</h3>
-                                                    </div>
-                                                    <div className="relative shrink-0" onClick={e => e.stopPropagation()}>
-                                                        <Button
-                                                            variant="secondary"
-                                                            size="icon"
-                                                            onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === project.id ? null : project.id); }}
-                                                            icon={MoreVertical}
-                                                        />
+                                                {/* Left: Dot & Name */}
+                                                <div className="flex items-center gap-4 w-[28%] min-w-0 shrink-0">
+                                                    <div className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-[#5DCAA5]' : 'bg-[#F09595]'}`} />
+                                                    <h4 
+                                                        className="text-[15px] font-bold text-[#e8eaf6] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors"
+                                                        title={project.name}
+                                                    >
+                                                        {project.name}
+                                                    </h4>
+                                                </div>
 
+                                                {/* Description */}
+                                                <div className="flex-1 min-w-0 flex items-center">
+                                                    <div className="text-[13px] font-medium text-white/[0.35] max-w-full" onClick={(e) => e.stopPropagation()}>
+                                                        <ExpandableDescription
+                                                            text={project.description}
+                                                            maxChars={60}
+                                                            emptyLabel={t('portfolio.defaultDesc', 'Aucune description fournie')}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* Releases & Date */}
+                                                <div className="flex items-center gap-6 shrink-0 w-[220px]">
+                                                    <span className="text-[13px] font-medium text-white/50">{project.releases_count || 0} release{(project.releases_count || 0) > 1 ? 's' : ''}</span>
+                                                    <div className="flex items-center text-white/50">
+                                                        <span className="text-[13px] font-medium capitalize">{new Date(project.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).replace('.', '')}</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Progress & Status & Actions */}
+                                                <div className="flex items-center gap-6 shrink-0 justify-end w-[250px]">
+                                                    <div className="w-[80px] h-[4px] bg-white/[0.07] rounded-[2px] overflow-hidden shrink-0">
+                                                        <div className={`h-full rounded-[2px] ${isActive ? 'bg-[#1D9E75]' : 'bg-[#E24B4A]'}`} style={{ width: `${progressWidth}%` }} />
+                                                    </div>
+                                                    
+                                                    <span className={`text-[12px] px-[12px] py-[4px] rounded-full font-semibold tracking-wide border ${isActive ? 'bg-[#1D9E75]/15 text-[#5DCAA5] border-[#1D9E75]/30' : 'bg-[#E24B4A]/15 text-[#F09595] border-[#E24B4A]/30'}`}>
+                                                        {isActive ? 'Actif' : 'Terminé'}
+                                                    </span>
+
+                                                    {/* Actions Menu */}
+                                                    <div className="relative flex items-center shrink-0" onClick={e => e.stopPropagation()}>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === project.id ? null : project.id); }}
+                                                            className="p-1 text-white/30 hover:text-white rounded-md hover:bg-white/5 transition-colors"
+                                                        >
+                                                            <MoreVertical className="w-4 h-4" />
+                                                        </button>
+                                                        
                                                         <AnimatePresence>
                                                             {openMenuId === project.id && (
                                                                 <motion.div
                                                                     initial={{ opacity: 0, scale: 0.95, y: 10 }}
                                                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                                                     exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                                    className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                                                                    className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[100] overflow-hidden"
+                                                                    onClick={e => e.stopPropagation()}
                                                                 >
                                                                     <div className="p-2 space-y-1">
                                                                         <button
@@ -369,71 +415,12 @@ const ProjectPortfolio = () => {
                                                             )}
                                                         </AnimatePresence>
                                                     </div>
-                                                </div>
 
-                                                {/* Description */}
-                                                <div className="space-y-2 mb-8 relative z-10">
-                                                    <p className="text-slate-400 text-sm font-medium leading-relaxed">
-                                                        <ExpandableDescription
-                                                            text={project.description}
-                                                            maxChars={90}
-                                                            emptyLabel={t('portfolio.defaultDesc', 'Aucune description fournie pour ce projet métier.')}
-                                                        />
-                                                    </p>
-                                                </div>
-
-                                                {/* Stats */}
-                                                <div className="grid grid-cols-2 gap-3 relative z-10">
-                                                    <div className="p-4 bg-slate-50 dark:bg-white/[0.02] group-hover:bg-slate-50 dark:group-hover:bg-white/[0.04] transition-colors border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between">
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <Layers className="w-3.5 h-3.5 text-slate-400" />
-                                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('portfolio.table.releases', 'Releases')}</p>
-                                                        </div>
-                                                        <p className="text-2xl font-black text-slate-900 dark:text-white">{project.releases_count || 0}</p>
-                                                    </div>
-                                                    <div className="p-4 bg-slate-50 dark:bg-white/[0.02] group-hover:bg-slate-50 dark:group-hover:bg-white/[0.04] transition-colors border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between">
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('portfolio.table.createdAt', 'Créé le')}</p>
-                                                        </div>
-                                                        <div className="flex items-baseline gap-1.5">
-                                                            <p className="text-xl font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter">
-                                                                {new Date(project.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }).replace('.', '')}
-                                                            </p>
-                                                            <p className="text-xs text-slate-500 font-bold">{new Date(project.created_at).getFullYear()}</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Testers & Footer */}
-                                                <div className="mt-8 pt-6 border-t border-slate-200/50 dark:border-white/5 flex items-center justify-between">
-                                                    <div className="flex -space-x-3">
-                                                        {project.testers?.slice(0, 3).map((t: any, i: number) => (
-                                                            <div key={i} className="w-10 h-10 rounded-xl border-2 border-white dark:border-slate-900 bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-600 dark:text-slate-300 shadow-lg group-hover:-translate-y-1 transition-transform" style={{ transitionDelay: `${i * 50}ms` }}>
-                                                                {t.initials}
-                                                            </div>
-                                                        ))}
-                                                        {(project.testers?.length || 0) > 3 && (
-                                                            <div className="w-10 h-10 rounded-xl border-2 border-white dark:border-slate-900 bg-white dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-blue-600 dark:text-blue-400 shadow-lg">
-                                                                +{project.testers.length - 3}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {/* Hover indicator */}
-                                                <div className="mt-8 flex items-center justify-between relative z-10">
-                                                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                        {project.releases_count > 0 ? "Explorer le projet" : "Commencer"}
-                                                    </span>
-                                                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 group-hover:text-blue-400 transition-colors uppercase tracking-widest">
-                                                        {t('portfolio.viewReleases', 'Ouvrir')}
-                                                        <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                                                    </div>
+                                                    <ChevronRight className="w-4 h-4 text-white/20 ml-2" />
                                                 </div>
                                             </motion.div>
-                                        ))
-
+                                        )
+                                    })
                                 )}
                             </div>
                         </motion.div>
@@ -458,7 +445,6 @@ const ProjectPortfolio = () => {
                                         <select
                                             value={sortBy}
                                             onChange={(e) => setSortBy(e.target.value as any)}
-                                            className="bg-transparent border-none text-xs font-bold text-slate-700 dark:text-slate-300 focus:ring-0 outline-none cursor-pointer appearance-none"
                                         >
                                             <option value="newest" className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300">{t('portfolio.filter.newest', 'RÉCENTS')}</option>
                                             <option value="oldest" className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300">{t('portfolio.filter.oldest', 'ANCIENS')}</option>
@@ -582,9 +568,9 @@ const ProjectPortfolio = () => {
                 type="danger"
             />
 
-            <TraceabilityGraphModal 
-                isOpen={isGraphOpen} 
-                onClose={() => setIsGraphOpen(false)} 
+            <TraceabilityGraphModal
+                isOpen={isGraphOpen}
+                onClose={() => setIsGraphOpen(false)}
                 projectData={selectedProjectForGraph}
             />
         </PageLayout>

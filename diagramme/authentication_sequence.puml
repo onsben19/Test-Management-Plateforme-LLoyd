@@ -1,0 +1,101 @@
+@startuml
+
+title Diagramme de Séquence : Authentification avec Double Facteur (2FA)\nInsureTM - Plateforme de Gestion de Campagnes de Test Lloyd
+
+skinparam Shadowing false
+hide footbox
+skinparam ParticipantPadding 15
+
+skinparam sequence {
+    ArrowColor #000000
+    ActorBorderColor #000000
+    LifeLineBorderColor #000000
+    LifeLineBackgroundColor #FFFFFF
+    ParticipantBorderColor #000000
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantFontName Helvetica
+    ParticipantFontSize 12
+    ParticipantFontColor #000000
+    ActorBackgroundColor #FFFFFF
+    ActorFontName Helvetica
+    ActorFontSize 12
+    ActorFontColor #000000
+}
+
+actor ":Utilisateur" as User
+participant "«IHM»\nInterface React" as Frontend
+participant "«Contrôleur»\nBackend Django" as Backend
+participant "«Service»\nService Email" as Email
+database "«Entité»\nBase de Données" as DB
+
+group Étape 1 : Vérification des identifiants
+
+    User -> Frontend: saisirIdentifiants(username, password)
+    User -> Frontend: clicSeConnecter()
+    Frontend -> Backend: authentifier(username, password)
+    activate Backend
+
+    Backend -> Backend: validerIdentifiants(\nusername, password)
+
+    alt Identifiants invalides
+        Backend --> Frontend: retours erreur(HTTP 401,\n"Identifiants invalides")
+        Frontend --> User: afficherErreur("Identifiants incorrects")
+    else Identifiants valides
+
+        Backend -> Backend: genererCodeOTP(6 chiffres)
+        Backend -> Backend: definirExpirationOTP(\ndateLimite = maintenant + 5 minutes)
+
+        Backend -> DB: sauvegarderOTP(\nutilisateur, otp_code, otp_expiry)
+        activate DB
+        DB --> Backend: retours confirmation()
+        deactivate DB
+
+        Backend -> Email: envoyerEmailOTP(\nutilisateur, codeOTP)
+        activate Email
+        Email --> Backend: retours emailEnvoye()
+        deactivate Email
+
+        Backend --> Frontend: retours demandeOTP(HTTP 200,\nrequires_2fa = true)
+        deactivate Backend
+        Frontend --> User: afficherEcranSaisieOTP(\n"Code envoyé par e-mail")
+
+    end
+
+end
+
+group Étape 2 : Vérification du code OTP
+
+    User -> Frontend: saisirCodeOTP(otp)
+    Frontend -> Backend: verifierOTP(username, otp)
+    activate Backend
+
+    Backend -> DB: recupererUtilisateur(username)
+    activate DB
+    DB --> Backend: retours utilisateur(otp_code, otp_expiry)
+    deactivate DB
+
+    alt Code OTP invalide
+        Backend --> Frontend: retours erreur(HTTP 401,\n"Code OTP invalide")
+        Frontend --> User: afficherErreur("Code incorrect")
+    else Code OTP expiré
+        Backend --> Frontend: retours erreur(HTTP 401,\n"Code OTP expiré")
+        Frontend --> User: afficherErreur(\n"Code expiré, veuillez recommencer")
+    else Code OTP valide
+
+        Backend -> DB: reinitialiserOTP(\notp_code = null, otp_expiry = null)
+        activate DB
+        DB --> Backend: retours confirmation()
+        deactivate DB
+
+        Backend -> Backend: genererTokensJWT(\naccess_token, refresh_token)
+
+        Backend --> Frontend: retours tokensJWT(HTTP 200,\naccess, refresh)
+        deactivate Backend
+        Frontend -> Frontend: stockerTokens(localStorage)
+        Frontend --> User: redirigerVersDashboard()
+
+    end
+
+end
+
+@enduml

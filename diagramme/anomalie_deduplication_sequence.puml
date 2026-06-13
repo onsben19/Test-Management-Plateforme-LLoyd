@@ -1,0 +1,111 @@
+@startuml
+
+title Vue Runtime Détaillée - Création d'une Anomalie et Déduplication SHA-256\nInsureTM - Plateforme de Gestion de Campagnes de Test Lloyd
+
+skinparam Shadowing false
+hide footbox
+skinparam ParticipantPadding 15
+
+skinparam sequence {
+    ArrowColor #000000
+    ActorBorderColor #000000
+    LifeLineBorderColor #000000
+    LifeLineBackgroundColor #FFFFFF
+    ParticipantBorderColor #000000
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantFontName Helvetica
+    ParticipantFontSize 12
+    ParticipantFontColor #000000
+    ActorBackgroundColor #FFFFFF
+    ActorFontName Helvetica
+    ActorFontSize 12
+    ActorFontColor #000000
+    NoteBackgroundColor #FFFFCC
+    NoteBorderColor #999999
+}
+
+actor ":Testeur" as Tester
+
+participant "«IHM»\nInterface React" as Frontend
+participant "«Contrôleur»\nBackend Django" as Backend
+participant "«Service»\nService IA Groq" as IA
+participant "«Processus»\nPlaywright CLI" as Playwright
+database "«Entité»\nBase de Données" as DB
+
+group Sauvegarde du script de test
+
+    Tester -> Frontend: lancerExecution()
+    Frontend -> Backend: sauvegarderScript(code)
+    activate Backend
+    Backend -> Backend: injecterConfiguration()
+    Backend -> DB: enregistrerCheminScript()
+    activate DB
+    DB --> Backend: retours confirmation()
+    deactivate DB
+    Backend --> Frontend: retours confirmationSauvegarde()
+    deactivate Backend
+
+end
+
+group Exécution automatisée et streaming des logs
+
+    Frontend -> Backend: executerScript()
+    activate Backend
+    Backend -> Playwright: demarrerTest(scriptPath)
+    activate Playwright
+
+    loop Pendant l'exécution du test
+        Playwright -> Backend: transmettreLog(ligne)
+        Backend --> Frontend: retours diffuserLog(ligne)
+        Frontend --> Tester: afficherLogTempsReel(ligne)
+    end
+
+    Playwright --> Backend: retours finExecution(statut, screenshot.png)
+    deactivate Playwright
+
+    Backend -> DB: mettreAJourStatut(FAILED)
+    activate DB
+    DB --> Backend: retours confirmation()
+    deactivate DB
+
+end
+
+alt statut == FAILED
+
+    group Génération automatique de l'anomalie
+
+        Backend -> IA: analyserLogs(logs, ref_test)
+        activate IA
+        IA -> IA: classifierErreur()
+        IA --> Backend: retours diagnostic(titre, description)
+        deactivate IA
+
+        Backend -> Backend: creerAnomalieEnMemoire(\ntitle, description, screenshot)
+
+        Backend -> DB: enregistrerAnomalie()
+        activate DB
+
+        DB --> Backend: retours anomalieCree(id, preuve_hash)
+        deactivate DB
+
+        Backend -> DB: mettreAJourPreuve(proof_hash)
+        activate DB
+        DB --> Backend: retours confirmation()
+        deactivate DB
+
+    end
+
+    Backend --> Frontend: retours resultatExecution(FAILED, anomaly_id)
+    deactivate Backend
+    Frontend --> Tester: afficherNotification(\n"Test échoué — Anomalie créée automatiquement")
+
+else statut == PASSED
+
+    Backend --> Frontend: retours resultatExecution(PASSED)
+    deactivate Backend
+    Frontend --> Tester: afficherNotification("Test réussi")
+
+end
+
+
+@enduml

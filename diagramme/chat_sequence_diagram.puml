@@ -1,0 +1,83 @@
+@startuml
+
+title Vue Runtime Détaillée - Messagerie Interne et Chat Collaboratif\nInsureTM - Plateforme de Gestion de Campagnes de Test Lloyd
+
+skinparam Shadowing false
+hide footbox
+skinparam ParticipantPadding 15
+
+skinparam sequence {
+    ArrowColor #000000
+    ActorBorderColor #000000
+    LifeLineBorderColor #000000
+    LifeLineBackgroundColor #FFFFFF
+    ParticipantBorderColor #000000
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantFontName Helvetica
+    ParticipantFontSize 12
+    ParticipantFontColor #000000
+    ActorBackgroundColor #FFFFFF
+    ActorFontName Helvetica
+    ActorFontSize 12
+    ActorFontColor #000000
+    NoteBackgroundColor #FFFFCC
+    NoteBorderColor #999999
+}
+
+actor ":Expéditeur" as Sender
+
+participant "«IHM»\nInterface React" as Frontend
+participant "«Contrôleur»\nAPI Django REST" as RestAPI
+participant "«WebSocket»\nDjango Channels" as WebSockets
+database "«Entité»\nBase de Données" as DB
+
+actor ":Destinataire" as Receiver
+
+alt Messagerie Interne (E-mail in-app)
+
+    group Envoi d'un courriel formel
+        Sender -> Frontend: envoyerEmail(sujet, corps, pieceJointe)
+        activate Frontend
+        Frontend -> RestAPI: POST /api/emails/
+        activate RestAPI
+        RestAPI -> DB: enregistrerEmail(is_read=False)
+        activate DB
+        DB --> RestAPI: retours confirmation()
+        deactivate DB
+        RestAPI --> Frontend: retours http201Created()
+        deactivate RestAPI
+        Frontend --> Sender: retours afficherSucces()
+        deactivate Frontend
+    end
+    
+    group Consultation de la Boîte de Réception
+        Receiver -> Frontend: ouvrirBoiteReception()
+        activate Frontend
+        Frontend -> RestAPI: GET /api/emails/
+        activate RestAPI
+        RestAPI --> Frontend: retours listeEmails()
+        deactivate RestAPI
+        Frontend --> Receiver: retours afficherMessagesNonLus()
+        deactivate Frontend
+    end
+
+else Chat Temps Réel (Conversation)
+
+    group Échange de messages en direct
+        Sender -> Frontend: envoyerMessageChat(texte)
+        activate Frontend
+        Frontend -> WebSockets: transmettreMessageJSON(room)
+        activate WebSockets
+        WebSockets -> DB: sauvegarderMessage(auteur, texte)
+        activate DB
+        DB --> WebSockets: retours confirmation()
+        deactivate DB
+        WebSockets -> Frontend: diffuserMessageJSON(destinataires)
+        deactivate WebSockets
+        Frontend --> Receiver: afficherMessageInstantanement()
+        deactivate Frontend
+    end
+
+end
+
+@enduml

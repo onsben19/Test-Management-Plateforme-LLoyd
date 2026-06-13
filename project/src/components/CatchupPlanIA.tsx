@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
-    Zap, AlertTriangle, CheckCircle, ArrowRight, X,
-    UserPlus, ShieldCheck, Clock, Brain, RefreshCw,
-    ChevronRight, Sparkles, Activity
+    Clock, Brain, RefreshCw, Send, Users, Check, Plus, ArrowLeft, ArrowRight, User, AlertTriangle
 } from 'lucide-react';
 import { aiService } from '../services/api';
 import { toast } from 'react-toastify';
-import Button from './ui/Button';
+import { useNavigate } from 'react-router-dom';
 
 interface CatchupRecommendation {
     id: number;
@@ -17,17 +15,7 @@ interface CatchupRecommendation {
     current_load: number;
     recommended_extra: number;
     status: string;
-}
-
-interface CatchupPlan {
-    campaign_id: string;
-    campaign_title: string;
-    delay_days: number;
-    required_velocity: number;
-    current_velocity: number;
-    tester_distribution: CatchupRecommendation[];
-    recommendation_engine: string;
-    deadline: string;
+    is_already_in?: boolean;
 }
 
 interface CatchupPlanIAProps {
@@ -48,11 +36,11 @@ const formatDate = (dateStr?: string | Date) => {
 };
 
 const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied, onClose }) => {
+    const navigate = useNavigate();
     const [plan, setPlan] = useState<any | null>(null);
     const [loading, setLoading] = useState(false);
     const [applying, setApplying] = useState(false);
     const [selectedTesterIds, setSelectedTesterIds] = useState<number[]>([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [assignments, setAssignments] = useState<Record<number, number>>({});
     const [notifying, setNotifying] = useState(false);
     const [monitoring, setMonitoring] = useState<any>(null);
@@ -64,14 +52,12 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
             const data = response.data;
             setPlan(data);
 
-            // Auto-select recommended testers
             if (data?.tester_distribution) {
                 const recommended = data.tester_distribution
                     .filter((t: any) => t.status === 'RECOMMENDED')
                     .map((t: any) => t.id);
                 setSelectedTesterIds(recommended);
 
-                // Init assignments with recommended extra or default
                 const initialAssignments: Record<number, number> = {};
                 data.tester_distribution.forEach((t: any) => {
                     if (t.status === 'RECOMMENDED') {
@@ -93,7 +79,6 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
         }
     }, [campaignId]);
 
-    // Poll monitoring status every 15 seconds
     useEffect(() => {
         const fetchStatus = async () => {
             try {
@@ -114,7 +99,7 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
                 setAssignments(rest);
                 return prev.filter(tid => tid !== id);
             } else {
-                setAssignments({ ...assignments, [id]: 10 }); // Default 10 tests
+                setAssignments({ ...assignments, [id]: 10 });
                 return [...prev, id];
             }
         });
@@ -127,9 +112,7 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
                 tester_id: id,
                 test_count: assignments[id] || 0
             }));
-
             await aiService.applyCatchupPlan(campaignId, payload);
-
             toast.success("Stratégie appliquée : les renforts ont été assignés");
             if (onPlanApplied) onPlanApplied();
             fetchPlan();
@@ -154,14 +137,14 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
 
     if (loading) {
         return (
-            <div className="bg-slate-900/50 border border-slate-200 dark:border-white/5 rounded-3xl p-12 flex flex-col items-center justify-center space-y-6">
+            <div className="bg-[#111827] border border-white/5 rounded-2xl p-12 flex flex-col items-center justify-center space-y-6">
                 <div className="relative">
-                    <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
-                    <Brain className="absolute inset-0 m-auto text-blue-500 animate-pulse" size={24} />
+                    <div className="w-16 h-16 border-4 border-[#378ADD]/20 border-t-[#378ADD] rounded-full animate-spin" />
+                    <Brain className="absolute inset-0 m-auto text-[#378ADD] animate-pulse" size={24} />
                 </div>
                 <div className="text-center">
-                    <h3 className="text-slate-900 dark:text-white font-black uppercase tracking-widest text-sm mb-2">Préparation des Recommandations</h3>
-                    <p className="text-slate-500 text-[10px] uppercase font-bold tracking-tight">L'assistant cherche les meilleurs testeurs disponibles...</p>
+                    <h3 className="text-white font-medium text-sm mb-2">Préparation des Recommandations</h3>
+                    <p className="text-white/40 text-[10px] uppercase font-bold tracking-tight">L'assistant cherche les meilleurs testeurs...</p>
                 </div>
             </div>
         );
@@ -169,272 +152,226 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
 
     if (!plan) return null;
 
+    const delayDays = plan.delay_days || 0;
+    const reqVel = Math.round(plan.required_velocity || 0);
+    const curVel = Math.round(plan.current_velocity || 0);
+    const velRatio = curVel > 0 ? Math.round(reqVel / curVel) : reqVel;
+
     return (
-        <div className="space-y-8 animate-fade-in relative">
+        <div className="flex flex-col gap-[10px] animate-fade-in relative pb-4">
+            {/* Bouton Retour (si onClose est fourni, sinon on l'affiche quand même par défaut) */}
             {onClose && (
                 <button
                     onClick={onClose}
-                    className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/10 text-slate-400 transition-colors z-50"
+                    className="flex items-center gap-2 text-[12px] font-medium text-white/40 hover:text-white transition-colors self-start mb-2"
                 >
-                    <X size={20} />
+                    <ArrowLeft size={14} /> Retour aux détails
                 </button>
             )}
 
-            {/* Header Strategy */}
-            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-8 relative overflow-hidden group shadow-2xl">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 relative z-10">
-                    <div className="max-w-2xl">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center gap-2">
-                                <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Recommandation</span>
-                            </div>
-                            <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center gap-2">
-                                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Retard : {plan.delay_days || 0} jours</span>
-                            </div>
-                        </div>
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tight mb-3">{plan.campaign_title || 'Optimisation de Campagne'}</h2>
-                        <p className="text-slate-400 text-sm leading-relaxed italic border-l-2 border-blue-500/30 pl-4">
-                            "{plan.recommendation_engine || "Analyse des performances en cours..."}"
-                        </p>
+            {/* Section 1 — Header */}
+            <div className="bg-[#111827] rounded-[14px] border-[0.5px] border-white/[0.08] p-4">
+                <div className="flex items-center gap-2 mb-3">
+                    <div className="px-3 py-1 bg-[#378ADD]/15 rounded-full flex items-center justify-center">
+                        <span className="text-[11px] font-semibold text-[#85B7EB]">Recommandation</span>
                     </div>
-
-                    <div className="flex flex-col items-center gap-4 bg-black/20 border border-white/5 p-6 rounded-3xl min-w-[200px]">
-                        <div className="text-center">
-                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Rythme nécessaire</span>
-                            <div className="text-3xl font-bold text-slate-900 dark:text-white">{Math.round(plan.required_velocity || 0)} <span className="text-xs text-blue-500">tests/j</span></div>
-                        </div>
-                        <div className="w-full h-px bg-slate-100 dark:bg-white/5" />
-                        <div className="text-center">
-                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Rythme actuel</span>
-                            <div className="text-xl font-bold text-slate-400">{Math.round(plan.current_velocity || 0)} <span className="text-[10px]">tests/j</span></div>
-                        </div>
+                    <div className="px-3 py-1 bg-[#E24B4A]/15 rounded-full flex items-center justify-center gap-1.5">
+                        <Clock size={12} className="text-[#F09595]" />
+                        <span className="text-[11px] font-semibold text-[#F09595]">Retard : {delayDays} jours</span>
                     </div>
                 </div>
 
-                {/* Embedded Predictive Timeline */}
-                <div className="relative z-10 mt-8 pt-8 border-t border-white/5">
-                    <div className="flex items-center justify-between mb-4">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                            <Activity size={12} className="text-purple-400" />
-                            Projection IA (Impact du Retard)
-                        </span>
-                        <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded-md animate-pulse">
-                            Estimation : +{plan.delay_days || 0} jours
-                        </span>
-                    </div>
+                <h2 className="text-[18px] font-medium text-[#e8eaf6] mb-2">{plan.campaign_title || 'Optimisation de Campagne'}</h2>
+                <div className="border-l-[2px] border-[#378ADD]/40 pl-3 mb-5">
+                    <p className="text-[12px] italic text-white/40">"{plan.recommendation_engine || "Modèle d'analyse de performance v1.0"}"</p>
+                </div>
 
-                    <div className="relative h-2 bg-slate-800 rounded-full w-full overflow-hidden flex">
-                        <div className="h-full bg-blue-500 w-[60%] rounded-l-full" />
-                        <div className="h-full bg-slate-700 w-[20%]" />
-                        <div className="h-full bg-rose-500/80 w-[20%] rounded-r-full" />
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-[#1a2235] rounded-[10px] px-[13px] py-[11px]">
+                        <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">RYTHME NÉCESSAIRE</div>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-[20px] font-bold text-white leading-none">{reqVel}</span>
+                            <span className="text-[12px] text-white/40">tests/j</span>
+                        </div>
                     </div>
-                    
-                    <div className="flex justify-between text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-3">
-                        <div className="flex flex-col items-start gap-0.5">
-                            <span>Début</span>
-                            <span className="text-[10px] text-slate-400 font-medium normal-case tracking-normal mt-0.5">{formatDate(plan.start_date)}</span>
+                    <div className="bg-[#1a2235] rounded-[10px] px-[13px] py-[11px] relative">
+                        <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">RYTHME ACTUEL</div>
+                        <div className="flex items-baseline gap-1 mb-1">
+                            <span className="text-[20px] font-bold text-[#F09595] leading-none">{curVel}</span>
+                            <span className="text-[12px] text-white/40">tests/j</span>
                         </div>
-                        <div className="flex flex-col items-center gap-0.5 translate-x-[20%]">
-                            <span className="text-blue-400">Aujourd'hui</span>
-                            <span className="text-[10px] text-blue-500/70 font-medium normal-case tracking-normal mt-0.5">{formatDate(new Date())}</span>
-                        </div>
-                        <div className="flex flex-col items-center gap-0.5 translate-x-[15%]">
-                            <span className="text-emerald-500">Deadline</span>
-                            <span className="text-[10px] text-emerald-600/70 font-medium normal-case tracking-normal mt-0.5">{formatDate(plan.deadline)}</span>
-                        </div>
-                        <div className="flex flex-col items-end gap-0.5">
-                            <span className="text-rose-500">Fin Estimée</span>
-                            <span className="text-[10px] text-rose-500/70 font-medium normal-case tracking-normal mt-0.5">{formatDate(plan.projected_end_date)}</span>
-                        </div>
+                        {reqVel > curVel && (
+                            <div className="absolute right-[13px] top-[11px] bg-[#E24B4A]/10 px-2 py-0.5 rounded-md flex items-center gap-1 border border-[#E24B4A]/20">
+                                <AlertTriangle size={10} className="text-[#F09595]" />
+                                <span className="text-[9px] font-bold text-[#F09595]">×{velRatio} en dessous</span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Recommendations Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {(plan.tester_distribution || []).map((rec: any, idx: number) => {
-                    const isSelected = selectedTesterIds.includes(rec.id);
-                    const isRecommended = rec.status === 'RECOMMENDED';
-                    const isAlreadyIn = rec.is_already_in;
+            {/* Section 2 — Timeline Projection IA */}
+            <div className="bg-[#111827] rounded-[14px] border-[0.5px] border-white/[0.08] p-4">
+                <div className="flex items-center justify-between mb-6">
+                    <div className="text-[11px] font-medium text-white/40 tracking-widest uppercase">PROJECTION IA — IMPACT DU RETARD</div>
+                    <div className="bg-[#E24B4A]/15 px-3 py-1 rounded-full border border-[#E24B4A]/20">
+                        <span className="text-[11px] font-semibold text-[#F09595]">+{delayDays} jours</span>
+                    </div>
+                </div>
 
-                    return (
-                        <motion.div
-                            key={rec.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.1 }}
-                            onClick={() => toggleTesterSelection(rec.id)}
-                            className={`relative cursor-pointer bg-slate-900/40 backdrop-blur-xl border rounded-[2rem] p-6 transition-all group overflow-hidden shadow-xl ${isSelected
-                                    ? 'border-blue-500 bg-blue-900/20 shadow-lg shadow-blue-500/10'
-                                    : 'border-white/5 hover:border-white/10'
-                                }`}
-                        >
-                            {/* Selection Indicator */}
-                            <div className={`absolute top-4 right-4 w-5 h-5 rounded-full border flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-slate-300 dark:border-white/10'
-                                }`}>
-                                {isSelected && <CheckCircle size={12} className="text-slate-900 dark:text-white" />}
-                            </div>
+                <div className="relative mb-3 pt-2">
+                    <div className="h-[6px] w-full rounded-[3px] bg-[#E24B4A] flex items-center relative">
+                        <div className="h-full rounded-l-[3px] bg-[#1D9E75]" style={{ width: '35%' }}></div>
+                        {/* Marqueur Bleu */}
+                        <div className="absolute w-3 h-3 rounded-full bg-[#378ADD] border-[2px] border-[#111827]" style={{ left: 'calc(35% - 6px)' }}></div>
+                        {/* Marqueur Ambré */}
+                        <div className="absolute w-3 h-3 rounded-full bg-[#EF9F27] border-[2px] border-[#111827]" style={{ left: 'calc(50% - 6px)' }}></div>
+                    </div>
+                </div>
 
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white transition-all ${isSelected ? 'bg-blue-500' : 'bg-slate-100 dark:bg-white/5'
-                                        }`}>
-                                        <UserPlus size={20} />
+                <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="flex flex-col items-start">
+                        <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-0.5">DÉBUT</span>
+                        <span className="text-[11px] font-medium text-white/60">{formatDate(plan.start_date)}</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                        <span className="text-[9px] font-bold text-[#378ADD] uppercase tracking-widest mb-0.5">AUJOURD'HUI</span>
+                        <span className="text-[11px] font-medium text-[#378ADD]">{formatDate(new Date())}</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                        <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-0.5">DEADLINE</span>
+                        <span className="text-[11px] font-medium text-white/60">{formatDate(plan.deadline)}</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                        <span className="text-[9px] font-bold text-[#F09595] uppercase tracking-widest mb-0.5">FIN ESTIMÉE</span>
+                        <span className="text-[11px] font-medium text-[#F09595]">{formatDate(plan.projected_end_date)}</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Section 3 — Testeurs recommandés */}
+            <div className="bg-[#111827] rounded-[14px] p-4">
+                <div className="flex items-center gap-2 mb-4 text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                    <Users size={12} />
+                    TESTEURS RECOMMANDÉS PAR L'IA
+                </div>
+
+                <div className="grid grid-cols-2 gap-[8px]">
+                    {(plan.tester_distribution || []).map((rec: any, idx: number) => {
+                        const isSelected = selectedTesterIds.includes(rec.id);
+                        return (
+                            <div
+                                key={rec.id}
+                                onClick={() => toggleTesterSelection(rec.id)}
+                                className={`bg-[#1a2235] rounded-[10px] border-[0.5px] p-3 flex flex-col justify-between cursor-pointer transition-all ${isSelected ? 'border-[#378ADD]' : 'border-[#378ADD]/20 hover:border-[#378ADD]/40'}`}
+                            >
+                                <div className="flex gap-3 mb-3">
+                                    <div className="w-[34px] h-[34px] rounded-[10px] bg-[#185FA5] flex items-center justify-center shrink-0">
+                                        <User size={16} className="text-white" />
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <h3 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-tight truncate">{rec.name}</h3>
-                                            {isAlreadyIn && (
-                                                <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-md text-[7px] font-bold text-blue-400 uppercase tracking-widest">Déjà assigné</span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <span className={`text-[9px] font-bold uppercase tracking-widest ${isRecommended ? "text-emerald-500" : "text-slate-500"}`}>
-                                                Compatibilité : {rec.ml_score}%
-                                            </span>
+                                    <div className="flex flex-col justify-center">
+                                        <span className="text-[13px] font-medium text-white leading-tight">{rec.name}</span>
+                                        <div className="flex items-center gap-1 mt-0.5 text-[#5DCAA5]">
+                                            <span className="text-[11px] font-semibold">{rec.ml_score}% fit</span>
                                         </div>
                                     </div>
                                 </div>
-                                {rec.recommended_extra > 0 && (
-                                    <div className="text-right">
-                                        <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest block mb-0.5">Tests à ajouter</span>
-                                        <span className="text-lg font-bold text-slate-900 dark:text-white">+{rec.recommended_extra}</span>
-                                    </div>
-                                )}
-                            </div>
 
-                            <div className="bg-black/20 border border-white/5 rounded-2xl p-4 mb-4">
-                                <p className="text-[10px] text-slate-400 leading-relaxed">
-                                    {rec.ml_label || "Ressource qualifiée pour cette campagne."}
-                                </p>
-                            </div>
+                                <div className="bg-white/[0.06] rounded-[6px] py-1 px-2 text-center mb-3">
+                                    <span className="text-[11px] text-white/40">{rec.ml_label || 'Stable'}</span>
+                                </div>
 
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-[8px] font-bold text-slate-500 uppercase tracking-widest">
-                                    <span>Tests assignés</span>
-                                    <span className={rec.current_load > 8 ? 'text-rose-500' : 'text-emerald-500'}>
-                                        {rec.current_load} tests/j
+                                <button
+                                    className={`w-full py-1.5 rounded-[7px] border-[0.5px] flex items-center justify-center gap-1 text-[11px] font-semibold transition-all ${isSelected ? 'bg-[#378ADD] text-white border-[#378ADD]' : 'bg-[#378ADD]/10 text-[#85B7EB] border-[#378ADD]/20 hover:bg-[#378ADD]/20'}`}
+                                >
+                                    {isSelected ? <Check size={12} /> : <Plus size={12} />}
+                                    {isSelected ? 'Ajouté' : `Ajouter · +${rec.recommended_extra || 9} tests`}
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Section 4 — Suivi des notifications */}
+            <div className="bg-[#111827] rounded-[14px] p-4">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <div className="text-[13px] font-medium text-white leading-tight mb-0.5">Suivi des notifications</div>
+                        <div className="text-[11px] text-white/40">Mise à jour toutes les 15s</div>
+                    </div>
+                    {monitoring?.summary?.accepted > 0 && (
+                        <div className="bg-[#1D9E75]/15 border border-[#1D9E75]/20 px-3 py-1 rounded-full">
+                            <span className="text-[11px] font-semibold text-[#5DCAA5]">{monitoring.summary.accepted} accepté</span>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex flex-col gap-2">
+                    {monitoring?.notifications?.map((n: any) => (
+                        <div key={n.tester_id} className="bg-[#1a2235] rounded-[9px] px-[11px] py-[9px] flex items-center justify-between">
+                            <div className="flex items-center gap-2 overflow-hidden flex-1 pr-4">
+                                <div className={`w-[28px] h-[28px] rounded-full flex items-center justify-center shrink-0 text-[12px] font-bold text-white ${n.status === 'ACCEPTED' ? 'bg-[#1D9E75]' : 'bg-[#378ADD]'}`}>
+                                    {n.tester_name?.charAt(0).toUpperCase() || 'U'}
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                    <span className="text-[12px] font-medium text-white truncate">{n.tester_name}</span>
+                                    <span className="text-[10px] text-white/40 truncate">{n.tester_email}</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4 shrink-0">
+                                <div className="flex flex-col items-end">
+                                    <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">ENVOYÉ</span>
+                                    <span className="text-[11px] text-white/60">{n.sent_at || '—'}</span>
+                                </div>
+                                <div className="flex flex-col items-end">
+                                    <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">RÉPONDU</span>
+                                    <span className="text-[11px] text-white/60">{n.replied_at || '—'}</span>
+                                </div>
+                                <div className={`px-2 py-0.5 rounded-[6px] border ${n.status === 'ACCEPTED' ? 'bg-[#1D9E75]/15 border-[#1D9E75]/30' : 'bg-[#378ADD]/15 border-[#378ADD]/30'}`}>
+                                    <span className={`text-[10px] font-semibold ${n.status === 'ACCEPTED' ? 'text-[#5DCAA5]' : 'text-[#85B7EB]'}`}>
+                                        {n.status === 'ACCEPTED' ? 'Accepté' : 'Envoyé'}
                                     </span>
                                 </div>
-                                <div className="h-1 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                                    <div
-                                        className={`h-full rounded-full ${rec.current_load > 8 ? 'bg-rose-500' : 'bg-blue-500'}`}
-                                        style={{ width: `${Math.min((rec.current_load / 10) * 100, 100)}%` }}
-                                    />
-                                </div>
                             </div>
-                        </motion.div>
-                    );
-                })}
+                        </div>
+                    ))}
+                    {(!monitoring?.notifications || monitoring.notifications.length === 0) && (
+                        <div className="text-[11px] text-white/40 italic py-2">Aucune notification en cours.</div>
+                    )}
+                </div>
             </div>
 
-            {/* N8N Monitoring Panel */}
-            {monitoring && monitoring.notifications?.length > 0 && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-[2.5rem] p-8 shadow-2xl"
-                >
-                    <div className="flex items-center justify-between mb-5">
-                        <div className="flex items-center gap-3">
-                            <div>
-                                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-widest">Suivi des Notifications</h3>
-                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Mise à jour automatique toutes les 15s</p>
-                            </div>
+            {/* Section 5 — Footer action */}
+            <div className="flex flex-col gap-3">
+                <div className="bg-[#111827] rounded-[14px] border-[0.5px] border-[#378ADD]/20 p-[14px] flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-[34px] h-[34px] rounded-[8px] bg-[#378ADD]/10 flex items-center justify-center shrink-0 border border-[#378ADD]/20">
+                            <Users size={16} className="text-[#378ADD]" />
                         </div>
-                        {/* Summary badges */}
-                        <div className="flex items-center gap-2">
-                            {monitoring.summary.accepted > 0 && (
-                                <span className="px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-[9px] font-bold text-emerald-400 uppercase tracking-widest">
-                                    ✓ {monitoring.summary.accepted} Accepté
-                                </span>
-                            )}
-                            {monitoring.summary.pending > 0 && (
-                                <span className="px-2 py-1 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[9px] font-bold text-amber-400 uppercase tracking-widest">
-                                    ⏳ {monitoring.summary.pending} En attente
-                                </span>
-                            )}
-                            {monitoring.summary.refused > 0 && (
-                                <span className="px-2 py-1 bg-rose-500/10 border border-rose-500/20 rounded-lg text-[9px] font-bold text-rose-400 uppercase tracking-widest">
-                                    ✗ {monitoring.summary.refused} Refusé
-                                </span>
-                            )}
+                        <div>
+                            <div className="text-[13px] font-medium text-white">{selectedTesterIds.length} testeur(s) sélectionné(s)</div>
+                            <div className="text-[11px] text-white/40">Impact estimé : +{Math.round((plan.current_velocity || 0) * (selectedTesterIds.length * 0.25))} tests/jour</div>
                         </div>
                     </div>
-
-                    <div className="space-y-2">
-                        {monitoring.notifications.map((n: any) => (
-                            <div key={n.tester_id} className="flex items-center justify-between bg-black/20 border border-white/5 rounded-2xl px-5 py-4">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white ${n.status === 'ACCEPTED' ? 'bg-emerald-500/20' :
-                                            n.status === 'REFUSED' ? 'bg-rose-500/20' :
-                                                'bg-amber-500/20'
-                                        }`}>
-                                        {n.tester_name?.charAt(0).toUpperCase()}
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-slate-900 dark:text-white">{n.tester_name}</p>
-                                        <p className="text-[9px] text-slate-500 font-mono">{n.tester_email}</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="text-right">
-                                        <p className="text-[8px] text-slate-600 uppercase tracking-widest">Envoyé</p>
-                                        <p className="text-[10px] font-bold text-slate-400">{n.sent_at}</p>
-                                    </div>
-                                    {n.replied_at && (
-                                        <div className="text-right">
-                                            <p className="text-[8px] text-slate-600 uppercase tracking-widest">Répondu</p>
-                                            <p className="text-[10px] font-bold text-slate-400">{n.replied_at}</p>
-                                        </div>
-                                    )}
-                                    <div className={`px-3 py-1.5 rounded-lg border text-[9px] font-bold uppercase tracking-widest ${n.status === 'ACCEPTED'
-                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                            : n.status === 'REFUSED'
-                                                ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
-                                                : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                                        }`}>
-                                        {n.status === 'ACCEPTED' ? '✓ Accepté' : n.status === 'REFUSED' ? '✗ Refusé' : '⏳ En attente'}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </motion.div>
-            )}
-
-            {/* Action Footer */}
-            <div className="flex items-center justify-between bg-slate-900/40 backdrop-blur-xl border border-white/5 p-6 rounded-[2.5rem] shadow-2xl">
-                <div className="flex items-center gap-4">
-                    <div>
-                        <h4 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-tight">
-                            {selectedTesterIds.length} Testeur(s) sélectionné(s)
-                        </h4>
-                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">
-                            Impact estimé : +{Math.round((plan.current_velocity || 0) * (selectedTesterIds.length * 0.25))} tests/jour
-                        </p>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={fetchPlan}
+                            className="w-[34px] h-[34px] flex items-center justify-center rounded-[8px] border border-white/10 hover:bg-white/5 transition-colors text-white/60 hover:text-white"
+                        >
+                            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                        </button>
+                        <button
+                            onClick={handleNotifyN8N}
+                            disabled={notifying || selectedTesterIds.length === 0}
+                            className="h-[34px] px-4 bg-[#378ADD] hover:bg-[#2e75bc] disabled:opacity-50 text-white rounded-[8px] text-[13px] font-medium flex items-center gap-2 transition-colors"
+                        >
+                            <Send size={14} />
+                            {notifying ? 'Envoi...' : 'Informer'}
+                        </button>
                     </div>
                 </div>
-
-                <div className="flex gap-3">
-                    <Button
-                        variant="secondary"
-                        size="icon"
-                        onClick={fetchPlan}
-                        isLoading={loading}
-                        disabled={applying || notifying}
-                        icon={RefreshCw}
-                    />
-                    <Button
-                        variant="primary"
-                        onClick={handleNotifyN8N}
-                        isLoading={notifying}
-                        disabled={applying || notifying || !plan || selectedTesterIds.length === 0}
-                        className="px-6 text-xs font-bold"
-                    >
-                        {notifying ? 'Envoi...' : 'Informer le testeur'}
-                    </Button>
-                </div>
+                
             </div>
         </div>
     );

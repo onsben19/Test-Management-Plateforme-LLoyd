@@ -21,6 +21,10 @@ class User(AbstractUser):
     otp_code = models.CharField(max_length=6, blank=True, null=True)
     otp_expiry = models.DateTimeField(blank=True, null=True)
 
+    # Profil Utilisateur
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+
     @staticmethod
     def generate_random_password(length=12):
         """Génère un mot de passe aléatoire de longueur `length`."""

@@ -1,0 +1,78 @@
+@startuml
+
+title Vue Runtime Détaillée - Consultation du Dashboard Live\nInsureTM - Plateforme de Gestion de Campagnes de Test Lloyd
+
+skinparam Shadowing false
+hide footbox
+skinparam ParticipantPadding 15
+
+skinparam sequence {
+    ArrowColor #000000
+    ActorBorderColor #000000
+    LifeLineBorderColor #000000
+    LifeLineBackgroundColor #FFFFFF
+    ParticipantBorderColor #000000
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantFontName Helvetica
+    ParticipantFontSize 12
+    ParticipantFontColor #000000
+    ActorBackgroundColor #FFFFFF
+    ActorFontName Helvetica
+    ActorFontSize 12
+    ActorFontColor #000000
+    NoteBackgroundColor #FFFFCC
+    NoteBorderColor #999999
+}
+
+actor ":Manager QA" as Manager
+participant "«IHM»\nInterface React" as Front
+participant "«Contrôleur»\nBackend Django (API)" as Back
+database "«Entité»\nBase PostgreSQL" as DB
+
+group Affichage initial du Dashboard
+
+    Manager -> Front : accederEspaceDeTravail()
+    activate Front
+    Front -> Back : interrogerAPIAgregation()
+    activate Back
+
+    Back -> DB : recupererMetriquesBrutes()
+    activate DB
+    DB --> Back : retours(donnees)
+    deactivate DB
+
+    Back -> Back : compilerMetriquesTempsReel()
+    note right: Taux de complétion,\nanomalies bloquantes,\ncas de test en cours
+
+    Back --> Front : retours(metriques_json)
+    deactivate Back
+    
+    Front -> Front : genererWidgetsEtGraphiques()
+    Front --> Manager : afficherDashboard()
+    deactivate Front
+
+end
+
+group Filtrage dynamique
+
+    Manager -> Front : filtrerVue(projet_id, release_id)
+    activate Front
+    Front -> Back : interrogerAPIAgregation(filtres)
+    activate Back
+    
+    Back -> DB : recupererMetriquesFiltrees()
+    activate DB
+    DB --> Back : retours(donnees_filtrees)
+    deactivate DB
+    
+    Back -> Back : compilerMetriquesTempsReel()
+    Back --> Front : retours(nouvelles_metriques)
+    deactivate Back
+    
+    Front -> Front : actualiserWidgets()
+    Front --> Manager : afficherDashboardActualise()
+    deactivate Front
+
+end
+
+@enduml

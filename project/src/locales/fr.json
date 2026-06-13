@@ -1170,8 +1170,8 @@
         }
     },
     "portfolio": {
-        "title": "Gestion des Projets",
-        "titleAdmin": "Gestion des Projets",
+        "title": "Liste de Projets",
+        "titleAdmin": "Liste de Projets",
         "subtitle": "PROJETS DISPONIBLES",
         "subtitleAdmin": "VUE DÉTAILLÉE DES PROJETS",
         "stats": {

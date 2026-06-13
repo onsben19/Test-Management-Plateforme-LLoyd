@@ -1,0 +1,112 @@
+@startuml
+
+title Vue Runtime Détaillée - Exécution Automatisée et Streaming des Logs\nInsureTM - Plateforme de Gestion de Campagnes de Test Lloyd
+
+skinparam Shadowing false
+hide footbox
+skinparam ParticipantPadding 15
+
+skinparam sequence {
+    ArrowColor #000000
+    ActorBorderColor #000000
+    LifeLineBorderColor #000000
+    LifeLineBackgroundColor #FFFFFF
+    ParticipantBorderColor #000000
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantFontName Helvetica
+    ParticipantFontSize 12
+    ParticipantFontColor #000000
+    ActorBackgroundColor #FFFFFF
+    ActorFontName Helvetica
+    ActorFontSize 12
+    ActorFontColor #000000
+    NoteBackgroundColor #FFFFCC
+    NoteBorderColor #999999
+}
+
+actor ":Testeur" as Tester
+participant "«IHM»\nInterface React" as Frontend
+participant "«Consumer»\nDjango Channels" as Consumer
+participant "«Contrôleur»\nBackend Django" as Backend
+participant "«Processus»\nPlaywright CLI" as Playwright
+database "«Entité»\nBase de Données" as DB
+
+group Préparation et génération du script de test
+
+    Tester -> Frontend: saisirEtapesTest()
+
+    opt Reformulation assistée par IA
+        Tester -> Frontend: clicAmeliorer()
+        Frontend -> Backend: reformulerEtapes(etapes)
+        activate Backend
+        Backend --> Frontend: retours etapesReformulees()
+        deactivate Backend
+    end
+
+    Tester -> Frontend: clicGenererScript()
+    Frontend -> Backend: genererScriptPlaywright(etapes)
+    activate Backend
+    Backend -> Backend: genererScriptParIA()
+    Backend -> DB: enregistrerScript(code, chemin)
+    activate DB
+    DB --> Backend: retours confirmationEnregistrement()
+    deactivate DB
+    Backend --> Frontend: retours scriptGenere(code)
+    deactivate Backend
+
+end
+
+group Exécution du test et streaming des logs en temps réel
+
+    Tester -> Frontend: clicExecuterEtEnregistrer()
+    Frontend -> Consumer: ouvrirConnexionWebSocket()
+    activate Consumer
+    Frontend -> Backend: lancerExecution()
+    activate Backend
+    Backend -> Playwright: demarrerTest(scriptPath)
+    activate Playwright
+
+    loop Pendant l'exécution du test
+        Playwright -> Backend: transmettreLog(ligne)
+        Backend -> Consumer: diffuserLog(ligne)
+        Consumer --> Frontend: retours logTempsReel(ligne)
+        Frontend --> Tester: afficherLog(ligne)
+    end
+
+    Playwright --> Backend: retours finExecution(statut, screenshot.png)
+    deactivate Playwright
+    deactivate Consumer
+
+    Backend -> Backend: recupererCaptureEcran()
+    Backend -> DB: enregistrerResultat(statut, date, screenshot)
+    activate DB
+    DB --> Backend: retours confirmation()
+    deactivate DB
+
+end
+
+alt statut == FAILED
+
+    group Création automatique de l'anomalie
+
+        Backend -> Backend: genererAnomalieParIA(logs)
+        Backend -> DB: creerAnomalie(titre, description, screenshot)
+        activate DB
+        DB --> Backend: retours anomalieCree(id)
+        deactivate DB
+
+    end
+
+    Backend --> Frontend: retours resultatFinal(FAILED, anomaly_id)
+    deactivate Backend
+    Frontend --> Tester: afficherNotification(\n"Test echoue - Anomalie creee automatiquement")
+
+else statut == PASSED
+
+    Backend --> Frontend: retours resultatFinal(PASSED)
+    deactivate Backend
+    Frontend --> Tester: afficherNotification("Test reussi")
+
+end
+
+@enduml

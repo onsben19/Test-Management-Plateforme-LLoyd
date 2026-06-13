@@ -1,0 +1,88 @@
+@startuml
+
+title Diagramme de Séquence : Flux de Création Hiérarchique (Projet → Release → Campagne)\nInsureTM - Plateforme de Gestion de Campagnes de Test Lloyd
+
+skinparam Shadowing false
+hide footbox
+skinparam ParticipantPadding 15
+
+skinparam sequence {
+    ArrowColor #000000
+    ActorBorderColor #000000
+    LifeLineBorderColor #000000
+    LifeLineBackgroundColor #FFFFFF
+    ParticipantBorderColor #000000
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantFontName Helvetica
+    ParticipantFontSize 12
+    ParticipantFontColor #000000
+    ActorBackgroundColor #FFFFFF
+    ActorFontName Helvetica
+    ActorFontSize 12
+    ActorFontColor #000000
+}
+
+actor ":Admin / Manager" as Manager
+participant "«IHM»\nInterface React" as Frontend
+participant "«Contrôleur»\nBackend Django" as Backend
+database "«Entité»\nBase de Données" as DB
+participant "«Système»\nServeur SMTP" as SMTP
+
+group Phase 1 : Création du Projet (Niveau 1)
+
+    Manager -> Frontend: saisirDetailsProjet(nom, description)
+    Frontend -> Backend: creerProjet(nom, description)
+    activate Backend
+    Backend -> DB: enregistrerProjet(nom, description)
+    activate DB
+    DB --> Backend: retours projectId()
+    deactivate DB
+    Backend --> Frontend: retours projetCree(HTTP 201)
+    deactivate Backend
+    Frontend --> Manager: afficherConfirmation("Projet créé")
+
+end
+
+group Phase 2 : Création de la Release (Niveau 2)
+
+    Manager -> Frontend: ajouterRelease(version, dates, projectId)
+    Frontend -> Backend: creerRelease(projectId, version, dates)
+    activate Backend
+    Backend -> DB: enregistrerRelease(projectId, version, dates)
+    activate DB
+    DB --> Backend: retours releaseId()
+    deactivate DB
+    Backend --> Frontend: retours releaseCree(HTTP 201)
+    deactivate Backend
+    Frontend --> Manager: afficherConfirmation("Release créée")
+
+end
+
+group Phase 3 : Création de la Campagne & Notifications (Niveau 3)
+
+    Manager -> Frontend: creerCampagne(\ntitre, dates, fichierExcel, releaseId)
+    Frontend -> Backend: soumettreCampagne(\nFormData Multipart, releaseId)
+    activate Backend
+
+    Backend -> DB: enregistrerCampagne(\ntitre, dates, fichierExcel)
+    activate DB
+    DB --> Backend: retours campaignId()
+    deactivate DB
+
+    Backend -> DB: creerNotifications(\nadmins, managers)
+    activate DB
+    DB --> Backend: retours notificationsSauvegardees()
+    deactivate DB
+
+    Backend -> SMTP: envoyerEmailsAlerte(\n"Nouvelle Campagne créée")
+    activate SMTP
+    SMTP --> Backend: retours emailsEnvoyes()
+    deactivate SMTP
+
+    Backend --> Frontend: retours campagneCree(HTTP 201)
+    deactivate Backend
+    Frontend --> Manager: afficherConfirmation(\n"Campagne créée — Équipes notifiées")
+
+end
+
+@enduml

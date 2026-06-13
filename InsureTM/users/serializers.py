@@ -9,7 +9,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'role', 'first_name', 'last_name', 'is_active', 'password']
+        fields = ['id', 'username', 'email', 'role', 'first_name', 'last_name', 'is_active', 'password', 'phone_number', 'avatar']
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
@@ -20,6 +20,11 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'phone_number', 'avatar']
+        read_only_fields = ['email']
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)

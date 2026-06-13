@@ -1,0 +1,60 @@
+@startuml
+
+title Diagramme de Classes — Release 1 : Accès Utilisateur\nInsureTM - Plateforme de Gestion de Campagnes de Test Lloyd
+
+skinparam Shadowing false
+skinparam classAttributeIconSize 0
+skinparam DefaultFontName Helvetica
+skinparam DefaultFontSize 12
+
+skinparam class {
+    BackgroundColor       #FFFFFF
+    BorderColor           #000000
+    BorderThickness       1.2
+    HeaderBackgroundColor #F0F0F0
+    FontColor             #000000
+    AttributeFontColor    #000000
+    StereotypeFontColor   #000000
+}
+
+skinparam enum {
+    BackgroundColor       #FFFFFF
+    BorderColor           #000000
+    HeaderBackgroundColor #F0F0F0
+}
+
+'══════════════════════════════════════════
+' ÉNUMÉRATION DES RÔLES
+'══════════════════════════════════════════
+enum RoleEnum <<enumeration>> {
+    ADMIN
+    MANAGER
+    TESTER
+}
+
+'══════════════════════════════════════════
+' MODÈLE UTILISATEUR
+'══════════════════════════════════════════
+class User <<AbstractUser>> {
+    + id : Integer
+    + username : String
+    + email : String <<unique>>
+    + password : String <<hashed>>
+    + first_name : String
+    + last_name : String
+    + is_active : Boolean
+    + date_joined : DateTime
+    + otp_code : String
+    + otp_expiry : DateTime
+    --
+    + {static} generate_random_password(length: int = 12) : String
+    + save(*args, **kwargs) : void
+    + __str__() : String
+}
+
+'══════════════════════════════════════════
+' RELATION
+'══════════════════════════════════════════
+User .right.> RoleEnum : role
+
+@enduml

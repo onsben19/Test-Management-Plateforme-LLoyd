@@ -1,0 +1,43 @@
+@startuml
+
+title Algorithme de l'Agent Analytics et Mécanisme Fail-Safe\nInsureTM - Plateforme de Gestion de Campagnes de Test Lloyd
+
+skinparam style strictuml
+skinparam Shadowing false
+skinparam activity {
+  BackgroundColor #FFFFFF
+  BorderColor #000000
+  DiamondBackgroundColor #FFFFCC
+  DiamondBorderColor #000000
+  FontName Helvetica
+  FontSize 12
+}
+
+start
+
+:Réceptionner la question analytique via l'API;
+
+if () then ([Question vide])
+    :Générer une erreur de validation;
+else ([Question valide])
+    :Transmettre la requête textuelle au LLM (Groq / Llama 3);
+    :Récupérer la requête SQL générée par l'IA;
+    
+    if () then ([Requête contenant DROP, DELETE, UPDATE])
+        :Bloquer l'exécution de la requête (Fail-Safe);
+        :Générer une alerte de sécurité (HTTP 403);
+    else ([Requête valide (SELECT uniquement)])
+        :Exécuter la requête SQL en mode lecture seule;
+        
+        if () then ([Aucune donnée trouvée])
+            :Retourner un message d'absence de résultat;
+        else ([Données trouvées])
+            :Formater les données brutes en JSON;
+            :Construire le rendu graphique interactif (Plotly);
+            :Afficher le graphique sur le tableau de bord;
+        endif
+    endif
+endif
+
+stop
+@enduml

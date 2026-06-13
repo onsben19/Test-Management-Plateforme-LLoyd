@@ -1,0 +1,82 @@
+@startuml
+
+title Diagramme de Séquence : Création d'un Nouvel Utilisateur\nInsureTM - Plateforme de Gestion de Campagnes de Test Lloyd
+
+skinparam Shadowing false
+hide footbox
+skinparam ParticipantPadding 15
+
+skinparam sequence {
+    ArrowColor #000000
+    ActorBorderColor #000000
+    LifeLineBorderColor #000000
+    LifeLineBackgroundColor #FFFFFF
+    ParticipantBorderColor #000000
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantFontName Helvetica
+    ParticipantFontSize 12
+    ParticipantFontColor #000000
+    ActorBackgroundColor #FFFFFF
+    ActorFontName Helvetica
+    ActorFontSize 12
+    ActorFontColor #000000
+}
+
+actor ":Administrateur" as Admin
+participant "«IHM»\nInterface React" as Frontend
+participant "«Contrôleur»\nBackend Django" as Backend
+participant "«Service»\nService Email" as Email
+database "«Entité»\nBase de Données" as DB
+
+group Saisie et soumission du formulaire
+
+    Admin -> Frontend: ouvrirFormulaireNouvelUtilisateur()
+    Admin -> Frontend: remplirFormulaire(nom, email, role)
+    Admin -> Frontend: clicCreerUtilisateur()
+    Frontend -> Backend: creerUtilisateur(username, email, role)
+    activate Backend
+
+    Backend -> Backend: validerDonnees(username, email, role)
+
+    alt Données invalides
+        Backend --> Frontend: retours erreurValidation(HTTP 400)
+        Frontend --> Admin: afficherErreurs("Données incorrectes")
+    else Données valides
+
+        Backend -> Backend: genererMotDePasseAleatoire(length=12)
+        note right: Le mot de passe est toujours\ngénéré automatiquement par\nle système (non saisi par l'admin)
+
+        Backend -> DB: creerCompteUtilisateur(username, email, role)
+        activate DB
+        DB --> Backend: retours utilisateurCree(id)
+        deactivate DB
+
+        Backend -> DB: definirMotDePasseHash(bcrypt_hash)
+        activate DB
+        DB --> Backend: retours confirmation()
+        deactivate DB
+
+    end
+
+end
+
+group Notifications et remise des accès
+
+    Backend -> Email: envoyerEmailBienvenue(\nutilisateur, motDePasseProvisoire)
+    activate Email
+    note right: L'email contient le mot de passe\nen clair généré automatiquement\npour la première connexion
+    Email --> Backend: retours emailEnvoye()
+    deactivate Email
+
+    Backend -> DB: creerNotificationsAdmins(\n"Nouveau compte créé : username (role)")
+    activate DB
+    DB --> Backend: retours notificationsSauvegardees()
+    deactivate DB
+
+    Backend --> Frontend: retours utilisateurCree(HTTP 201)
+    deactivate Backend
+    Frontend --> Admin: afficherToast(\n"Compte créé — Accès envoyés par email")
+
+end
+
+@enduml

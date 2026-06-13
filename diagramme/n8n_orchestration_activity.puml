@@ -1,0 +1,47 @@
+@startuml
+
+title Algorithme de Décision - Timeline Guard et Orchestration n8n\nInsureTM - Plateforme de Gestion de Campagnes de Test Lloyd
+
+skinparam Shadowing false
+skinparam activity {
+  BackgroundColor #FFFFFF
+  BorderColor #000000
+  DiamondBackgroundColor #FFFFCC
+  DiamondBorderColor #000000
+  FontName Helvetica
+  FontSize 12
+}
+
+start
+
+:Déclenchement de l'analyse ML (Timeline Guard);
+:Calcul du score prédictif de retard;
+
+if (Risque critique de retard ?) then (Non)
+    :Mettre à jour le statut du projet (Au vert);
+    stop
+else (Oui)
+    :L'IA recommande des testeurs disponibles;
+    :Afficher l'alerte sur le Dashboard du Manager;
+    
+    if (Manager valide le rattrapage ?) then (Non)
+        :Annuler la procédure;
+        stop
+    else (Oui)
+        :Déclencher l'orchestration (Webhook vers n8n);
+        :n8n pousse des notifications In-App aux testeurs;
+        
+        if (Le testeur accepte-t-il la mission ?) then (Non / Timeout)
+            :Notifier le Manager de l'échec;
+            :Demander une recherche alternative;
+            stop
+        else (Oui)
+            :Webhook de retour déclenché par le Frontend;
+            :Mise à jour de l'assignation en Base de Données;
+            :Notification In-App de succès au Manager;
+        endif
+    endif
+endif
+
+stop
+@enduml

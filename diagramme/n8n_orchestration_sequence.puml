@@ -1,0 +1,79 @@
+@startuml
+
+title Vue Runtime Détaillée - Orchestration des alertes de renfort (n8n)\nInsureTM - Plateforme de Gestion de Campagnes de Test Lloyd
+
+skinparam Shadowing false
+hide footbox
+skinparam ParticipantPadding 15
+
+skinparam sequence {
+    ArrowColor #000000
+    ActorBorderColor #000000
+    LifeLineBorderColor #000000
+    LifeLineBackgroundColor #FFFFFF
+    ParticipantBorderColor #000000
+    ParticipantBackgroundColor #FFFFFF
+    ParticipantFontName Helvetica
+    ParticipantFontSize 12
+    ParticipantFontColor #000000
+    ActorBackgroundColor #FFFFFF
+    ActorFontName Helvetica
+    ActorFontSize 12
+    ActorFontColor #000000
+    NoteBackgroundColor #FFFFCC
+    NoteBorderColor #999999
+}
+
+actor ":Manager QA" as Manager
+participant "«IHM»\nInterface React" as Front
+participant "«Contrôleur»\nBackend Django (API)" as Back
+participant "«Service»\nOrchestrateur n8n" as N8N
+database "«Entité»\nBase PostgreSQL" as DB
+actor ":Testeur" as Tester
+
+group Déclenchement de l'alerte de renfort
+
+    Manager -> Front : validerPlanRattrapage()
+    activate Front
+    Front -> Back : declencherAlerte(campagne_id, testeurs_id)
+    activate Back
+
+    Back -> N8N : envoyerWebhook(donnees_json)
+    activate N8N
+    N8N --> Back : retours(HTTP 200 OK)
+    
+    Back --> Front : retours(confirmation)
+    deactivate Back
+    Front --> Manager : afficherMessage("Alerte envoyée")
+    deactivate Front
+
+    N8N -> N8N : formaterNotificationInApp()
+    N8N -> Front : pousserNotificationInApp("Demande de renfort")
+    Front --> Tester : afficherNotification()
+
+end
+
+group Réponse du Testeur et Mise à jour
+
+    Tester -> Front : cliquerAccepter()
+    Front -> N8N : appelerWebhookRetour(acceptation)
+    activate N8N
+    
+    N8N -> Back : interrogerAPI(PATCH /api/assignation)
+    activate Back
+    
+    Back -> DB : mettreAJourAssignation(CampaignAssignment)
+    activate DB
+    DB --> Back : retours(confirmation)
+    deactivate DB
+    
+    Back --> N8N : retours(HTTP 200 OK)
+    deactivate Back
+    
+    N8N -> Front : pousserNotificationInApp("Renfort validé")
+    Front --> Manager : afficherNotification()
+    deactivate N8N
+
+end
+
+@enduml

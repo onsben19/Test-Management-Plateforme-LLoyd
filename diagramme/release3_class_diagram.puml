@@ -1,0 +1,105 @@
+@startuml
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 60
+skinparam Shadowing false
+skinparam classAttributeIconSize 0
+
+class User {
+  - id : Integer
+  - username : String
+  - email : String
+  - password : String
+  - role : RoleType
+  - is_active : Boolean
+  - date_joined : DateTime
+  --
+  + save()
+  + generate_random_password()
+}
+
+class ManagerQA
+class Testeur
+
+class Release {
+  - id : Integer
+  - name : String
+  - description : Text
+  - status : StatutRelease
+  - release_type : TypeRelease
+  - created_at : DateTime
+  - business_project : Projets
+  - created_by : User
+  --
+  + campaign_count : Integer
+}
+
+class Campaign {
+  - id : Integer
+  - title : String
+  - description : Text
+  - release : Release
+  - start_date : Date
+  - estimated_end_date : Date
+  - nb_test_cases : Integer
+  - excel_file : File
+  - created_at : DateTime
+  - scheduled_at : DateTime
+}
+
+class RapportReadiness {
+  - id : Integer
+  - score_total : Float
+  - score_tests : Float
+  - score_anomalies : Float
+  - score_stabilite : Float
+  - score_securite : Float
+  - recommandations : List<String>
+  - date_generation : DateTime
+  - niveau_risque : String
+  --
+  + genererPDF() : File
+}
+
+class AIConversation {
+  - id : UUID
+  - title : String
+  - created_at : DateTime
+}
+
+class AIMessage {
+  - id : Integer
+  - sender : Choice {USER, AGENT}
+  - text : Text
+  - type : String
+  - sql : Text
+  - data : JSON
+  - image : File
+}
+
+class QANews {
+  - id : Integer
+  - title : String
+  - url : String
+  - source : String
+  - content_summary : Text
+  - ai_tip : Text
+  - published_date : DateTime
+  - created_at : DateTime
+}
+
+' --- RELATIONS ---
+User <|-- ManagerQA
+User <|-- Testeur
+
+User "1" --> "0..*" AIConversation : "consulter >"
+AIConversation "1" *-- "0..*" AIMessage : "contenir >"
+
+Release "1" *-- "0..*" Campaign : "composer >"
+Release "1" -right-> "0..1" RapportReadiness : "évaluer >"
+
+Testeur "0..*" --> "0..*" Campaign : "être assigné à >"
+
+User "1" ..> "0..*" QANews : "<<use>> consulter >"
+
+@enduml

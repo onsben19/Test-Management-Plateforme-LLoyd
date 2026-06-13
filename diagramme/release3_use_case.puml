@@ -1,0 +1,60 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam Shadowing false
+
+title Diagramme de Cas d'Utilisation - Release 3\nFocus : Intelligence Artificielle, Prédictions ML et Orchestration n8n
+
+actor "Manager QA" as Manager
+actor "Testeur" as Testeur
+
+rectangle "Système InsureTM" {
+
+    usecase "S'authentifier" as UC_Auth
+
+    usecase "Interroger la base de données\n(Text-to-SQL)" as UC_SQL
+    usecase "Ajuster / Reformuler la requête\n(Aide IA)" as UC_Reformuler
+    usecase "Solliciter l'Assistant IA\n(Support Technique)" as UC_Support
+
+    usecase "Consulter le Dashboard Live\n(Statistiques & Avancement)" as UC_Dashboard
+    usecase "Consulter les prédictions\nde retards (Timeline Guard)" as UC_Pred
+    usecase "Déclencher une demande\nde renfort" as UC_Renfort
+    usecase "Répondre à une demande\nde renfort" as UC_Repondre
+    usecase "Consulter la veille technologique\n(Webscraping QA)" as UC_News
+}
+
+rectangle "Modèle IA (Groq)" as IA <<system>>
+rectangle "Orchestrateur n8n" as N8N <<system>>
+
+Manager -- UC_SQL
+Manager -- UC_Reformuler
+Manager -- UC_Pred
+Manager -- UC_Renfort
+Manager -- UC_Dashboard
+Manager -- UC_News
+
+Testeur -- UC_SQL
+Testeur -- UC_Reformuler
+Testeur -- UC_Repondre
+Testeur -- UC_Support
+Testeur -- UC_Dashboard
+Testeur -- UC_News
+
+UC_SQL ..> UC_Auth : <<include>>
+UC_Reformuler ..> UC_Auth : <<include>>
+UC_Support ..> UC_Auth : <<include>>
+UC_Pred ..> UC_Auth : <<include>>
+UC_Renfort ..> UC_Auth : <<include>>
+UC_Repondre ..> UC_Auth : <<include>>
+UC_Dashboard ..> UC_Auth : <<include>>
+UC_News ..> UC_Auth : <<include>>
+
+UC_SQL ..> IA
+UC_Reformuler ..> IA
+UC_Support ..> IA
+UC_News ..> IA
+
+UC_Renfort ..> N8N
+UC_Repondre ..> N8N
+
+@enduml

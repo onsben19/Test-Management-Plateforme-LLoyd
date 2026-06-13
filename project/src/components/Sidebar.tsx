@@ -1,20 +1,15 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  BarChart3, AlertTriangle, Brain, Settings,
-  Users, LogOut, MessageSquare, List, Mail, Layers,
-  ChevronLeft, ChevronRight, TestTube, Sparkles, Layout,
-  LayoutDashboard, Briefcase, WandSparkles, Activity, Cpu
-} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
 import { useTheme } from '../context/ThemeContext';
+import { Menu } from 'lucide-react';
 
 const Sidebar = () => {
   const { t } = useTranslation();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { isOpen, toggle } = useSidebar();
   const { theme } = useTheme();
 
@@ -24,31 +19,30 @@ const Sidebar = () => {
     {
       title: t('sidebar.groups.principal'),
       items: [
-        { name: t('sidebar.dashboard'), href: isAdmin ? '/admin/dashboard' : '/manager/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER'] },
-        { name: t('sidebar.items.users'), href: '/users', icon: Users, roles: ['ADMIN'] },
-        { name: t('sidebar.items.emails'), href: '/management/messages', icon: Mail, roles: ['ADMIN'] },
+        { name: t('sidebar.dashboard'), href: isAdmin ? '/admin/dashboard' : '/manager/dashboard', roles: ['ADMIN', 'MANAGER'] },
+        { name: t('sidebar.items.users'), href: '/users', roles: ['ADMIN'] },
+        { name: t('sidebar.items.emails'), href: '/management/messages', roles: ['ADMIN'] },
       ]
     },
     {
       title: t('sidebar.groups.tests'),
       items: [
-        { name: t('sidebar.items.projects'), href: '/portfolio', icon: Briefcase, roles: ['ADMIN', 'MANAGER', 'manager'] },
-        { name: t('sidebar.items.campaigns'), href: isAdmin ? '/admin/campaigns' : '/manager', icon: Brain, roles: ['ADMIN'] },
-        { name: t('sidebar.items.testerDashboard'), href: '/tester-dashboard', icon: List, roles: ['tester', 'TESTER'] },
-        { name: t('sidebar.items.executions'), href: isAdmin ? '/admin/executions' : '/execution', icon: BarChart3, roles: ['ADMIN', 'tester', 'TESTER', 'MANAGER', 'manager'] },
-        { name: t('sidebar.items.anomalies'), href: isAdmin ? '/admin/anomalies' : '/anomalies', icon: AlertTriangle, roles: ['ADMIN', 'tester', 'TESTER', 'MANAGER', 'manager'] },
+        { name: t('sidebar.items.projects'), href: '/portfolio', roles: ['ADMIN', 'MANAGER', 'manager'] },
+        { name: t('sidebar.items.campaigns'), href: isAdmin ? '/admin/campaigns' : '/manager', roles: ['ADMIN'] },
+        { name: t('sidebar.items.testerDashboard'), href: '/tester-dashboard', roles: ['tester', 'TESTER'] },
+        { name: t('sidebar.items.executions'), href: isAdmin ? '/admin/executions' : '/execution', roles: ['ADMIN', 'tester', 'TESTER', 'MANAGER', 'manager'] },
+        { name: t('sidebar.items.anomalies'), href: isAdmin ? '/admin/anomalies' : '/anomalies', roles: ['ADMIN', 'tester', 'TESTER', 'MANAGER', 'manager'] },
       ]
     },
     {
       title: t('sidebar.groups.communication'),
       items: [
-        { name: t('sidebar.items.comments'), href: '/admin/comments', icon: MessageSquare, roles: ['ADMIN'] },
-        { name: t('sidebar.items.messages'), href: '/messages', icon: Mail, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
-        { name: t('sidebar.items.chat'), href: '/chat', icon: MessageSquare, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
-        { name: 'Veille & Innovations IA', href: isAdmin ? '/admin/qa-intelligence' : '/qa-intelligence', icon: WandSparkles, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
-        { name: t('sidebar.items.aiAnalytics'), href: isAdmin ? '/management/analytics' : '/analytics', icon: Sparkles, roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+        { name: t('sidebar.items.comments'), href: '/admin/comments', roles: ['ADMIN'] },
+        { name: t('sidebar.items.messages'), href: '/messages', roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+        { name: t('sidebar.items.chat'), href: '/chat', roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+        { name: 'Veille & Innovations IA', href: isAdmin ? '/admin/qa-intelligence' : '/qa-intelligence', roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+        { name: t('sidebar.items.aiAnalytics'), href: isAdmin ? '/management/analytics' : '/analytics', roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
       ]
-
     }
   ];
 
@@ -60,48 +54,30 @@ const Sidebar = () => {
     if (filteredItems.length === 0) return null;
 
     return (
-      <div key={group.title} className="py-4">
-        {isOpen && (
-          <h3 className="px-6 mb-4 text-[10px] font-bold text-slate-500 dark:text-slate-500 tracking-[0.2em] uppercase opacity-70">
-            {group.title}
-          </h3>
-        )}
-        <div className="space-y-1.5 px-3">
+      <div key={group.title} className="py-3">
+        <h3 className="px-6 mb-2 text-xs font-bold text-slate-400 dark:text-slate-500 tracking-[0.15em] uppercase flex items-center gap-2">
+          <span className="w-1.5 h-[1px] bg-slate-300 dark:bg-slate-800" />
+          {group.title}
+        </h3>
+        <div className="space-y-1 px-3">
           {filteredItems.map((item) => {
-            const Icon = item.icon;
             const isActive = location.pathname === item.href;
             return (
               <Link
                 key={item.name}
                 to={item.href}
-                title={!isOpen ? item.name : undefined}
-                className={`relative group flex items-center h-11 px-3 rounded-xl transition-all duration-300 ease-out ${isOpen ? '' : 'justify-center mx-auto'
-                  } ${isActive
-                    ? 'bg-blue-600/15 text-blue-500 shadow-[inset_0_1px_rgba(255,255,255,0.05),0_10px_20px_-10px_rgba(37,99,235,0.3)]'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 active:scale-95'
-                  }`}
+                className={`relative group flex items-center h-11 px-4 rounded-lg transition-all duration-200 ease-out transform hover:translate-x-1.5 ${isActive
+                  ? 'bg-blue-500/5 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.02]'
+                }`}
               >
-                {/* Active Indicator Bar */}
                 {isActive && (
-                  <div className="absolute left-0 w-1 h-5 bg-blue-500 rounded-r-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                  <div className="absolute left-0 w-1 h-4 bg-blue-600 dark:bg-blue-500 rounded-r-md" />
                 )}
 
-                <Icon
-                  className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${isActive
-                    ? 'text-blue-500 filter drop-shadow-[0_0_8px_rgba(59,130,246,0.4)]'
-                    : 'text-slate-500 dark:text-slate-400'
-                    } ${isOpen ? 'mr-3.5' : ''}`}
-                />
-
-                {isOpen && (
-                  <span className={`truncate text-sm font-semibold tracking-tight transition-all duration-200 ${isActive ? 'text-blue-600 dark:text-blue-400' : ''
-                    }`}>
-                    {item.name}
-                  </span>
-                )}
-
-                {/* Subtle Hover Glow Line (Bottom) */}
-                <div className={`absolute bottom-0 left-1 right-1 h-[1px] bg-gradient-to-r from-transparent via-blue-500/0 to-transparent transition-opacity duration-300 opacity-0 group-hover:via-blue-500/20 group-hover:opacity-100`} />
+                <span className="truncate text-sm font-semibold tracking-tight">
+                  {item.name}
+                </span>
               </Link>
             );
           })}
@@ -111,77 +87,28 @@ const Sidebar = () => {
   };
 
   return (
-    <aside
-      className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 bg-white dark:bg-[#0a0f1d] border-r border-slate-200 dark:border-white/5 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] z-40 ${isOpen ? 'lg:w-[280px]' : 'lg:w-20'
-        }`}
-    >
-      {/* Branding Section - Top */}
-      <div className={`h-16 flex items-center border-b border-slate-100 dark:border-white/5 ${isOpen ? 'px-6' : 'justify-center'}`}>
-        <div className="flex items-center gap-3 overflow-hidden">
-          {isOpen ? (
-            <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-500">
-              <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tighter leading-none">
-                Insure<span className="text-blue-600 dark:text-blue-400">TM</span>
-              </h1>
-            </div>
-          ) : (
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xs shadow-lg">
-              TM
-            </div>
-          )}
-        </div>
-      </div>
-      {/* Toggle Button - Redesigned */}
-      <button
-        onClick={toggle}
-        className="absolute -right-3.5 top-20 w-7 h-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl flex items-center justify-center shadow-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-300 hover:scale-110 active:scale-90 z-50 text-slate-500"
-        title={isOpen ? 'Réduire le menu' : 'Agrandir le menu'}
-      >
-        {isOpen
-          ? <ChevronLeft className="w-4 h-4" />
-          : <ChevronRight className="w-4 h-4" />
-        }
-      </button>
+    <>
+      {/* Button removed to avoid overlap with header logo */}
 
-      <div className="flex-1 flex flex-col min-h-0 pt-4 overflow-hidden">
+      <aside className={`flex flex-col fixed top-16 bottom-0 w-72 bg-white dark:bg-[#0f172a] border-r border-slate-200 dark:border-white/10 transition-all duration-300 z-40 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex-1 flex flex-col min-h-0 pt-4 overflow-hidden">
         <nav className="flex-1 overflow-y-auto px-1 custom-scrollbar">
           {groups.map(renderNavGroup)}
         </nav>
       </div>
-
-      <div className="p-4 bg-slate-50 dark:bg-white/[0.02] border-t border-slate-100 dark:border-white/5">
-        <div className={`group/user flex items-center ${isOpen ? 'px-3 py-3' : 'justify-center p-2'} rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300`}>
-          <div className="relative">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/20 ring-2 ring-white dark:ring-slate-900">
-              {user?.username?.charAt(0).toUpperCase() || 'U'}
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full shadow-sm" />
-          </div>
-
-          {isOpen && (
-            <div className="ml-3 min-w-0 flex-1">
-              <p className="text-sm font-bold text-slate-900 dark:text-white truncate tracking-tight">
-                {user?.username || 'Utilisateur'}
-              </p>
-              <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider opacity-80">
-                {user?.role || ''}
-              </p>
-            </div>
-          )}
-
-          {isOpen && (
-            <button
-              onClick={logout}
-              className="ml-2 p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all duration-200 group-hover/user:opacity-100"
-              title="Déconnexion"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+      <div className="p-4 border-t border-slate-100 dark:border-white/5 mt-auto flex justify-center items-center">
+        <img
+          src={theme === 'dark' ? '/logo-lloyd-dark.webp' : '/logo-lloyd-light.webp'}
+          alt="Lloyd Logo"
+          onError={(e) => { (e.target as HTMLImageElement).src = '/logo-lloyd.webp'; }}
+          className="h-10 object-contain dark:brightness-0 dark:invert opacity-50 hover:opacity-100 transition-opacity duration-300"
+        />
       </div>
 
-    </aside>
+      {/* Collapse button removed */}
+
+      </aside>
+    </>
   );
 };
 
