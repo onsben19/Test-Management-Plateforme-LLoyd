@@ -40,7 +40,7 @@ const Sidebar = () => {
         { name: t('sidebar.items.comments'), href: '/admin/comments', roles: ['ADMIN'] },
         { name: t('sidebar.items.messages'), href: '/messages', roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
         { name: t('sidebar.items.chat'), href: '/chat', roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
-        { name: 'Veille & Innovations IA', href: isAdmin ? '/admin/qa-intelligence' : '/qa-intelligence', roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+        { name: 'Veille QA', href: isAdmin ? '/admin/qa-intelligence' : '/qa-intelligence', roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
         { name: t('sidebar.items.aiAnalytics'), href: isAdmin ? '/management/analytics' : '/analytics', roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
       ]
     }

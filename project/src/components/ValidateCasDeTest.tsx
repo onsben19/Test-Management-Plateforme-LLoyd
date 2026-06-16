@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Sparkles, User, ListChecks, Code2, Copy, Check, Edit2, Play, Calendar, AlertTriangle, FileIcon, CheckCircle, XCircle, Layers, RefreshCw, Loader, WandSparkles } from 'lucide-react';
+import { X, Sparkles, User, ListChecks, Code2, Copy, Check, Edit2, Play, Calendar, AlertTriangle, FileIcon, CheckCircle, XCircle, Layers, RefreshCw, Loader, WandSparkles, Maximize2, Terminal, ShieldAlert, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import { aiService } from '../services/api';
 
 interface ValidateCasDeTestProps {
@@ -17,6 +16,8 @@ interface ValidateCasDeTestProps {
   executionResult: any;
   setExecutionResult: any;
   liveLogs?: string;
+  inline?: boolean;
+  onViewAnomaly?: (anomalyId: number) => void;
 }
 
 const ValidateCasDeTest: React.FC<ValidateCasDeTestProps> = ({
@@ -31,22 +32,33 @@ const ValidateCasDeTest: React.FC<ValidateCasDeTestProps> = ({
   generatingCode,
   executionResult,
   setExecutionResult,
-  liveLogs = ''
+  liveLogs = '',
+  inline = false,
+  onViewAnomaly,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isReformulating, setIsReformulating] = useState(false);
-  const navigate = useNavigate();
+  const logsRef = useRef<HTMLDivElement>(null);
 
-  const logsEndRef = useRef<HTMLPreElement>(null);
-
+  // Auto-scroll logs to bottom when they update
   useEffect(() => {
-    if (logsEndRef.current) {
-      logsEndRef.current.scrollTop = logsEndRef.current.scrollHeight;
+    if (logsRef.current) {
+      logsRef.current.scrollTop = logsRef.current.scrollHeight;
     }
   }, [liveLogs]);
 
-  if (!isOpen) return null;
+  // Debug: track showExecutionLog changes
+  const showExecutionLog = executingCode || executionResult !== null;
+  useEffect(() => {
+    console.log(`[VCT DEBUG] isOpen=${isOpen}, executingCode=${executingCode}, hasResult=${executionResult !== null}, showExecutionLog=${showExecutionLog}`);
+  });
+
+  if (!isOpen) {
+    console.log('[VCT DEBUG] returning null — isOpen is false!');
+    return null;
+  }
 
   const handleCopy = () => {
     if (!testCaseForm.code) return;
@@ -55,32 +67,182 @@ const ValidateCasDeTest: React.FC<ValidateCasDeTestProps> = ({
     setTimeout(() => setCopied(false), 1000);
   };
 
+const highlightPlaywrightCode = (rawCode: string) => {
+  if (!rawCode) return '';
+  
+  // Escape HTML to prevent injection / breaking layout
+  let escaped = rawCode
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Tokenize comments
+  const comments: string[] = [];
+  escaped = escaped.replace(/(\/\/.*|\/\*[\s\S]*?\*\/)/g, (match) => {
+    comments.push(match);
+    return `__COMMENT_PLACEHOLDER_${comments.length - 1}__`;
+  });
+
+  // Tokenize string literals (single, double quotes and backticks)
+  const strings: string[] = [];
+  escaped = escaped.replace(/(["'`])(.*?)\1/g, (match) => {
+    strings.push(match);
+    return `__STRING_PLACEHOLDER_${strings.length - 1}__`;
+  });
+
+  // Highlight keywords safely
+  escaped = escaped
+    .replace(/\b(import|export|from|const|let|var|function|class|return|await|async|if|else|for|while|try|catch|new|test|describe)\b/g, 
+      '<span class="text-[#7dd3fc] font-semibold">$1</span>') // Light blue keywords
+    .replace(/\b(expect|page)\b/g, 
+      '<span class="text-[#c084fc] font-semibold">$1</span>') // Purple expect/page
+    .replace(/\b(goto|click|fill|locator|getByRole|getByText|getByPlaceholder|getByLabel|getByTestId|toBeVisible|toContainText|toHaveURL|toHaveTitle|toHaveCount|isChecked|isDisabled|isEnabled|isVisible|press|type)\b/g, 
+      '<span class="text-[#34d399] font-medium">$1</span>'); // Emerald functions
+
+  // Restore strings and comments with proper highlight styling
+  escaped = escaped.replace(/__STRING_PLACEHOLDER_(\d+)__/g, (_, index) => {
+    const original = strings[parseInt(index, 10)];
+    return `<span class="text-[#fca5a5]">${original}</span>`; // Light red strings
+  });
+
+  escaped = escaped.replace(/__COMMENT_PLACEHOLDER_(\d+)__/g, (_, index) => {
+    const original = comments[parseInt(index, 10)];
+    return `<span class="text-slate-500 italic">${original}</span>`; // Slate comments
+  });
+
+  return escaped;
+};
+
   const renderHighlightedCode = () => {
     if (!testCaseForm.code) return null;
-    return testCaseForm.code.split('\n').map((line: string, i: number) => {
-      if (line.trim().startsWith('//')) {
-        return <div key={i} className="text-slate-500 dark:text-[#475569]">{line}</div>;
-      }
-      let highlightedLine = line
-        .replace(/\b(const|let|var|await|async)\b/g, '<span class="text-[#7dd3fc]">$1</span>')
-        .replace(/\b(expect|page|getByRole|toContainText|not|toHaveURL|toBeVisible)\b/g, '<span class="text-[#86efac]">$1</span>')
-        .replace(/'([^']*)'/g, '<span class="text-[#fca5a5]">\'$1\'</span>')
-        .replace(/\/([^\/]*)\//g, '<span class="text-[#fca5a5]">/$1/</span>');
-      return <div key={i} dangerouslySetInnerHTML={{ __html: highlightedLine || ' ' }} />;
-    });
+    return (
+      <pre 
+        className="w-full font-mono text-xs leading-relaxed whitespace-pre-wrap text-slate-700 dark:text-slate-300 overflow-x-auto"
+        dangerouslySetInnerHTML={{ __html: highlightPlaywrightCode(testCaseForm.code) }}
+      />
+    );
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[100] p-4">
-      <div className="bg-white dark:bg-[#0f172a] max-w-2xl w-full rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+  // ── Execution log view (replaces form while running / after result) ──────
+  const executionLogView = (
+    <div className="bg-[#0d1117] max-w-2xl w-full rounded-2xl overflow-hidden flex flex-col shadow-2xl max-h-[90vh] border border-white/10">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.07] shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20">
+            <Terminal className="w-4 h-4 text-blue-400" />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-white uppercase tracking-widest">Exécution Playwright</h3>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+              {testCaseForm.test_case_ref || 'Cas de test'}
+            </p>
+          </div>
+        </div>
+        {/* Status badge */}
+        {executingCode && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full">
+            <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">En cours...</span>
+          </div>
+        )}
+        {!executingCode && executionResult?.status === 'PASSED' && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+            <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Succès</span>
+          </div>
+        )}
+        {!executingCode && executionResult?.status === 'FAILED' && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-full">
+            <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+            <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Échec — Anomalie créée</span>
+          </div>
+        )}
+      </div>
+
+      {/* Terminal logs */}
+      <div
+        ref={logsRef}
+        className="flex-1 overflow-y-auto p-5 font-mono text-[11px] leading-relaxed text-green-300/90 bg-[#0d1117] min-h-[260px] max-h-[420px]"
+        style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
+      >
+        {executingCode && !liveLogs && (
+          <span className="text-slate-500 animate-pulse">▶ Démarrage du runner Playwright...</span>
+        )}
+        {liveLogs || executionResult?.logs || ''}
+        {executingCode && (
+          <span className="inline-block w-2 h-3.5 bg-green-400 ml-0.5 animate-pulse" />
+        )}
+      </div>
+
+      {/* Result summary */}
+      {!executingCode && executionResult && (
+        <div className={`mx-5 mb-4 mt-2 p-4 rounded-xl border flex items-start gap-3 ${
+          executionResult.status === 'PASSED'
+            ? 'bg-emerald-500/5 border-emerald-500/20'
+            : 'bg-rose-500/5 border-rose-500/20'
+        }`}>
+          {executionResult.status === 'PASSED' ? (
+            <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+          ) : (
+            <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+          )}
+          <div>
+            <p className={`text-xs font-black uppercase tracking-wider ${executionResult.status === 'PASSED' ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {executionResult.status === 'PASSED'
+                ? 'Test validé avec succès !'
+                : "Le test a échoué — Une anomalie a été déclarée automatiquement par l'IA."}
+            </p>
+            {executionResult.status === 'FAILED' && (
+              <p className="text-[10px] text-slate-400 mt-1">
+                L'anomalie a été analysée et documentée. Consultez-la pour voir le diagnostic complet.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Footer buttons */}
+      <div className="px-5 py-4 border-t border-white/[0.07] flex items-center justify-end gap-3 shrink-0">
+        {executingCode && (
+          <div className="flex items-center gap-2 text-slate-400 text-xs font-bold mr-auto">
+            <Loader className="w-3.5 h-3.5 animate-spin" />
+            Exécution en cours, veuillez patienter...
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={executingCode}
+          className="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          Fermer
+        </button>
+        {!executingCode && executionResult?.status === 'FAILED' && executionResult?.anomaly_id && onViewAnomaly && (
+          <button
+            type="button"
+            onClick={() => onViewAnomaly(executionResult.anomaly_id)}
+            className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-rose-900/40"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Voir l'anomalie
+          </button>
+        )}
+      </div>
+    </div>
+  );
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const mainContent = (
+    <div className={`bg-white dark:bg-[#0f172a] max-w-2xl w-full rounded-2xl overflow-hidden flex flex-col ${inline ? 'border border-slate-200 dark:border-white/10' : 'shadow-2xl max-h-[90vh]'}`}>
         
         {/* Header */}
         <div className="p-6 pb-4 relative shrink-0">
           <button 
             onClick={onClose}
-            className="absolute top-6 right-6 p-2 bg-slate-50 dark:bg-[#1e293b] text-slate-900 dark:text-white rounded-full transition-colors"
+            className="absolute top-6 right-6 p-2 bg-slate-50 dark:bg-[#1e293b] text-slate-900 dark:text-white rounded-full transition-colors flex items-center gap-1 text-xs font-bold"
           >
-            <X className="w-5 h-5" />
+            {inline ? "← Retour" : <X className="w-5 h-5" />}
           </button>
           
           <h2 className="text-xl font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3">Valider un cas de test</h2>
@@ -90,62 +252,25 @@ const ValidateCasDeTest: React.FC<ValidateCasDeTestProps> = ({
             <span className="w-[1px] h-3 bg-slate-700"></span>
             <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {campaign?.title || 'Campagne'}</span>
             <span className="w-[1px] h-3 bg-slate-700"></span>
-            <span className="flex items-center gap-1.5"><User className="w-4 h-4" /> Manager: {campaign?.manager_name || 'Non défini'}</span>
+            <span className="flex items-center gap-1.5"><User className="w-4 h-4" /> Manager: {campaign?.manager || campaign?.manager_name || 'Non défini'}</span>
           </div>
         </div>
 
-        {/* execution result */}
-        {executionResult ? (
-            <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
-                <div className={`p-6 rounded-xl border-2 flex items-center gap-4 ${executionResult.status === 'PASSED' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' : 'bg-rose-500/10 border-rose-500 text-rose-400'}`}>
-                    {executionResult.status === 'PASSED' ? <CheckCircle className="w-8 h-8" /> : <AlertTriangle className="w-8 h-8" />}
-                    <div>
-                        <h3 className="font-black tracking-widest uppercase">{executionResult.status === 'PASSED' ? 'Exécution Réussie' : 'Exécution Échouée'}</h3>
-                        <p className="text-sm opacity-80">{executionResult.status === 'PASSED' ? 'Le test a été validé avec succès.' : 'Une anomalie a été déclarée automatiquement avec ces logs.'}</p>
-                    </div>
+        {campaign?.restants === 0 ? (
+            <div className="p-8 text-center space-y-4 flex flex-col items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[#5DCAA5] flex items-center justify-center">
+                    <CheckCircle className="w-8 h-8" />
                 </div>
-
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Logs d'exécution</label>
-                    <pre className="w-full bg-slate-50 dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] rounded-xl px-6 py-4 text-slate-800 dark:text-slate-300 font-mono text-[11px] overflow-y-auto max-h-64 whitespace-pre-wrap">
-                        {executionResult.logs}
-                    </pre>
-                </div>
-
-                <div className="flex gap-4 w-full">
-                    <button
-                        onClick={() => {
-                            setExecutionResult(null);
-                            onClose();
-                        }}
-                        className="flex-1 py-4 text-slate-900 dark:text-white bg-slate-100 dark:bg-white/10 hover:bg-slate-300 dark:bg-white/20 rounded-xl font-black tracking-[0.2em] uppercase transition-all"
-                    >
-                        Fermer
-                    </button>
-                    {executionResult.status === 'FAILED' && executionResult.anomaly_id && (
-                        <button
-                           onClick={() => {
-                               navigate('/anomalies', { state: { openAnomalyId: executionResult.anomaly_id } });
-                               onClose();
-                           }}
-                           className="flex-1 py-4 text-white bg-rose-500 hover:bg-rose-600 rounded-xl font-black tracking-[0.2em] uppercase transition-all shadow-lg shadow-rose-500/20"
-                        >
-                            Voir l'anomalie
-                        </button>
-                    )}
-                </div>
-            </div>
-        ) : executingCode ? (
-            <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
-                <div className="p-6 rounded-xl border bg-slate-950 border-slate-200 dark:border-white/5 text-slate-700 dark:text-slate-300">
-                    <h3 className="font-bold text-sm mb-4 animate-pulse flex items-center gap-2 text-amber-400">
-                        <div className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                        Exécution Playwright en cours...
-                    </h3>
-                    <pre ref={logsEndRef} className="w-full bg-slate-50 dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] rounded-xl px-6 py-4 text-slate-800 dark:text-slate-300 font-mono text-[11px] overflow-y-auto max-h-64 whitespace-pre-wrap">
-                        {liveLogs || 'Démarrage du conteneur de test...'}
-                    </pre>
-                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wider">Validation terminée</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md leading-relaxed">
+                    Toutes les étapes et cas de test de cette campagne ont été validés à 100%. Il n'y a plus aucun cas de test à valider.
+                </p>
+                <button
+                    onClick={onClose}
+                    className="mt-4 px-6 py-2.5 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-900 dark:text-white rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
+                >
+                    Fermer
+                </button>
             </div>
         ) : (
             <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
@@ -253,47 +378,16 @@ const ValidateCasDeTest: React.FC<ValidateCasDeTestProps> = ({
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Impact</label>
-                                            <select
-                                                value={testCaseForm.anomaly_impact}
-                                                onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_impact: e.target.value })}
-                                                className="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-900 dark:text-white rounded-lg px-4 py-3 outline-none focus:border-rose-500/50 transition-colors appearance-none"
-                                            >
-                                                <option value="BLOQUANTES">BLOQUANTES</option>
-                                                <option value="CRITIQUE">CRITIQUE</option>
-                                                <option value="MAJEUR">MAJEUR</option>
-                                                <option value="MINEURS">MINEURS</option>
-                                                <option value="SIMPLE">SIMPLE</option>
-                                                <option value="FONCTIONNALITE">FONCTIONNALITÉ</option>
-                                            </select>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Priorité</label>
-                                            <select
-                                                value={testCaseForm.anomaly_priority}
-                                                onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_priority: e.target.value })}
-                                                className="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-900 dark:text-white rounded-lg px-4 py-3 outline-none focus:border-rose-500/50 transition-colors appearance-none"
-                                            >
-                                                <option value="IMMEDIATE">IMMÉDIATE</option>
-                                                <option value="URGENTE">URGENTE</option>
-                                                <option value="ELEVEE">ÉLEVÉE</option>
-                                                <option value="NORMALE">NORMALE</option>
-                                                <option value="BASSE">BASSE</option>
-                                            </select>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Visibilité</label>
-                                            <select
-                                                value={testCaseForm.anomaly_visibility}
-                                                onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_visibility: e.target.value })}
-                                                className="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-900 dark:text-white rounded-lg px-4 py-3 outline-none focus:border-rose-500/50 transition-colors appearance-none"
-                                            >
-                                                <option value="PUBLIQUE">PUBLIQUE</option>
-                                                <option value="PRIVEE">PRIVÉE</option>
-                                            </select>
-                                        </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Visibilité</label>
+                                        <select
+                                            value={testCaseForm.anomaly_visibility}
+                                            onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_visibility: e.target.value })}
+                                            className="w-full bg-slate-50 dark:bg-[#1e293b] text-slate-900 dark:text-white rounded-lg px-4 py-3 outline-none focus:border-rose-500/50 transition-colors appearance-none"
+                                        >
+                                            <option value="PUBLIQUE">PUBLIQUE</option>
+                                            <option value="PRIVEE">PRIVÉE</option>
+                                        </select>
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Description</label>
@@ -395,11 +489,20 @@ const ValidateCasDeTest: React.FC<ValidateCasDeTestProps> = ({
                                                 </button>
                                                 <button 
                                                     type="button"
+                                                    onClick={() => setIsCodeModalOpen(true)}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] text-slate-600 dark:text-[#94a3b8] hover:text-slate-900 dark:hover:text-white rounded text-xs font-medium transition-colors"
+                                                    title="Agrandir le code"
+                                                >
+                                                    <Maximize2 className="w-3.5 h-3.5" />
+                                                    Agrandir
+                                                </button>
+                                                <button 
+                                                    type="button"
                                                     onClick={() => setIsEditing(!isEditing)}
                                                     className={`flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#334155] rounded text-xs font-medium transition-colors ${isEditing ? 'text-slate-900 dark:text-white border-blue-500/50' : 'text-slate-600 dark:text-[#94a3b8] hover:text-slate-900 dark:hover:text-white'}`}
                                                 >
                                                     <Edit2 className="w-3.5 h-3.5" />
-                                                    Éditer
+                                                    {isEditing ? 'Valider' : 'Éditer'}
                                                 </button>
                                             </div>
                                         </div>
@@ -444,13 +547,93 @@ const ValidateCasDeTest: React.FC<ValidateCasDeTestProps> = ({
                         ) : (
                             <CheckCircle className="w-5 h-5" />
                         )}
-                        {executingCode ? "Exécution en cours..." : (testCaseForm.executionType === 'ai' ? "Exécuter & Enregistrer" : "Enregistrer")}
+                        {executingCode ? "Exécution en cours — voir les logs..." : (testCaseForm.executionType === 'ai' ? "Exécuter & Enregistrer" : "Enregistrer")}
                     </button>
                 </div>
             </form>
         )}
-      </div>
     </div>
+  );
+
+    return (
+    <>
+      {inline ? (
+        <div className="w-full max-w-2xl mx-auto py-2">
+          {showExecutionLog ? executionLogView : mainContent}
+        </div>
+      ) : (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[100] p-4">
+          {showExecutionLog ? executionLogView : mainContent}
+        </div>
+      )}
+
+      <AnimatePresence>
+        {isCodeModalOpen && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[250] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-[#111827] border border-white/10 rounded-2xl max-w-4xl w-full overflow-hidden flex flex-col shadow-2xl max-h-[85vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="p-6 pb-4 border-b border-white/[0.08] flex items-center justify-between relative shrink-0">
+                <div className="flex items-center gap-2">
+                  <Code2 className="w-5 h-5 text-blue-500" />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Agrandir le Code Playwright</h3>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-500 hover:bg-blue-500/20 rounded text-xs font-semibold tracking-wider uppercase transition-colors"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    {isEditing ? 'Valider' : 'Éditer'}
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setIsCodeModalOpen(false)}
+                    className="p-1 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 overflow-y-auto flex-1 bg-slate-50 dark:bg-[#0f172a]/50">
+                {isEditing ? (
+                  <textarea
+                    value={testCaseForm.code}
+                    onChange={(e) => setTestCaseForm({ ...testCaseForm, code: e.target.value })}
+                    className="w-full min-h-[400px] h-[50vh] bg-transparent text-slate-600 dark:text-[#94a3b8] font-mono text-xs leading-relaxed resize-none outline-none border border-slate-200 dark:border-[#334155] rounded-lg p-4 custom-scrollbar"
+                    spellCheck={false}
+                  />
+                ) : (
+                  <pre 
+                    className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap font-mono text-xs leading-relaxed p-4"
+                    dangerouslySetInnerHTML={{ __html: highlightPlaywrightCode(testCaseForm.code) }}
+                  />
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-slate-200 dark:border-[#334155] flex justify-end shrink-0 gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setIsCodeModalOpen(false)}
+                  className="px-5 py-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-900 dark:text-white rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors"
+                >
+                  Fermer
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 

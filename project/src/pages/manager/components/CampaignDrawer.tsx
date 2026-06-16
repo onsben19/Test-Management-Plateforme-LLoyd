@@ -107,9 +107,11 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
 
     const total = campaign.nb_test_cases || 0;
     const passed = campaign.passed_count || 0;
-    const failed = Math.max(0, total - passed);
-    const rate = total > 0 ? Math.round((passed / total) * 100) : 0;
-    const velocity = 4; // Mock or from AI service
+    const failed = campaign.failed_count || 0;
+    const validated = passed + failed;
+    const restants = Math.max(0, total - validated);
+    const rate = total > 0 ? Math.round((validated / total) * 100) : 0;
+    const velocity = catchupData?.current_velocity ?? (validated > 0 ? 1 : 0);
 
     return (
         <>
@@ -147,22 +149,32 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                     </h2>
 
                                     {/* Subtitle */}
-                                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed mb-8">
-                                        {campaign.description || "Vérification du taux de faux positifs sur la détection de faux bulletins de salaire."}
-                                    </p>
+                                    {campaign.description && (
+                                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed mb-8">
+                                            {campaign.description}
+                                        </p>
+                                    )}
 
                                     {/* Meta row */}
                                     <div className="flex items-center gap-3">
-                                        <div className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl flex items-center gap-2">
-                                            <Calendar size={14} className="text-slate-500" />
-                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">11/04/2026</span>
-                                        </div>
-                                        <div className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl flex items-center gap-2">
-                                            <Clock size={14} className="text-slate-500" />
-                                            <span className="text-xs font-bold text-slate-400">
-                                                Deadline <span className="text-slate-800 dark:text-slate-200">18 avr.</span>
-                                            </span>
-                                        </div>
+                                        {campaign.start_date && (
+                                            <div className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl flex items-center gap-2">
+                                                <Calendar size={14} className="text-slate-500" />
+                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                    {new Date(campaign.start_date).toLocaleDateString('fr-FR')}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {campaign.estimated_end_date && (
+                                            <div className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl flex items-center gap-2">
+                                                <Clock size={14} className="text-slate-500" />
+                                                <span className="text-xs font-bold text-slate-400">
+                                                    Deadline <span className="text-slate-800 dark:text-slate-200">
+                                                        {new Date(campaign.estimated_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -195,14 +207,18 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
 
                                         {/* Progress details */}
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex justify-between items-center mb-4">
-                                                <div className="flex items-center gap-2">
-                                                    <CheckCircle2 size={16} className="text-emerald-500" />
-                                                    <span className="text-xs font-black text-emerald-400">{passed} validés</span>
+                                            <div className="flex justify-between items-center mb-4 gap-2">
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                                                    <span className="text-[10px] font-black text-emerald-400 truncate">{passed} réussis</span>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <XCircle size={16} className="text-rose-500" />
-                                                    <span className="text-xs font-black text-rose-400">{failed} restants</span>
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    <AlertTriangle size={14} className="text-[#F09595] shrink-0" />
+                                                    <span className="text-[10px] font-black text-[#F09595] truncate">{failed} anomalies</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    <Clock size={14} className="text-slate-400 shrink-0" />
+                                                    <span className="text-[10px] font-black text-slate-400 truncate">{restants} restants</span>
                                                 </div>
                                             </div>
                                             <div className="h-2 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden mb-3">
@@ -213,7 +229,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                                 />
                                             </div>
                                             <div className="flex justify-between text-[8px] font-black text-slate-600 uppercase tracking-widest">
-                                                <span>{passed} TESTS VALIDÉS</span>
+                                                <span>{validated} TESTS VALIDÉS</span>
                                                 <span>CIBLE : {total}</span>
                                             </div>
                                         </div>

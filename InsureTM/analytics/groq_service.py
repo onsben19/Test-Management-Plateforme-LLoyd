@@ -10,42 +10,75 @@ class GroqService:
             api_key=os.environ.get("GROQ_API_KEY"),
         )
         
+    # Groq model cascade — each model has its own daily quota
+    # llama-3.3-70b-versatile : 1 000 req/day,  100 000 tokens/day  (best quality)
+    # llama-3.1-8b-instant    : 14 400 req/day, 500 000 tokens/day  (fast, generous)
+    # gemma2-9b-it            : 14 400 req/day, 500 000 tokens/day  (extra fallback)
+    GROQ_FALLBACK_CHAIN = [
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        "gemma2-9b-it",
+    ]
+
     def _get_completion_with_fallback(self, messages, temperature=0.7, model_name="llama-3.3-70b-versatile"):
-        try:
-            completion = self.client.chat.completions.create(
-                messages=messages,
-                model=model_name,
-                temperature=temperature,
-            )
-            return completion.choices[0].message.content.strip()
-        except Exception as groq_error:
-            print(f"Groq API Error: {str(groq_error)}. Falling back to Gemini...")
-            gemini_api_key = os.environ.get("GEMINI_API_KEY")
-            if not gemini_api_key:
-                raise groq_error
-                
-            import google.generativeai as genai
-            genai.configure(api_key=gemini_api_key)
-            
-            contents = []
-            for msg in messages:
-                if isinstance(msg['content'], list):
-                    for item in msg['content']:
-                        if item['type'] == 'text':
-                            contents.append(item['text'])
-                        elif item['type'] == 'image_url':
-                            b64 = item['image_url']['url'].split(',')[1]
-                            image_bytes = base64.b64decode(b64)
-                            contents.append({'mime_type': 'image/jpeg', 'data': image_bytes})
-                else:
-                    contents.append(f"[{msg['role'].upper()}]: {msg['content']}")
-                    
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            response = model.generate_content(
-                contents,
-                generation_config=genai.types.GenerationConfig(temperature=temperature)
-            )
-            return response.text.strip()
+        # Build model chain: requested model first, then remaining fallbacks
+        chain = [model_name] + [m for m in self.GROQ_FALLBACK_CHAIN if m != model_name]
+
+        last_groq_error = None
+        for model in chain:
+            try:
+                completion = self.client.chat.completions.create(
+                    messages=messages,
+                    model=model,
+                    temperature=temperature,
+                )
+                return completion.choices[0].message.content.strip()
+            except Exception as err:
+                err_str = str(err)
+                # Only continue to next model on rate-limit / quota errors
+                if '429' in err_str or 'rate' in err_str.lower() or 'quota' in err_str.lower():
+                    print(f"Groq model '{model}' quota/rate-limit hit, trying next model…")
+                    last_groq_error = err
+                    continue
+                # Other errors (auth, bad request) → raise immediately
+                raise err
+
+        # All Groq models exhausted → try Gemini cascade
+        print(f"All Groq models exhausted. Falling back to Gemini… (last error: {last_groq_error})")
+        gemini_api_key = os.environ.get("GEMINI_API_KEY")
+        if not gemini_api_key:
+            raise last_groq_error
+
+        import google.generativeai as genai
+        genai.configure(api_key=gemini_api_key)
+
+        contents = []
+        for msg in messages:
+            if isinstance(msg['content'], list):
+                for item in msg['content']:
+                    if item['type'] == 'text':
+                        contents.append(item['text'])
+                    elif item['type'] == 'image_url':
+                        b64 = item['image_url']['url'].split(',')[1]
+                        image_bytes = base64.b64decode(b64)
+                        contents.append({'mime_type': 'image/jpeg', 'data': image_bytes})
+            else:
+                contents.append(f"[{msg['role'].upper()}]: {msg['content']}")
+
+        # Try multiple Gemini models in order (different quotas)
+        last_gemini_err = None
+        for gemini_model in ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-2.5-flash"]:
+            try:
+                model = genai.GenerativeModel(gemini_model)
+                response = model.generate_content(
+                    contents,
+                    generation_config=genai.types.GenerationConfig(temperature=temperature)
+                )
+                return response.text.strip()
+            except Exception as gemini_err:
+                last_gemini_err = gemini_err
+                continue
+        raise last_gemini_err
         
     def get_dynamic_schema(self, role, user_id):
         base_schema = """
@@ -196,23 +229,26 @@ class GroqService:
            - Set 'hole': 0.4.
            - Set 'textinfo': 'percent+label'.
            - Set 'textposition': 'outside'.
-           - CRITICAL: Set 'domain': {{ 'x': [0, 1], 'y': [0.1, 0.9] }} to maximize diameter.
            - For 3 or fewer slices, use 'pull': [0.03, 0.03, 0.03] to make it prominent.
         6. RADAR/POLAR: In layout, use 'polar': {{ 'radialaxis': {{ 'visible': true }}, 'angularaxis': {{ 'tickfont': {{ 'size': 14 }} }} }}.
         7. COLORS: Use the vibrant palette: ['#3b82f6', '#ec4899', '#8b5cf6', '#10b981', '#f59e0b', '#06b6d4', '#f43f5e'].
         8. FONT: Set global font color to '#f1f5f9' (slate-100).
         9. BACKGROUND: Use 'paper_bgcolor': 'transparent', 'plot_bgcolor': 'transparent'.
         10. AUTO-SCALING: 'autosize': true.
-        11. THEME: Always prioritize creating a LARGE graphical representation over small ones. Maximize the chart's diameter or height. Use AT LEAST 90% of the available space.
-        12. SPACING: For charts with 2+ series, use 'barmode': 'group'. Ensure labels don't overlap.
+        11. THEME: Create a compact and readable chart. Ensure it fits well within a standard chat message container.
+        12. SPACING: For charts with 2+ series, use 'barmode': 'group'. Ensure labels don't overlap. Adjust margins so no text is cut off.
         
         Example Output: {{"data": [...], "layout": {{ ... }} }}
         """
         
         messages = [{"role": "user", "content": prompt}]
         config_text = self._get_completion_with_fallback(messages, temperature=0)
-        if config_text.startswith("```json"):
-            config_text = config_text.replace("```json", "").replace("```", "").strip()
+        
+        import re
+        match = re.search(r'\{.*\}', config_text, re.DOTALL)
+        if match:
+            config_text = match.group(0)
+            
         return config_text
 
     def process_query(self, question, user, uploaded_file=None, history=None):
@@ -302,10 +338,11 @@ class GroqService:
                     Question de l'utilisateur: {question}
                     
                     Règles:
-                    1. Réponds en Français de manière professionnelle et concise.
+                    1. Réponds en Français de manière très objective, professionnelle et concise.
                     2. Utilise les 'Raisons précises' pour justifier pourquoi le score est à ce niveau.
                     3. À la fin, propose TOUJOURS une action concrète (ex: reformuler une notification, contacter un testeur, etc.).
                     4. Si le score est < 80%, sois vigilant sur les risques.
+                    5. NE dis JAMAIS "En tant qu'expert...". Va droit au but.
                     """
                     messages = [{"role": "user", "content": prompt}]
                     answer = self._get_completion_with_fallback(messages, temperature=0.7)
@@ -332,10 +369,10 @@ class GroqService:
                     print(f"SQL execution error: {sql_error}. Query was: {sql_query}")
                     # Friendly technical explanation fallback
                     fallback_prompt = f"""
-                    Tu es un Directeur QA Senior chez Lloyd Assurances. L'utilisateur a posé une question sur les données : "{question}".
+                    L'utilisateur a posé une question sur les données : "{question}".
                     La requête SQL générée `{sql_query}` a échoué avec l'erreur : {str(sql_error)}.
                     
-                    Réponds poliment en français. Explique qu'il y a eu un problème technique lors de la récupération des données réelles, et invite l'utilisateur à reformuler ou à ajuster directement la requête SQL via le panneau de modifications.
+                    Réponds poliment en français, de manière très objective et professionnelle. Explique qu'il y a eu un problème technique lors de la récupération des données réelles, et invite l'utilisateur à reformuler ou à ajuster directement la requête SQL via le panneau de modifications. NE dis PAS "En tant que...".
                     """
                     answer = self._get_completion_with_fallback([{"role": "user", "content": fallback_prompt}], temperature=0.7)
                     return {
@@ -348,16 +385,17 @@ class GroqService:
                 if len(data) > 0:
                     # Secondary Cognitive Step: Interpret results
                     interpretation_prompt = f"""
-                    Tu es un Directeur QA Senior. Analyse ces résultats de données extraits de la plateforme pour répondre à la question de l'utilisateur.
+                    Analyse ces résultats de données extraits de la plateforme pour répondre à la question de l'utilisateur.
                     
                     QUESTION : {question}
                     DONNÉES BRUTES : {data[:20]} (échantillon)
                     
-                    CONSIGNES :
+                    CONSIGNES STRICTES :
                     1. Ne te contente pas de lister les chiffres. Identifie une CORRÉLATION, une TENDANCE ou un RISQUE caché.
-                    2. Utilise un ton de "Conseiller Stratégique".
+                    2. Adopte un ton direct, objectif et très professionnel.
                     3. Propose une ACTION immédiate basée sur cette analyse technique.
                     4. Réponds en 2-3 phrases percutantes en Français.
+                    5. NE MENTIONNE JAMAIS explicitement ton rôle. Ne commence JAMAIS ta réponse par "En tant que...". Réponds directement.
                     """
                     messages = [{"role": "user", "content": interpretation_prompt}]
                     interpretation = self._get_completion_with_fallback(messages, temperature=0.5)
@@ -459,17 +497,15 @@ class GroqService:
                     "Structure : salutation courte, corps du message structuré en 2-3 phrases, formule de politesse finale. "
                     "Pas de markdown. Pas de titre. Pas d'explication hors du message."
                 )
-        try:
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Reformulate: {text}"}
-            ]
-            result = self._get_completion_with_fallback(messages, temperature=0.3)
-            if is_subject:
-                # Remove markdown and newlines
-                result = result.replace("**", "").replace("\n", " ").replace("\r", " ").strip()
-            return result
-        except Exception: return text
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Reformulate: {text}"}
+        ]
+        # Use fast/cheap model for reformulation — simple rewriting task
+        result = self._get_completion_with_fallback(messages, temperature=0.3, model_name="llama-3.1-8b-instant")
+        if is_subject:
+            result = result.replace("**", "").replace("\n", " ").replace("\r", " ").strip()
+        return result
     def generate_dashboard_brief(self, stats):
         """Generate a contextual AI brief for the manager dashboard with 5-min time-based rotation and deep data."""
         import time
@@ -518,7 +554,8 @@ class GroqService:
         """
         try:
             messages = [{"role": "user", "content": prompt}]
-            brief_text = self._get_completion_with_fallback(messages, temperature=0.7)
+            # Use fast/cheap model for brief — short output, doesn't need 70b quality
+            brief_text = self._get_completion_with_fallback(messages, temperature=0.7, model_name="llama-3.1-8b-instant")
             return {
                 "brief": brief_text,
                 "target_id": theme['target_id'],
@@ -564,17 +601,14 @@ class GroqService:
         17. RESTRICTION DES TARGETS DE CLIC : Restreins toujours les cibles de clic aux éléments réellement interactifs (boutons `button`, liens `a`, ou inputs de type button/submit). Ne cible jamais de balises génériques de mise en page comme `div`, `form`, `section`, `span`, `p` ou `li` pour effectuer un clic, sauf si aucun autre élément n'est disponible et que l'étape le mentionne explicitement.
         """
         
-        try:
-            messages = [{"role": "user", "content": prompt}]
-            code = self._get_completion_with_fallback(messages, temperature=0.1)
-            if code.startswith("```"):
-                code = "\n".join(code.split("\n")[1:-1])
-            
-            # Post-processing automatique pour assainir les sélecteurs
-            code = self._sanitize_playwright_selectors(code)
-            return code
-        except Exception as e:
-            return f"// Erreur lors de la génération IA : {str(e)}"
+        messages = [{"role": "user", "content": prompt}]
+        code = self._get_completion_with_fallback(messages, temperature=0.1)
+        if code.startswith("```"):
+            code = "\n".join(code.split("\n")[1:-1])
+
+        # Post-processing automatique pour assainir les sélecteurs
+        code = self._sanitize_playwright_selectors(code)
+        return code
 
     def _sanitize_playwright_selectors(self, code):
         import re

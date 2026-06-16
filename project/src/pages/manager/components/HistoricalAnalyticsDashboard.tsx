@@ -123,7 +123,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
     const totalReleases = releaseData.length;
     const readinessScore = totalReleases > 0
         ? Math.round((healthyReleases / totalReleases) * 100)
-        : 85;
+        : 0;
 
     const tdClass = "p-4 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-100 dark:group-hover:bg-white/5 transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-300 dark:group-hover:border-white/10";
 

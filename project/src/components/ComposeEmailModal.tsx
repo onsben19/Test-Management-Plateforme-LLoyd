@@ -78,7 +78,11 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
             const reformulated = response.data?.reformulated_message || response.data?.message;
             if (reformulated) { setBody(reformulated); toast.success(t('email.toasts.reformulated')); }
             else toast.error(t('email.toasts.noReformulation'));
-        } catch { toast.error(t('email.toasts.reformulateError')); }
+        } catch (err: any) {
+            const data = err?.response?.data;
+            if (data?.error === 'quota_exceeded') toast.error(data.message, { autoClose: 8000 });
+            else toast.error(t('email.toasts.reformulateError'));
+        }
         finally { setReformulating(false); }
     };
 
@@ -90,12 +94,17 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
             const reformulated = response.data?.reformulated_message || response.data?.message;
             if (reformulated) { setSubject(reformulated); toast.success(t('email.toasts.subjectReformulated')); }
             else toast.error(t('email.toasts.noReformulation'));
-        } catch { toast.error(t('email.toasts.subjectReformulateError')); }
+        } catch (err: any) {
+            const data = err?.response?.data;
+            if (data?.error === 'quota_exceeded') toast.error(data.message, { autoClose: 8000 });
+            else toast.error(t('email.toasts.subjectReformulateError'));
+        }
         finally { setSubjectReformulating(false); }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (sending) return;
         if (recipientIds.length === 0 || !subject || !body) {
             toast.error(t('email.toasts.requiredFields'));
             return;

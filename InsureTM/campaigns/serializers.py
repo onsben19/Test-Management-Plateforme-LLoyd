@@ -112,9 +112,33 @@ class CampaignSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
+        request = self.context.get('request')
+        
         from testCases.models import TestCase
-        db_count = TestCase.objects.filter(campaign=instance).count()
-        ret['nb_test_cases'] = max(instance.nb_test_cases, db_count)
+        from anomalies.models import Anomalie
+        from .models import CampaignAssignment
+        
+        if request and hasattr(request.user, 'role') and request.user.role == 'TESTER':
+            tester = request.user
+            
+            # Tester specific stats
+            my_passed = TestCase.objects.filter(campaign=instance, status='PASSED', tester=tester).count()
+            my_failed = TestCase.objects.filter(campaign=instance, status='FAILED', tester=tester).count()
+            my_anomalies = Anomalie.objects.filter(test_case__campaign=instance, test_case__tester=tester).exclude(statut='RESOLUE').count()
+            
+            # Tester specific quota
+            assignment = CampaignAssignment.objects.filter(campaign=instance, tester=tester).first()
+            my_quota = assignment.test_quota if assignment else 0
+            
+            ret['passed_count'] = my_passed
+            ret['failed_count'] = my_failed
+            ret['anomalies_count'] = my_anomalies
+            ret['nb_test_cases'] = my_quota
+        else:
+            # Global stats logic
+            db_count = TestCase.objects.filter(campaign=instance).count()
+            ret['nb_test_cases'] = max(instance.nb_test_cases, db_count)
+            
         return ret
 
 

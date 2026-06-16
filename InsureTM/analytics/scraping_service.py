@@ -10,46 +10,65 @@ class QAScrapingService:
         self.client = Groq(api_key=os.environ.get('GROQ_API_KEY'))
 
     def scrape_and_update(self):
-        """Scrapes the latest QA articles and generates AI tips."""
+        """Scrapes the latest QA articles from multiple sources and generates AI tips."""
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
-        try:
-            response = requests.get(self.url, headers=headers, timeout=15)
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Cibler les liens d'articles plus largement
-            links = soup.find_all('a', href=True)
-            
-            new_items = 0
-            count = 0
-            for link_tag in links:
-                if count >= 5: break
+        
+        sources = [
+            {
+                "name": "Ministry of Testing",
+                "url": "https://www.ministryoftesting.com/articles",
+                "base": "https://www.ministryoftesting.com",
+                "is_article": lambda href: '/articles/' in href and len(href) > 20
+            },
+            {
+                "name": "Testim",
+                "url": "https://www.testim.io/blog/",
+                "base": "https://www.testim.io",
+                "is_article": lambda href: '/blog/' in href and len(href.split('/')) > 4
+            },
+            {
+                "name": "Applitools",
+                "url": "https://applitools.com/blog/",
+                "base": "https://applitools.com",
+                "is_article": lambda href: '/blog/' in href and len(href) > 30
+            }
+        ]
+        
+        new_items = 0
+        
+        for source in sources:
+            try:
+                response = requests.get(source['url'], headers=headers, timeout=15)
+                soup = BeautifulSoup(response.text, 'html.parser')
+                links = soup.find_all('a', href=True)
                 
-                href = link_tag['href']
-                # Filtrer pour ne garder que les articles
-                if '/articles/' in href and len(link_tag.text.strip()) > 20:
-                    title = link_tag.text.strip()
-                    full_url = href
-                    if not full_url.startswith('http'):
-                        full_url = "https://www.ministryoftesting.com" + href
+                count = 0
+                for link_tag in links:
+                    if count >= 3: break # 3 articles per source
                     
-                    if not QANews.objects.filter(url=full_url).exists():
-                        ai_tip = self._generate_ai_tip(title)
-                        QANews.objects.create(
-                            title=title,
-                            url=full_url,
-                            content_summary=f"Veille QA sur {title}",
-                            ai_tip=ai_tip
-                        )
-                        new_items += 1
-                        count += 1
-            
-            return new_items
-
-        except Exception as e:
-            print(f"Erreur Scraping: {str(e)}")
-            return 0
+                    href = link_tag['href']
+                    title = " ".join(link_tag.text.split())[:250]
+                    
+                    if source['is_article'](href) and len(title) > 20:
+                        full_url = href if href.startswith('http') else source['base'] + href
+                        
+                        if not QANews.objects.filter(url=full_url).exists():
+                            ai_tip = self._generate_ai_tip(title)
+                            QANews.objects.create(
+                                title=title,
+                                url=full_url,
+                                source=source['name'],
+                                content_summary=f"Veille QA sur {title}",
+                                ai_tip=ai_tip
+                            )
+                            new_items += 1
+                            count += 1
+            except Exception as e:
+                print(f"Erreur Scraping sur {source['name']}: {str(e)}")
+                
+        return new_items
 
     def _generate_ai_tip(self, title):
         """Uses Groq to turn a technical title into a practical QA tip."""

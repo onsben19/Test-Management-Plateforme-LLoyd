@@ -18,6 +18,7 @@ const EditExecutionModal: React.FC<EditExecutionModalProps> = ({ test, onClose, 
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmitting) return;
         setIsSubmitting(true);
         try {
             const formData = new FormData();

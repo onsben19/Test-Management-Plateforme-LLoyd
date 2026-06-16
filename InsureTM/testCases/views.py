@@ -156,10 +156,20 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         manual_data = request.data.get('manual_data')
         if not manual_data:
             return Response({"error": "manual_data is required"}, status=400)
-            
+
         groq_service = GroqService()
-        generated_code = groq_service.generate_playwright_test(title, manual_data)
-        return Response({"code": generated_code})
+        try:
+            generated_code = groq_service.generate_playwright_test(title, manual_data)
+            return Response({"code": generated_code})
+        except Exception as e:
+            error_msg = str(e)
+            # Detect quota/rate-limit errors from Groq or Gemini
+            if '429' in error_msg or 'quota' in error_msg.lower() or 'rate' in error_msg.lower():
+                return Response({
+                    "error": "quota_exceeded",
+                    "message": "Les quotas journaliers des APIs IA (Groq + Gemini) sont épuisés. Réessayez demain ou configurez une clé API avec un plan payant."
+                }, status=503)
+            return Response({"error": "generation_failed", "message": error_msg}, status=500)
 
     @action(detail=True, methods=['post'], url_path='save-script')
     def save_script(self, request, pk=None):
@@ -199,18 +209,23 @@ class TestCaseViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='execute-script')
     def execute_script(self, request, pk=None):
+        """
+        Starts Playwright execution in a background thread and returns IMMEDIATELY.
+        The frontend polls live-logs/ to get progress and the final result.
+        This prevents JWT expiry / thread pool starvation on long-running tests.
+        """
+        import threading, re, shutil
         test_case = self.get_object()
         path = test_case.automation_script_path
         if not path or not os.path.exists(path):
             return Response({"error": "Script not found"}, status=404)
-            
+
         project_dir = os.path.abspath(os.path.join(settings.BASE_DIR, '..', 'project'))
-        
-        # Check if storageState path exists, if not, remove it to prevent ENOENT crash
+
+        # Remove missing storageState to prevent ENOENT crash
         try:
             with open(path, 'r') as f:
                 content = f.read()
-            import re
             storage_match = re.search(r'storageState:\s*(["\'])(.*?)\1', content)
             if storage_match:
                 storage_rel_path = storage_match.group(2)
@@ -223,117 +238,169 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                             f.write(new_content)
         except Exception as e:
             logger.error(f"Failed to check/remove missing storageState: {e}")
-            
+
         output_dir = os.path.join(project_dir, 'test-results', f'test_{test_case.id}')
-        
-        try:
-            import shutil
-            if os.path.exists(output_dir):
-                shutil.rmtree(output_dir)
-                
-            from channels.layers import get_channel_layer
-            from asgiref.sync import async_to_sync
-            channel_layer = get_channel_layer()
-            group_name = f'testcase_logs_{test_case.id}'
+        live_log_path = os.path.join(project_dir, 'test-results', f'live_{test_case.id}.log')
+        result_path = os.path.join(project_dir, 'test-results', f'result_{test_case.id}.json')
 
-            env = os.environ.copy()
-            env['SKIP_WEBSERVER'] = 'true'
+        os.makedirs(os.path.dirname(live_log_path), exist_ok=True)
 
-            process = subprocess.Popen(
-                ['npx', 'playwright', 'test', path, f'--output={output_dir}'],
-                cwd=project_dir,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-                env=env
-            )
+        # Remove stale result file from a previous run
+        if os.path.exists(result_path):
+            os.remove(result_path)
 
-            logs_list = []
-            for line in iter(process.stdout.readline, ''):
-                logs_list.append(line)
-                if channel_layer:
-                    async_to_sync(channel_layer.group_send)(
-                        group_name,
-                        {
-                            "type": "log_message",
-                            "message": line
-                        }
-                    )
+        # Write startup message so first poll is never empty
+        with open(live_log_path, 'w') as f:
+            f.write(f'▶ Démarrage du runner Playwright pour : {test_case.test_case_ref}\n')
 
-            process.stdout.close()
-            returncode = process.wait()
-            logs = "".join(logs_list)
-            status = 'PASSED' if returncode == 0 else 'FAILED'
-            
-            # Save logs to TestCase data_json
-            tc_data = test_case.data_json or {}
-            if not isinstance(tc_data, dict):
-                tc_data = {}
-            tc_data['execution_logs'] = logs
-            test_case.data_json = tc_data
-            
-            test_case.status = status
-            test_case.execution_date = timezone.now()
-            test_case.tester = request.user
-            
-            # Look for the screenshot (captured by Playwright)
+        tester_id = request.user.id
+
+        def run_playwright():
+            import json as _json
+            from django.db import connection as _db_connection
             from django.core.files import File
-            screenshot_path = None
-            for root, _, files in os.walk(output_dir):
-                for file in files:
-                    if file.endswith('.png'):
-                        screenshot_path = os.path.join(root, file)
+
+            try:
+                if os.path.exists(output_dir):
+                    shutil.rmtree(output_dir)
+
+                env = os.environ.copy()
+                env['SKIP_WEBSERVER'] = 'true'
+                env['PYTHONUNBUFFERED'] = '1'
+                env['FORCE_COLOR'] = '0'
+                env['CI'] = 'true'
+                # DEBUG=pw:api streams each Playwright action to stdout as it executes
+                env['DEBUG'] = 'pw:api'
+
+                # Write stdout/stderr directly to file — bypasses Node.js pipe buffering
+                with open(live_log_path, 'a') as live_log_file:
+                    process = subprocess.Popen(
+                        ['npx', 'playwright', 'test', path, f'--output={output_dir}', '--reporter=list'],
+                        cwd=project_dir,
+                        stdout=live_log_file,
+                        stderr=live_log_file,
+                        env=env
+                    )
+                    returncode = process.wait()
+
+                with open(live_log_path, 'r', errors='replace') as f:
+                    logs = f.read()
+                status = 'PASSED' if returncode == 0 else 'FAILED'
+
+                # Persist to DB
+                tc = TestCase.objects.get(pk=test_case.id)
+                tc_data = tc.data_json or {}
+                if not isinstance(tc_data, dict):
+                    tc_data = {}
+                tc_data['execution_logs'] = logs
+                tc.data_json = tc_data
+                tc.status = status
+                tc.execution_date = timezone.now()
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                tc.tester = User.objects.get(pk=tester_id)
+
+                # Screenshot
+                screenshot_path = None
+                for root, _, files in os.walk(output_dir):
+                    for file in files:
+                        if file.endswith('.png'):
+                            screenshot_path = os.path.join(root, file)
+                            break
+                    if screenshot_path:
                         break
-                if screenshot_path: break
-            
-            if screenshot_path and os.path.exists(screenshot_path):
-                with open(screenshot_path, 'rb') as f:
-                    file_obj = File(f)
-                    test_case.proof_file.save(f'screenshot_tc_{test_case.id}.png', file_obj, save=False)
-            
-            if status == 'FAILED':
-                from anomalies.models import Anomalie
-                
-                groq_service = GroqService()
-                try:
-                    anomaly_title, anomaly_desc = groq_service.generate_anomaly_from_logs(test_case.test_case_ref, logs)
-                except Exception as e:
-                    logger.error(f"Erreur lors de l'appel LLM Groq : {e}")
-                    anomaly_title = f"Échec du test automatique : {test_case.test_case_ref}"
-                    anomaly_desc = "Le test a échoué. Le diagnostic IA n'a pas pu être généré suite à une erreur technique de l'API LLM."
-                
-                # Sanitize to prevent DB errors and append raw logs
-                safe_title = str(anomaly_title).replace('\x00', '')[:250]
-                safe_desc = str(anomaly_desc).replace('\x00', '') + f"\n\n--- LOGS D'EXÉCUTION ---\n{logs.replace(chr(0), '')}"
-                
-                anomaly = Anomalie(
-                    test_case=test_case,
-                    titre=safe_title,
-                    description=safe_desc,
-                    impact='A_DEFINIR',
-                    priorite='A_DEFINIR',
-                    visibilite='PUBLIQUE',
-                    statut='OUVERTE',
-                    cree_par=request.user
-                )
-                
+
                 if screenshot_path and os.path.exists(screenshot_path):
                     with open(screenshot_path, 'rb') as f:
-                        file_obj = File(f)
-                        anomaly.preuve_image.save(f'screenshot_tc_{test_case.id}.png', file_obj, save=False)
-                        
-                anomaly.save()
+                        tc.proof_file.save(f'screenshot_tc_{tc.id}.png', File(f), save=False)
 
-            test_case.save()
+                anomaly_id = None
+                if status == 'FAILED':
+                    from anomalies.models import Anomalie
+                    groq_service = GroqService()
+                    try:
+                        anomaly_title, anomaly_desc = groq_service.generate_anomaly_from_logs(tc.test_case_ref, logs)
+                    except Exception as exc:
+                        logger.error(f"Groq error: {exc}")
+                        anomaly_title = f"Échec du test automatique : {tc.test_case_ref}"
+                        anomaly_desc = "Le test a échoué. Diagnostic IA indisponible."
 
-            response_data = {
-                "status": test_case.status,
-                "logs": logs
-            }
-            if status == 'FAILED' and 'anomaly' in locals():
-                response_data["anomaly_id"] = anomaly.id
-                
-            return Response(response_data)
-        except Exception as e:
-            import traceback; traceback.print_exc(); return Response({"error": str(e)}, status=500)
+                    safe_title = str(anomaly_title).replace('\x00', '')[:250]
+                    safe_desc = str(anomaly_desc).replace('\x00', '') + f"\n\n--- LOGS ---\n{logs.replace(chr(0), '')}"
+
+                    anomaly = Anomalie(
+                        test_case=tc,
+                        titre=safe_title,
+                        description=safe_desc,
+                        impact='A_DEFINIR',
+                        priorite='A_DEFINIR',
+                        visibilite='PUBLIQUE',
+                        statut='OUVERTE',
+                        cree_par=User.objects.get(pk=tester_id)
+                    )
+                    if screenshot_path and os.path.exists(screenshot_path):
+                        with open(screenshot_path, 'rb') as f:
+                            anomaly.preuve_image.save(f'screenshot_tc_{tc.id}.png', File(f), save=False)
+                    anomaly.save()
+                    anomaly_id = anomaly.id
+
+                tc.save()
+
+                # Write result file so live-logs/ knows execution is done
+                result = {'status': status, 'logs': logs, 'anomaly_id': anomaly_id}
+                with open(result_path, 'w') as f:
+                    _json.dump(result, f)
+
+            except Exception as exc:
+                import traceback as _tb
+                logger.error(f"Playwright thread error: {_tb.format_exc()}")
+                result = {'status': 'FAILED', 'logs': f'Erreur interne : {exc}', 'anomaly_id': None}
+                with open(result_path, 'w') as f:
+                    import json as _json2
+                    _json2.dump(result, f)
+            finally:
+                # Remove live log file so live-logs/ endpoint knows execution ended
+                if os.path.exists(live_log_path):
+                    try:
+                        os.remove(live_log_path)
+                    except Exception:
+                        pass
+                _db_connection.close()
+
+        thread = threading.Thread(target=run_playwright, daemon=True)
+        thread.start()
+
+        # Return immediately — frontend will poll live-logs/ for the result
+        return Response({"status": "RUNNING", "id": test_case.id})
+
+    @action(detail=True, methods=['get'], url_path='live-logs')
+    def live_logs(self, request, pk=None):
+        """Polling endpoint: returns logs in progress, or final result when done."""
+        import json as _json
+        test_case = self.get_object()
+        project_dir = os.path.abspath(os.path.join(settings.BASE_DIR, '..', 'project'))
+        live_log_path = os.path.join(project_dir, 'test-results', f'live_{test_case.id}.log')
+        result_path = os.path.join(project_dir, 'test-results', f'result_{test_case.id}.json')
+
+        # Execution still running — return current log content
+        if os.path.exists(live_log_path):
+            with open(live_log_path, 'r', errors='replace') as f:
+                content = f.read()
+            return Response({'logs': content, 'running': True})
+
+        # Result file written by background thread — execution finished
+        if os.path.exists(result_path):
+            with open(result_path, 'r') as f:
+                result = _json.load(f)
+            os.remove(result_path)
+            return Response({
+                'logs': result.get('logs', ''),
+                'running': False,
+                'status': result.get('status'),
+                'anomaly_id': result.get('anomaly_id'),
+            })
+
+        # Fallback: execution finished but no result file (old run or error)
+        tc_data = test_case.data_json or {}
+        stored_logs = tc_data.get('execution_logs', '') if isinstance(tc_data, dict) else ''
+        return Response({'logs': stored_logs, 'running': False, 'status': test_case.status})

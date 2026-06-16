@@ -48,7 +48,7 @@ api.interceptors.response.use(
 // Helper: build multipart headers when data is FormData
 // ---------------------------------------------------------------------------
 const multipartHeaders = (data: unknown) =>
-    data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined;
+    data instanceof FormData ? { 'Content-Type': undefined } : undefined;
 
 // ---------------------------------------------------------------------------
 // Services
@@ -75,7 +75,7 @@ export const campaignService = {
         return api.get('/campaigns/', config);
     },
     createCampaign: (data: FormData) =>
-        api.post('/campaigns/', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+        api.post('/campaigns/', data, { headers: { 'Content-Type': undefined } }),
     updateCampaign: (id: string, data: FormData | Record<string, unknown>) =>
         api.patch(`/campaigns/${id}/`, data, { headers: multipartHeaders(data) }),
     deleteCampaign: (id: string) => api.delete(`/campaigns/${id}/`),
@@ -94,10 +94,12 @@ export const executionService = {
     generateScriptStandalone: (data: { title: string, manual_data: string }) => api.post('/testcases/generate-script-standalone/', data),
     saveScript: (id: string | number, code: string) => api.post(`/testcases/${id}/save-script/`, { code }),
     executeScript: (id: string | number) => api.post(`/testcases/${id}/execute-script/`),
+    getLiveLogs: (id: string | number) => api.get(`/testcases/${id}/live-logs/`),
 };
 
 export const anomalyService = {
     getAnomalies: (params?: Record<string, unknown>) => api.get('/anomalies/', { params }),
+    getAnomaly: (id: string | number) => api.get(`/anomalies/${id}/`),
     createAnomaly: (data: FormData | Record<string, unknown>) =>
         api.post('/anomalies/', data, { headers: multipartHeaders(data) }),
     updateAnomaly: (id: string, data: FormData | Record<string, unknown>) =>
@@ -123,7 +125,7 @@ export const chatService = {
     createConversation: (data: any) => api.post('/chat/conversations/', data),
     getMessages: (params?: Record<string, unknown>) => api.get('/chat/messages/', { params }),
     sendMessage: (data: any) => api.post('/chat/messages/', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: data instanceof FormData ? { 'Content-Type': undefined } : undefined
     }),
     updateMessage: (id: string, data: any) => api.patch(`/chat/messages/${id}/`, data),
     deleteMessage: (id: string) => api.delete(`/chat/messages/${id}/`),
@@ -150,7 +152,7 @@ export const aiService = {
     getMessages: (conversationId: string) =>
         api.get(`/analytics/conversations/${conversationId}/messages/`),
     ask: (data: FormData) =>
-        api.post('/analytics/ask/', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+        api.post('/analytics/ask/', data, { headers: { 'Content-Type': undefined } }),
     getReadinessScore: (campaignId: string | number) =>
         api.get(`/analytics/readiness-score/${campaignId}/`),
     getReadinessScoreByProject: (projectId: string | number) =>

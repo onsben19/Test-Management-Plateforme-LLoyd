@@ -105,8 +105,14 @@ const Analytics = () => {
 
     useEffect(() => { fetchConversations(); }, [fetchConversations]);
 
-    const handleNewChat = () => setCurrentConversationId(null);
-    const handleSelectConversation = (id: string) => setCurrentConversationId(id);
+    const handleNewChat = () => {
+        setCurrentConversationId(null);
+        setActiveTab('chat');
+    };
+    const handleSelectConversation = (id: string) => {
+        setCurrentConversationId(id);
+        setActiveTab('chat');
+    };
 
     const handleConversationStarted = (id: string) => {
         if (id) {
@@ -337,18 +343,24 @@ const Analytics = () => {
 
     return (
         <PageLayout
-            title={t('analytics.title')}
-            subtitle="AI ANALYTICS"
             fullHeight={true}
             noPadding={true}
         >
-            <div className="flex flex-1 h-full relative overflow-hidden glass-panel rounded-t-[2.5rem]">
-                {/* History sidebar with edge-tab toggle */}
-                {activeTab === 'chat' && (
-                    <div className="relative flex shrink-0">
-                        {/* Sliding panel */}
-                        <div className={`${isHistorySidebarOpen ? 'w-80' : 'w-0'
-                            } transition-all duration-500 ease-in-out overflow-hidden glass-sidebar`}>
+            <div className="flex flex-col h-full bg-transparent">
+                {/* Header de page */}
+                <div className="shrink-0 px-6 py-4 flex items-center gap-3">
+                    <h1 className="text-[20px] font-[500] text-[#e8eaf6]">Assistant Analytics</h1>
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-[rgba(127,119,221,0.25)] bg-[rgba(127,119,221,0.15)] text-[#AFA9EC] text-[11px] font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#AFA9EC] animate-pulse"></span>
+                        AI Analytics
+                    </div>
+                </div>
+
+                {/* Layout 2 colonnes */}
+                <div className="flex-1 px-6 pb-6 overflow-hidden flex justify-center">
+                    <div className="grid grid-cols-[240px_1fr] gap-[10px] w-full max-w-[1400px] h-[760px]">
+                        {/* Colonne 1 — Sidebar historique */}
+                        <div className="bg-[rgba(255,255,255,0.03)] backdrop-blur-xl rounded-[12px] border border-[rgba(255,255,255,0.08)] flex flex-col overflow-hidden shadow-2xl">
                             <ChatHistorySidebar
                                 conversations={conversations}
                                 currentConversationId={currentConversationId}
@@ -359,64 +371,50 @@ const Analytics = () => {
                             />
                         </div>
 
-                        {/* Edge tab — always visible */}
-                        <button
-                            onClick={() => setIsHistorySidebarOpen(v => !v)}
-                            className={`absolute ${isHistorySidebarOpen ? 'right-0 translate-x-1/2' : 'left-2'} top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-6 h-12 bg-blue-600 hover:bg-blue-500 border border-blue-400/30 rounded-full shadow-xl shadow-blue-900/40 transition-all group scale-75 lg:scale-100`}
-                            title={isHistorySidebarOpen ? t('common.close') : t('common.open')}
-                        >
-                            {isHistorySidebarOpen
-                                ? <ChevronLeft className="w-4 h-4 text-slate-900 dark:text-white" />
-                                : <ChevronRight className="w-4 h-4 text-slate-900 dark:text-white" />
-                            }
-                        </button>
-                    </div>
-                )}
+                        {/* Colonne 2 — Panneau principal */}
+                        <div className="bg-[rgba(255,255,255,0.03)] backdrop-blur-xl rounded-[12px] border border-[rgba(255,255,255,0.08)] flex flex-col overflow-hidden shadow-2xl">
+                            {/* Onglets */}
+                            <div className="px-[14px] pt-[12px] flex border-b border-[rgba(255,255,255,0.07)] relative">
+                                <button
+                                    onClick={() => setActiveTab('chat')}
+                                    className={`px-4 py-2 text-[12px] font-[500] rounded-t-[8px] transition-all border ${activeTab === 'chat' ? 'bg-[rgba(255,255,255,0.04)] text-[#e8eaf6] border-[rgba(255,255,255,0.08)] border-b-transparent relative top-[1px]' : 'text-[rgba(255,255,255,0.4)] bg-transparent border-transparent hover:text-[rgba(255,255,255,0.7)]'}`}
+                                >
+                                    Discussions IA
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('dashboard')}
+                                    className={`px-4 py-2 text-[12px] font-[500] rounded-t-[8px] transition-all border ${activeTab === 'dashboard' ? 'bg-[rgba(255,255,255,0.04)] text-[#e8eaf6] border-[rgba(255,255,255,0.08)] border-b-transparent relative top-[1px]' : 'text-[rgba(255,255,255,0.4)] bg-transparent border-transparent hover:text-[rgba(255,255,255,0.7)]'}`}
+                                >
+                                    Mon tableau de bord
+                                </button>
+                            </div>
 
-                {/* Chat area */}
-                <div className={`flex-1 h-full overflow-hidden flex flex-col relative z-10 ${(isHistorySidebarOpen && activeTab === 'chat') ? '' : 'pl-8'}`}>
-                    {/* Tab Switcher Header */}
-                    <div className="shrink-0 bg-slate-50/50 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
-                        <div className="flex bg-slate-200/50 dark:bg-white/5 p-1 rounded-2xl border border-slate-300 dark:border-white/5">
-                            <button
-                                onClick={() => setActiveTab('chat')}
-                                className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'chat' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-slate-500 dark:hover:text-slate-300'}`}
-                            >
-                                Discussions IA
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('dashboard')}
-                                className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-slate-500 dark:hover:text-slate-300'}`}
-                            >
-                                Mon Tableau de Bord
-                            </button>
+                            {activeTab === 'chat' ? (
+                                <AnalyticsChatWidget
+                                    embedded={true}
+                                    conversationId={currentConversationId}
+                                    onConversationUpdate={fetchConversations}
+                                    onConversationStarted={handleConversationStarted}
+                                    onToggleSidebar={() => {}}
+                                    isSidebarOpen={true}
+                                />
+                            ) : (
+                                renderDashboard()
+                            )}
                         </div>
                     </div>
-
-                    {activeTab === 'chat' ? (
-                        <AnalyticsChatWidget
-                            embedded={true}
-                            conversationId={currentConversationId}
-                            onConversationUpdate={fetchConversations}
-                            onConversationStarted={handleConversationStarted}
-                            onToggleSidebar={() => setIsHistorySidebarOpen(v => !v)}
-                            isSidebarOpen={isHistorySidebarOpen}
-                        />
-                    ) : (
-                        renderDashboard()
-                    )}
                 </div>
-            </div>
 
-            <ConfirmModal
-                isOpen={isDeleteModalOpen}
-                title={t('analytics.modal.deleteTitle')}
-                message={t('analytics.modal.deleteMessage')}
-                onConfirm={confirmDeleteConversation}
-                onCancel={() => setIsDeleteModalOpen(false)}
-                confirmText={t('analytics.history.delete')}
-                type="danger"
-            />
+                <ConfirmModal
+                    isOpen={isDeleteModalOpen}
+                    title={t('analytics.modal.deleteTitle')}
+                    message={t('analytics.modal.deleteMessage')}
+                    onConfirm={confirmDeleteConversation}
+                    onCancel={() => setIsDeleteModalOpen(false)}
+                    confirmText={t('analytics.history.delete')}
+                    type="danger"
+                />
+            </div>
         </PageLayout>
     );
 };

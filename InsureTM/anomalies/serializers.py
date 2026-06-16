@@ -34,6 +34,15 @@ class AnomalieSerializer(serializers.ModelSerializer):
         except AttributeError:
             return None
 
+    execution_logs = serializers.SerializerMethodField()
+
+    def get_execution_logs(self, obj):
+        """Retourne les logs d'exécution du cas de test."""
+        try:
+            return obj.test_case.data_json.get('execution_logs') if obj.test_case and isinstance(obj.test_case.data_json, dict) else None
+        except AttributeError:
+            return None
+
     def validate_preuve_image(self, value):
         if value:
             import hashlib
@@ -60,5 +69,5 @@ class AnomalieSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Anomalie
-        fields = ['id', 'titre', 'description', 'impact', 'priorite', 'visibilite', 'statut', 'preuve_image', 'preuve_hash', 'cree_le', 'cree_par', 'cree_par_nom', 'test_case', 'test_case_ref', 'campaign_title', 'project_name', 'playwright_script']
-        read_only_fields = ['cree_par', 'cree_le', 'cree_par_nom', 'preuve_hash', 'test_case_ref', 'campaign_title', 'project_name', 'playwright_script']
+        fields = ['id', 'titre', 'description', 'impact', 'priorite', 'visibilite', 'statut', 'preuve_image', 'preuve_hash', 'cree_le', 'cree_par', 'cree_par_nom', 'test_case', 'test_case_ref', 'campaign_title', 'project_name', 'playwright_script', 'execution_logs']
+        read_only_fields = ['cree_par', 'cree_le', 'cree_par_nom', 'preuve_hash', 'test_case_ref', 'campaign_title', 'project_name', 'playwright_script', 'execution_logs']

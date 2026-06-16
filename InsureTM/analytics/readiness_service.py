@@ -111,7 +111,10 @@ class ReleaseReadinessManager:
                     penalty += 2
             
             if total_executed > 0:
-                anomaly_score = max(0, 20 - (penalty / 2)) # Scaled penalty for the 20% pillar
+                if blocking_count > 0:
+                    anomaly_score = 0  # Anomalie bloquante → score pilier = 0
+                else:
+                    anomaly_score = max(0, 20 - (penalty / 2))
             else:
                 anomaly_score = 0
             

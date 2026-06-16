@@ -13,7 +13,7 @@ const ProjectStatusCard: React.FC<ProjectStatusCardProps> = ({ project, onClick 
 
     // Fallback values if data is missing
     const status = project.status || 'Active';
-    const progress = project.progress !== undefined ? project.progress : 65; // Example fallback
+    const progress = project.progress !== undefined ? project.progress : 0;
     const passed = project.passed || 0;
     const failed = project.failed || 0;
     const total = project.total || 0;

@@ -137,7 +137,7 @@ const AdminQANews = () => {
 
     return (
         <PageLayout
-            title="Gestion Veille & Innovations IA"
+            title="Gestion Veille QA"
             subtitle="ADMINISTRATION DU CONTENU IA"
             actions={() => (
                 <button

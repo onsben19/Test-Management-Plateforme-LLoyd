@@ -120,13 +120,13 @@ class CampaignViewSet(viewsets.ModelViewSet):
         tests_2h = TestCase.objects.filter(campaign=campaign, execution_date__gte=two_hours_ago).exclude(status='PENDING').count()
         v_2h = tests_2h / 2.0
 
-        # Velocity yesterday (excluding PENDING)
-        tests_yesterday = TestCase.objects.filter(
-            campaign=campaign, 
+        # Velocity last 24h sliding window (tests per hour, excluding PENDING)
+        tests_last24h = TestCase.objects.filter(
+            campaign=campaign,
             execution_date__gte=yesterday,
             execution_date__lt=now
         ).exclude(status='PENDING').count()
-        v_yesterday = tests_yesterday / 24.0
+        v_last24h = tests_last24h / 24.0
 
         # Blocked testers (no activity in 1h)
         blocked_testers = 0
@@ -150,9 +150,12 @@ class CampaignViewSet(viewsets.ModelViewSet):
                     status = 'idle'
                     action_str = "Inactif"
             
-            # Daily progress (mocked: 10 tests/day goal, excluding PENDING)
+            # Daily progress based on tester quota, falling back to 10 if no quota set
             daily_count = TestCase.objects.filter(campaign=campaign, tester=tester, execution_date__date=now.date()).exclude(status='PENDING').count()
-            daily_progress = min(100, int((daily_count / 10.0) * 100))
+            from campaigns.models import CampaignAssignment
+            assignment = CampaignAssignment.objects.filter(campaign=campaign, tester=tester).first()
+            daily_goal = max(1, (assignment.test_quota // max(1, (campaign.estimated_end_date - campaign.start_date).days) if assignment and assignment.test_quota > 0 and campaign.start_date and campaign.estimated_end_date else 10))
+            daily_progress = min(100, int((daily_count / daily_goal) * 100))
             
             tester_list.append({
                 "id": tester.id,
@@ -179,7 +182,7 @@ class CampaignViewSet(viewsets.ModelViewSet):
             "kpis": {
                 "activeTesters": active_testers_count,
                 "velocity2h": v_2h,
-                "velocityYesterday": v_yesterday,
+                "velocityLast24h": v_last24h,
                 "blockedTesters": blocked_testers
             },
             "testers": tester_list,

@@ -7,7 +7,7 @@ import {
     MoreVertical, User, Sparkles, Clock,
     Filter, Archive, CheckCheck, Hash,
     AtSign, Image, FileText, ChevronLeft, Plus, X,
-    Pencil, Trash2, Forward, Users, Check
+    Pencil, Trash2, Forward, Users, Check, MoreHorizontal
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { chatService, aiService, userService } from '../services/api';
@@ -59,6 +59,8 @@ const ChatCenter = () => {
     const [editValue, setEditValue] = useState('');
     const [showForwardModal, setShowForwardModal] = useState(false);
     const [msgToForward, setMsgToForward] = useState<any>(null);
+    const [activeMessageMenu, setActiveMessageMenu] = useState<string | null>(null);
+    const [activeConvMenu, setActiveConvMenu] = useState<string | null>(null);
 
     // Group Search State
     const [showNewChatModal, setShowNewChatModal] = useState<'direct' | 'group' | null>(null);
@@ -319,12 +321,13 @@ const ChatCenter = () => {
         }
     };
 
-    const handleArchiveConversation = async () => {
-        if (!selectedConv) return;
+    const handleArchiveConversation = async (conv?: any) => {
+        const target = conv || selectedConv;
+        if (!target) return;
         try {
-            const isArchiving = !selectedConv.isArchived;
-            setConversations(prev => prev.map(c => c.id === selectedConv.id ? { ...c, isArchived: isArchiving } : c));
-            setSelectedConv(null);
+            const isArchiving = !target.isArchived;
+            setConversations(prev => prev.map(c => c.id === target.id ? { ...c, isArchived: isArchiving } : c));
+            if (selectedConv?.id === target.id) setSelectedConv(null);
             setShowMenu(false);
             toast.success(isArchiving ? "Conversation archivée" : "Conversation désarchivée");
         } catch (err) {
@@ -332,17 +335,19 @@ const ChatCenter = () => {
         }
     };
 
-    const handleDeleteConversation = async () => {
-        if (!selectedConv) return;
+    const handleDeleteConversation = async (conv?: any) => {
+        const target = conv || selectedConv;
+        if (!target) return;
         try {
-            setConversations(prev => prev.filter(c => c.id !== selectedConv.id));
-            setSelectedConv(null);
+            setConversations(prev => prev.filter(c => c.id !== target.id));
+            if (selectedConv?.id === target.id) setSelectedConv(null);
             setShowMenu(false);
             toast.success("Conversation supprimée");
         } catch (err) {
             toast.error("Suppression échouée");
         }
     };
+
 
     const handleCreateDirect = async (userId: number) => {
         try {
@@ -397,450 +402,374 @@ const ChatCenter = () => {
         return title.toLowerCase().includes(searchQuery.toLowerCase());
     });
 
+    
+    const formatShortDate = (date: Date) => {
+        if (!(date instanceof Date) || isNaN(date.getTime())) return '...';
+        let formatted = formatDistanceToNow(date, { locale: fr });
+        return formatted
+            .replace(/environ\s+/gi, '')
+            .replace(/\s+jours?/g, 'j')
+            .replace(/\s+heures?/g, 'h')
+            .replace(/\s+minutes?/g, 'm')
+            .replace(/\s+mois/g, ' mois');
+    };
+
     const filteredUsers = allUsers.filter(u =>
         u.username.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
         (u.first_name + " " + u.last_name).toLowerCase().includes(userSearchTerm.toLowerCase())
     );
 
     return (
-        <PageLayout title="Chat Center" subtitle="COLLABORATION LIVE" noPadding>
-            <div className="flex glass-panel rounded-[2.5rem] overflow-hidden h-[calc(100vh-280px)] min-h-[600px] relative">
-
-                {/* 1. Sidebar */}
-                <div className={`w-full lg:w-96 flex flex-col glass-sidebar relative z-20 ${selectedConv ? 'hidden lg:flex' : 'flex'}`}>
-                    <div className="p-8 space-y-6">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                {showArchived && (
-                                    <button 
-                                        onClick={() => setShowArchived(false)}
-                                        className="p-2 bg-blue-500/10 text-blue-500 rounded-xl hover:bg-blue-500/20 transition-all"
-                                    >
-                                        <ChevronLeft size={16} />
-                                    </button>
-                                )}
-                                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
-                                    {showArchived ? "Archivées" : "Conversations"}
-                                </h3>
-                                {showArchived && (
-                                    <span className="text-[8px] font-black bg-blue-500/10 text-blue-500 px-2 py-1 rounded-md uppercase tracking-widest animate-pulse">
-                                        Mode Archive
-                                    </span>
-                                )}
+        <PageLayout noPadding>
+            <div className="p-6 lg:p-8 pt-4 lg:pt-6 flex flex-col gap-5 h-[calc(100vh-64px)]">
+                <div className="flex flex-col gap-1">
+                    <h1 className="text-[20px] font-medium text-[#e8eaf6]">Chat Center</h1>
+                    <div className="flex items-center gap-2 bg-[#378add26] border-[0.5px] border-[#378add40] px-3 py-1 rounded-full w-max">
+                        <div className="w-2 h-2 bg-[#85B7EB] rounded-full animate-pulse" />
+                        <span className="text-[11px] font-bold text-[#85B7EB]">Collaboration Live</span>
+                    </div>
+                </div>
+                <div className="flex gap-[10px] flex-1 min-h-[400px] max-h-[700px] max-w-full overflow-hidden text-white" style={{ display: 'grid', gridTemplateColumns: '300px 1fr' }}>
+                
+                {/* Colonne 1 — Sidebar conversations (300px) */}
+                <div className="flex flex-col bg-[#111827] rounded-xl border-[0.5px] border-white/10 overflow-hidden">
+                    <div className="p-[12px_12px_8px] border-b-[0.5px] border-white/10 flex items-center justify-between">
+                        {showArchived ? (
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => setShowArchived(false)} className="w-[24px] h-[24px] flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors" title="Retour aux conversations">
+                                    <ChevronLeft size={14} />
+                                </button>
+                                <span className="text-[10px] uppercase font-bold text-[#85B7EB]">ARCHIVES</span>
                             </div>
-                            <div className="flex gap-2">
-                                <Button 
-                                    variant={showArchived ? "primary" : "secondary"} 
-                                    size="icon" 
-                                    onClick={() => setShowArchived(!showArchived)} 
-                                    title={showArchived ? "Voir actives" : "Voir archivées"} 
-                                    icon={Archive} 
-                                />
-                                <Button variant="secondary" size="icon" onClick={() => setShowNewChatModal('group')} title="Nouveau groupe" icon={Users} />
-                                <Button variant="secondary" size="icon" onClick={() => setShowNewChatModal('direct')} title="Message direct" icon={Plus} />
-                            </div>
+                        ) : (
+                            <span className="text-[10px] uppercase font-bold text-slate-500">CONVERSATIONS</span>
+                        )}
+                        <div className="flex items-center gap-1">
+                            {!showArchived && (
+                                <button onClick={() => setShowArchived(true)} className="w-[28px] h-[28px] rounded-lg bg-white/5 border-[0.5px] border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors" title="Archivées">
+                                    <Archive size={14} />
+                                </button>
+                            )}
+                            <button onClick={() => setShowNewChatModal('group')} className="w-[28px] h-[28px] rounded-lg bg-white/5 border-[0.5px] border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors" title="Nouveau Groupe"><Users size={14} /></button>
+                            <button onClick={() => setShowNewChatModal('direct')} className="w-[28px] h-[28px] rounded-lg bg-white/5 border-[0.5px] border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors" title="Message Direct"><Plus size={14} /></button>
                         </div>
-                        <div className="relative group bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
-                            <Search className="w-4 h-4 text-slate-400 ml-2" />
+                    </div>
+                    <div className="p-3 border-b-[0.5px] border-white/10">
+                        <div className="flex items-center gap-2 bg-[#1a2235] border-[0.5px] border-white/10 rounded-[10px] p-[8px_12px]">
+                            <Search size={14} className="text-white/25" />
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Rechercher..."
-                                className="flex-1 bg-transparent border-none text-sm text-slate-900 dark:text-white focus:ring-0 outline-none placeholder-slate-400"
+                                className="bg-transparent border-none outline-none text-xs text-white placeholder-white/25 flex-1"
                             />
                         </div>
                     </div>
-
-                    <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-3 custom-scrollbar">
+                    <div className="p-2 gap-[3px] overflow-y-auto flex-1 flex flex-col custom-scrollbar-thin">
                         {filteredConversations.map((conv) => {
                             const otherUser = conv.type === 'DIRECT' ? conv.participants_details.find((p: any) => p.id !== currentUser?.id) : null;
                             const title = conv.type === 'DIRECT' ? otherUser?.username : conv.name;
-                            const subtitle = conv.type === 'DIRECT' ? "Message Direct" : conv.type === 'TEST_CASE' ? "Discussion de Test" : `${conv.participants.length} membres`;
                             const isActive = selectedConv?.id === conv.id;
 
                             return (
-                                <motion.button
-                                    key={conv.id}
-                                    layout
-                                    onClick={() => setSelectedConv(conv)}
-                                    className={`w-full p-5 rounded-[2rem] flex items-center gap-5 transition-all relative group/item border ${isActive ? 'bg-blue-600/10 border-blue-500/50 shadow-lg shadow-blue-500/5' : 'hover:bg-slate-50 dark:bg-white/[0.03] border-transparent hover:border-slate-300 dark:border-white/10 text-slate-500 dark:text-slate-400'}`}
-                                >
-                                    <div className={`shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 group-hover/item:border-slate-400 dark:border-white/20'}`}>
-                                        {conv.type === 'DIRECT' ? <User size={20} /> : conv.type === 'GROUP' ? <Users size={20} /> : <Hash size={20} />}
-                                    </div>
-                                    <div className="flex-1 text-left min-w-0">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <h4 className={`text-[13px] font-black tracking-tight truncate ${isActive ? 'text-white' : 'text-slate-900 dark:text-slate-200'}`}>{title}</h4>
-                                            <span className="text-[9px] font-black uppercase opacity-40 tracking-wider">
-                                                {conv.timestamp instanceof Date && !isNaN(conv.timestamp.getTime())
-                                                    ? formatDistanceToNow(conv.timestamp, { locale: fr })
-                                                    : '...'}
-                                            </span>
+                                <div key={conv.id} className="relative group">
+                                    <button
+                                        onClick={() => setSelectedConv(conv)}
+                                        className={`w-full text-left p-[10px] rounded-[10px] border-[0.5px] flex items-center gap-3 transition-all ${isActive ? 'bg-[#378add1a] border-[#378add33]' : 'bg-transparent border-white/5 hover:bg-white/5'}`}
+                                    >
+                                        <div className={`relative w-[36px] h-[36px] rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${isActive ? 'bg-[#185FA5] text-white' : 'bg-[#1a2235] text-white/70'}`}>
+                                            {conv.type === 'DIRECT' ? <User size={16} /> : <Users size={16} />}
+                                            <div className="absolute -bottom-0.5 -right-0.5 w-[9px] h-[9px] bg-[#1D9E75] rounded-full border-[1.5px] border-[#111827]" />
                                         </div>
-                                        <p className="text-[11px] font-bold truncate opacity-50 italic">{conv.last_message?.text || "Commencer à discuter..."}</p>
-                                    </div>
-                                    {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-r-full shadow-[0_0_15px_rgba(59,130,246,1)]" />}
-                                </motion.button>
+                                        <div className="flex-1 min-w-0 pr-6">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[13px] font-medium text-white truncate max-w-[120px]">{title}</span>
+                                                <span className="text-[10px] text-slate-500 shrink-0">{formatShortDate(conv.timestamp)}</span>
+                                            </div>
+                                            <p className="text-[11px] text-white/35 truncate mt-0.5">{conv.last_message?.text || "Commencer à discuter..."}</p>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setActiveConvMenu(activeConvMenu === conv.id ? null : conv.id); }}
+                                        className={`absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[#111827] border-[0.5px] border-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all shadow-md ${activeConvMenu === conv.id ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100'}`}
+                                    >
+                                        <MoreHorizontal size={14} />
+                                    </button>
+
+                                    {activeConvMenu === conv.id && (
+                                        <>
+                                            <div className="fixed inset-0 z-20 cursor-default" onClick={(e) => { e.stopPropagation(); setActiveConvMenu(null); }}></div>
+                                            <div className="absolute right-8 top-1/2 -translate-y-1/2 w-40 bg-[#1a2235] rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] border-[0.5px] border-white/10 z-30 p-1.5 animate-in fade-in zoom-in-95 duration-150">
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleArchiveConversation(conv); setActiveConvMenu(null); }}
+                                                    className="w-full text-left px-3 py-2 text-[12px] font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-[8px] flex items-center gap-3 transition-colors"
+                                                >
+                                                    <Archive size={14} /> {conv.isArchived ? "Désarchiver" : "Archiver"}
+                                                </button>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conv); setActiveConvMenu(null); }}
+                                                    className="w-full text-left px-3 py-2 text-[12px] font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-[8px] flex items-center gap-3 mt-0.5 transition-colors"
+                                                >
+                                                    <Trash2 size={14} /> Supprimer
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
                             );
                         })}
                     </div>
                 </div>
 
-                {/* 2. Chat Area */}
-                <div className={`flex-1 flex flex-col relative z-20 ${!selectedConv ? 'hidden lg:flex' : 'flex'} bg-white/30 dark:bg-transparent`}>
+                {/* Colonne 2 — Panneau de chat */}
+                <div className="flex flex-col bg-[#111827] rounded-xl border-[0.5px] border-white/10 overflow-hidden">
                     {selectedConv ? (
-                        <div className="flex flex-col h-full">
-                            <div className="px-8 py-6 border-b border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-white/5 dark:bg-white/[0.02] flex items-center justify-between backdrop-blur-md">
-                                <div className="flex items-center gap-6">
-                                    <button onClick={() => setSelectedConv(null)} className="p-2 lg:hidden hover:bg-slate-200 dark:bg-white/10 rounded-xl transition-all text-slate-500"><ChevronLeft size={20} /></button>
-                                    <div className="relative">
-                                        <div className="w-16 h-16 rounded-[1.5rem] bg-gradient-to-br from-blue-500 to-indigo-600 p-0.5 shadow-2xl shadow-blue-500/20">
-                                            <div className="w-full h-full bg-slate-50 dark:bg-[#0b0e14] rounded-[1.4rem] flex items-center justify-center text-xl font-black text-blue-400 border border-slate-200 dark:border-white/5">
-                                                {selectedConv.type === 'DIRECT' ? <User size={24} /> : <Users size={24} />}
-                                            </div>
-                                        </div>
-                                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-slate-50 dark:bg-[#0b0e14] rounded-full flex items-center justify-center border-2 border-slate-900">
-                                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                                        </div>
+                        <>
+                            <div className="p-[14px_16px] border-b-[0.5px] border-white/10 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="relative w-[40px] h-[40px] rounded-full bg-[#185FA5] flex items-center justify-center text-white">
+                                        {selectedConv.type === 'DIRECT' ? <User size={20} /> : <Users size={20} />}
+                                        <div className="absolute bottom-0 right-0 w-[10px] h-[10px] bg-[#1D9E75] rounded-full border-[2px] border-[#111827]" />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase leading-none mb-1.5">{selectedConv.type === 'DIRECT' ? selectedConv.participants_details.find((p: any) => p.id !== currentUser?.id)?.username : selectedConv.name}</h2>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
-                                                {selectedConv.type === 'GROUP' ? `${selectedConv.participants.length} membres • ${onlineUsersCount} online` : "Agent Disponible"}
-                                            </span>
+                                        <h2 className="text-[15px] font-medium text-white capitalize leading-tight">
+                                            {(selectedConv.type === 'DIRECT' ? selectedConv.participants_details.find((p: any) => p.id !== currentUser?.id)?.username : selectedConv.name)?.toLowerCase()}
+                                        </h2>
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                            <div className="w-[7px] h-[7px] bg-[#5DCAA5] rounded-full" />
+                                            <span className="text-[#5DCAA5] text-[11px] tracking-[0.04em]">Agent disponible</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4">
-
-                                    <div className="relative">
-                                        <Button
-                                            variant="secondary"
-                                            size="icon"
-                                            icon={MoreVertical}
-                                            className="bg-slate-100 dark:bg-white/5 border-slate-300 dark:border-white/10"
-                                            onClick={() => setShowMenu(!showMenu)}
-                                        />
-                                        {showMenu && (
-                                            <>
-                                                <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)}></div>
-                                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-white/5 z-20 p-2">
-                                                    <button
-                                                        onClick={handleArchiveConversation}
-                                                        className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg flex items-center gap-2"
-                                                    >
-                                                        <Archive size={14} /> {selectedConv?.isArchived ? "Désarchiver" : "Archiver"}
-                                                    </button>
-                                                    <button
-                                                        onClick={handleDeleteConversation}
-                                                        className="w-full text-left px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg flex items-center gap-2"
-                                                    >
-                                                        <Trash2 size={14} /> Supprimer
-                                                    </button>
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
+                                <div className="relative">
+                                    <button onClick={() => setShowMenu(!showMenu)} className="w-[30px] h-[30px] flex items-center justify-center text-white/50 hover:text-white rounded-lg hover:bg-white/10 transition-colors">
+                                        <MoreVertical size={16} />
+                                    </button>
+                                    {showMenu && (
+                                        <>
+                                            <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)}></div>
+                                            <div className="absolute right-0 mt-2 w-48 bg-[#1a2235] rounded-xl shadow-xl border-[0.5px] border-white/10 z-20 p-2">
+                                                <button
+                                                    onClick={handleArchiveConversation}
+                                                    className="w-full text-left px-4 py-2 text-[13px] text-white hover:bg-white/10 rounded-lg flex items-center gap-2"
+                                                >
+                                                    <Archive size={14} /> {selectedConv?.isArchived ? "Désarchiver" : "Archiver"}
+                                                </button>
+                                                <button
+                                                    onClick={handleDeleteConversation}
+                                                    className="w-full text-left px-4 py-2 text-[13px] text-rose-400 hover:bg-rose-500/10 rounded-lg flex items-center gap-2 mt-1"
+                                                >
+                                                    <Trash2 size={14} /> Supprimer
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
 
-                            <div ref={scrollRef} className="flex-1 overflow-y-auto p-12 space-y-12 custom-scrollbar">
+                            <div ref={scrollRef} className="flex-1 overflow-y-auto p-[16px] gap-[12px] flex flex-col custom-scrollbar-thin">
                                 {groupMessagesByDate(messages).map((group, gIdx) => (
-                                    <div key={gIdx} className="space-y-8">
-                                        <div className="flex items-center justify-center gap-4">
-                                            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-200 dark:via-white/5 to-transparent" />
-                                            <span className="text-[10px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-[0.3em] whitespace-nowrap bg-white/80 dark:bg-white/5 px-4 py-1.5 rounded-full border border-slate-200 dark:border-white/5 backdrop-blur-md">
-                                                {group.date === new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) ? "Aujourd'hui" : group.date}
-                                            </span>
-                                            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-200 dark:via-white/5 to-transparent" />
+                                    <div key={gIdx} className="flex flex-col gap-[12px]">
+                                        <div className="flex justify-center my-2">
+                                            <div className="bg-[#1a2235] border-[0.5px] border-white/10 rounded-[20px] p-[4px_12px] text-[10px] uppercase text-slate-500 font-medium tracking-wide">
+                                                {group.date}
+                                            </div>
                                         </div>
 
-                                        {group.messages.map((msg) => {
+                                        {group.messages.map((msg: any) => {
                                             const isMe = msg.author === currentUser?.id || msg.isOptimistic;
-                                            const isEditing = editingMsgId === msg.id;
-                                            const isMentioned = msg.text?.includes(`@${currentUser?.username}`);
+                                            const isForwarded = msg.text?.includes('Transféré');
 
                                             return (
-                                                <motion.div key={msg.id} initial={{ opacity: 0, x: isMe ? 20 : -20 }} animate={{ opacity: 1, x: 0 }} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                                    <div className={`max-w-[75%] group relative flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                                                        {!isMe && (
-                                                            <div className="flex items-center gap-2 mb-2 ml-4">
-                                                                <div className="w-6 h-6 rounded-lg bg-blue-600/20 flex items-center justify-center text-[10px] font-black text-blue-400 border border-blue-500/20">{msg.author_name?.charAt(0)}</div>
-                                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{msg.author_name}</p>
+                                                <div key={msg.id} className={`flex flex-col group relative ${isMe ? 'items-end' : 'items-start'}`}>
+                                                    {isForwarded && (
+                                                        <div className="flex items-center gap-1.5 bg-[#378add1a] border-[0.5px] border-[#378add33] px-2 py-0.5 rounded-full mb-1">
+                                                            <Forward size={10} className="text-[#85B7EB]" />
+                                                            <span className="text-[10px] text-[#85B7EB]">Transféré</span>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <div 
+                                                        onClick={() => setActiveMessageMenu(activeMessageMenu === msg.id ? null : msg.id)}
+                                                        className={`relative p-[10px_14px] rounded-[14px] text-sm max-w-[65%] cursor-pointer transition-transform active:scale-[0.98] ${isMe ? 'bg-[#1D4E8F] text-[#C8DEFF] rounded-br-[4px]' : 'bg-[#1a2235] text-[#e8eaf6] border-[0.5px] border-white/10 rounded-bl-[4px]'}`}
+                                                    >
+                                                        {activeMessageMenu === msg.id && (
+                                                            <>
+                                                                <div className="fixed inset-0 z-20 cursor-default" onClick={(e) => { e.stopPropagation(); setActiveMessageMenu(null); }}></div>
+                                                                <div className={`absolute top-full mt-1 ${isMe ? 'right-0' : 'left-0'} flex flex-col min-w-[130px] bg-[#1a2235] border-[0.5px] border-white/10 p-1 rounded-[10px] shadow-2xl z-30 animate-in fade-in zoom-in-95 duration-100`}>
+                                                                    <button onClick={(e) => { e.stopPropagation(); setMsgToForward(msg); setShowForwardModal(true); setActiveMessageMenu(null); }} className="w-full text-left px-2.5 py-1.5 text-[11px] font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-md transition-colors flex items-center gap-2">
+                                                                        <Forward size={12} /> Transférer
+                                                                    </button>
+                                                                    {isMe && (
+                                                                        <>
+                                                                            <button onClick={(e) => { e.stopPropagation(); setEditingMsgId(msg.id); setEditValue(msg.text); setActiveMessageMenu(null); }} className="w-full text-left px-2.5 py-1.5 text-[11px] font-medium text-[#85B7EB] hover:bg-[#378add1a] rounded-md transition-colors flex items-center gap-2 mt-0.5">
+                                                                                <Pencil size={12} /> Modifier
+                                                                            </button>
+                                                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg.id); setActiveMessageMenu(null); }} className="w-full text-left px-2.5 py-1.5 text-[11px] font-medium text-rose-400 hover:bg-rose-500/10 rounded-md transition-colors flex items-center gap-2 mt-0.5">
+                                                                                <Trash2 size={12} /> Supprimer
+                                                                            </button>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                        {msg.attachment && (
+                                                            <div className={`mb-3 p-3 rounded-xl flex items-center gap-3 border ${isMe ? 'bg-black/20 border-white/10' : 'bg-white/5 border-white/10'}`}>
+                                                                <div className={`p-2 rounded-lg ${isMe ? 'bg-white/20' : 'bg-[#185FA5]/30 text-[#85B7EB]'}`}>
+                                                                    {msg.attachment.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? <Image size={16} /> : <FileText size={16} />}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-[11px] font-bold truncate text-white">Fichier Joint</p>
+                                                                    <button onClick={() => window.open(msg.attachment, '_blank')} className="text-[10px] underline opacity-70 hover:opacity-100 text-white">
+                                                                        Ouvrir
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         )}
-
-                                                        {isMentioned && !isMe && (
-                                                            <div className="mb-2 bg-indigo-600/20 border border-indigo-500/30 px-3 py-1 rounded-full flex items-center gap-2 self-start ml-4">
-                                                                <AtSign size={10} className="text-indigo-400" />
-                                                                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Vous avez été mentionné</span>
+                                                        {editingMsgId === msg.id ? (
+                                                            <div className="flex flex-col gap-2 min-w-[200px]">
+                                                                <input
+                                                                    type="text"
+                                                                    value={editValue}
+                                                                    onChange={(e) => setEditValue(e.target.value)}
+                                                                    onKeyDown={(e) => { if (e.key === 'Enter') handleEditMessage(msg.id); else if (e.key === 'Escape') setEditingMsgId(null); }}
+                                                                    autoFocus
+                                                                    className="bg-black/20 border-[0.5px] border-white/20 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-white/50 w-full"
+                                                                />
+                                                                <div className="flex justify-end gap-1 mt-1">
+                                                                    <button onClick={() => setEditingMsgId(null)} className="px-2 py-1 text-[10px] bg-white/10 hover:bg-white/20 rounded text-white">Annuler</button>
+                                                                    <button onClick={() => handleEditMessage(msg.id)} className="px-2 py-1 text-[10px] bg-[#378add] hover:bg-[#378add]/80 text-white rounded">Enregistrer</button>
+                                                                </div>
                                                             </div>
+                                                        ) : (
+                                                            msg.text && renderMessageContent(msg.text.replace(/\[Transféré de .*?\]/g, '').trim())
                                                         )}
-
-                                                        <div className={`p-4 rounded-3xl shadow-xl transition-all relative ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : isMentioned ? 'bg-indigo-600/10 dark:bg-indigo-600/30 text-slate-900 dark:text-slate-200 border border-indigo-500/30 rounded-tl-none' : 'bg-white dark:bg-white/5 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/5 rounded-tl-none'}`}>
-                                                            {msg.attachment && (
-                                                                <div className={`mb-4 p-4 rounded-2xl flex items-center gap-3 border ${isMe ? 'bg-slate-200 dark:bg-white/10 border-slate-400 dark:border-white/20' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10'}`}>
-                                                                    <div className={`p-2 rounded-xl ${isMe ? 'bg-slate-300 dark:bg-white/20' : 'bg-blue-500/10 text-blue-500'}`}>
-                                                                        {msg.attachment.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? <Image size={20} /> : <FileText size={20} />}
-                                                                    </div>
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <p className={`text-xs font-black truncate ${isMe ? 'text-white' : 'text-slate-900 dark:text-white'}`}>Fichier Joint</p>
-                                                                        <button
-                                                                            onClick={() => window.open(msg.attachment, '_blank')}
-                                                                            className={`text-[10px] font-bold underline opacity-70 hover:opacity-100 ${isMe ? 'text-white' : 'text-blue-500'}`}
-                                                                        >
-                                                                            Ouvrir le fichier
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-
-                                                            {isEditing ? (
-                                                                <div className="flex flex-col gap-3 min-w-[250px]">
-                                                                    <textarea value={editValue} onChange={(e) => setEditValue(e.target.value)} className="bg-slate-100 dark:bg-black/40 border border-slate-300 dark:border-white/10 rounded-2xl p-4 text-sm focus:outline-none resize-none min-h-[100px]" autoFocus />
-                                                                    <div className="flex justify-end gap-2">
-                                                                        <button onClick={() => setEditingMsgId(null)} className="px-4 py-2 text-[10px] font-black uppercase opacity-50 hover:opacity-100 transition-all text-slate-600 dark:text-white">Annuler</button>
-                                                                        <button onClick={() => handleEditMessage(msg.id)} className="px-4 py-2 bg-blue-600 dark:bg-white/20 hover:bg-blue-500 dark:hover:bg-white/30 rounded-xl text-[10px] font-black uppercase transition-all text-white">Enregistrer</button>
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="text-sm font-bold leading-relaxed">
-                                                                    {renderMessageContent(msg.text)}
-                                                                </div>
-                                                            )}
-
-                                                            {/* Actions au survol */}
-                                                            <div className={`absolute top-0 ${isMe ? '-left-12' : '-right-12'} opacity-0 group-hover:opacity-100 transition-all flex flex-col gap-1 p-2`}>
-                                                                {isMe && !isEditing && (
-                                                                    <>
-                                                                        <button onClick={() => { setEditingMsgId(msg.id); setEditValue(msg.text); }} className="p-2 hover:bg-slate-200 dark:bg-white/10 rounded-full text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors" title="Éditer"><Pencil size={12} /></button>
-                                                                        <button onClick={() => handleDeleteMessage(msg.id)} className="p-2 hover:bg-rose-500/10 rounded-full text-slate-500 hover:text-rose-500 transition-colors" title="Supprimer"><Trash2 size={12} /></button>
-                                                                    </>
-                                                                )}
-                                                                <button onClick={() => { setMsgToForward(msg); setShowForwardModal(true); }} className="p-2 hover:bg-slate-200 dark:bg-white/10 rounded-full text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors" title="Transférer"><Forward size={12} /></button>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className={`flex items-center gap-2 mt-3 px-6 ${isMe ? 'opacity-40' : 'opacity-20 transition-opacity group-hover:opacity-60'}`}>
-                                                            <span className="text-[9px] font-black uppercase tracking-widest">{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                            {msg.is_edited && <span className="text-[9px] font-black uppercase tracking-widest">• MODIFIÉ</span>}
-                                                            {isMe && <CheckCheck size={10} className={msg.is_read ? "text-emerald-500" : "text-blue-200"} />}
-                                                        </div>
                                                     </div>
-                                                </motion.div>
+                                                    <div className="flex items-center gap-1 mt-1 text-[10px] text-white/25">
+                                                        {msg.is_edited && <span className="mr-1 italic text-white/40">Modifié</span>}
+                                                        <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                        {isMe && <CheckCheck size={10} />}
+                                                    </div>
+                                                </div>
                                             );
                                         })}
                                     </div>
                                 ))}
                             </div>
 
-                            <div className="p-8 pt-0 relative">
-                                <div className="max-w-5xl mx-auto relative">
-                                    <AnimatePresence>
-                                        {showMentionPopover && (
-                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute bottom-full left-0 right-0 mb-6 bg-slate-50 dark:bg-[#0b0e14] border border-slate-300 dark:border-white/10 rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden z-50 backdrop-blur-3xl">
-                                                <div className="p-5 border-b border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-white/5 flex items-center justify-between">
-                                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Mentionner un collègue</span>
-                                                    <AtSign size={14} className="text-blue-500" />
-                                                </div>
-                                                <div className="max-h-64 overflow-y-auto p-3 custom-scrollbar space-y-1">
-                                                    {selectedConv.participants_details.filter(p => p.username.toLowerCase().includes(mentionSearch.toLowerCase())).map((p) => (
-                                                        <button
-                                                            key={p.id}
-                                                            onClick={() => {
-                                                                const before = chatMessage.substring(0, mentionIndex);
-                                                                const after = chatMessage.substring(mentionIndex + mentionSearch.length + 1);
-                                                                setChatMessage(`${before}@${p.username} ${after}`);
-                                                                setShowMentionPopover(false);
-                                                                setMentionSearch('');
-                                                            }}
-                                                            className="w-full p-4 rounded-2xl hover:bg-blue-600 text-white flex items-center gap-4 transition-all group"
-                                                        >
-                                                            <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-xs font-black border border-slate-200 dark:border-white/5 group-hover:bg-slate-300 dark:bg-white/20 transition-all text-blue-400 group-hover:text-slate-900 dark:hover:text-white">
-                                                                {p.username.charAt(0)}
-                                                            </div>
-                                                            <div className="text-left">
-                                                                <p className="text-sm font-black tracking-tight">{p.username}</p>
-                                                                <p className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em]">{p.first_name || "QA"} {p.last_name || "Engineer"}</p>
-                                                            </div>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-
-                                    <div className="relative group/input">
-                                        <div className="absolute inset-0 bg-blue-500/5 blur-3xl opacity-0 group-focus-within/input:opacity-100 transition-opacity" />
-                                        <div className="relative bg-slate-50 dark:bg-[#0b0e14]/80 border border-slate-300 dark:border-white/10 rounded-[2.5rem] p-4 flex flex-col gap-3 backdrop-blur-2xl shadow-2xl transition-all focus-within:border-blue-500/40 focus-within:ring-4 focus-within:ring-blue-500/5">
-                                            {selectedFile && (
-                                                <div className="px-5 py-4 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl flex items-center justify-between animate-fade-in">
-                                                    <div className="flex items-center gap-4 overflow-hidden">
-                                                        <div className="p-2.5 bg-blue-500/20 rounded-xl text-blue-400">
-                                                            {selectedFile.type.startsWith('image/') ? <Image size={18} /> : <FileText size={18} />}
-                                                        </div>
-                                                        <div className="flex flex-col">
-                                                            <span className="text-xs font-black text-slate-900 dark:text-white truncate max-w-[300px]">{selectedFile.name}</span>
-                                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Document prêt à l'envoi</span>
-                                                        </div>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => setSelectedFile(null)}
-                                                        className="p-2 hover:bg-rose-500/20 rounded-full text-slate-500 hover:text-rose-500 transition-all"
-                                                    >
-                                                        <X size={16} />
-                                                    </button>
-                                                </div>
-                                            )}
-                                            <div className="flex items-center gap-4">
-                                                <button
-                                                    onClick={() => fileInputRef.current?.click()}
-                                                    className={`p-4 rounded-2xl transition-all border ${selectedFile ? 'bg-blue-600 border-transparent text-white' : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/5 hover:bg-slate-200 dark:bg-white/10 text-slate-500 hover:text-white'}`}
-                                                >
-                                                    <Paperclip size={20} />
-                                                </button>
-                                                <input
-                                                    type="file"
-                                                    ref={fileInputRef}
-                                                    className="hidden"
-                                                    onChange={(e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) setSelectedFile(file);
-                                                        e.target.value = '';
-                                                    }}
-                                                />
-                                                <div className="flex-1 relative">
-                                                    <textarea
-                                                        value={chatMessage}
-                                                        onChange={(e) => {
-                                                            const val = e.target.value;
-                                                            setChatMessage(val);
-
-                                                            const lastAtPos = val.lastIndexOf('@');
-                                                            if (lastAtPos !== -1 && (lastAtPos === 0 || val[lastAtPos - 1] === ' ')) {
-                                                                const search = val.substring(lastAtPos + 1).split(' ')[0];
-                                                                setMentionSearch(search);
-                                                                setMentionIndex(lastAtPos);
-                                                                setShowMentionPopover(true);
-                                                            } else {
-                                                                setShowMentionPopover(false);
-                                                            }
-                                                        }}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter' && !e.shiftKey) {
-                                                                e.preventDefault();
-                                                                handleSendMessage();
-                                                            }
-                                                            if (e.key === 'Escape') setShowMentionPopover(false);
-                                                        }}
-                                                        placeholder="Tapez votre message ici... (@ pour mentionner)"
-                                                        rows={1}
-                                                        className="w-full bg-transparent border-none py-4 text-[14px] font-bold text-slate-900 dark:text-white focus:outline-none resize-none placeholder:text-slate-700"
-                                                    />
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Button variant="secondary" size="icon" icon={Sparkles} onClick={handleAIReformulate} disabled={!chatMessage || isAILoading} isLoading={isAILoading} className="bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white" />
-                                                    <Button size="icon" icon={Send} onClick={handleSendMessage} disabled={!chatMessage.trim() && !selectedFile} className="shadow-xl shadow-blue-500/20" />
-                                                </div>
+                            <div className="relative">
+                                {selectedFile && (
+                                    <div className="absolute bottom-full left-4 mb-2 p-3 bg-[#1a2235] border-[0.5px] border-white/10 rounded-xl flex items-center justify-between z-10 shadow-xl min-w-[250px]">
+                                        <div className="flex items-center gap-3 overflow-hidden">
+                                            <div className="p-2 bg-[#378add1a] rounded-lg text-[#85B7EB]">
+                                                {selectedFile.type.startsWith('image/') ? <Image size={16} /> : <FileText size={16} />}
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-[11px] font-bold text-white truncate max-w-[200px]">{selectedFile.name}</span>
+                                                <span className="text-[9px] text-white/50 uppercase mt-0.5">Fichier prêt</span>
                                             </div>
                                         </div>
+                                        <button onClick={() => setSelectedFile(null)} className="p-1.5 hover:bg-rose-500/20 rounded-lg text-white/50 hover:text-rose-400 ml-4 transition-all">
+                                            <X size={14} />
+                                        </button>
                                     </div>
+                                )}
+                                <div className="p-[12px_14px] border-t-[0.5px] border-white/10 flex items-center gap-3 relative bg-[#111827]">
+                                    <button onClick={() => fileInputRef.current?.click()} className="w-[32px] h-[32px] flex items-center justify-center text-white/50 hover:text-white rounded-lg hover:bg-white/10 transition-colors shrink-0">
+                                        <Paperclip size={18} />
+                                    </button>
+                                    <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) setSelectedFile(file); e.target.value = ''; }} />
+                                    
+                                    <input
+                                        type="text"
+                                        value={chatMessage}
+                                        onChange={(e) => setChatMessage(e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') handleSendMessage(); }}
+                                        placeholder="Tapez votre message ici... (@ pour mentionner)"
+                                        className="flex-1 bg-[#1a2235] border-[0.5px] border-white/10 rounded-[10px] p-[10px_14px] text-[13px] text-white placeholder-slate-500 focus:outline-none focus:border-white/20"
+                                    />
+                                    
+                                    <button onClick={handleAIReformulate} disabled={!chatMessage} className="w-[32px] h-[32px] bg-[#7F77DD1F] border-[0.5px] border-[#7F77DD33] flex items-center justify-center text-[#AFA9EC] rounded-lg shrink-0 disabled:opacity-50">
+                                        <Sparkles size={16} />
+                                    </button>
+                                    <button onClick={handleSendMessage} disabled={!chatMessage.trim() && !selectedFile} className="w-[32px] h-[32px] bg-[#185FA5] border-[0.5px] border-[#378ADD] flex items-center justify-center text-[#B5D4F4] rounded-lg shrink-0 disabled:opacity-50">
+                                        <Send size={14} />
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                ) : (
-                        <div className="flex-1 flex flex-col items-center justify-center space-y-8">
-                            <div className="w-32 h-32 rounded-[3rem] bg-slate-100 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 flex items-center justify-center shadow-inner"><MessageSquare size={48} className="text-slate-700 dark:text-slate-300 dark:text-slate-700" /></div>
-                            <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-widest text-center">Collaboration Center</h3>
-                            <Button onClick={() => setShowNewChatModal('direct')} size="lg">Nouvelle Discussion</Button>
+                        </>
+                    ) : (
+                        <div className="flex-1 flex flex-col items-center justify-center">
+                            <MessageSquare size={40} className="text-white/20 mb-4" />
+                            <h3 className="text-white/50 text-sm font-medium">Sélectionnez une conversation pour commencer</h3>
                         </div>
                     )}
                 </div>
 
-                {/* Modals */}
                 <AnimatePresence>
                     {showNewChatModal && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowNewChatModal(null)} className="absolute inset-0 bg-black/80 backdrop-blur-xl" />
-                            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-lg bg-white dark:bg-[#0b0e14] border border-slate-200 dark:border-white/10 rounded-[3rem] overflow-hidden">
-                                <div className="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
-                                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">{showNewChatModal === 'direct' ? 'Message Direct' : 'Nouveau Groupe'}</h3>
-                                    <button onClick={() => setShowNewChatModal(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl text-slate-500"><X size={20} /></button>
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80">
+                           <div className="bg-[#111827] border-[0.5px] border-white/10 rounded-2xl w-full max-w-lg p-6">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-white font-medium">{showNewChatModal === 'direct' ? 'Message Direct' : 'Nouveau Groupe'}</h3>
+                                    <button onClick={() => setShowNewChatModal(null)} className="text-white/50"><X size={20} /></button>
                                 </div>
-                                <div className="p-8 space-y-6">
-                                    {showNewChatModal === 'group' && (
-                                        <div className="relative group bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
-                                            <input
-                                                type="text"
-                                                value={groupName}
-                                                onChange={(e) => setGroupName(e.target.value)}
-                                                placeholder="Nom du groupe..."
-                                                className="flex-1 bg-transparent border-none text-sm text-slate-900 dark:text-white focus:ring-0 outline-none placeholder-slate-700"
-                                            />
-                                        </div>
-                                    )}
-                                    <div className="relative group bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
-                                        <Search className="w-4 h-4 text-slate-400 ml-2" />
-                                        <input
-                                            type="text"
-                                            value={userSearchTerm}
-                                            onChange={(e) => setUserSearchTerm(e.target.value)}
-                                            placeholder="Chercher des membres..."
-                                            className="flex-1 bg-transparent border-none text-sm text-slate-900 dark:text-white focus:ring-0 outline-none placeholder-slate-700"
-                                        />
-                                    </div>
-                                    <div className="max-h-64 overflow-y-auto custom-scrollbar space-y-2">
-                                        {filteredUsers.map((u: any) => {
-                                            const isSelected = selectedParticipants.includes(u.id);
-                                            return (
-                                                <button key={u.id} onClick={() => {
-                                                    if (showNewChatModal === 'direct') handleCreateDirect(u.id);
-                                                    else setSelectedParticipants(prev => isSelected ? prev.filter(id => id !== u.id) : [...prev, u.id]);
-                                                }} className={`w-full p-4 rounded-2xl flex items-center gap-4 transition-all border ${isSelected ? 'bg-indigo-600/10 border-indigo-500/30' : 'hover:bg-slate-50 dark:hover:bg-white/10 border-transparent'}`}>
-                                                    <div className="w-10 h-10 rounded-xl bg-blue-600/10 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-xs">{u.username.charAt(0)}</div>
-                                                    <div className="text-left flex-1"><p className="text-sm font-bold text-slate-700 dark:text-slate-200">{u.username}</p></div>
-                                                    {isSelected && <Check size={16} className="text-indigo-600 dark:text-indigo-400" />}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                    {showNewChatModal === 'group' && (
-                                        <button onClick={handleCreateGroup} disabled={!groupName || selectedParticipants.length === 0} className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-20 shadow-xl">Créer le groupe</button>
-                                    )}
+                                <div className="space-y-2 max-h-60 overflow-y-auto">
+                                    {filteredUsers.map((u: any) => (
+                                        <button key={u.id} onClick={() => { if (showNewChatModal === 'direct') handleCreateDirect(u.id); else setSelectedParticipants(prev => [...prev, u.id]); }} className="w-full text-left p-3 hover:bg-white/5 rounded-xl text-white/80">{u.username}</button>
+                                    ))}
                                 </div>
-                            </motion.div>
+                           </div>
                         </div>
                     )}
-
-                    {showForwardModal && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowForwardModal(false)} className="absolute inset-0 bg-black/80 backdrop-blur-xl" />
-                            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-lg bg-white dark:bg-[#0b0e14] border border-slate-200 dark:border-white/10 rounded-[3rem] overflow-hidden">
-                                <div className="p-8 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
-                                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Transférer le message</h3>
-                                    <button onClick={() => setShowForwardModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl text-slate-500"><X size={20} /></button>
+                    {showForwardModal && msgToForward && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80">
+                           <div className="bg-[#111827] border-[0.5px] border-white/10 rounded-2xl w-full max-w-lg p-6">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-white font-medium">Transférer le message</h3>
+                                    <button onClick={() => { setShowForwardModal(false); setMsgToForward(null); }} className="text-white/50"><X size={20} /></button>
                                 </div>
-                                <div className="p-8 space-y-4">
-                                    <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-2xl mb-4 italic text-slate-500 text-xs truncate">"{msgToForward?.text}"</div>
-                                    <h4 className="text-[10px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-widest">Choisir une destination</h4>
-                                    <div className="max-h-64 overflow-y-auto custom-scrollbar space-y-2">
-                                        {conversations.map(c => (
-                                            <button key={c.id} onClick={() => handleForwardMessage(c.id)} className="w-full p-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/10 flex items-center gap-4 transition-all border border-transparent hover:border-slate-200 dark:hover:border-white/10">
-                                                <div className="w-8 h-8 rounded-lg bg-blue-600/10 flex items-center justify-center text-blue-600 dark:text-blue-400"><Send size={14} /></div>
-                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{c.name || c.type}</span>
-                                            </button>
-                                        ))}
-                                    </div>
+                                <div className="p-3 bg-white/5 rounded-xl border-[0.5px] border-white/10 mb-4 text-sm text-white/80 line-clamp-3">
+                                    {msgToForward.text}
                                 </div>
-                            </motion.div>
+                                <h4 className="text-xs uppercase text-white/40 font-bold mb-2">Sélectionner une conversation</h4>
+                                <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar-thin pr-2">
+                                    {conversations.map((c: any) => (
+                                        <button key={c.id} onClick={() => handleForwardMessage(c.id)} className="w-full text-left p-3 hover:bg-white/5 rounded-xl text-white/80 flex items-center gap-3 border-[0.5px] border-transparent hover:border-white/10 transition-colors">
+                                            <div className="w-8 h-8 rounded-full bg-[#1a2235] flex items-center justify-center">
+                                                {c.type === 'DIRECT' ? <User size={14} /> : <Users size={14} />}
+                                            </div>
+                                            <span className="truncate flex-1 text-sm">{c.type === 'DIRECT' ? c.participants_details.find((p: any) => p.id !== currentUser?.id)?.username : c.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                           </div>
                         </div>
                     )}
                 </AnimatePresence>
             </div>
+            
+            <style dangerouslySetInnerHTML={{__html: `
+                .custom-scrollbar-thin::-webkit-scrollbar {
+                    width: 3px;
+                }
+                .custom-scrollbar-thin::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-scrollbar-thin::-webkit-scrollbar-thumb {
+                    background: rgba(255,255,255,0.1);
+                    border-radius: 10px;
+                }
+                .custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
+                    background: rgba(255,255,255,0.2);
+                }
+            `}} />
+            </div>
         </PageLayout>
     );
+
 };
 
 export default ChatCenter;

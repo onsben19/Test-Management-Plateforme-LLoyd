@@ -207,9 +207,14 @@ const EmailDashboard = () => {
                                     <span className="text-[11px] text-white/40">
                                         {selectedEmail.created_at ? new Date(selectedEmail.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ""}
                                     </span>
-                                    <button onClick={() => handleDeleteEmail(selectedEmail)} className="w-[28px] h-[28px] ml-auto rounded-[8px] hover:bg-white/5 flex items-center justify-center text-white/40 hover:text-white/80 transition-colors">
-                                        <Trash2 size={14} />
-                                    </button>
+                                    <div className="ml-auto flex items-center gap-1">
+                                        <button onClick={() => handleForward(selectedEmail)} className="w-[28px] h-[28px] rounded-[8px] hover:bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-colors" title="Transférer">
+                                            <Forward size={14} />
+                                        </button>
+                                        <button onClick={() => handleDeleteEmail(selectedEmail)} className="w-[28px] h-[28px] rounded-[8px] hover:bg-rose-500/10 flex items-center justify-center text-white/40 hover:text-rose-400 transition-colors" title="Supprimer">
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 

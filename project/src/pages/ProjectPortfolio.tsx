@@ -55,6 +55,7 @@ const ProjectPortfolio = () => {
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
     const [filterOwner, setFilterOwner] = useState('ALL');
@@ -97,7 +98,8 @@ const ProjectPortfolio = () => {
     };
 
     const handleSaveProject = async () => {
-        if (!newProject.name) return;
+        if (!newProject.name || isSubmitting) return;
+        setIsSubmitting(true);
         try {
             if (editingProject) {
                 await businessProjectService.updateBusinessProject(editingProject.id, newProject);
@@ -112,6 +114,8 @@ const ProjectPortfolio = () => {
             fetchProjects(currentPage);
         } catch {
             toast.error("Erreur lors de l'enregistrement");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -547,9 +551,9 @@ const ProjectPortfolio = () => {
                                     />
                                 </div>
                                 <div className="flex justify-end gap-4 pt-4">
-                                    <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Annuler</Button>
-                                    <Button onClick={handleSaveProject}>
-                                        Enregistrer
+                                    <Button variant="ghost" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>Annuler</Button>
+                                    <Button onClick={handleSaveProject} disabled={isSubmitting}>
+                                        {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
                                     </Button>
                                 </div>
                             </div>

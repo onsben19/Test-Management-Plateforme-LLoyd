@@ -22,9 +22,10 @@ class CatchupRecommendationManager:
         Envoie le plan de rattrapage à n8n via un Webhook.
         """
         import os
+        from django.conf import settings as django_settings
         token = os.environ.get('N8N_WEBHOOK_TOKEN', '')
-        # URL de n8n via le réseau Docker interne (production webhook)
-        n8n_url = f"http://insuretm-n8n:5678/webhook/catchup-plan?token={token}"
+        n8n_base = getattr(django_settings, 'N8N_BASE_URL', 'http://insuretm-n8n:5678')
+        n8n_url = f"{n8n_base}/webhook/catchup-plan?token={token}"
         try:
             logger.info(f"Tentative d'envoi du plan à n8n: {n8n_url}")
             response = requests.post(n8n_url, json=plan_data, timeout=5)

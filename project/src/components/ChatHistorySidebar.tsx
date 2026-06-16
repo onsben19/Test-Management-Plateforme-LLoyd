@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Trash2, MessageCircle, Clock, Sparkles, History } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 
 interface Conversation {
     id: string;
@@ -17,23 +17,36 @@ interface ChatHistorySidebarProps {
     isLoading: boolean;
 }
 
+const formatTimestamp = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = date.getDate() === yesterday.getDate() && date.getMonth() === yesterday.getMonth() && date.getFullYear() === yesterday.getFullYear();
+
+    const timeString = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    
+    if (isToday) return `Aujourd'hui · ${timeString}`;
+    if (isYesterday) return `Hier · ${timeString}`;
+    return `${date.toLocaleDateString('fr-FR')} · ${timeString}`;
+};
+
 const groupByDate = (conversations: Conversation[], t: any) => {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekStart = new Date(todayStart);
+    const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     weekStart.setDate(weekStart.getDate() - 7);
 
     const groups: { label: string; items: Conversation[] }[] = [
-        { label: t('analytics.history.today'), items: [] },
-        { label: t('analytics.history.thisWeek'), items: [] },
-        { label: t('analytics.history.older'), items: [] },
+        { label: 'CETTE SEMAINE', items: [] },
+        { label: 'PLUS ANCIENS', items: [] },
     ];
 
     conversations.forEach(conv => {
         const d = new Date(conv.created_at);
-        if (d >= todayStart) groups[0].items.push(conv);
-        else if (d >= weekStart) groups[1].items.push(conv);
-        else groups[2].items.push(conv);
+        if (d >= weekStart) groups[0].items.push(conv);
+        else groups[1].items.push(conv);
     });
 
     return groups.filter(g => g.items.length > 0);
@@ -48,83 +61,105 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
     isLoading
 }) => {
     const { t } = useTranslation();
-    const groups = groupByDate(conversations, t);
+    const [searchQuery, setSearchQuery] = useState('');
+    
+    const filteredConversations = conversations.filter(c => 
+        (c.title || '').toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    const groups = groupByDate(filteredConversations, t);
 
     return (
-        <div className="w-80 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-white/5 flex flex-col h-full shrink-0">
-            {/* Header */}
-            <div className="p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/40">
-                <div className="flex items-center gap-3 mb-8">
-                    <div className="flex flex-col">
-                        <h2 className="font-bold text-slate-900 dark:text-white tracking-tight text-lg leading-none uppercase">{t('analytics.history.title')}</h2>
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-black tracking-widest mt-1 uppercase">VOTRE HISTORIQUE</span>
-                    </div>
+        <div className="flex flex-col h-full bg-transparent w-full">
+            {/* Header sidebar */}
+            <div className="p-[12px] shrink-0">
+                <div className="text-[10px] uppercase text-[#6b7280] font-medium mb-[8px] tracking-wider">
+                    ANALYTICS IA — HISTORIQUE
                 </div>
+                
                 <button
                     onClick={onNewChat}
-                    className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-[1.25rem] transition-all shadow-xl shadow-blue-600/20 active:scale-[0.98] font-bold text-sm"
+                    className="w-full flex items-center justify-center gap-2 rounded-[10px] transition-all bg-[#185FA5] text-[#B5D4F4] border-[0.5px] border-[#378ADD] hover:bg-[#155393] p-[10px_13px] mb-[12px]"
                 >
-                    {t('analytics.history.newChat')}
+                    <Plus className="w-4 h-4" />
+                    <span className="font-medium text-[13px]">Nouvelle discussion</span>
                 </button>
+
+                <div className="relative flex items-center bg-[#1a2235] border-[0.5px] border-[rgba(255,255,255,0.07)] rounded-[8px] px-[10px] py-[7px]">
+                    <Search className="w-3.5 h-3.5 text-[rgba(255,255,255,0.25)] shrink-0 mr-2" />
+                    <input 
+                        type="text" 
+                        placeholder="Rechercher..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="bg-transparent border-none outline-none w-full text-[11px] text-[#e8eaf6] placeholder-[rgba(255,255,255,0.25)]"
+                    />
+                </div>
             </div>
 
-            {/* History */}
-            <div className="flex-1 overflow-y-auto py-3 custom-scrollbar">
+            {/* Historique */}
+            <div 
+                className="flex-1 overflow-y-auto p-[8px] space-y-4"
+                style={{
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: 'rgba(255,255,255,0.1) transparent'
+                }}
+            >
                 {isLoading ? (
-                    <div className="flex flex-col gap-2 px-3">
+                    <div className="flex flex-col gap-2">
                         {[1, 2, 3].map(i => (
-                            <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800/40 rounded-xl animate-pulse" />
+                            <div key={i} className="h-12 bg-white/5 rounded-[8px] animate-pulse" />
                         ))}
                     </div>
-                ) : conversations.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full gap-3 px-4 py-8 text-center">
-                        <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center">
-                            <MessageCircle className="w-6 h-6 text-slate-700 dark:text-slate-300 dark:text-slate-600" />
-                        </div>
-                        <p className="text-slate-400 dark:text-slate-500 text-xs leading-relaxed font-medium">
-                            {t('analytics.history.empty')}
-                        </p>
+                ) : filteredConversations.length === 0 ? (
+                    <div className="text-center p-4 text-[11px] text-[rgba(255,255,255,0.3)]">
+                        Aucune discussion
                     </div>
                 ) : (
                     groups.map(group => (
-                        <div key={group.label} className="mb-4">
-                            <div className="px-4 py-1.5 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest flex items-center gap-1.5">
+                        <div key={group.label} className="mb-2">
+                            <div className="px-2 mb-1 text-[9px] uppercase tracking-[0.08em] text-[rgba(255,255,255,0.2)] font-medium">
                                 {group.label}
                             </div>
-                            <div className="space-y-1.5 px-4">
-                                {group.items.map((conv) => (
-                                    <button
-                                        key={conv.id}
-                                        onClick={() => onSelectConversation(conv.id)}
-                                        className={`w-full text-left px-4 py-4 rounded-2xl flex items-start gap-4 transition-all group relative border ${currentConversationId === conv.id
-                                            ? 'bg-blue-600/10 text-slate-900 dark:text-white border-blue-500/30'
-                                            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-slate-800 dark:text-slate-200 border-transparent'
-                                            }`}
-                                    >
-
-                                        <div className="flex-1 min-w-0 py-0.5">
-                                            <span className={`text-[14px] font-bold truncate block leading-tight ${currentConversationId === conv.id ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
-                                                {conv.title || t('analytics.history.untitled')}
-                                            </span>
-                                            <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 block font-black uppercase tracking-widest">
-                                                {new Date(conv.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </div>
-                                        {/* Delete */}
-                                        <div
-                                            onClick={(e) => onDeleteConversation(conv.id, e)}
-                                            className="opacity-0 group-hover:opacity-100 p-2 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-500 transition-all shrink-0"
-                                            title="Supprimer"
+                            <div className="flex flex-col gap-0.5">
+                                {group.items.map((conv) => {
+                                    const isActive = currentConversationId === conv.id;
+                                    return (
+                                        <button
+                                            key={conv.id}
+                                            onClick={() => onSelectConversation(conv.id)}
+                                            className={`w-full text-left p-[8px] rounded-[8px] border-[0.5px] transition-colors
+                                                ${isActive 
+                                                    ? 'bg-[rgba(127,119,221,0.1)] border-[rgba(127,119,221,0.2)]' 
+                                                    : 'bg-transparent border-transparent hover:bg-[rgba(255,255,255,0.04)]'
+                                                }`}
                                         >
-                                            <Trash2 className="w-4 h-4" />
-                                        </div>
-                                    </button>
-                                ))}
+                                            <div className="text-[12px] text-[rgba(255,255,255,0.65)] whitespace-nowrap overflow-hidden text-ellipsis mb-0.5 font-medium">
+                                                {conv.title || 'Nouvelle discussion'}
+                                            </div>
+                                            <div className="text-[10px] text-[rgba(255,255,255,0.25)]">
+                                                {formatTimestamp(conv.created_at)}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     ))
                 )}
             </div>
+            
+            <style>{`
+                .flex-1::-webkit-scrollbar {
+                    width: 2px;
+                }
+                .flex-1::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .flex-1::-webkit-scrollbar-thumb {
+                    background-color: rgba(255,255,255,0.1);
+                    border-radius: 10px;
+                }
+            `}</style>
         </div>
     );
 };

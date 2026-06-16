@@ -68,11 +68,14 @@ interface ImportedFile {
     excel_file?: string;
     assigned_testers_names?: string[];
     assigned_testers?: number[];
-    tester_quotas?: Record<string, number>;
+    current_quotas?: Record<string, number>;
     project_id?: string;
     start_date?: string;
     estimated_end_date?: string;
     scheduled_at?: string;
+    passed_count?: number;
+    failed_count?: number;
+    anomalies_count?: number;
 }
 
 interface User {
@@ -143,6 +146,7 @@ const DataDrivenManager = () => {
     const [openTestersId, setOpenTestersId] = useState<string | null>(null);
     const [testerQuotas, setTesterQuotas] = useState<Record<number, number>>({});
     const [tempQuota, setTempQuota] = useState<number>(0);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [campaignForm, setCampaignForm] = useState({
         title: '',
@@ -209,11 +213,14 @@ const DataDrivenManager = () => {
                 excel_file: camp.excel_file,
                 assigned_testers_names: camp.assigned_testers_names || [],
                 assigned_testers: camp.assigned_testers || [],
-                tester_quotas: camp.tester_quotas || {},
+                current_quotas: camp.current_quotas || {},
                 project_id: camp.project,
                 start_date: camp.start_date,
                 estimated_end_date: camp.estimated_end_date,
-                scheduled_at: camp.scheduled_at
+                scheduled_at: camp.scheduled_at,
+                passed_count: camp.passed_count || 0,
+                failed_count: camp.failed_count || 0,
+                anomalies_count: camp.anomalies_count || 0
             })) : [];
             setImportedFiles(mappedCampaigns);
 
@@ -348,6 +355,9 @@ const DataDrivenManager = () => {
             return;
         }
 
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+
         const formData = new FormData();
         formData.append('title', campaignForm.title);
         formData.append('description', campaignForm.description);
@@ -382,6 +392,8 @@ const DataDrivenManager = () => {
         } catch (error) {
             console.error('Save error:', error);
             toast.error("Erreur lors de l'enregistrement de la campagne.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -534,13 +546,16 @@ const DataDrivenManager = () => {
                             <div className="px-3.5 py-3 border-b border-white/[0.07] flex items-center justify-between shrink-0">
                                 <span className="text-[11px] font-medium tracking-[0.07em] text-[#F09595]">EN RETARD</span>
                                 <span className="bg-white/[0.07] text-white/40 text-[11px] px-2 py-0.5 rounded-full">
-                                    {(filteredAndSortedFiles || []).filter(f => ['CRITICAL', 'WARNING'].includes(timelineGuards[f.id]?.status) && timelineGuards[f.id]?.progress?.percentage !== 100).length}
+                                    {(filteredAndSortedFiles || []).filter(f => ['CRITICAL', 'WARNING'].includes(timelineGuards[f.id]?.status) && ((f.passed_count || 0) + (f.failed_count || 0)) < f.rowCount).length}
                                 </span>
                             </div>
                             <div className="p-2.5 flex flex-col gap-2 overflow-y-auto flex-1 custom-scrollbar">
-                                {(filteredAndSortedFiles || []).filter(f => ['CRITICAL', 'WARNING'].includes(timelineGuards[f.id]?.status) && timelineGuards[f.id]?.progress?.percentage !== 100).map(file => {
+                                {(filteredAndSortedFiles || []).filter(f => ['CRITICAL', 'WARNING'].includes(timelineGuards[f.id]?.status) && ((f.passed_count || 0) + (f.failed_count || 0)) < f.rowCount).map(file => {
                                     const guard = timelineGuards[file.id];
-                                    const rate = guard?.progress?.percentage || 0;
+                                    const total = file.rowCount || 0;
+                                    const passed = file.passed_count || 0;
+                                    const failed = file.failed_count || 0;
+                                    const rate = total > 0 ? ((passed + failed) / total) * 100 : 0;
                                     return (
                                         <div key={file.id} onClick={() => setSelectedCampaignId(file.id)} className="bg-[#1a2235] border border-white/[0.07] rounded-lg p-3 cursor-pointer hover:border-[#F09595]/50 hover:bg-[#1f2937] transition-all">
                                             <div className="text-[13px] font-medium text-[#e8eaf6] whitespace-nowrap overflow-hidden text-ellipsis mb-1.5">{file.name}</div>
@@ -576,13 +591,16 @@ const DataDrivenManager = () => {
                             <div className="px-3.5 py-3 border-b border-white/[0.07] flex items-center justify-between shrink-0">
                                 <span className="text-[11px] font-medium tracking-[0.07em] text-[#EF9F27]">EN COURS</span>
                                 <span className="bg-white/[0.07] text-white/40 text-[11px] px-2 py-0.5 rounded-full">
-                                    {(filteredAndSortedFiles || []).filter(f => !['CRITICAL', 'WARNING'].includes(timelineGuards[f.id]?.status) && timelineGuards[f.id]?.progress?.percentage !== 100).length}
+                                    {(filteredAndSortedFiles || []).filter(f => !['CRITICAL', 'WARNING'].includes(timelineGuards[f.id]?.status) && ((f.passed_count || 0) + (f.failed_count || 0)) < f.rowCount).length}
                                 </span>
                             </div>
                             <div className="p-2.5 flex flex-col gap-2 overflow-y-auto flex-1 custom-scrollbar">
-                                {(filteredAndSortedFiles || []).filter(f => !['CRITICAL', 'WARNING'].includes(timelineGuards[f.id]?.status) && timelineGuards[f.id]?.progress?.percentage !== 100).map(file => {
+                                {(filteredAndSortedFiles || []).filter(f => !['CRITICAL', 'WARNING'].includes(timelineGuards[f.id]?.status) && ((f.passed_count || 0) + (f.failed_count || 0)) < f.rowCount).map(file => {
                                     const guard = timelineGuards[file.id];
-                                    const rate = guard?.progress?.percentage || 0;
+                                    const total = file.rowCount || 0;
+                                    const passed = file.passed_count || 0;
+                                    const failed = file.failed_count || 0;
+                                    const rate = total > 0 ? ((passed + failed) / total) * 100 : 0;
                                     return (
                                         <div key={file.id} onClick={() => setSelectedCampaignId(file.id)} className="bg-[#1a2235] border border-white/[0.07] rounded-lg p-3 cursor-pointer hover:border-[#EF9F27]/50 hover:bg-[#1f2937] transition-all">
                                             <div className="text-[13px] font-medium text-[#e8eaf6] whitespace-nowrap overflow-hidden text-ellipsis mb-1.5">{file.name}</div>
@@ -618,13 +636,12 @@ const DataDrivenManager = () => {
                             <div className="px-3.5 py-3 border-b border-white/[0.07] flex items-center justify-between shrink-0">
                                 <span className="text-[11px] font-medium tracking-[0.07em] text-[#5DCAA5]">TERMINÉ</span>
                                 <span className="bg-white/[0.07] text-white/40 text-[11px] px-2 py-0.5 rounded-full">
-                                    {(filteredAndSortedFiles || []).filter(f => timelineGuards[f.id]?.progress?.percentage === 100).length}
+                                    {(filteredAndSortedFiles || []).filter(f => f.rowCount > 0 && ((f.passed_count || 0) + (f.failed_count || 0)) === f.rowCount).length}
                                 </span>
                             </div>
                             <div className="p-2.5 flex flex-col gap-2 overflow-y-auto flex-1 custom-scrollbar">
-                                {(filteredAndSortedFiles || []).filter(f => timelineGuards[f.id]?.progress?.percentage === 100).map(file => {
+                                {(filteredAndSortedFiles || []).filter(f => f.rowCount > 0 && ((f.passed_count || 0) + (f.failed_count || 0)) === f.rowCount).map(file => {
                                     const guard = timelineGuards[file.id];
-                                    const rate = guard?.progress?.percentage || 0;
                                     return (
                                         <div key={file.id} onClick={() => setSelectedCampaignId(file.id)} className="bg-[#1a2235] border border-white/[0.07] rounded-lg p-3 cursor-pointer hover:border-[#5DCAA5]/50 hover:bg-[#1f2937] transition-all">
                                             <div className="text-[13px] font-medium text-[#e8eaf6] whitespace-nowrap overflow-hidden text-ellipsis mb-1.5">{file.name}</div>
@@ -654,7 +671,7 @@ const DataDrivenManager = () => {
                                 })}
                             </div>
                         </div>
-                        </div>
+                    </div>
                         {importedFiles.length === 0 && (
                             <div className="col-span-full py-24 text-center bg-slate-100 dark:bg-white/5 rounded-[3rem] border-2 border-dashed border-slate-300 dark:border-white/10">
                                 <FileSpreadsheet className="w-16 h-16 text-slate-700 mx-auto mb-6" />
@@ -698,10 +715,12 @@ const DataDrivenManager = () => {
                         const file = importedFiles.find(f => f.id === selectedCampaignId);
                         if (!file) return null;
                         const guard = timelineGuards[file.id];
-                        const total = guard?.progress?.total || file.rowCount || 0;
-                        const passed = guard?.progress?.finished || 0;
-                        const failed = Math.max(0, total - passed);
-                        const rate = guard?.progress?.percentage || 0;
+                        const total = file.rowCount || 0;
+                        const passed = file.passed_count || 0;
+                        const failed = file.failed_count || 0;
+                        const validated = passed + failed;
+                        const restants = Math.max(0, total - validated);
+                        const rate = total > 0 ? (validated / total) * 100 : 0;
 
                         return (
                             <div className="fixed inset-0 z-[99999] flex justify-end">
@@ -801,14 +820,18 @@ const DataDrivenManager = () => {
                                                     </div>
                                                 </div>
 
-                                                <div className="flex flex-col justify-center gap-1.5">
+                                                <div className="flex flex-col justify-center gap-1">
                                                     <div className="flex items-center gap-1.5">
-                                                        <CheckCircle size={12} className="text-[#5DCAA5]" />
-                                                        <span className="text-[12px] font-medium text-[#5DCAA5]">{passed} validés</span>
+                                                        <CheckCircle size={10} className="text-[#5DCAA5]" />
+                                                        <span className="text-[11px] font-medium text-[#5DCAA5]">{passed} réussis</span>
                                                     </div>
                                                     <div className="flex items-center gap-1.5">
-                                                        <Clock size={12} className="text-[#85B7EB]" />
-                                                        <span className="text-[12px] font-medium text-[#85B7EB]">{failed} restants</span>
+                                                        <AlertTriangle size={10} className="text-[#F09595]" />
+                                                        <span className="text-[11px] font-medium text-[#F09595]">{failed} anomalies</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Clock size={10} className="text-slate-400" />
+                                                        <span className="text-[11px] font-medium text-slate-400">{restants} restants</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -821,7 +844,7 @@ const DataDrivenManager = () => {
                                                 />
                                             </div>
                                             <div className="flex justify-between text-[11px] text-white/40 mb-4 font-medium">
-                                                <span>{passed} tests validés</span>
+                                                <span>{validated} tests validés</span>
                                                 <span>Cible : {total}</span>
                                             </div>
 
@@ -883,7 +906,7 @@ const DataDrivenManager = () => {
                                                             </div>
                                                             <div className="flex flex-col">
                                                                 <span className="text-[13px] font-medium text-white leading-tight mb-0.5">{name}</span>
-                                                                <span className="text-[11px] text-white/40">Charge : {guard?.velocity || 1} test/j</span>
+                                                                <span className="text-[11px] text-white/40">Quota : {file.current_quotas?.[file.assigned_testers?.[i] || ''] || 0} tests</span>
                                                             </div>
                                                         </div>
                                                         <div className="px-[9px] py-[3px] bg-[#1D9E75]/15 border-[0.5px] border-[#1D9E75]/25 rounded-[20px]">
@@ -1063,12 +1086,12 @@ const DataDrivenManager = () => {
                             </div>
 
                             <div className="px-10 py-8 bg-slate-100 dark:bg-white/5 border-t border-slate-200 dark:border-white/5 flex gap-4 shrink-0">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                                <button type="button" onClick={() => setIsModalOpen(false)} disabled={isSubmitting} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                                     Annuler
                                 </button>
-                                <button type="submit" className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-900/40 active:scale-95 flex items-center justify-center gap-3">
+                                <button type="submit" disabled={isSubmitting} className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-900/40 active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50">
                                     <CheckCircle className="w-4 h-4" />
-                                    {editingCampaign ? 'Enregistrer les modifications' : 'Lancer la campagne'}
+                                    {isSubmitting ? 'Enregistrement...' : (editingCampaign ? 'Enregistrer les modifications' : 'Lancer la campagne')}
                                 </button>
                             </div>
                         </form>

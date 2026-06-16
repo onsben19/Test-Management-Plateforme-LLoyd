@@ -44,7 +44,7 @@ export interface ActivityFeedItem {
 export interface DashboardKPIs {
     activeTesters: number;
     velocity2h: number;
-    velocityYesterday: number;
+    velocityLast24h: number;
     blockedTesters: number;
 }
 
@@ -62,7 +62,7 @@ const ManagerRealtimeDashboard: React.FC<ManagerRealtimeDashboardProps> = ({ cam
     const [kpis, setKpis] = useState<DashboardKPIs>({
         activeTesters: 0,
         velocity2h: 0,
-        velocityYesterday: 0,
+        velocityLast24h: 0,
         blockedTesters: 0
     });
 
@@ -227,7 +227,7 @@ const ManagerRealtimeDashboard: React.FC<ManagerRealtimeDashboardProps> = ({ cam
         setActivityFeed(newFeed);
     };
 
-    const velocityDelta = kpis.velocity2h - kpis.velocityYesterday;
+    const velocityDelta = kpis.velocity2h - kpis.velocityLast24h;
     const isVelocityUp = velocityDelta >= 0;
 
     return (

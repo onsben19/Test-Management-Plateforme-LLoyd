@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, Sparkles, Play } from 'lucide-react';
 import Button from './ui/Button';
 import { executionService } from '../services/api';
@@ -12,6 +13,7 @@ interface AIAutomationModalProps {
 }
 
 const AIAutomationModal: React.FC<AIAutomationModalProps> = ({ test, onClose, onUpdate }) => {
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [code, setCode] = useState<string>('');
     const [executing, setExecuting] = useState(false);
@@ -51,7 +53,11 @@ const AIAutomationModal: React.FC<AIAutomationModalProps> = ({ test, onClose, on
 
         const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
         const token = localStorage.getItem('access_token');
-        const wsUrl = `${protocol}://${window.location.host}/ws/testcases/${test.id}/logs/${token ? `?token=${token}` : ''}`;
+        let wsHost = window.location.host;
+        if (window.location.port === '5173') {
+            wsHost = `${window.location.hostname}:8000`;
+        }
+        const wsUrl = `${protocol}://${wsHost}/ws/testcases/${test.id}/logs/${token ? `?token=${token}` : ''}`;
         
         let ws: WebSocket | null = null;
         try {
@@ -191,6 +197,17 @@ const AIAutomationModal: React.FC<AIAutomationModalProps> = ({ test, onClose, on
 
                             <div className="flex justify-end gap-4 mt-2">
                                 <Button variant="secondary" onClick={onClose} className="px-6 rounded-xl">Fermer</Button>
+                                {executionResult && executionResult.status === 'FAILED' && (executionResult as any).anomaly_id && (
+                                    <Button
+                                        onClick={() => {
+                                            onClose();
+                                            navigate('/anomalies', { state: { openAnomalyId: (executionResult as any).anomaly_id } });
+                                        }}
+                                        className="bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_15px_rgba(226,75,74,0.4)] px-6 rounded-xl font-bold uppercase tracking-widest text-[11px]"
+                                    >
+                                        Voir l'anomalie
+                                    </Button>
+                                )}
                                 <Button 
                                     onClick={handleSaveAndExecute}
                                     isLoading={executing}

@@ -141,18 +141,22 @@ const ReadinessDetailModal: React.FC<ReadinessDetailModalProps> = ({ isOpen, onC
                                         </div>
                                     </div>
 
-                                    <div className="p-4 bg-rose-500/5 border border-rose-500/10 rounded-xl flex items-start gap-3">
-                                        <div className="p-1 bg-rose-500/20 rounded-full mt-0.5 text-rose-500/80 shrink-0">
-                                            <AlertTriangle size={12} strokeWidth={3} />
+                                    <div className={`p-4 ${data.score < 40 ? 'bg-rose-500/5 border-rose-500/10' : data.score < 80 ? 'bg-amber-500/5 border-amber-500/10' : 'bg-emerald-500/5 border-emerald-500/10'} border rounded-xl flex items-start gap-3`}>
+                                        <div className={`p-1 ${data.score < 40 ? 'bg-rose-500/20 text-rose-500/80' : data.score < 80 ? 'bg-amber-500/20 text-amber-500/80' : 'bg-emerald-500/20 text-emerald-500/80'} rounded-full mt-0.5 shrink-0`}>
+                                            {data.score < 80 ? <AlertTriangle size={12} strokeWidth={3} /> : <CheckCircle2 size={12} strokeWidth={3} />}
                                         </div>
-                                        <div className="text-[10px] font-bold text-rose-200/80 leading-relaxed">
-                                            {data.source_data ? (
-                                                <>Taux de réussite insuffisant ({data.source_data.tests.passed}/{data.source_data.tests.total})</>
+                                        <div className={`text-[10px] font-bold ${data.score < 40 ? 'text-rose-500/80' : data.score < 80 ? 'text-amber-500/80' : 'text-emerald-500/80'} leading-relaxed`}>
+                                            {data.reasons && data.reasons.length > 0 ? (
+                                                <>{data.reasons[0]}</>
                                             ) : (
-                                                data.reasons[0]
+                                                <>La situation est optimale, aucune alerte majeure.</>
                                             )}
-                                            <br />
-                                            <span className="opacity-50">Retard estimé : {data.source_data?.ml?.delay_days || 4} jours.</span>
+                                            {data.source_data?.ml?.delay_days ? (
+                                                <>
+                                                    <br />
+                                                    <span className="opacity-50">Retard estimé : {data.source_data.ml.delay_days} jours.</span>
+                                                </>
+                                            ) : null}
                                         </div>
                                     </div>
                                 </div>

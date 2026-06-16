@@ -210,12 +210,11 @@ const ManagerDashboard = () => {
                 return created === date;
             });
             const dayPassed = dayCamps.reduce((s: number, c: any) => s + (c.passed_count || 0), 0);
-            const dayTotal = dayCamps.reduce((s: number, c: any) => s + (c.nb_test_cases || 0), 0);
-            const dayFailed = dayTotal - dayPassed;
+            const dayFailed = dayCamps.reduce((s: number, c: any) => s + (c.failed_count || 0), 0);
             return {
                 name: new Date(date).toLocaleDateString('fr-FR', { weekday: 'short' }),
                 passed: dayPassed,
-                failed: dayFailed > 0 ? dayFailed : 0,
+                failed: dayFailed,
             };
         });
 
@@ -296,8 +295,9 @@ const ManagerDashboard = () => {
     const CampaignCard = ({ camp }: { camp: any }) => {
         const total = camp.nb_test_cases || 0;
         const passed = camp.passed_count || 0;
-        const failed = camp.failed_count ?? (total - passed);
-        const rate = total > 0 ? Math.round((passed / total) * 100) : 0;
+        const failed = camp.failed_count || 0;
+        const validated = passed + failed;
+        const rate = total > 0 ? Math.round((validated / total) * 100) : 0;
 
         const rateClass = rate >= 80
             ? 'bg-emerald-500/10 text-emerald-500'

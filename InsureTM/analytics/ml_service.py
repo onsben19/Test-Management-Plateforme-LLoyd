@@ -107,13 +107,15 @@ class MLTimelineGuard:
             
             # 5. Insight IA (Groq)
             if generate_insight:
+                failed_count = executed_tests.filter(status='FAILED').count()
                 ai_message = self._generate_ai_insight(
                     campaign.title, 
                     finished_count, 
                     total_cases, 
                     velocity, 
                     projected_end_date,
-                    campaign.estimated_end_date
+                    campaign.estimated_end_date,
+                    failed_count=failed_count
                 )
             else:
                 ai_message = "Analyse IA désactivée pour optimisation."
@@ -201,8 +203,10 @@ class MLTimelineGuard:
         except Exception:
             return {"score": 50, "metrics": {}, "label": "NEUTRAL"}
 
-    def _generate_ai_insight(self, title, finished, total, velocity, projected, target):
+    def _generate_ai_insight(self, title, finished, total, velocity, projected, target, failed_count=0):
         if finished >= total and total > 0:
+            if failed_count > 0:
+                return "Tous les cas de tests ont été exécutés, mais des anomalies ont été détectées. Les corrections doivent être validées."
             return "Objectif atteint ! Tous les cas de tests ont été validés avec succès. La campagne est terminée."
 
         prompt = f"""

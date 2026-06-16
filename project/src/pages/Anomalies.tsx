@@ -32,7 +32,7 @@ import {
   ShieldCheck,
   X
 } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { anomalyService } from '../services/api';
@@ -103,6 +103,7 @@ const Anomalies: React.FC = () => {
   const isTester = user?.role?.toLowerCase() === 'tester';
 
   const location = useLocation();
+  const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const relatedTestFilter = queryParams.get('test');
   const highlightId = queryParams.get('highlight');
@@ -195,10 +196,42 @@ const Anomalies: React.FC = () => {
       setData(mappedAnomalies);
 
       if (location.state && (location.state as any).openAnomalyId) {
-          const toOpen = mappedAnomalies.find(an => an.id === (location.state as any).openAnomalyId.toString());
+          const targetId = (location.state as any).openAnomalyId.toString();
+          const toOpen = mappedAnomalies.find(an => an.id === targetId);
           if (toOpen) {
               setSelectedAnomaly(toOpen);
-              window.history.replaceState({}, document.title);
+              // Safely clear the state so it doesn't reopen on refresh
+              navigate(location.pathname, { replace: true, state: {} });
+          } else {
+              // Direct fetch fallback if anomaly not on page 1 / filtered out
+              anomalyService.getAnomaly(targetId)
+                  .then(res => {
+                      const a = res.data;
+                      const fallbackAnomaly: Anomaly = {
+                          id: a.id.toString(),
+                          title: a.titre,
+                          impact: a.impact,
+                          priority: a.priorite,
+                          visibility: a.visibilite,
+                          status: a.statut || 'OUVERTE',
+                          relatedTest: a.test_case_ref || (a.test_case ? `Test #${a.test_case}` : undefined),
+                          assignedTo: a.cree_par_nom || 'Non assigné',
+                          createdAt: a.cree_le,
+                          description: a.description,
+                          proofImage: a.preuve_image,
+                          release: a.project_name || 'Inconnu',
+                          campaign: a.campaign_title || 'Inconnue',
+                          author_name: a.cree_par_nom,
+                          created_at: a.cree_le,
+                          playwright_script: a.playwright_script || a.script || null,
+                          execution_logs: a.execution_logs || a.logs || a.log_execution || a.logs_execution || a.data_json?.execution_logs || a.data_json?.logs || null,
+                      };
+                      setSelectedAnomaly(fallbackAnomaly);
+                      navigate(location.pathname, { replace: true, state: {} });
+                  })
+                  .catch(err => {
+                      console.error("Failed to fetch fallback anomaly", err);
+                  });
           }
       }
     } catch (error) {
@@ -279,8 +312,8 @@ const Anomalies: React.FC = () => {
       .filter(a => ['CRITIQUE', 'BLOQUANTES'].includes(a.impact))
       .sort((a, b) => b.impact === 'BLOQUANTES' ? 1 : -1);
 
-    // Stability Score: Simple ratio for now: resolved / total
-    const stabilityScore = total > 0 ? Math.round((resolved.length / total) * 100) : 100;
+    // Stability Score: resolved / total (0 when no data — 100% would be misleading)
+    const stabilityScore = total > 0 ? Math.round((resolved.length / total) * 100) : 0;
 
     // Ageing: Open for more than 7 days
     const now = new Date();
@@ -431,62 +464,7 @@ const Anomalies: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-8">
-            {/* Insights Card - Compact Version */}
-            <div className="bg-white dark:bg-[#0b0e14]/50 backdrop-blur-md border border-slate-200 dark:border-white/[0.05] rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-6">
-              <div className="flex-1 space-y-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-500/10 rounded-full border border-blue-100 dark:border-blue-500/20">
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                  <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">{t('anomalies.chart.title')}</span>
-                </div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">
-                  Analyse de <span className="text-blue-500">Distribution</span>
-                </h3>
-                <p className="text-slate-500 dark:text-slate-400 text-xs font-medium leading-relaxed max-w-lg">
-                  Aperçu dynamique de la criticité des anomalies actuelles. Les éléments bloquants nécessitent une attention immédiate.
-                </p>
-              </div>
 
-              <div className="w-full lg:w-[320px] h-[140px]">
-                <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={stats.distribution}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={45}
-                        outerRadius={60}
-                        paddingAngle={8}
-                        cornerRadius={12}
-                        dataKey="value"
-                        stroke="rgba(255,255,255,0.05)"
-                        strokeWidth={2}
-                      >
-                        {stats.distribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#0f172a',
-                          border: '1px solid rgba(255,255,255,0.1)',
-                          borderRadius: '20px',
-                          padding: '12px 20px',
-                          fontSize: '10px',
-                          fontWeight: 'black',
-                          textTransform: 'uppercase'
-                        }}
-                      />
-                      <Legend
-                        verticalAlign="middle"
-                        align="right"
-                        layout="vertical"
-                        iconType="circle"
-                        formatter={(val) => <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-3">{val}</span>}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-              </div>
-            </div>
 
             <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
               <div className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
@@ -564,13 +542,13 @@ const Anomalies: React.FC = () => {
                   <thead>
                     <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                       <th className="w-[8%] px-6 py-2">ID</th>
-                      <th className="w-[25%] px-6 py-2">{t('anomalies.table.anomaly')}</th>
-                      <th className="w-[12%] px-6 py-2">Impact</th>
-                      <th className="w-[12%] px-6 py-2">Priorité</th>
-                      <th className="w-[15%] px-6 py-2">Date Signalée</th>
+                      <th className="w-[20%] px-6 py-2">{t('anomalies.table.anomaly')}</th>
+                      <th className="w-[10%] px-6 py-2">Impact</th>
+                      <th className="w-[10%] px-6 py-2">Priorité</th>
                       <th className="w-[10%] px-6 py-2">PREUVE(S)</th>
-                      <th className="w-[15%] px-6 py-2">DÉTAILS</th>
-                      <th className="w-[18%] px-6 py-2 text-right">{t('anomalies.table.actions')}</th>
+                      <th className="w-[22%] px-6 py-2">DÉTAILS</th>
+                      <th className="w-[10%] px-6 py-2">Date Signalée</th>
+                      <th className="w-[10%] px-6 py-2 text-right">{t('anomalies.table.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -669,15 +647,6 @@ const Anomalies: React.FC = () => {
                           )}
                         </td>
                         <td className={tdClass}>
-                          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">
-                            {new Date(an.created_at).toLocaleDateString(t('common.dateLocale') || 'fr-FR', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric'
-                            })}
-                          </span>
-                        </td>
-                        <td className={tdClass}>
                           {an.proofImage ? (
                             <div className="flex items-center gap-1.5">
                               <button
@@ -705,6 +674,15 @@ const Anomalies: React.FC = () => {
                               <button
                                   onClick={(e) => {
                                       e.stopPropagation();
+                                      setLogModal({ title: `Analyse IA — ${an.title}`, content: an.description || "Aucune analyse IA disponible." });
+                                  }}
+                                  className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:text-purple-500 dark:hover:text-purple-400 hover:bg-purple-500/10 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border border-slate-200 dark:border-white/10"
+                              >
+                                  Analyse IA
+                              </button>
+                              <button
+                                  onClick={(e) => {
+                                      e.stopPropagation();
                                       setLogModal({ title: `Logs d'exécution — ${an.title}`, content: an.execution_logs || "Aucun log d'exécution disponible." });
                                   }}
                                   className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-500/10 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border border-slate-200 dark:border-white/10"
@@ -721,6 +699,15 @@ const Anomalies: React.FC = () => {
                                   Code
                               </button>
                           </div>
+                        </td>
+                        <td className={tdClass}>
+                          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                            {new Date(an.created_at).toLocaleDateString(t('common.dateLocale') || 'fr-FR', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric'
+                            })}
+                          </span>
                         </td>
                         <td className={`text-right ${tdClass}`}>
                           <div className="flex items-center justify-end gap-2 transition-all duration-300">

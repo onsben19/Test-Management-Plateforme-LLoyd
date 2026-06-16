@@ -1,23 +1,110 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Sparkles, Globe, Calendar, ArrowRight } from 'lucide-react';
 import { analyticsService } from '../services/api';
 
+const SourceLogo: React.FC<{ source: string; className?: string }> = ({ source, className = "w-[12px] h-[12px]" }) => {
+    const srcLower = source.toLowerCase();
+    if (srcLower.includes('ministry')) {
+        return <img src="/logos/ministry_of_testing.png" alt="Ministry of Testing" className={`${className} object-contain`} />;
+    }
+    if (srcLower.includes('testim')) {
+        return <img src="/logos/testim.png" alt="Testim.io" className={`${className} object-contain`} />;
+    }
+    if (srcLower.includes('applitools')) {
+        return <img src="/logos/applitools.png" alt="Applitools" className={`${className} object-contain`} />;
+    }
+    return <Globe className={className} />;
+};
+
+const getSourceStyle = (source: string) => {
+    const srcLower = source.toLowerCase();
+    if (srcLower.includes('ministry')) {
+        return { text: 'text-violet-400', label: 'Ministry of Testing' };
+    }
+    if (srcLower.includes('testim')) {
+        return { text: 'text-cyan-400', label: 'Testim.io' };
+    }
+    if (srcLower.includes('applitools')) {
+        return { text: 'text-teal-400', label: 'Applitools' };
+    }
+    return { text: 'text-[#85B7EB]', label: source };
+};
+
+const FILTERS = [
+    "Tous", 
+    "Automatisation", 
+    "IA & Visual Testing", 
+    "Stratégie & Pratiques", 
+    "CI/CD & Deployments", 
+    "Ministry of Testing", 
+    "Testim", 
+    "Applitools"
+];
+
 const QANewsHub: React.FC = () => {
-    const { t } = useTranslation();
     const [news, setNews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeFilter, setActiveFilter] = useState("Tous");
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleScrapeAndFetch = async () => {
+        setLoading(true);
+        setIsRefreshing(true);
+        try {
+            // Trigger a fresh scrape on the backend
+            await analyticsService.triggerQAScraping();
+            await fetchNews();
+        } catch (error) {
+            console.error('Erreur scraping:', error);
+            // Fallback to just fetching if scraping fails
+            await fetchNews();
+        }
+    };
 
     const fetchNews = async () => {
         setLoading(true);
+        setIsRefreshing(true);
         try {
             const res = await analyticsService.getQANews();
-            setNews(res.data);
+            
+            // Enrich backend data with UI heuristics (emoji, tags)
+            const enriched = (res.data || []).map((item: any, idx: number) => {
+                const text = `${item.title} ${item.ai_tip}`.toLowerCase();
+                const tags = [];
+                
+                if (text.includes('automat') || text.includes('playwright') || text.includes('selenium') || text.includes('cypress') || text.includes('code') || text.includes('script') || text.includes('api')) {
+                    tags.push('Automatisation');
+                }
+                if (text.includes('ia') || text.includes('ai ') || text.includes('llm') || text.includes('gpt') || text.includes('visual') || text.includes('intelligence')) {
+                    tags.push('IA & Visual Testing');
+                }
+                if (text.includes('lean') || text.includes('agile') || text.includes('fast') || text.includes('strat') || text.includes('practice') || text.includes('culture') || text.includes('team') || text.includes('management')) {
+                    tags.push('Stratégie & Pratiques');
+                }
+                if (text.includes('prod') || text.includes('déploy') || text.includes('deploy') || text.includes('ci/') || text.includes('pipeline') || text.includes('flag') || text.includes('feature')) {
+                    tags.push('CI/CD & Deployments');
+                }
+
+                if (tags.length === 0) tags.push('Général QA');
+
+                const emojis = ['🚀', '📈', '🎭', '🔍', '⚡', '🤖', '🚩', '💡', '🛡️', '📊'];
+                const emoji = emojis[idx % emojis.length];
+
+                return {
+                    ...item,
+                    tags,
+                    emoji,
+                    featured: idx === 0,
+                    date: item.created_at || "Aujourd'hui"
+                };
+            });
+
+            setNews(enriched);
         } catch (error) {
             console.error('Erreur news:', error);
         } finally {
             setLoading(false);
+            setIsRefreshing(false);
         }
     };
 
@@ -25,86 +112,149 @@ const QANewsHub: React.FC = () => {
         fetchNews();
     }, []);
 
+    const filteredArticles = news.filter(a => {
+        if (activeFilter === "Tous") return true;
+        // Check if filter matches source name
+        if (a.source.toLowerCase().includes(activeFilter.toLowerCase())) return true;
+        // Check if it matches tag
+        return a.tags && a.tags.includes(activeFilter);
+    });
+
     return (
-        <div className="relative overflow-hidden bg-slate-50 dark:bg-[#0A0F1C] border border-slate-200 dark:border-white/5 rounded-3xl p-10 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)]">
-            {/* Background Ambient Glows */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none rounded-3xl">
-                <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-blue-900/10 rounded-full blur-[100px]" />
-                <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-indigo-900/10 rounded-full blur-[100px]" />
-            </div>
-
-            <div className="relative flex items-center justify-between mb-12 border-b border-slate-200 dark:border-white/5 pb-8">
-                <div>
-                    <h2 className="text-3xl font-light text-slate-100 tracking-wide">
-                        Veille & Innovations <span className="font-semibold text-blue-400">IA</span>
-                    </h2>
-                    <p className="text-sm text-slate-400 font-medium mt-3 max-w-2xl leading-relaxed">
-                        {t("Notre IA scrute en temps réel les meilleures sources mondiales de l'assurance qualité pour vous proposer des articles pertinents et des conseils d'experts actionnables.")}
-                    </p>
-                </div>
-                <button 
-                    onClick={fetchNews}
-                    className="group p-4 rounded-full bg-slate-50 dark:bg-white/[0.02] hover:bg-slate-50 dark:bg-white/[0.05] transition-all duration-500 text-slate-400 hover:text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/5 active:scale-90"
-                    disabled={loading}
-                    title={t("Actualiser")}
-                >
-                    <RefreshCw size={20} className={`${loading ? 'animate-spin' : 'group-hover:rotate-180'} transition-transform duration-700`} />
-                </button>
-            </div>
-
-            <div className="relative grid grid-cols-1 md:grid-cols-2 gap-6">
-                {news.map((item, index) => (
-                    <motion.div
-                        key={item.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                        onClick={() => window.open(item.url, '_blank')}
-                        className="group bg-slate-50 dark:bg-white/[0.01] border border-slate-200 dark:border-white/5 rounded-2xl p-8 hover:bg-slate-50 dark:bg-white/[0.03] hover:border-blue-500/30 transition-all duration-500 flex flex-col h-full cursor-pointer relative overflow-hidden"
-                    >
-                        {/* Hover Gradient Overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                        
-                        {/* Sweep Hover Effect */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-blue-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none" />
-
-                        <div className="relative flex justify-between items-start mb-6 pointer-events-none">
-                            <span className="text-[11px] font-semibold text-blue-400/80 uppercase tracking-widest">
-                                {item.source}
-                            </span>
+        <div className="w-full h-full bg-transparent p-[30px] overflow-y-auto">
+            <div className="max-w-[800px] mx-auto flex flex-col">
+                
+                {/* Header de page */}
+                <div className="flex justify-between items-start mb-[20px]">
+                    <div className="flex flex-col gap-[12px]">
+                        <div>
+                            <h2 className="text-[22px] font-[500] text-white">
+                                Veille Technologique <span className="text-[#378ADD]">QA</span>
+                            </h2>
+                            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-[1.6] max-w-[560px] mt-[6px]">
+                                Notre IA scrute en temps réel les meilleures sources mondiales de l'assurance qualité pour vous proposer des articles pertinents et des conseils d'experts actionnables.
+                            </p>
                         </div>
-
-                        <h3 className="relative text-lg font-medium text-slate-800 dark:text-slate-200 mb-6 leading-relaxed group-hover:text-blue-300 transition-colors">
-                            {item.title}
-                        </h3>
-
-                        {item.ai_tip && (
-                            <div className="relative mt-auto border-l-2 border-indigo-500/40 pl-5 py-2">
-                                <span className="block text-[10px] font-bold text-indigo-400/70 uppercase tracking-[0.2em] mb-2">
-                                    {t("Analyse IA")}
-                                </span>
-                                <p className="text-sm text-slate-400 leading-relaxed italic">
-                                    "{item.ai_tip.replace(/💡\s*Tip\s*:?|Tip\s*:?|Conseil\s*:?|💡/gi, '').trim()}"
-                                </p>
+                        
+                        {/* Ligne de chips */}
+                        <div className="flex gap-[8px]">
+                            <div className="flex items-center gap-[4px] px-[10px] py-[4px] bg-[rgba(127,119,221,0.15)] border-[0.5px] border-[rgba(127,119,221,0.25)] rounded-[20px]">
+                                <span className="text-[10px] font-medium text-[#AFA9EC]">IA active</span>
                             </div>
-                        )}
-                        
-                        <div className="relative mt-8 pt-6 border-t border-slate-200 dark:border-white/5 flex items-center justify-between text-[11px] font-medium text-slate-500">
-                            <span>{item.created_at}</span>
-                            <span className="uppercase tracking-widest text-blue-400/50 group-hover:text-blue-400 transition-colors duration-300">
-                                {t("Consulter")}
-                            </span>
+                            <div className="flex items-center gap-[6px] px-[10px] py-[4px] bg-[rgba(29,158,117,0.15)] rounded-[20px]">
+                                <div className="w-[6px] h-[6px] rounded-full bg-[#5DCAA5] animate-pulse" />
+                                <span className="text-[10px] font-medium text-[#5DCAA5]">{news.length} articles · En temps réel</span>
+                            </div>
                         </div>
-                    </motion.div>
-                ))}
-
-                {news.length === 0 && !loading && (
-                    <div className="col-span-full py-20 text-center">
-                        <p className="text-sm font-medium text-slate-500 uppercase tracking-widest">
-                            {t("Aucune donnée disponible pour le moment")}
-                        </p>
                     </div>
-                )}
+
+                    <button 
+                        onClick={handleScrapeAndFetch}
+                        disabled={loading}
+                        className="px-3.5 py-1.5 rounded-xl bg-[rgba(255,255,255,0.05)] border-[0.5px] border-[rgba(255,255,255,0.1)] text-white/70 hover:text-white text-[11px] font-bold transition-all disabled:opacity-50"
+                        title="Relancer le scraping IA"
+                    >
+                        {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+                    </button>
+                </div>
+
+                {/* Barre de filtres */}
+                <div className="flex flex-wrap gap-[8px] mb-[16px]">
+                    {FILTERS.map(f => {
+                        const isActive = activeFilter === f;
+                        const hasLogo = ["Ministry of Testing", "Testim", "Applitools"].includes(f);
+                        return (
+                            <button
+                                key={f}
+                                onClick={() => setActiveFilter(f)}
+                                className={`flex items-center gap-[6px] px-[12px] py-[5px] rounded-[20px] text-[11px] font-[500] transition-colors border-[0.5px] ${
+                                    isActive 
+                                        ? 'bg-[rgba(55,138,221,0.2)] text-[#85B7EB] border-[rgba(55,138,221,0.35)]' 
+                                        : 'bg-[rgba(255,255,255,0.04)] text-[rgba(255,255,255,0.4)] border-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.08)]'
+                                }`}
+                            >
+                                {hasLogo && <SourceLogo source={f} className="w-[12px] h-[12px] object-contain rounded-sm" />}
+                                <span>{f}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Grille d'articles */}
+                <div className="grid grid-cols-2 gap-[12px] pb-[40px]">
+                    {filteredArticles.map(article => {
+                        const isFeatured = article.featured;
+                        const style = getSourceStyle(article.source);
+                        
+                        return (
+                            <div 
+                                key={article.id}
+                                className={`group bg-white/[0.03] backdrop-blur-xl rounded-[14px] border-[0.5px] border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)] transition-colors overflow-hidden ${
+                                    isFeatured ? 'col-span-2 grid grid-cols-2' : 'flex flex-col'
+                                }`}
+                            >
+                                {/* Zone Image */}
+                                <div className={`relative flex items-center justify-center bg-white/[0.02] ${
+                                    isFeatured ? 'h-full min-h-[160px]' : 'h-[120px] w-full'
+                                }`}>
+                                    <SourceLogo source={article.source} className="w-[48px] h-[48px] object-contain drop-shadow-lg" />
+                                    {isFeatured && <div className="absolute bottom-0 left-0 w-full h-[50%] bg-gradient-to-t from-[#0b0f19] to-transparent opacity-60" />}
+                                </div>
+
+                                {/* Body */}
+                                <div className="flex flex-col flex-1 p-[14px] gap-[10px]">
+                                    <div className="flex items-center gap-[6px]">
+                                        <SourceLogo source={article.source} className="w-[14px] h-[14px] object-contain rounded-sm" />
+                                        <span className={`text-[10px] uppercase font-[700] tracking-[0.07em] ${style.text}`}>
+                                            {style.label}
+                                        </span>
+                                    </div>
+                                    
+                                    <div className="flex flex-wrap gap-[6px]">
+                                        {article.tags.map(tag => {
+                                            let bg = 'bg-[rgba(55,138,221,0.12)]', text = 'text-[#85B7EB]';
+                                            if (tag === 'Feature flags') { bg = 'bg-[rgba(29,158,117,0.12)]'; text = 'text-[#5DCAA5]'; }
+                                            if (tag === 'Lean testing') { bg = 'bg-[rgba(127,119,221,0.12)]'; text = 'text-[#AFA9EC]'; }
+                                            return (
+                                                <span key={tag} className={`px-[8px] py-[2px] rounded-[20px] text-[10px] font-[500] ${bg} ${text}`}>
+                                                    {tag}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                    
+                                    <h3 className={`text-white font-[500] leading-[1.4] ${
+                                        isFeatured ? 'text-[16px]' : 'text-[14px]'
+                                    }`} style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                        {article.title}
+                                    </h3>
+                                    
+                                    <div className="bg-[#0d1a2e] border-l-[2px] border-[#378ADD] rounded-r-[8px] p-[8px_10px]">
+                                        <div className="flex items-center gap-[4px] mb-[3px]">
+                                            <span className="text-[9px] text-[#378ADD] uppercase font-[600]">Analyse IA</span>
+                                        </div>
+                                        <p className="text-[11px] italic text-[rgba(255,255,255,0.45)] leading-[1.5]" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                            {article.ai_tip}
+                                        </p>
+                                    </div>
+                                    
+                                    {/* Footer */}
+                                    <div className="mt-auto pt-[8px] border-t-[0.5px] border-[rgba(255,255,255,0.06)] flex justify-between items-center">
+                                        <div className="flex items-center gap-[6px] text-[rgba(255,255,255,0.25)]">
+                                            <span className="text-[11px] font-[500]">{article.date}</span>
+                                        </div>
+                                        <button 
+                                            onClick={() => window.open(article.url, '_blank')}
+                                            className="flex items-center gap-[4px] text-[#378ADD] text-[11px] font-[500] hover:text-[#5B9FE0] transition-colors"
+                                        >
+                                            Consulter
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );

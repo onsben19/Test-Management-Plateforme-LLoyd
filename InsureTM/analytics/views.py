@@ -274,8 +274,14 @@ class ReformulateMessageView(APIView):
         try:
             reformulated = GroqService().reformulate_message(message, is_subject=is_subject, is_test_steps=is_test_steps)
             return Response({'reformulated_message': reformulated})
-        except Exception:
+        except Exception as e:
             logger.exception("Error reformulating message for user %s", request.user.username)
+            err_msg = str(e)
+            if '429' in err_msg or 'quota' in err_msg.lower() or 'rate' in err_msg.lower():
+                return Response({
+                    'error': 'quota_exceeded',
+                    'message': "Les quotas journaliers des APIs IA sont épuisés. Réessayez demain."
+                }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             return Response({'error': 'An internal error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -447,45 +453,64 @@ class CampaignClosureReportView(APIView):
 class DashboardBriefView(APIView):
     permission_classes = [IsAuthenticated]
 
+    # Cache TTL matches the 5-minute theme rotation in generate_dashboard_brief
+    CACHE_TTL = 300  # seconds
+
     def post(self, request):
         """
         Expects current stats from frontend to generate a brief.
-        Alternatively, can compute them here. Let's compute some key ones for safety.
+        Result is cached for 5 minutes to avoid consuming AI quota on every page load.
         """
-        stats = request.data.get('stats', {})
-        
-        # Enrich stats with deep data
+        from django.core.cache import cache
         from testCases.models import TestCase
-        
+
+        stats = request.data.get('stats', {})
+
+        # Enrich stats with live DB data
         if not stats.get('total_campaigns'):
             stats['total_campaigns'] = Campaign.objects.count()
         if not stats.get('open_anomalies'):
             stats['open_anomalies'] = Anomalie.objects.exclude(statut='RESOLUE').count()
-        
-        stats['critical_impact_count'] = Anomalie.objects.filter(impact__in=['CRITIQUE', 'BLOQUANTES']).exclude(statut='RESOLUE').count()
+
+        stats['critical_impact_count'] = Anomalie.objects.filter(
+            impact__in=['CRITIQUE', 'BLOQUANTES']
+        ).exclude(statut='RESOLUE').count()
         stats['total_passed'] = TestCase.objects.filter(status='PASSED').count()
         stats['total_failed'] = TestCase.objects.filter(status='FAILED').count()
         stats['total_executions'] = stats['total_passed'] + stats['total_failed']
-        
-        # Calculate an average readiness score for active campaigns
+
         active_campaigns = Campaign.objects.all().order_by('-created_at')[:5]
         readiness_manager = ReleaseReadinessManager()
-        scores = []
-        for c in active_campaigns:
-             res = readiness_manager.calculate_readiness_score(campaign_id=c.id)
-             if 'score' in res:
-                 scores.append(res['score'])
-        
+        scores = [
+            res['score']
+            for c in active_campaigns
+            for res in [readiness_manager.calculate_readiness_score(campaign_id=c.id)]
+            if 'score' in res
+        ]
         stats['readiness_score'] = int(sum(scores) / len(scores)) if scores else 0
-        
+
+        # Use a 5-min cache key (same rotation window as the AI theme)
+        import time
+        theme_slot = int(time.time() / self.CACHE_TTL)
+        cache_key = f"dashboard_brief_{theme_slot}"
+        cached = cache.get(cache_key)
+        if cached:
+            cached['readiness_score'] = stats['readiness_score']
+            return Response(cached)
+
         try:
             res = GroqService().generate_dashboard_brief(stats)
-            return Response({
-                'brief': res['brief'], 
+            payload = {
+                'brief': res['brief'],
                 'target_id': res['target_id'],
-                'readiness_score': stats['readiness_score']
-            })
+                'readiness_score': stats['readiness_score'],
+            }
+            cache.set(cache_key, payload, timeout=self.CACHE_TTL)
+            return Response(payload)
         except Exception as e:
+            err_msg = str(e)
+            if '429' in err_msg or 'quota' in err_msg.lower() or 'rate' in err_msg.lower():
+                return Response({'error': 'quota_exceeded', 'message': 'Quotas IA épuisés.'}, status=503)
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 from .recommendation_service import CatchupRecommendationManager
 
@@ -565,19 +590,26 @@ class NotifyCatchupView(APIView):
         
         campaign = get_object_or_404(Campaign, id=campaign_id)
         
+        from .ml_service import MLTimelineGuard
+        ml_guard = MLTimelineGuard(campaign)
+        ml_status = ml_guard.get_status(generate_insight=False)
+        real_delay_days = ml_status.get('delay_days', 0) if isinstance(ml_status, dict) else 0
+
         tester_distribution = []
         for t in testers:
+            tester_score_data = ml_guard.score_tester(t)
+            ml_score = tester_score_data.get('score', 0) if isinstance(tester_score_data, dict) else 0
             tester_distribution.append({
                 "tester_id": t.id,
                 "tester_name": t.get_full_name() or t.username,
                 "email": t.email,
-                "ml_score": 100
+                "ml_score": ml_score
             })
-            
+
         plan_data = {
             "campaign_id": campaign.id,
             "campaign_title": campaign.title,
-            "delay_days": 5,
+            "delay_days": real_delay_days,
             "tester_distribution": tester_distribution,
             "manager_email": request.user.email
         }
@@ -724,7 +756,7 @@ class PendingReinforcementsView(APIView):
             data.append({
                 'campaign_id': p.campaign.id,
                 'campaign_title': p.campaign.title,
-                'manager_email': 'manager@lloyd.com', # Default or fetch from campaign/owner
+                'manager_email': p.campaign.imported_by.email if p.campaign.imported_by else '',
                 'sent_at': p.sent_at.isoformat() if p.sent_at else None
             })
         return Response(data)
@@ -739,13 +771,11 @@ class RespondToN8NView(APIView):
         tester_id = request.user.id
         
         import requests
+        from django.conf import settings as django_settings
+        n8n_base = getattr(django_settings, 'N8N_BASE_URL', 'http://insuretm-n8n:5678')
         try:
-            url = f"http://n8n:5678/webhook/reponse-testeur?statut={statut}&campaign_id={campaign_id}&tester_id={tester_id}&manager_email={manager_email}"
-            # In docker, n8n is accessible via 'n8n' hostname, but locally it might be localhost
-            try:
-                requests.get(url, timeout=5)
-            except requests.exceptions.ConnectionError:
-                requests.get(f"http://localhost:5678/webhook/reponse-testeur?statut={statut}&campaign_id={campaign_id}&tester_id={tester_id}&manager_email={manager_email}", timeout=5)
+            url = f"{n8n_base}/webhook/reponse-testeur?statut={statut}&campaign_id={campaign_id}&tester_id={tester_id}&manager_email={manager_email}"
+            requests.get(url, timeout=5)
             return Response({'status': 'success'})
         except Exception as e:
             return Response({'error': str(e)}, status=500)

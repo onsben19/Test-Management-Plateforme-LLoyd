@@ -68,9 +68,9 @@ class EmailViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         """Only the sender can delete their sent email."""
         email = self.get_object()
-        if email.sender != request.user:
+        if email.sender != request.user and email.recipient != request.user:
             return Response(
-                {"detail": "Vous ne pouvez supprimer que vos propres messages envoyés."},
+                {"detail": "Vous n'avez pas la permission de supprimer ce message."},
                 status=status.HTTP_403_FORBIDDEN
             )
         email.delete()
