@@ -70,6 +70,8 @@ class Anomalie(models.Model):
     # Preuve visuelle (Capture d'écran ou fichier)
     preuve_image = models.FileField(upload_to='anomalies/preuves/%Y/%m/%d/', blank=True, null=True)
     preuve_hash = models.CharField(max_length=64, blank=True, null=True, db_index=True)
+    # Enregistrement vidéo Playwright
+    preuve_video = models.FileField(upload_to='anomalies/videos/%Y/%m/%d/', blank=True, null=True)
     
     # Traçabilité du testeur
     cree_par = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

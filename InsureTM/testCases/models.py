@@ -43,6 +43,8 @@ class TestCase(models.Model):
     # Preuve d'exécution (Capture écran ou fichier)
     proof_file = models.FileField(upload_to='executions/proofs/%Y/%m/%d/', blank=True, null=True)
     proof_hash = models.CharField(max_length=64, blank=True, null=True, db_index=True)
+    # Enregistrement vidéo Playwright
+    proof_video = models.FileField(upload_to='executions/videos/%Y/%m/%d/', blank=True, null=True)
 
     def save(self, *args, **kwargs):
         if self.proof_file:

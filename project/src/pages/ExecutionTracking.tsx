@@ -63,6 +63,15 @@ const ExecutionTracking = () => {
     const [testToAutomate, setTestToAutomate] = useState<TestItem | null>(null);
     const [tests, setTests] = useState<TestItem[]>([]);
     const [viewingCaptures, setViewingCaptures] = useState<TestItem | null>(null);
+    const [scrollToVideo, setScrollToVideo] = useState(false);
+    const videoSlideRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        if (scrollToVideo && videoSlideRef.current) {
+            setTimeout(() => videoSlideRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center' }), 80);
+            setScrollToVideo(false);
+        }
+    }, [scrollToVideo, viewingCaptures]);
     const [loading, setLoading] = useState(true);
     const [isCatchupPlanOpen, setIsCatchupPlanOpen] = useState(false);
     const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
@@ -110,6 +119,16 @@ const ExecutionTracking = () => {
             return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
         });
     }, [tests, searchQuery, testerFilter, sortOrder, statusFilter]);
+
+    // Applique les filtres transmis via navigate(..., { state })
+    useEffect(() => {
+        if (location.state) {
+            const s = location.state as any;
+            if (s.statusFilter) setStatusFilter(s.statusFilter);
+            if (s.campaignName) setSearchQuery(s.campaignName);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         fetchExecutions(1);
@@ -162,6 +181,7 @@ const ExecutionTracking = () => {
                     lastRun: new Date(t.execution_date || Date.now()).toLocaleString('fr-FR'),
                     rawDate: t.execution_date,
                     captures: t.proof_file ? [t.proof_file] : [],
+                    proof_video: t.proof_video || null,
                     release: t.project_name || 'Release A',
                 });
             }).catch(() => {
@@ -216,6 +236,7 @@ const ExecutionTracking = () => {
                     lastRun: new Date(t.execution_date || Date.now()).toLocaleString('fr-FR'),
                 rawDate: t.execution_date,
                 captures: t.proof_file ? [t.proof_file] : [],
+                proof_video: t.proof_video || null,
                 release: t.project_name || 'Release A',
                 businessProject: t.business_project_name || 'Global',
                 releaseType: t.release_type,
@@ -379,7 +400,8 @@ const ExecutionTracking = () => {
                                 tests={filteredTests}
                                 onSelectTest={handleSelectTest}
                                 selectedTestId={selectedTest?.id}
-                                onViewCaptures={setViewingCaptures}
+                                onViewCaptures={(test) => { setViewingCaptures(test); setScrollToVideo(false); }}
+                            onViewVideoCaptures={(test) => { setViewingCaptures(test); setScrollToVideo(true); }}
                                 onEditTest={setEditingTest}
                                 onDeleteTest={handleDeleteTest}
                                 onAutomateTest={setTestToAutomate}
@@ -415,37 +437,59 @@ const ExecutionTracking = () => {
 
             {/* Image Viewer Lightbox */}
             {typeof document !== 'undefined' && viewingCaptures && createPortal(
-                <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl" onClick={() => setViewingCaptures(null)}>
-                    <div className="relative max-w-7xl max-h-screen w-full p-8 flex flex-col items-center" onClick={e => e.stopPropagation()}>
-                        <button
-                            className="absolute top-8 right-8 text-slate-900 dark:text-white/50 hover:text-slate-900 dark:hover:text-white transition-all transform hover:rotate-90 hover:scale-110"
-                            onClick={() => setViewingCaptures(null)}
-                        >
-                            <div className="bg-slate-100 dark:bg-white/5 p-3 rounded-full hover:bg-slate-200 dark:bg-white/10 border border-slate-300 dark:border-white/10 shadow-2xl backdrop-blur-md">
-                                <X className="w-8 h-8" />
+                <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl" onClick={() => setViewingCaptures(null)}>
+                    <div className="relative w-full h-full flex flex-col" onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-8 py-4 border-b border-white/5">
+                            <div>
+                                <p className="text-white font-black text-sm tracking-tight">{viewingCaptures.name}</p>
+                                <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest">{viewingCaptures.module}</p>
                             </div>
-                        </button>
-                        <div className="flex overflow-x-auto gap-8 p-8 w-full justify-center snap-x custom-scrollbar">
+                            <button onClick={() => setViewingCaptures(null)} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all">
+                                <X className="w-5 h-5 text-white/60" />
+                            </button>
+                        </div>
+                        {/* Slides */}
+                        <div className="flex-1 flex overflow-x-auto gap-6 p-8 items-center justify-center snap-x snap-mandatory">
                             {(viewingCaptures.captures || []).map((cap, idx) => (
-                                <div key={idx} className="snap-center shrink-0 max-w-[85vw] max-h-[75vh] flex flex-col items-center group">
-                                    <div className="relative border-2 border-slate-300 dark:border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
-                                        {cap.startsWith('data:') ? (
-                                            <img src={cap} alt={`Preuve ${idx + 1}`} className="max-h-[70vh] object-contain transition-transform duration-500 group-hover:scale-[1.02]" />
+                                <div key={idx} className="snap-center shrink-0 flex flex-col items-center gap-4">
+                                    <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-slate-900" style={{ maxHeight: 'calc(100vh - 180px)' }}>
+                                        {(cap.startsWith('data:') || cap.startsWith('http') || cap.startsWith('/')) ? (
+                                            <img
+                                                src={cap}
+                                                alt={`Preuve ${idx + 1}`}
+                                                style={{ maxHeight: 'calc(100vh - 180px)', maxWidth: '70vw', objectFit: 'contain', display: 'block' }}
+                                            />
                                         ) : (
-                                            <div className="w-96 h-64 bg-slate-100 dark:bg-white/5 flex items-center justify-center rounded-[2.5rem]">
-                                                <span className="text-slate-500 font-bold uppercase tracking-widest text-xs opacity-50">{cap}</span>
+                                            <div className="w-80 h-52 flex items-center justify-center">
+                                                <span className="text-slate-500 text-xs font-bold opacity-50">{cap}</span>
                                             </div>
                                         )}
-                                        <div className="absolute top-6 left-6 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-slate-300 dark:border-white/10">
-                                            <p className="text-slate-900 dark:text-white/70 font-bold uppercase tracking-[0.2em] text-[8px]">PREUVE {idx + 1} / {(viewingCaptures?.captures || []).length}</p>
+                                        <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+                                            <p className="text-white/60 font-bold uppercase tracking-widest text-[8px]">CAPTURE {idx + 1}/{(viewingCaptures.captures || []).length}</p>
                                         </div>
-                                    </div>
-                                    <div className="mt-6 flex flex-col items-center gap-1">
-                                        <h4 className="text-slate-900 dark:text-white font-black text-lg tracking-tight">{viewingCaptures.name}</h4>
-                                        <p className="text-blue-400 text-[10px] font-black uppercase tracking-widest">{viewingCaptures.module}</p>
                                     </div>
                                 </div>
                             ))}
+                            {/* Replay vidéo */}
+                            {viewingCaptures.proof_video && (
+                                <div ref={videoSlideRef} className="snap-center shrink-0 flex flex-col items-center gap-4">
+                                    <div className="relative rounded-2xl overflow-hidden border border-blue-500/30 shadow-2xl bg-black" style={{ maxHeight: 'calc(100vh - 180px)', minWidth: '560px' }}>
+                                        <video
+                                            src={viewingCaptures.proof_video}
+                                            controls
+                                            autoPlay
+                                            style={{ maxHeight: 'calc(100vh - 180px)', width: '100%', display: 'block' }}
+                                        />
+                                        <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-blue-500/30">
+                                            <p className="text-[#85B7EB] font-bold uppercase tracking-widest text-[8px]">REPLAY VIDÉO</p>
+                                        </div>
+                                        <a href={viewingCaptures.proof_video} download className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-[8px] text-white/50 hover:text-white font-bold uppercase tracking-widest">
+                                            Télécharger
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>,

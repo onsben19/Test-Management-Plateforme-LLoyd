@@ -1,8 +1,25 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShieldAlert, Clock, User, Tag, FileText, CheckCircle2, AlertOctagon, AlertCircle, ExternalLink, Calendar, Info } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { X, ShieldAlert, Clock, User, Tag, FileText, AlertOctagon, AlertCircle, ExternalLink, Calendar, Info, Terminal, ChevronDown, ChevronUp, Download, Image as ImageIcon, Video } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+const highlightCode = (raw: string): string => {
+    if (!raw) return '';
+    return raw
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        // strings
+        .replace(/(['"`])(.*?)\1/g, '<span style="color:#86efac">$&</span>')
+        // keywords
+        .replace(/\b(import|from|export|const|let|var|await|async|function|return|if|else|for|while|try|catch|new|of|in|true|false|null|undefined)\b/g, '<span style="color:#f472b6">$1</span>')
+        // playwright / test methods
+        .replace(/\b(test|expect|page|describe|beforeAll|afterAll|beforeEach|afterEach|locator|click|fill|goto|type|press|check|uncheck|selectOption|waitForSelector|waitForLoadState|toBeVisible|toContainText|toHaveText|toHaveValue|toHaveURL|first|last|nth|evaluate|dispatchEvent)\b/g, '<span style="color:#60a5fa">$1</span>')
+        // numbers
+        .replace(/(?<![a-zA-Z#])\b(\d+)\b/g, '<span style="color:#c084fc">$1</span>')
+        // comments
+        .replace(/(\/\/[^\n]*)/g, '<span style="color:#64748b;font-style:italic">$1</span>')
+        // brackets
+        .replace(/([{}()[\]])/g, '<span style="color:#fbbf24">$1</span>');
+};
 
 interface AnomalyDetailModalProps {
     anomaly: any;
@@ -10,266 +27,410 @@ interface AnomalyDetailModalProps {
 }
 
 const AnomalyDetailModal: React.FC<AnomalyDetailModalProps> = ({ anomaly, onClose }) => {
-    const { t } = useTranslation();
-    const [showFullDesc, setShowFullDesc] = React.useState(false);
-    const [showFullLogs, setShowFullLogs] = React.useState(false);
+    const [showFullLogs, setShowFullLogs] = useState(false);
+    const [lightbox, setLightbox] = useState<'image' | 'video' | null>(null);
 
-    // Sépare automatiquement le message d'erreur des logs bruts Playwright
     const parseDescription = (desc: string | undefined) => {
         if (!desc) return { message: null, logs: null };
+
+        // Split off execution logs section
         const logMarkers = ['--- LOGS', 'Running 1 test', 'Running 0 test', '\n✘', '\n1 failed', '\n1 passed'];
+        let message = desc;
+        let logs: string | null = null;
         for (const marker of logMarkers) {
             const idx = desc.indexOf(marker);
             if (idx > 0) {
-                return {
-                    message: desc.slice(0, idx).trim() || null,
-                    logs: desc.slice(idx).trim()
-                };
+                message = desc.slice(0, idx).trim();
+                logs = desc.slice(idx).trim();
+                break;
             }
         }
-        return { message: desc, logs: null };
+
+        // Clean the message: remove attachment lines and test-results paths
+        const cleanedLines = message.split('\n').filter(line => {
+            const t = line.trim();
+            // Remove blank separator lines of dashes
+            if (/^[-─]+$/.test(t)) return false;
+            // Remove "attachment #N" lines
+            if (/attachment\s*#\d+/i.test(t)) return false;
+            // Remove file path lines (test-results/...)
+            if (/test-results\//i.test(t)) return false;
+            // Remove "Error Context:" lines
+            if (/^Error Context:/i.test(t)) return false;
+            return true;
+        });
+
+        const cleanMessage = cleanedLines.join('\n').trim() || null;
+        return { message: cleanMessage, logs };
     };
 
     const { message: descMessage, logs: descLogs } = parseDescription(anomaly.description);
 
     if (!anomaly) return null;
 
-    const getImpactStyles = (impact: string) => {
+    const getImpactConfig = (impact: string) => {
         switch (impact) {
             case 'BLOQUANTES':
             case 'CRITIQUE':
-                return { color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/20', icon: AlertOctagon };
+                return { color: '#F87171', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.25)', icon: AlertOctagon };
             case 'MAJEUR':
-                return { color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20', icon: AlertCircle };
+                return { color: '#FB923C', bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.25)', icon: AlertCircle };
             case 'MINEURS':
-                return { color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: ShieldAlert };
+                return { color: '#FBBF24', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.25)', icon: ShieldAlert };
             case 'FONCTIONNALITE':
-                return { color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: Tag };
+                return { color: '#60A5FA', bg: 'rgba(59,130,246,0.12)', border: 'rgba(59,130,246,0.25)', icon: Tag };
             default:
-                return { color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20', icon: Info };
+                return { color: '#94A3B8', bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.15)', icon: Info };
         }
     };
 
-    const styles = getImpactStyles(anomaly.impact);
-    const ImpactIcon = styles.icon;
+    const cfg = getImpactConfig(anomaly.impact);
+    const ImpactIcon = cfg.icon;
+
+    const cleanTitle = (anomaly.title || '').replace(/^\[SCRIPT\]\s*/i, '');
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center p-4 sm:p-6 overflow-y-auto backdrop-blur-2xl bg-black/80 custom-scrollbar pt-20 lg:pt-32">
+        <div
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)' }}
+            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        >
             <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 30 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 30 }}
-                className="relative w-full max-w-2xl bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-white/10 rounded-[3rem] overflow-hidden shadow-[0_32px_128px_rgba(0,0,0,0.8)]"
+                initial={{ opacity: 0, y: 24, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 16, scale: 0.97 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+                style={{
+                    background: '#111827',
+                    border: '0.5px solid rgba(255,255,255,0.09)',
+                    borderRadius: '16px',
+                    width: '100%',
+                    maxWidth: '680px',
+                    maxHeight: '90vh',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                    boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
+                }}
             >
-                {/* Header Backdrop Pattern */}
-                <div className={`absolute top-0 left-0 right-0 h-48 ${styles.bg} opacity-20`} />
+                {/* ── Bande colorée impact ── */}
+                <div style={{ height: '3px', background: cfg.color, opacity: 0.8 }} />
 
-                <div className="relative">
-                    {/* Header */}
-                    <div className="p-8 border-b border-slate-200 dark:border-white/5 flex justify-between items-start">
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-2">
-                                <div className={`px-3 py-0.5 rounded-md ${styles.bg} ${styles.color} border ${styles.border} text-[10px] font-bold uppercase tracking-wider`}>
+                {/* ── Header ── */}
+                <div style={{ padding: '20px 24px 16px', borderBottom: '0.5px solid rgba(255,255,255,0.06)' }}>
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="space-y-3 flex-1 min-w-0">
+                            {/* Badges */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <div
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest"
+                                    style={{ background: cfg.bg, color: cfg.color, border: `0.5px solid ${cfg.border}` }}
+                                >
+                                    <ImpactIcon className="w-3 h-3" />
                                     {anomaly.impact}
                                 </div>
-                                <div className="px-3 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold uppercase tracking-wider">
-                                    {anomaly.priority} Priority
+                                <div
+                                    className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest"
+                                    style={{ background: 'rgba(55,138,221,0.12)', color: '#85B7EB', border: '0.5px solid rgba(55,138,221,0.25)' }}
+                                >
+                                    {anomaly.priority}
                                 </div>
-                                <div className={`px-3 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 text-slate-400 border border-slate-300 dark:border-white/10 text-[10px] font-bold uppercase tracking-wider`}>
+                                <div
+                                    className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest"
+                                    style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)', border: '0.5px solid rgba(255,255,255,0.08)' }}
+                                >
                                     {anomaly.visibility}
                                 </div>
                             </div>
-                            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-tight max-w-2xl break-words">
-                                {(() => {
-                                  const cleanTitle = anomaly.title.replace(/^\[SCRIPT\]\s*/i, '');
-                                  return cleanTitle.length > 150 ? cleanTitle.substring(0, 150) + '...' : cleanTitle;
-                                })()}
+                            {/* Titre */}
+                            <h2 className="text-lg font-black text-white leading-snug break-words">
+                                {cleanTitle.length > 120 ? cleanTitle.slice(0, 120) + '…' : cleanTitle}
                             </h2>
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-2.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:bg-white/10 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all border border-slate-200 dark:border-white/5"
+                            style={{ background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '6px', flexShrink: 0 }}
+                            className="text-white/40 hover:text-white transition-colors"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-4 h-4" />
                         </button>
                     </div>
+                </div>
 
-                    {/* Content */}
-                    <div className="p-8 space-y-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                        {/* Summary Section */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl p-4 flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
-                                    <Calendar className="w-5 h-5" />
+                {/* ── Contenu scrollable ── */}
+                <div className="flex-1 overflow-y-auto" style={{ padding: '20px 24px' }}>
+                    <div className="space-y-5">
+
+                        {/* Méta Date + Rapporteur */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div
+                                className="flex items-center gap-3 rounded-xl p-3"
+                                style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.06)' }}
+                            >
+                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(55,138,221,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <Calendar className="w-4 h-4 text-[#85B7EB]" />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Date Signalée</p>
-                                    <p className="text-sm font-bold text-slate-900 dark:text-white">{new Date(anomaly.created_at).toLocaleString()}</p>
+                                    <p style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Date signalée</p>
+                                    <p style={{ fontSize: '12px', fontWeight: 700, color: 'white' }}>{new Date(anomaly.created_at).toLocaleString('fr-FR')}</p>
                                 </div>
                             </div>
-                            <div className="bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl p-4 flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
-                                    <User className="w-5 h-5" />
+                            <div
+                                className="flex items-center gap-3 rounded-xl p-3"
+                                style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.06)' }}
+                            >
+                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(168,85,247,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <User className="w-4 h-4 text-purple-400" />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Rapporteur</p>
-                                    <p className="text-sm font-bold text-slate-900 dark:text-white">{anomaly.author_name || anomaly.author_username || "Auditeur Système"}</p>
+                                    <p style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rapporteur</p>
+                                    <p style={{ fontSize: '12px', fontWeight: 700, color: 'white' }}>{anomaly.author_name || anomaly.author_username || 'Auditeur Système'}</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-2 text-slate-400">
-                                <FileText className="w-4 h-4" />
-                                <h4 className="text-[10px] font-black uppercase tracking-widest">Détails de l'Anomalie</h4>
+                        {/* Description */}
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-1.5">
+                                <FileText className="w-3.5 h-3.5 text-white/30" />
+                                <span style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Détails de l'anomalie</span>
                             </div>
-
-                            {/* Message d'erreur interprété */}
-                            {descMessage ? (
-                                <div className="bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl p-5 leading-relaxed text-slate-700 dark:text-slate-300 text-sm shadow-inner">
-                                    {descMessage}
-                                </div>
-                            ) : (
-                                <div className="bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl p-5 italic text-slate-500 text-sm">
-                                    Aucune description détaillée n'a été fournie.
-                                </div>
-                            )}
-
-                            {/* Logs bruts Playwright — section séparée */}
-                            {descLogs && (
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Logs d'Exécution</span>
-                                        <button
-                                            onClick={() => setShowFullLogs(!showFullLogs)}
-                                            className="text-[10px] font-black uppercase tracking-widest text-blue-500 hover:text-blue-400 transition-colors"
-                                        >
-                                            {showFullLogs ? 'Réduire' : 'Voir les logs'}
-                                        </button>
-                                    </div>
-                                    <pre className={`bg-slate-950 border border-slate-200 dark:border-white/5 rounded-2xl p-4 text-[11px] text-slate-400 font-mono leading-relaxed whitespace-pre-wrap break-words overflow-auto transition-all ${showFullLogs ? 'max-h-[400px]' : 'max-h-20'}`}>
-                                        {descLogs}
-                                    </pre>
-                                </div>
-                            )}
+                            <div
+                                style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '14px 16px', fontSize: '13px', color: 'rgba(255,255,255,0.75)', lineHeight: '1.65' }}
+                            >
+                                {descMessage || <span style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.25)' }}>Aucune description détaillée.</span>}
+                            </div>
                         </div>
 
-                        {/* Evidence Section */}
-                        {anomaly.proofImage && (
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2 text-slate-400">
-                                    <ShieldAlert className="w-4 h-4" />
-                                    <h4 className="text-[10px] font-black uppercase tracking-widest">Preuve de l'Anomalie</h4>
-                                </div>
-                                <div className="relative rounded-[2rem] overflow-hidden border border-slate-300 dark:border-white/10 shadow-2xl group/img">
-                                    <img
-                                        src={anomaly.proofImage}
-                                        alt="Preuve"
-                                        className="w-full h-auto object-cover max-h-[400px] group-hover/img:scale-105 transition-transform duration-700"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity flex items-end p-6">
-                                        <a
-                                            href={anomaly.proofImage}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="px-6 py-3 bg-slate-200 dark:bg-white/10 backdrop-blur-md rounded-xl text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-widest border border-slate-400 dark:border-white/20 hover:bg-slate-300 dark:bg-white/20 transition-all flex items-center gap-2"
-                                        >
-                                            <ExternalLink size={14} />
-                                            Ouvrir en plein écran
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Script de Test Playwright */}
-                        {anomaly.playwright_script && (
-                            <div className="space-y-4">
+                        {/* Logs Playwright */}
+                        {descLogs && (
+                            <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2 text-slate-400">
-                                        <FileText className="w-4 h-4 text-amber-400" />
-                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-400">Script Playwright Généré</h4>
+                                    <div className="flex items-center gap-1.5">
+                                        <Terminal className="w-3.5 h-3.5 text-emerald-400/60" />
+                                        <span style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Logs d'exécution</span>
                                     </div>
-                                    <a
-                                        href={`data:text/typescript;charset=utf-8,${encodeURIComponent(anomaly.playwright_script)}`}
-                                        download={`test_${anomaly.id}.spec.ts`}
-                                        className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors"
+                                    <button
+                                        onClick={() => setShowFullLogs(!showFullLogs)}
+                                        style={{ fontSize: '10px', fontWeight: 700, color: '#85B7EB', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                        className="hover:text-white transition-colors"
                                     >
-                                        ↓ Télécharger
-                                    </a>
+                                        {showFullLogs ? <><ChevronUp className="w-3 h-3" /> Réduire</> : <><ChevronDown className="w-3 h-3" /> Voir les logs</>}
+                                    </button>
                                 </div>
-                                <pre className="bg-slate-950 border border-amber-500/20 rounded-2xl p-5 text-xs text-slate-700 dark:text-slate-300 font-mono leading-relaxed whitespace-pre-wrap break-words overflow-auto max-h-64">
-                                    <span dangerouslySetInnerHTML={{ __html: 
-                                        anomaly.playwright_script
-                                        .replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                                        .replace(/\b(import|from|const|let|var|await|async|function|return|if|else|for|while|try|catch)\b/g, '<span class=text-pink-400>$1</span>')
-                                        .replace(/\b(test|expect|page|locator|click|fill|goto|toBeVisible|toContainText|first|catch|timeout|Promise|all)\b/g, '<span class=text-blue-400>$1</span>')
-                                        .replace(/(['"`])(.*?)\1/g, '<span class=text-emerald-400>$&</span>')
-                                        .replace(/([{}()\[\]])/g, '<span class=text-amber-400>$1</span>')
-                                        .replace(/(?<!-)\b(\d+)\b/g, '<span class=text-purple-400>$1</span>')
-                                    }} />
+                                <pre
+                                    style={{
+                                        background: '#0d1117',
+                                        border: '0.5px solid rgba(255,255,255,0.07)',
+                                        borderRadius: '10px',
+                                        padding: '12px 14px',
+                                        fontSize: '10px',
+                                        color: '#86efac',
+                                        fontFamily: 'monospace',
+                                        lineHeight: '1.6',
+                                        whiteSpace: 'pre-wrap',
+                                        wordBreak: 'break-all',
+                                        maxHeight: showFullLogs ? '360px' : '72px',
+                                        overflow: 'auto',
+                                        transition: 'max-height 0.3s ease',
+                                    }}
+                                >
+                                    {descLogs}
                                 </pre>
                             </div>
                         )}
 
-                        {/* Context Section */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-4">
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2 text-slate-400">
-                                    <Tag className="w-4 h-4" />
-                                    <h4 className="text-[10px] font-black uppercase tracking-widest">Localisation</h4>
+                        {/* Preuves — image + vidéo */}
+                        {(anomaly.proofImage || anomaly.proofVideo) && (
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-1.5">
+                                    <ShieldAlert className="w-3.5 h-3.5 text-white/30" />
+                                    <span style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Preuves</span>
                                 </div>
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/5">
-                                        <span className="text-[11px] font-bold text-slate-500">Release</span>
-                                        <span className="text-[11px] font-black text-white px-3 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20">{anomaly.release}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/5">
-                                        <span className="text-[11px] font-bold text-slate-500">Campagne</span>
-                                        <span className="text-[11px] font-black text-slate-700 dark:text-slate-300">{anomaly.campaign}</span>
-                                    </div>
+                                <div className="flex gap-3 flex-wrap">
+                                    {anomaly.proofImage && (
+                                        <button
+                                            onClick={() => setLightbox('image')}
+                                            className="relative group/img flex-1 min-w-[120px]"
+                                            style={{ borderRadius: '10px', overflow: 'hidden', border: '0.5px solid rgba(255,255,255,0.07)', cursor: 'pointer' }}
+                                            title="Voir en plein écran"
+                                        >
+                                            <img src={anomaly.proofImage} alt="Capture" className="w-full object-cover" style={{ maxHeight: '160px', display: 'block' }} />
+                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
+                                                <div style={{ background: 'rgba(255,255,255,0.12)', border: '0.5px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '5px', color: 'white', fontSize: '10px', fontWeight: 700 }}>
+                                                    <ImageIcon className="w-3 h-3" />
+                                                    Plein écran
+                                                </div>
+                                            </div>
+                                            <div style={{ position: 'absolute', bottom: 6, left: 8, fontSize: '8px', fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Capture d'écran</div>
+                                        </button>
+                                    )}
+                                    {anomaly.proofVideo && (
+                                        <button
+                                            onClick={() => setLightbox('video')}
+                                            className="relative group/vid flex-1 min-w-[120px] flex items-center justify-center"
+                                            style={{ borderRadius: '10px', overflow: 'hidden', border: '0.5px solid rgba(55,138,221,0.25)', background: 'rgba(55,138,221,0.06)', minHeight: '120px', cursor: 'pointer' }}
+                                            title="Lire la vidéo"
+                                        >
+                                            <div className="flex flex-col items-center gap-2">
+                                                <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(55,138,221,0.2)', border: '0.5px solid rgba(55,138,221,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="group-hover/vid:scale-110 transition-transform">
+                                                    <svg className="w-5 h-5 text-[#85B7EB]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                </div>
+                                                <span style={{ fontSize: '9px', fontWeight: 700, color: '#85B7EB', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Replay vidéo</span>
+                                            </div>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
+                        )}
 
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2 text-slate-400">
-                                    <ExternalLink className="w-4 h-4" />
-                                    <h4 className="text-[10px] font-black uppercase tracking-widest">Lien Direct</h4>
-                                </div>
-                                {anomaly.relatedTest ? (
-                                    <Link
-                                        to={`/execution?test=${encodeURIComponent(anomaly.relatedTest)}`}
-                                        className="flex items-center group gap-4 p-4 bg-blue-600/10 border border-blue-600/20 rounded-2xl hover:bg-blue-600/20 transition-all"
-                                    >
-                                        <div className="w-10 h-10 rounded-xl bg-blue-600/20 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
-                                            <ShieldAlert className="w-5 h-5" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Test Exécution</p>
-                                            <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{anomaly.relatedTest}</p>
-                                        </div>
-                                        <ExternalLink className="w-4 h-4 text-blue-500 group-hover:translate-x-1 transition-transform" />
-                                    </Link>
-                                ) : (
-                                    <div className="p-4 bg-slate-100 dark:bg-white/5 border border-dashed border-slate-300 dark:border-white/10 rounded-2xl text-center">
-                                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">Aucun test lié</p>
+                        {/* Script Playwright */}
+                        {anomaly.playwright_script && (
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-1.5">
+                                        <FileText className="w-3.5 h-3.5 text-amber-400/70" />
+                                        <span style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(251,191,36,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Script Playwright</span>
                                     </div>
-                                )}
+                                    <a
+                                        href={`data:text/typescript;charset=utf-8,${encodeURIComponent(anomaly.playwright_script)}`}
+                                        download={`test_${anomaly.id}.spec.ts`}
+                                        style={{ fontSize: '10px', fontWeight: 700, color: '#85B7EB', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                        className="hover:text-white transition-colors"
+                                    >
+                                        <Download className="w-3 h-3" />
+                                        Télécharger
+                                    </a>
+                                </div>
+                                <pre
+                                    style={{
+                                        background: '#0d1117',
+                                        border: '0.5px solid rgba(251,191,36,0.15)',
+                                        borderRadius: '10px',
+                                        padding: '12px 14px',
+                                        fontSize: '10px',
+                                        color: 'rgba(255,255,255,0.6)',
+                                        fontFamily: 'monospace',
+                                        lineHeight: '1.6',
+                                        whiteSpace: 'pre-wrap',
+                                        wordBreak: 'break-all',
+                                        maxHeight: '200px',
+                                        overflow: 'auto',
+                                    }}
+                                    dangerouslySetInnerHTML={{ __html: highlightCode(anomaly.playwright_script) }}
+                                />
+                            </div>
+                        )}
+
+                        {/* Localisation */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div
+                                style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '12px 14px' }}
+                            >
+                                <p style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Release</p>
+                                <span
+                                    style={{ fontSize: '11px', fontWeight: 700, background: 'rgba(55,138,221,0.12)', color: '#85B7EB', border: '0.5px solid rgba(55,138,221,0.25)', borderRadius: '6px', padding: '2px 8px', display: 'inline-block' }}
+                                >
+                                    {anomaly.release || '—'}
+                                </span>
+                            </div>
+                            <div
+                                style={{ background: 'rgba(255,255,255,0.03)', border: '0.5px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '12px 14px' }}
+                            >
+                                <p style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>Campagne</p>
+                                <p style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>{anomaly.campaign || '—'}</p>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Footer Actions */}
-                    <div className="p-8 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.01] flex items-center justify-end gap-4">
-                        <button
-                            onClick={onClose}
-                            className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-900 dark:hover:text-white transition-all"
-                        >
-                            Fermer
-                        </button>
+                        {/* Test lié */}
+                        {anomaly.relatedTest && (
+                            <Link
+                                to={`/execution?test=${encodeURIComponent(anomaly.relatedTest)}`}
+                                style={{ background: 'rgba(55,138,221,0.08)', border: '0.5px solid rgba(55,138,221,0.2)', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}
+                                className="hover:brightness-110 transition-all group/link"
+                            >
+                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(55,138,221,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <ShieldAlert className="w-4 h-4 text-[#85B7EB]" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p style={{ fontSize: '9px', fontWeight: 700, color: '#85B7EB', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Test lié</p>
+                                    <p style={{ fontSize: '12px', fontWeight: 600, color: 'white' }} className="truncate">{anomaly.relatedTest}</p>
+                                </div>
+                                <ExternalLink className="w-3.5 h-3.5 text-[#85B7EB]/50 group-hover/link:translate-x-0.5 transition-transform" />
+                            </Link>
+                        )}
                     </div>
                 </div>
+
+                {/* ── Footer ── */}
+                <div style={{ padding: '12px 24px', borderTop: '0.5px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                        onClick={onClose}
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '0.5px solid rgba(255,255,255,0.09)', borderRadius: '8px', padding: '8px 20px', color: 'rgba(255,255,255,0.5)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }}
+                        className="hover:text-white hover:bg-white/10 transition-colors"
+                    >
+                        Fermer
+                    </button>
+                </div>
             </motion.div>
+
+            {/* ── Lightbox preuves ── */}
+            {lightbox && (
+                <div
+                    className="fixed inset-0 z-[200] flex flex-col bg-black/95 backdrop-blur-xl"
+                    onClick={() => setLightbox(null)}
+                >
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                        <div>
+                            <p style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                                {lightbox === 'image' ? "Capture d'écran" : 'Replay vidéo'}
+                            </p>
+                            <h3 className="text-base font-bold text-white truncate max-w-lg">{anomaly.title}</h3>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <a
+                                href={lightbox === 'image' ? anomaly.proofImage : anomaly.proofVideo}
+                                download
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={e => e.stopPropagation()}
+                                style={{ fontSize: '10px', fontWeight: 700, color: lightbox === 'image' ? '#60a5fa' : '#c084fc', display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '8px', background: lightbox === 'image' ? 'rgba(96,165,250,0.1)' : 'rgba(192,132,252,0.1)', border: `0.5px solid ${lightbox === 'image' ? 'rgba(96,165,250,0.2)' : 'rgba(192,132,252,0.2)'}`, textTransform: 'uppercase', letterSpacing: '0.08em', textDecoration: 'none' }}
+                            >
+                                <Download className="w-3 h-3" />
+                                Télécharger
+                            </a>
+                            <button
+                                onClick={() => setLightbox(null)}
+                                style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '0.5px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                className="text-white/60 hover:text-white transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                    {/* Content */}
+                    <div className="flex-1 flex items-center justify-center p-6" onClick={e => e.stopPropagation()}>
+                        {lightbox === 'image' && anomaly.proofImage && (
+                            <img
+                                src={anomaly.proofImage}
+                                alt="Capture d'écran"
+                                className="max-w-full max-h-full object-contain rounded-xl"
+                                style={{ border: '0.5px solid rgba(255,255,255,0.07)' }}
+                            />
+                        )}
+                        {lightbox === 'video' && anomaly.proofVideo && (
+                            <video
+                                src={anomaly.proofVideo}
+                                controls
+                                autoPlay
+                                className="max-w-full max-h-full rounded-xl"
+                                style={{ border: '0.5px solid rgba(168,85,247,0.2)' }}
+                            />
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

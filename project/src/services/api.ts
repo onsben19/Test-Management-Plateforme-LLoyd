@@ -93,8 +93,9 @@ export const executionService = {
     generateScript: (id: string | number, manual_data?: string) => api.post(`/testcases/${id}/generate-script/`, { manual_data }),
     generateScriptStandalone: (data: { title: string, manual_data: string }) => api.post('/testcases/generate-script-standalone/', data),
     saveScript: (id: string | number, code: string) => api.post(`/testcases/${id}/save-script/`, { code }),
-    executeScript: (id: string | number) => api.post(`/testcases/${id}/execute-script/`),
+    executeScript: (id: string | number, mode: 'headless' | 'headed' | 'ui' = 'headless') => api.post(`/testcases/${id}/execute-script/`, { execution_mode: mode }),
     getLiveLogs: (id: string | number) => api.get(`/testcases/${id}/live-logs/`),
+    getVideoUrl: (id: string | number) => `/api/testcases/${id}/serve-video/`,
 };
 
 export const anomalyService = {

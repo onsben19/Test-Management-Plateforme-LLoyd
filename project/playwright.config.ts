@@ -8,7 +8,7 @@ export default defineConfig({
   expect: { timeout: 30000 },
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'line',
 
@@ -17,8 +17,10 @@ export default defineConfig({
     navigationTimeout: 60000,
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
+    video: process.env.PW_VIDEO === 'on' ? 'on' : 'off',
+    viewport: { width: 1280, height: 720 },
     launchOptions: {
-      slowMo: 0, // ← 0 pour une exécution immédiate (mettre 500 ou 1000 pour ralentir la démo)
+      slowMo: 0,
     },
   },
 

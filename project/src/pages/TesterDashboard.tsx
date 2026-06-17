@@ -5,7 +5,7 @@ import PageLayout from '../components/PageLayout';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
 import { campaignService, executionService, anomalyService, aiService } from '../services/api';
-import { CheckCircle, XCircle, AlertTriangle, Eye, List, Calendar, Layers, LayoutGrid, Search, Filter, User, Sparkles, TrendingUp, Clock, ChevronRight, ChevronLeft, Play, Code, X, Sidebar, Loader, RefreshCw, Edit2, Maximize2, Terminal, ShieldAlert, ExternalLink } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Eye, List, Calendar, Layers, LayoutGrid, Search, Filter, User, Sparkles, TrendingUp, Clock, ChevronRight, ChevronLeft, Play, Code, X, Sidebar, Loader, RefreshCw, Edit2, Maximize2, Terminal, ShieldAlert, ExternalLink, Copy, Columns3 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Pagination from '../components/Pagination';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -150,9 +150,12 @@ const TesterDashboard = () => {
     const [isReformulating, setIsReformulating] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
+    const [isCopied, setIsCopied] = useState(false);
     const [isValidationOpen, setIsValidationOpen] = useState(false);
     const [validationMode, setValidationMode] = useState<'ia' | 'manual' | null>(null);
     const [blinkingDateType, setBlinkingDateType] = useState<'debut' | 'echeance' | 'fin_ia' | null>(null);
+    const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('grid');
+    const [executionMode, setExecutionMode] = useState<'headless' | 'headed' | 'ui'>('headless');
 
     const closeAllCals = () => {
         setCalendarOpen(false);
@@ -247,10 +250,11 @@ const TesterDashboard = () => {
     });
     const [generatingCode, setGeneratingCode] = useState(false);
     const [executingCode, setExecutingCode] = useState(false);
-    const [executionResult, setExecutionResult] = useState<{ status: string; logs: string; anomaly_id?: string } | null>(null);
+    const [executionResult, setExecutionResult] = useState<{ status: string; logs: string; anomaly_id?: string; video_url?: string } | null>(null);
     const [liveLogs, setLiveLogs] = useState<string>('');
     const [showExecModal, setShowExecModal] = useState(false);
     const logsEndRef = React.useRef<HTMLDivElement>(null);
+    const stepsTextareaRef = React.useRef<HTMLTextAreaElement>(null);
 
     // ── DEBUG: track state changes ───────────────────────────────────────────
     useEffect(() => {
@@ -269,6 +273,15 @@ const TesterDashboard = () => {
         }
     }, [liveLogs]);
     // ────────────────────────────────────────────────────────────────────────
+
+    // Auto-resize steps textarea whenever manualData changes (user typing OR AI fill)
+    useEffect(() => {
+        const el = stepsTextareaRef.current;
+        if (el) {
+            el.style.height = 'auto';
+            el.style.height = el.scrollHeight + 'px';
+        }
+    }, [testCaseForm.manualData]);
 
     // Auto-scroll logs to bottom
     useEffect(() => {
@@ -463,7 +476,7 @@ const TesterDashboard = () => {
                 console.log(`[EXEC DEBUG] Script saved for testId=${testId}`);
 
                 // 3. Kick off execution — returns IMMEDIATELY (async backend thread)
-                await executionService.executeScript(testId);
+                await executionService.executeScript(testId, executionMode);
                 console.log(`[EXEC DEBUG] executeScript returned (async thread started on backend)`);
 
                 // 4. Poll live-logs until running=false (execution done)
@@ -494,6 +507,7 @@ const TesterDashboard = () => {
                                     status: finalStatus,
                                     logs: res.data.logs,
                                     anomaly_id: res.data.anomaly_id,
+                                    video_url: res.data.video_path ? executionService.getVideoUrl(testId) : undefined,
                                 });
                                 fetchAssignedCampaigns(currentPage);
                                 resolve();
@@ -849,11 +863,11 @@ const TesterDashboard = () => {
                             setExecutionResult(null);
                             closeForm();
                         }}
-                        className="text-xs text-white/50 hover:text-white transition-colors flex items-center gap-1 font-bold"
+                        className="text-sm text-white/50 hover:text-white transition-colors flex items-center gap-1 font-bold"
                     >
                         ← Mon Espace
                     </button>
-                    <div className="text-[10px] text-white/40 flex items-center gap-1 font-medium -mt-2">
+                    <div className="text-xs text-white/40 flex items-center gap-1 font-medium -mt-2">
                         <span>version 1.0</span>
                         <span>›</span>
                         <span>{camp.business_project_name || camp.project_name || 'projet2'}</span>
@@ -868,6 +882,9 @@ const TesterDashboard = () => {
                     >
                         <div className="space-y-3">
                             <h2 className="text-2xl font-bold text-white leading-none">{camp.title}</h2>
+                            {camp.description && (
+                                <p className="text-sm text-white/45 leading-relaxed max-w-xl">{camp.description}</p>
+                            )}
                             <div className="flex items-center gap-2 flex-wrap">
                                 {isRecette && (
                                     <span style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', border: '0.5px solid rgba(255,255,255,0.1)' }} className="px-3 py-1 rounded-[12px] text-[9px] font-bold uppercase tracking-wider">Recette</span>
@@ -915,24 +932,34 @@ const TesterDashboard = () => {
                     style={{ background: '#111827', borderRadius: '12px', border: '0.5px solid rgba(255,255,255,0.08)' }}
                     className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-white/[0.06]"
                 >
-                    <div className="px-4 py-3 flex items-center justify-between">
+                    {/* Réussis → /execution filtré PASSED + campagne */}
+                    <button
+                        type="button"
+                        onClick={() => navigate('/execution', { state: { statusFilter: 'passed', campaignName: camp.title } })}
+                        className="px-4 py-3 flex items-center justify-between group text-left hover:bg-white/[0.03] transition-colors"
+                    >
                         <div>
-                            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider block">Réussis</span>
+                            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider block group-hover:text-[#1D9E75] transition-colors">Réussis</span>
                             <span className="text-xl font-bold text-[#1D9E75] mt-0.5 block">{enriched.passed_count}</span>
                         </div>
                         <div className="w-12 h-[3px] bg-white/5 rounded-full overflow-hidden shrink-0">
                             <div className="h-full bg-[#1D9E75] rounded-full" style={{ width: `${(enriched.passed_count / (enriched.nb_test_cases || 1)) * 100}%` }} />
                         </div>
-                    </div>
-                    <div className="px-4 py-3 flex items-center justify-between">
+                    </button>
+                    {/* Anomalies → /anomalies filtré par campagne */}
+                    <button
+                        type="button"
+                        onClick={() => navigate('/anomalies', { state: { campaignId: camp.id, campaignName: camp.title } })}
+                        className="px-4 py-3 flex items-center justify-between group text-left hover:bg-white/[0.03] transition-colors"
+                    >
                         <div>
-                            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider block">Anomalies</span>
+                            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider block group-hover:text-[#F09595] transition-colors">Anomalies</span>
                             <span className="text-xl font-bold text-[#F09595] mt-0.5 block">{enriched.anomalies_count}</span>
                         </div>
                         <div className="w-12 h-[3px] bg-white/5 rounded-full overflow-hidden shrink-0">
                             <div className="h-full bg-[#F09595] rounded-full" style={{ width: `${enriched.anomalies_count > 0 ? 100 : 0}%` }} />
                         </div>
-                    </div>
+                    </button>
                     <div className="px-4 py-3 flex items-center justify-between">
                         <div>
                             <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider block">Test/jour</span>
@@ -959,9 +986,75 @@ const TesterDashboard = () => {
                 </div>
 
                 {/* Calendrier et Validation side-by-side layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start max-w-5xl mx-auto w-full pt-4">
-                    {/* Colonne Gauche — Calendrier */}
-                    <div className="lg:col-span-5 flex justify-center w-full">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start w-full pt-4">
+                    {/* Colonne Gauche — Calendrier (collapse quand validation ouverte) */}
+                    <div
+                        className="flex justify-center w-full"
+                        style={{
+                            gridColumn: isValidationOpen ? 'span 1' : 'span 5',
+                            transition: 'all 0.35s ease',
+                        }}
+                    >
+                        {/* ── Calendrier compact (icône) quand validation ouverte ── */}
+                        {isValidationOpen && (
+                            <button
+                                type="button"
+                                onClick={() => setIsValidationOpen(false)}
+                                title="Afficher le calendrier"
+                                style={{
+                                    background: '#111827',
+                                    borderRadius: '12px',
+                                    border: '0.5px solid rgba(255,255,255,0.08)',
+                                    padding: '12px 8px',
+                                    width: '100%',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    cursor: 'pointer',
+                                    transition: 'border-color 0.2s',
+                                    minWidth: '44px',
+                                }}
+                                className="hover:border-white/20"
+                            >
+                                <Calendar className="w-4 h-4 text-white/30" />
+                                {/* Début */}
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#378ADD', display: 'block' }} />
+                                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.7)', lineHeight: 1 }}>
+                                        {enriched.debut.getDate()}
+                                    </span>
+                                    <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', lineHeight: 1 }}>
+                                        {enriched.debut.toLocaleDateString('fr-FR', { month: 'short' })}
+                                    </span>
+                                </div>
+                                {/* Échéance */}
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#1D9E75', display: 'block' }} />
+                                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(93,202,165,0.9)', lineHeight: 1 }}>
+                                        {enriched.echeance.getDate()}
+                                    </span>
+                                    <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', lineHeight: 1 }}>
+                                        {enriched.echeance.toLocaleDateString('fr-FR', { month: 'short' })}
+                                    </span>
+                                </div>
+                                {/* Fin IA */}
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#E24B4A', display: 'block' }} />
+                                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(240,149,149,0.9)', lineHeight: 1 }}>
+                                        {enriched.fin_ia.getDate()}
+                                    </span>
+                                    <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', lineHeight: 1 }}>
+                                        {enriched.fin_ia.toLocaleDateString('fr-FR', { month: 'short' })}
+                                    </span>
+                                </div>
+                                {/* Indicateur expand */}
+                                <ChevronRight className="w-3 h-3 text-white/20 mt-1" />
+                            </button>
+                        )}
+
+                        {/* ── Calendrier complet (quand validation fermée) ── */}
+                        {!isValidationOpen && (
                         <div
                             style={{ background: '#111827', borderRadius: '12px', border: '0.5px solid rgba(255,255,255,0.08)', padding: '16px 20px', width: '100%' }}
                             className="space-y-4 animate-fadeIn"
@@ -1153,10 +1246,17 @@ const TesterDashboard = () => {
                                 );
                             })()}
                         </div>
+                        )}
                     </div>
 
-                    {/* Colonne Droite — Validation */}
-                    <div className="lg:col-span-7 w-full">
+                    {/* Colonne Droite — Validation (s'agrandit quand calendrier collapse) */}
+                    <div
+                        className="w-full"
+                        style={{
+                            gridColumn: isValidationOpen ? 'span 11' : 'span 7',
+                            transition: 'all 0.35s ease',
+                        }}
+                    >
                         {enriched.restants === 0 && enriched.failed_count === 0 ? (
                             <div
                                 style={{ background: '#111827', borderRadius: '12px', border: '0.5px solid rgba(29,158,117,0.3)', padding: '20px' }}
@@ -1209,7 +1309,8 @@ const TesterDashboard = () => {
 
                             {/* Section validation */}
                             {isValidationOpen && (
-                                <div id="validation-section" className="space-y-4 max-w-[600px] mx-auto w-full">
+                                <div id="validation-section" className="space-y-4 w-full">
+
                                     {/* Bloc choix du mode */}
                                     <div style={{ background: '#111827', borderRadius: '12px', border: '0.5px solid rgba(55,138,221,0.25)', padding: '20px' }} className="space-y-4">
                                         <div>
@@ -1291,6 +1392,25 @@ const TesterDashboard = () => {
                                                     </div>
                                                 )}
                                             </div>
+                                            {/* noVNC iframe — live browser view (Headed/UI mode only) */}
+                                            {executingCode && (executionMode === 'headed' || executionMode === 'ui') && (
+                                                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                                                    <div className="flex items-center gap-2 px-4 py-2 bg-purple-500/5">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                                                        <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest">Écran en direct</span>
+                                                        <a href="http://localhost:6080/vnc.html?autoconnect=true&resize=scale" target="_blank" rel="noreferrer" className="ml-auto text-[9px] text-slate-500 hover:text-slate-300 underline">Ouvrir en plein écran</a>
+                                                    </div>
+                                                    {/* 16:9 aspect ratio wrapper matches 1280x720 Xvfb resolution */}
+                                                    <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', background: '#000' }}>
+                                                        <iframe
+                                                            src="http://localhost:6080/vnc.html?autoconnect=true&resize=scale&view_only=0&show_dot=true"
+                                                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                                                            title="noVNC Live View"
+                                                            allow="fullscreen"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
                                             {/* Terminal */}
                                             <div
                                                 ref={logsEndRef}
@@ -1404,12 +1524,15 @@ const TesterDashboard = () => {
                                                             </button>
                                                         </div>
                                                         <textarea
+                                                            ref={stepsTextareaRef}
                                                             required
                                                             value={testCaseForm.manualData}
-                                                            onChange={(e) => setTestCaseForm({ ...testCaseForm, manualData: e.target.value })}
+                                                            onChange={(e) => {
+                                                                setTestCaseForm({ ...testCaseForm, manualData: e.target.value });
+                                                            }}
                                                             placeholder="Saisissez les étapes du test..."
-                                                            style={{ background: '#1a2235', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '9px', padding: '10px 13px', height: '90px' }}
-                                                            className="w-full text-white text-xs outline-none focus:border-blue-500/50 transition-colors resize-none"
+                                                            style={{ background: '#1a2235', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '9px', padding: '10px 13px', minHeight: '90px', height: 'auto' }}
+                                                            className="w-full text-white text-xs outline-none focus:border-blue-500/50 transition-colors resize-none overflow-hidden"
                                                         />
                                                     </div>
 
@@ -1428,32 +1551,42 @@ const TesterDashboard = () => {
                                                         <div className="space-y-2">
                                                             <div className="flex justify-between items-center text-[10px] text-[#85B7EB] font-bold uppercase tracking-wider">
                                                                 <span>Code Playwright</span>
-                                                                <div className="flex items-center gap-2.5">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    {/* Copier */}
                                                                     <button
                                                                         type="button"
-                                                                        onClick={() => setIsEditing(!isEditing)}
-                                                                        className="text-white/40 hover:text-white uppercase text-[9px]"
+                                                                        title={isCopied ? 'Copié !' : 'Copier le code'}
+                                                                        onClick={() => {
+                                                                            navigator.clipboard.writeText(testCaseForm.code);
+                                                                            setIsCopied(true);
+                                                                            setTimeout(() => setIsCopied(false), 2000);
+                                                                        }}
+                                                                        className="w-6 h-6 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 text-white/40 hover:text-emerald-400 transition-colors"
                                                                     >
-                                                                        {isEditing ? 'Valider' : 'Éditer'}
+                                                                        {isCopied ? <CheckCircle className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                                                                     </button>
-                                                                    <span className="text-white/15 text-[9px]">|</span>
+                                                                    {/* Éditer */}
                                                                     <button
                                                                         type="button"
-                                                                        onClick={() => setIsCodeModalOpen(true)}
-                                                                        className="text-white/40 hover:text-white uppercase text-[9px] flex items-center gap-1"
-                                                                        title="Agrandir le code"
+                                                                        title={isEditing ? 'Valider les modifications' : 'Éditer le code'}
+                                                                        onClick={() => setIsEditing(!isEditing)}
+                                                                        className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${isEditing ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 hover:bg-white/10 text-white/40 hover:text-white'}`}
                                                                     >
-                                                                        <Maximize2 className="w-2.5 h-2.5" />
-                                                                        Agrandir
+                                                                        <Edit2 className="w-3 h-3" />
                                                                     </button>
                                                                 </div>
                                                             </div>
-                                                            <div className="bg-slate-950 border border-white/5 rounded-lg p-2.5 font-mono text-[9px] leading-relaxed max-h-[140px] overflow-y-auto">
+                                                            <div className="bg-slate-950 border border-white/5 rounded-lg p-2.5 font-mono text-[9px] leading-relaxed">
                                                                 {isEditing ? (
                                                                     <textarea
                                                                         value={testCaseForm.code}
-                                                                        onChange={(e) => setTestCaseForm({ ...testCaseForm, code: e.target.value })}
-                                                                        className="w-full h-24 bg-transparent text-white/70 outline-none border-none resize-none"
+                                                                        onChange={(e) => {
+                                                                            setTestCaseForm({ ...testCaseForm, code: e.target.value });
+                                                                            e.target.style.height = 'auto';
+                                                                            e.target.style.height = e.target.scrollHeight + 'px';
+                                                                        }}
+                                                                        className="w-full bg-transparent text-white/70 outline-none border-none resize-none overflow-hidden"
+                                                                        style={{ minHeight: '80px', height: 'auto' }}
                                                                     />
                                                                 ) : (
                                                                     <pre
@@ -1474,6 +1607,57 @@ const TesterDashboard = () => {
                                                     )}
 
                                                     <hr className="border-white/[0.08]" />
+
+                                                    {/* ── Mode d'exécution Playwright ── */}
+                                                    <div className="space-y-2">
+                                                        <span style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                                                            Mode d'exécution
+                                                        </span>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setExecutionMode('headless')}
+                                                                style={{
+                                                                    background: executionMode === 'headless' ? 'rgba(55,138,221,0.15)' : 'rgba(255,255,255,0.03)',
+                                                                    border: executionMode === 'headless' ? '1px solid rgba(55,138,221,0.4)' : '0.5px solid rgba(255,255,255,0.07)',
+                                                                    borderRadius: '10px', padding: '12px 10px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+                                                                }}
+                                                            >
+                                                                <div style={{ fontSize: '11px', fontWeight: 800, color: executionMode === 'headless' ? '#85B7EB' : 'rgba(255,255,255,0.7)', marginBottom: '3px' }}>
+                                                                    Headless
+                                                                </div>
+                                                                <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', lineHeight: 1.4 }}>
+                                                                    Rapide, en arrière-plan.
+                                                                </div>
+                                                                {executionMode === 'headless' && (
+                                                                    <div style={{ marginTop: '5px', fontSize: '8px', fontWeight: 700, color: '#85B7EB', background: 'rgba(55,138,221,0.15)', borderRadius: '4px', padding: '2px 6px', display: 'inline-block', textTransform: 'uppercase' }}>
+                                                                        Sélectionné
+                                                                    </div>
+                                                                )}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setExecutionMode('headed')}
+                                                                style={{
+                                                                    background: executionMode === 'headed' ? 'rgba(55,138,221,0.15)' : 'rgba(255,255,255,0.03)',
+                                                                    border: executionMode === 'headed' ? '1px solid rgba(55,138,221,0.4)' : '0.5px solid rgba(255,255,255,0.07)',
+                                                                    borderRadius: '10px', padding: '12px 10px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+                                                                }}
+                                                            >
+                                                                <div style={{ fontSize: '11px', fontWeight: 800, color: executionMode === 'headed' ? '#85B7EB' : 'rgba(255,255,255,0.7)', marginBottom: '3px' }}>
+                                                                    Headed
+                                                                </div>
+                                                                <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', lineHeight: 1.4 }}>
+                                                                    Navigateur visible, en direct.
+                                                                </div>
+                                                                {executionMode === 'headed' && (
+                                                                    <div style={{ marginTop: '5px', fontSize: '8px', fontWeight: 700, color: '#85B7EB', background: 'rgba(55,138,221,0.15)', borderRadius: '4px', padding: '2px 6px', display: 'inline-block', textTransform: 'uppercase' }}>
+                                                                        Sélectionné
+                                                                    </div>
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    </div>
 
                                                     {/* Execute */}
                                                     <button
@@ -1797,6 +1981,28 @@ const TesterDashboard = () => {
                                 <option value="oldest" className="bg-white dark:bg-slate-900">{t('testerDashboard.controls.oldest')}</option>
                             </select>
                         </div>
+
+                        {/* Toggle Grille / Kanban */}
+                        <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-2xl p-1">
+                            <button
+                                type="button"
+                                onClick={() => setViewMode('grid')}
+                                title="Vue grille"
+                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
+                            >
+                                <LayoutGrid className="w-3.5 h-3.5" />
+                                Grille
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setViewMode('kanban')}
+                                title="Vue Kanban"
+                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'kanban' ? 'bg-[#185FA5]/60 text-[#85B7EB] border border-[#378ADD]/30' : 'text-white/40 hover:text-white'}`}
+                            >
+                                <Columns3 className="w-3.5 h-3.5" />
+                                Kanban
+                            </button>
+                        </div>
                     </div>
 
                     <div className="flex gap-6 items-start relative">
@@ -1814,7 +2020,92 @@ const TesterDashboard = () => {
                                         {(campaigns || []).length === 0 ? t('testerDashboard.state.emptyAssigned') : t('testerDashboard.state.emptySearch')}
                                     </p>
                                 </div>
+                            ) : viewMode === 'kanban' ? (
+                                /* ── VUE KANBAN ── */
+                                (() => {
+                                    const classify = (c: any) => {
+                                        const e = getCampaignEnrichedData(c, mlInsights[c.id]);
+                                        if (e.restants === 0) return 'done';
+                                        if (e.passed_count + e.failed_count > 0) return 'inprogress';
+                                        return 'todo';
+                                    };
+
+                                    const groupKey = (c: any) => {
+                                        if (groupMode === 'project') return c.business_project_name || t('common.globalProject');
+                                        if (groupMode === 'release') {
+                                            const proj = c.business_project_name || t('common.globalProject');
+                                            const rel = c.release_name || 'Release';
+                                            return `${proj} › ${rel}`;
+                                        }
+                                        return null;
+                                    };
+
+                                    const cols = [
+                                        { id: 'todo',       label: 'À faire',  dot: '#64748b', accent: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.1)' },
+                                        { id: 'inprogress', label: 'En cours', dot: '#378ADD', accent: 'rgba(55,138,221,0.08)',  border: 'rgba(55,138,221,0.25)' },
+                                        { id: 'done',       label: 'Terminé',  dot: '#1D9E75', accent: 'rgba(29,158,117,0.08)', border: 'rgba(29,158,117,0.25)' },
+                                    ] as const;
+
+                                    return (
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+                                            {cols.map(col => {
+                                                const colItems = filteredCampaigns.filter(c => classify(c) === col.id);
+
+                                                // Sous-groupement si groupMode actif
+                                                const subGroups: { label: string | null; items: any[] }[] =
+                                                    groupMode === 'none'
+                                                        ? [{ label: null, items: colItems }]
+                                                        : Object.entries(
+                                                            colItems.reduce((acc: any, c) => {
+                                                                const k = groupKey(c) || '—';
+                                                                if (!acc[k]) acc[k] = [];
+                                                                acc[k].push(c);
+                                                                return acc;
+                                                            }, {})
+                                                          ).map(([label, items]) => ({ label, items: items as any[] }));
+
+                                                return (
+                                                    <div key={col.id} className="flex flex-col gap-3">
+                                                        {/* En-tête colonne */}
+                                                        <div
+                                                            className="flex items-center justify-between px-3 py-2 rounded-xl sticky top-0 z-10"
+                                                            style={{ background: col.accent, border: `0.5px solid ${col.border}` }}
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: col.dot, display: 'inline-block', flexShrink: 0 }} />
+                                                                <span className="text-xs font-black text-white uppercase tracking-widest">{col.label}</span>
+                                                            </div>
+                                                            <span className="text-[10px] font-bold text-white/40 bg-white/5 px-2 py-0.5 rounded-full">{colItems.length}</span>
+                                                        </div>
+
+                                                        {colItems.length === 0 ? (
+                                                            <div className="flex flex-col items-center justify-center py-10 rounded-xl border border-dashed border-white/[0.06] text-white/20 text-xs font-semibold gap-2">
+                                                                <List className="w-5 h-5 opacity-40" />
+                                                                Aucune campagne
+                                                            </div>
+                                                        ) : (
+                                                            subGroups.map((sg, si) => (
+                                                                <div key={si} className="space-y-2">
+                                                                    {/* Label sous-groupe */}
+                                                                    {sg.label && (
+                                                                        <div className="flex items-center gap-2 px-1">
+                                                                            <span className="text-[9px] font-black text-white/30 uppercase tracking-widest truncate">{sg.label}</span>
+                                                                            <div className="flex-1 h-px bg-white/[0.05]" />
+                                                                            <span className="text-[9px] text-white/20">{sg.items.length}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {sg.items.map(camp => renderCampaignCard(camp))}
+                                                                </div>
+                                                            ))
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })()
                             ) : groupMode !== 'none' ? (
+                                /* ── VUE GRILLE GROUPÉE ── */
                                 <div className="space-y-12">
                                     {Object.keys(groupedCampaigns || {}).map(releaseName => (
                                         <div key={releaseName} className="space-y-6">
@@ -1842,6 +2133,7 @@ const TesterDashboard = () => {
                                     ))}
                                 </div>
                             ) : (
+                                /* ── VUE GRILLE SIMPLE ── */
                                 <div className={`grid grid-cols-1 md:grid-cols-2 gap-8 transition-all duration-300 ${isDrawerOpen ? 'lg:grid-cols-2 has-drawer' : 'lg:grid-cols-3'}`} id="mainGrid">
                                     {filteredCampaigns.map(camp => renderCampaignCard(camp))}
                                 </div>
@@ -2218,23 +2510,39 @@ const TesterDashboard = () => {
                                 <div className="p-6 pb-4 border-b border-white/[0.08] flex items-center justify-between relative shrink-0">
                                     <div className="flex items-center gap-2">
                                         <Code className="w-5 h-5 text-[#85B7EB]" />
-                                        <h3 className="text-sm font-bold text-white uppercase tracking-wider">Agrandir le Code Playwright</h3>
+                                        <h3 className="text-sm font-bold text-white uppercase tracking-wider">Code Playwright</h3>
                                     </div>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2">
+                                        {/* Copier */}
                                         <button
                                             type="button"
-                                            onClick={() => setIsEditing(!isEditing)}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#185FA5]/20 border border-[#378ADD]/30 text-[#85B7EB] hover:bg-[#185FA5]/30 rounded text-xs font-semibold tracking-wider uppercase transition-colors"
+                                            title={isCopied ? 'Copié !' : 'Copier le code'}
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(testCaseForm.code);
+                                                setIsCopied(true);
+                                                setTimeout(() => setIsCopied(false), 2000);
+                                            }}
+                                            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${isCopied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 hover:bg-white/10 text-white/50 hover:text-white'}`}
                                         >
-                                            <Edit2 className="w-3.5 h-3.5" />
-                                            {isEditing ? 'Valider' : 'Éditer'}
+                                            {isCopied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                                         </button>
+                                        {/* Éditer */}
                                         <button
                                             type="button"
-                                            onClick={() => setIsCodeModalOpen(false)}
-                                            className="p-1 text-white/50 hover:text-white transition-colors"
+                                            title={isEditing ? 'Valider les modifications' : 'Éditer le code'}
+                                            onClick={() => setIsEditing(!isEditing)}
+                                            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${isEditing ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-white/5 hover:bg-white/10 text-white/50 hover:text-white'}`}
                                         >
-                                            <X className="w-6 h-6" />
+                                            <Edit2 className="w-4 h-4" />
+                                        </button>
+                                        {/* Fermer */}
+                                        <button
+                                            type="button"
+                                            title="Fermer"
+                                            onClick={() => setIsCodeModalOpen(false)}
+                                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                                        >
+                                            <X className="w-4 h-4" />
                                         </button>
                                     </div>
                                 </div>

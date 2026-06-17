@@ -32,11 +32,14 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+      - "5900:5900"
+      - "6080:6080"
     env_file:
       - ./InsureTM/.env.docker
     volumes:
       - ./InsureTM:/app
       - ./project/tests/generated:/project/tests/generated
+      - ./project/playwright.config.ts:/project/playwright.config.ts
       - media_data:/app/media
       - static_data:/app/staticfiles
     depends_on:

@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlayCircle, CheckCircle, XCircle, Clock, User, Camera, Eye, Pencil, Trash2, Layers, Sparkles } from 'lucide-react';
+import { PlayCircle, CheckCircle, XCircle, Clock, User, Camera, Eye, Pencil, Trash2, Layers, Sparkles, Video } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 
 export interface TestItem {
@@ -12,6 +12,7 @@ export interface TestItem {
     duration: string;
     lastRun: string;
     captures?: string[];
+    proof_video?: string | null;
     release?: string;
     businessProject?: string;
     releaseType?: string;
@@ -25,6 +26,7 @@ interface ExecutionTestListProps {
     onSelectTest: (test: TestItem) => void;
     selectedTestId?: string;
     onViewCaptures?: (test: TestItem) => void;
+    onViewVideoCaptures?: (test: TestItem) => void;
     onEditTest?: (test: TestItem) => void;
     onDeleteTest?: (test: TestItem) => void;
     onAutomateTest?: (test: TestItem) => void;
@@ -40,6 +42,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
     onSelectTest,
     selectedTestId,
     onViewCaptures,
+    onViewVideoCaptures,
     onEditTest,
     onDeleteTest,
     onAutomateTest,
@@ -81,7 +84,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
         if (displayTests.length === 0) return [];
         const first = displayTests[0];
         const keys = Object.keys(first);
-        const excluded = ['id', 'status', 'assigned_to', 'realized_by', 'lastRun', 'duration', 'name', 'module', 'captures', 'release', 'manual', 'rawDate', 'businessProject', 'releaseType', 'execution_logs', 'automation_code'];
+        const excluded = ['id', 'status', 'assigned_to', 'realized_by', 'lastRun', 'duration', 'name', 'module', 'captures', 'proof_video', 'release', 'manual', 'rawDate', 'businessProject', 'releaseType', 'execution_logs', 'automation_code'];
         return keys.filter(k =>
             !excluded.includes(k) &&
             !k.toLowerCase().includes('titre') &&
@@ -180,9 +183,9 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                     </td>
                 )}
                 <td className={tdClass}>
-                    {(test.captures && test.captures.length > 0) ? (
+                    {((test.captures && test.captures.length > 0) || test.proof_video) ? (
                         <div className="flex items-center gap-1.5">
-                            {test.captures.slice(0, 3).map((url, i) => (
+                            {test.captures?.slice(0, 3).map((url, i) => (
                                 <button
                                     key={i}
                                     onClick={(e) => {
@@ -200,8 +203,21 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                                     <div className="absolute inset-0 bg-blue-400/0 group-hover/cap:bg-blue-400/10 rounded-lg transition-all" />
                                 </button>
                             ))}
-                            {test.captures.length > 3 && (
-                                <span className="text-[9px] text-slate-500 font-bold">+{test.captures.length - 3}</span>
+                            {test.proof_video && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onViewVideoCaptures) onViewVideoCaptures(test);
+                                        else if (onViewCaptures) onViewCaptures(test);
+                                    }}
+                                    className="relative group/vid w-10 h-10 flex items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10 hover:border-blue-400/60 hover:bg-blue-500/20 hover:scale-110 transition-all duration-200"
+                                    title="Voir replay vidéo"
+                                >
+                                    <svg className="w-4 h-4 text-[#85B7EB]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </button>
+                            )}
+                            {(test.captures?.length ?? 0) > 3 && (
+                                <span className="text-[9px] text-slate-500 font-bold">+{(test.captures?.length ?? 0) - 3}</span>
                             )}
                         </div>
                     ) : (

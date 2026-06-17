@@ -411,9 +411,13 @@ const highlightPlaywrightCode = (rawCode: string) => {
                                     <textarea 
                                         required
                                         value={testCaseForm.manualData}
-                                        onChange={(e) => setTestCaseForm({ ...testCaseForm, manualData: e.target.value })}
+                                        onChange={(e) => {
+                                            setTestCaseForm({ ...testCaseForm, manualData: e.target.value });
+                                            e.target.style.height = 'auto';
+                                            e.target.style.height = e.target.scrollHeight + 'px';
+                                        }}
                                         placeholder="Saisissez les étapes issues d'Excel. Ex: 1. Ouvrir login, 2. Email admin@admin.com..."
-                                        className="w-full bg-slate-50 dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] text-slate-900 dark:text-[#f1f5f9] rounded-2xl pl-4 pr-6 pb-16 pt-4 outline-none focus:border-blue-500/50 transition-colors min-h-[140px] text-sm resize-none custom-scrollbar"
+                                        className="w-full bg-slate-50 dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] text-slate-900 dark:text-[#f1f5f9] rounded-2xl pl-4 pr-6 pb-4 pt-4 outline-none focus:border-blue-500/50 transition-colors min-h-[140px] text-sm resize-none overflow-hidden"
                                         data-gramm="false"
                                         spellCheck="false"
                                     />

@@ -51,7 +51,7 @@ class CampaignViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(assigned_testers__username__icontains=tester)
             
         if release_type and release_type != 'all':
-            queryset = queryset.filter(release_type=release_type)
+            queryset = queryset.filter(project__release_type=release_type)
 
         return queryset.distinct()
 

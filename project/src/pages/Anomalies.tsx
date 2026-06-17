@@ -64,6 +64,7 @@ interface Anomaly {
   createdAt: string;
   description?: string;
   proofImage?: string;
+  proofVideo?: string;
   release?: string;
   campaign?: string;
   author_name?: string;
@@ -108,7 +109,10 @@ const Anomalies: React.FC = () => {
   const relatedTestFilter = queryParams.get('test');
   const highlightId = queryParams.get('highlight');
 
+  const incomingCampaignId = (location.state as any)?.campaignId || null;
+  const incomingCampaign = (location.state as any)?.campaignName || '';
   const [query, setQuery] = useState(highlightId || relatedTestFilter || '');
+  const [campaignIdFilter, setCampaignIdFilter] = useState<string | null>(incomingCampaignId);
   const [impactFilter, setImpactFilter] = useState<'Tout' | Anomaly['impact']>('Tout');
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest'>('recent');
   const [data, setData] = useState<Anomaly[]>([]);
@@ -127,6 +131,7 @@ const Anomalies: React.FC = () => {
   const [anomalyToDelete, setAnomalyToDelete] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [logModal, setLogModal] = useState<{ title: string; content: string } | null>(null);
+  const [proofLightbox, setProofLightbox] = useState<{ title: string; image?: string; video?: string } | null>(null);
   const [isImpactMenuOpen, setIsImpactMenuOpen] = useState(false);
   const [viewingList, setViewingList] = useState<{ type: 'priorities' | 'ageing', items: any[] } | null>(null);
   const [quickEditDropdown, setQuickEditDropdown] = useState<{ id: string, field: 'impact' | 'priority' } | null>(null);
@@ -153,7 +158,7 @@ const Anomalies: React.FC = () => {
   React.useEffect(() => {
     fetchAnomalies(1);
     setCurrentPage(1);
-  }, [query, impactFilter, sortOrder]);
+  }, [query, impactFilter, sortOrder, campaignIdFilter]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -165,7 +170,8 @@ const Anomalies: React.FC = () => {
       setLoading(true);
       const response = await anomalyService.getAnomalies({
         page,
-        search: query,
+        search: query || undefined,
+        campaign_id: campaignIdFilter || undefined,
         impact: impactFilter !== 'Tout' ? impactFilter : undefined,
         ordering: sortOrder === 'recent' ? '-cree_le' : 'cree_le'
       });
@@ -186,6 +192,7 @@ const Anomalies: React.FC = () => {
         createdAt: a.cree_le,
         description: a.description,
         proofImage: a.preuve_image,
+        proofVideo: a.preuve_video,
         release: a.project_name || 'Inconnu',
         campaign: a.campaign_title || 'Inconnue',
         author_name: a.cree_par_nom,
@@ -219,6 +226,7 @@ const Anomalies: React.FC = () => {
                           createdAt: a.cree_le,
                           description: a.description,
                           proofImage: a.preuve_image,
+                          proofVideo: a.preuve_video,
                           release: a.project_name || 'Inconnu',
                           campaign: a.campaign_title || 'Inconnue',
                           author_name: a.cree_par_nom,
@@ -467,15 +475,32 @@ const Anomalies: React.FC = () => {
 
 
             <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
-              <div className="flex-1 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
-                <Search className="w-4 h-4 text-slate-400 ml-2" />
-                <input
-                  type="text"
-                  placeholder={t('anomalies.searchPlaceholder')}
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="flex-1 bg-transparent border-none text-sm text-foreground focus:ring-0 outline-none placeholder-slate-400"
-                />
+              <div className="flex flex-col gap-2 flex-1">
+                {/* Badge filtre campagne actif */}
+                {campaignIdFilter && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold"
+                      style={{ background: 'rgba(55,138,221,0.12)', border: '0.5px solid rgba(55,138,221,0.3)', color: '#85B7EB' }}>
+                      <span>📁 Campagne : {incomingCampaign || `#${campaignIdFilter}`}</span>
+                      <button
+                        type="button"
+                        onClick={() => { setCampaignIdFilter(null); }}
+                        className="ml-1 text-white/40 hover:text-white transition-colors"
+                        title="Retirer le filtre campagne"
+                      >✕</button>
+                    </div>
+                  </div>
+                )}
+                <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-3 flex items-center gap-3">
+                  <Search className="w-4 h-4 text-slate-400 ml-2" />
+                  <input
+                    type="text"
+                    placeholder={t('anomalies.searchPlaceholder')}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="flex-1 bg-transparent border-none text-sm text-foreground focus:ring-0 outline-none placeholder-slate-400"
+                  />
+                </div>
               </div>
               
               <div className="flex flex-wrap items-center gap-3">
@@ -647,23 +672,37 @@ const Anomalies: React.FC = () => {
                           )}
                         </td>
                         <td className={tdClass}>
-                          {an.proofImage ? (
+                          {(an.proofImage || an.proofVideo) ? (
                             <div className="flex items-center gap-1.5">
-                              <button
-                                  onClick={(e) => {
-                                      e.stopPropagation();
-                                      setLogModal({ title: `Preuve — ${an.title}`, content: `__IMAGE__${an.proofImage}` });
-                                  }}
-                                  className="relative group/cap"
-                                  title={`Voir preuve`}
-                              >
-                                  <img
-                                      src={an.proofImage}
-                                      alt={`Preuve`}
-                                      className="w-10 h-10 object-cover rounded-lg border border-slate-300 dark:border-white/10 group-hover/cap:border-blue-400/60 group-hover/cap:scale-110 transition-all duration-200"
-                                  />
-                                  <div className="absolute inset-0 bg-blue-400/0 group-hover/cap:bg-blue-400/10 rounded-lg transition-all" />
-                              </button>
+                              {an.proofImage && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setProofLightbox({ title: an.title, image: an.proofImage, video: an.proofVideo });
+                                    }}
+                                    className="relative group/cap"
+                                    title="Voir capture d'écran"
+                                >
+                                    <img
+                                        src={an.proofImage}
+                                        alt="Preuve"
+                                        className="w-10 h-10 object-cover rounded-lg border border-slate-300 dark:border-white/10 group-hover/cap:border-blue-400/60 group-hover/cap:scale-110 transition-all duration-200"
+                                    />
+                                    <div className="absolute inset-0 bg-blue-400/0 group-hover/cap:bg-blue-400/10 rounded-lg transition-all" />
+                                </button>
+                              )}
+                              {an.proofVideo && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setProofLightbox({ title: an.title, image: an.proofImage, video: an.proofVideo });
+                                    }}
+                                    className="w-10 h-10 flex items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10 hover:border-blue-400/60 hover:bg-blue-500/20 hover:scale-110 transition-all duration-200"
+                                    title="Voir replay vidéo"
+                                >
+                                    <svg className="w-4 h-4 text-[#85B7EB]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </button>
+                              )}
                             </div>
                           ) : (
                             <span className="text-slate-600 font-bold uppercase tracking-widest text-[9px] opacity-40">AUCUNE</span>
@@ -674,7 +713,14 @@ const Anomalies: React.FC = () => {
                               <button
                                   onClick={(e) => {
                                       e.stopPropagation();
-                                      setLogModal({ title: `Analyse IA — ${an.title}`, content: an.description || "Aucune analyse IA disponible." });
+                                      const logMarkers = ['--- LOGS', 'Running 1 test', 'Running 0 test', '\n✘', '\n1 failed', '\n1 passed'];
+                                      const raw = an.description || '';
+                                      let analyseOnly = raw;
+                                      for (const m of logMarkers) {
+                                          const idx = raw.indexOf(m);
+                                          if (idx > 0) { analyseOnly = raw.slice(0, idx).trim(); break; }
+                                      }
+                                      setLogModal({ title: `Analyse IA — ${an.title}`, content: analyseOnly || "Aucune analyse IA disponible." });
                                   }}
                                   className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:text-purple-500 dark:hover:text-purple-400 hover:bg-purple-500/10 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border border-slate-200 dark:border-white/10"
                               >
@@ -951,6 +997,93 @@ const Anomalies: React.FC = () => {
                   )}
               </div>
           </div>
+      )}
+
+      {/* Proof Lightbox — same style as Execution Tracking */}
+      {proofLightbox && (
+        <div
+          className="fixed inset-0 z-[3000] flex flex-col bg-black/95 backdrop-blur-xl"
+          onClick={() => setProofLightbox(null)}
+        >
+          {/* Header */}
+          <div
+            className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0"
+            onClick={e => e.stopPropagation()}
+          >
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Preuves</p>
+              <h3 className="text-base font-bold text-white truncate max-w-lg">{proofLightbox.title}</h3>
+            </div>
+            <button
+              onClick={() => setProofLightbox(null)}
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-all"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6" onClick={e => e.stopPropagation()}>
+            {proofLightbox.image && (
+              <div className="space-y-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                  <span className="w-5 h-5 flex items-center justify-center rounded bg-blue-500/20 text-blue-400">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  </span>
+                  Capture d'écran
+                </p>
+                <div className="rounded-2xl overflow-hidden border border-white/10 bg-slate-900 flex items-center justify-center">
+                  <img
+                    src={proofLightbox.image}
+                    alt="Capture d'écran"
+                    className="max-w-full max-h-[55vh] object-contain"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <a
+                    href={proofLightbox.image}
+                    download
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 px-3 py-1.5 bg-blue-500/10 rounded-lg border border-blue-500/20 hover:bg-blue-500/20 transition-all"
+                  >
+                    ↓ Télécharger
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {proofLightbox.video && (
+              <div className="space-y-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                  <span className="w-5 h-5 flex items-center justify-center rounded bg-blue-500/20 text-[#85B7EB]">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </span>
+                  Replay vidéo
+                </p>
+                <div className="rounded-2xl overflow-hidden border border-blue-500/20 bg-slate-900">
+                  <video
+                    src={proofLightbox.video}
+                    controls
+                    autoPlay
+                    className="w-full max-h-[55vh] object-contain"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <a
+                    href={proofLightbox.video}
+                    download
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] font-black uppercase tracking-widest text-[#85B7EB] hover:text-blue-300 px-3 py-1.5 bg-blue-500/10 rounded-lg border border-blue-500/20 hover:bg-blue-500/20 transition-all"
+                  >
+                    ↓ Télécharger
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </>
   );

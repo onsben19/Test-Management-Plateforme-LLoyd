@@ -1,0 +1,24 @@
+import { test, expect } from '@playwright/test';
+
+test.use({ screenshot: 'on', baseURL: 'http://nginx' });
+
+
+test('dndmnm', async ({ page }) => {
+  await page.goto('https://the-internet.herokuapp.com/login');
+  
+  await page.locator('button#L2AGLb, a#L2AGLb, input#L2AGLb, [role="button"]#L2AGLb, [role="link"]#L2AGLb, button:has-text("Tout accepter"), [id*="cookie"] button:has-text("accepter")').first().click({ timeout: 5000 }).catch(() => {});
+
+  const usernameInput = page.locator('input[name="username"], input[id*="username"], input[placeholder*="username"], textarea[placeholder*="username"], select[placeholder*="username"]');
+  await usernameInput.first().evaluate((el, val) => { el.value = val; el.dispatchEvent(new Event('input', {bubbles: true})); el.dispatchEvent(new Event('change', {bubbles: true})); }, 'tomsmith');
+
+  const passwordInput = page.locator('input[name="password"], input[id*="password"], input[placeholder*="password"], textarea[placeholder*="password"], select[placeholder*="password"]');
+  await passwordInput.first().evaluate((el, val) => { el.value = val; el.dispatchEvent(new Event('input', {bubbles: true})); el.dispatchEvent(new Event('change', {bubbles: true})); }, 'SuperSecretPassword!');
+
+  const loginButton = page.locator('button[type="submit"], button:has-text("Login"), button[id*="login"], a[id*="login"], input[id*="login"], [role="button"][id*="login"], [role="link"][id*="login"]');
+  await loginButton.first().click({ force: true });
+
+  await page.waitForLoadState('networkidle');
+
+  const successMessage = page.locator('button#flash, a#flash, input#flash, [role="button"]#flash, [role="link"]#flash, button.flash, a.flash, input.flash, [role="button"].flash, [role="link"].flash, h1[id*="success"], h2[id*="success"], h3[id*="success"], h4[id*="success"], h5[id*="success"], h6[id*="success"], [role="heading"][id*="success"], span[id*="success"], p[id*="success"], h1[class*="success"], h2[class*="success"], h3[class*="success"], h4[class*="success"], h5[class*="success"], h6[class*="success"], [role="heading"][class*="success"], span[class*="success"], p[class*="success"]');
+  await expect(successMessage.first()).toBeVisible({ timeout: 10000 });
+});

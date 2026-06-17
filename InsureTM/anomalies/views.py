@@ -31,9 +31,17 @@ class AnomalieViewSet(viewsets.ModelViewSet):
 
         search = self.request.query_params.get('search')
         impact = self.request.query_params.get('impact')
+        campaign_id = self.request.query_params.get('campaign_id')
+
+        if campaign_id:
+            queryset = queryset.filter(test_case__campaign_id=campaign_id)
 
         if search:
-            queryset = queryset.filter(Q(titre__icontains=search) | Q(description__icontains=search))
+            queryset = queryset.filter(
+                Q(titre__icontains=search) |
+                Q(description__icontains=search) |
+                Q(test_case__campaign__title__icontains=search)
+            )
 
         if impact and impact != 'ALL' and impact != 'Tout':
             queryset = queryset.filter(impact=impact.upper())

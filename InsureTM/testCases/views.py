@@ -253,7 +253,15 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         with open(live_log_path, 'w') as f:
             f.write(f'▶ Démarrage du runner Playwright pour : {test_case.test_case_ref}\n')
 
+        execution_mode = request.data.get('execution_mode', 'headless')  # 'headless' | 'headed' | 'ui'
         tester_id = request.user.id
+
+        mode_label = {'headless': 'Headless ⚡', 'headed': 'Headed 👁️', 'ui': 'UI 🎮'}.get(execution_mode, 'Headless ⚡')
+
+        # Overwrite startup message with mode info
+        with open(live_log_path, 'w') as f:
+            f.write(f'▶ Démarrage du runner Playwright pour : {test_case.test_case_ref}\n')
+            f.write(f'▶ Mode d\'exécution : {mode_label}\n\n')
 
         def run_playwright():
             import json as _json
@@ -272,10 +280,25 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                 # DEBUG=pw:api streams each Playwright action to stdout as it executes
                 env['DEBUG'] = 'pw:api'
 
+                # Activate video recording via env var (playwright.config.ts reads PW_VIDEO)
+                env['PW_VIDEO'] = 'on'
+
+                # Build Playwright command based on execution_mode
+                cmd = ['npx', 'playwright', 'test', path, f'--output={output_dir}', '--reporter=list']
+
+                if execution_mode in ('headed', 'ui'):
+                    # Use the existing Xvfb on :99 (started at container boot, watched by x11vnc + noVNC)
+                    # Do NOT use xvfb-run — it creates a new display invisible to x11vnc
+                    env['DISPLAY'] = ':99'
+                    env['PW_HEADED'] = 'true'
+                    cmd.append('--headed')
+                    if execution_mode == 'ui':
+                        env['PLAYWRIGHT_SLOWMO'] = '800'
+
                 # Write stdout/stderr directly to file — bypasses Node.js pipe buffering
                 with open(live_log_path, 'a') as live_log_file:
                     process = subprocess.Popen(
-                        ['npx', 'playwright', 'test', path, f'--output={output_dir}', '--reporter=list'],
+                        cmd,
                         cwd=project_dir,
                         stdout=live_log_file,
                         stderr=live_log_file,
@@ -300,19 +323,25 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                 User = get_user_model()
                 tc.tester = User.objects.get(pk=tester_id)
 
-                # Screenshot
+                # Screenshot + Video
                 screenshot_path = None
+                video_path = None
                 for root, _, files in os.walk(output_dir):
                     for file in files:
-                        if file.endswith('.png'):
+                        if file.endswith('.png') and not screenshot_path:
                             screenshot_path = os.path.join(root, file)
-                            break
-                    if screenshot_path:
+                        if file.endswith('.webm') and not video_path:
+                            video_path = os.path.join(root, file)
+                    if screenshot_path and video_path:
                         break
 
                 if screenshot_path and os.path.exists(screenshot_path):
                     with open(screenshot_path, 'rb') as f:
                         tc.proof_file.save(f'screenshot_tc_{tc.id}.png', File(f), save=False)
+
+                if video_path and os.path.exists(video_path):
+                    with open(video_path, 'rb') as f:
+                        tc.proof_video.save(f'video_tc_{tc.id}.webm', File(f), save=False)
 
                 anomaly_id = None
                 if status == 'FAILED':
@@ -341,13 +370,21 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                     if screenshot_path and os.path.exists(screenshot_path):
                         with open(screenshot_path, 'rb') as f:
                             anomaly.preuve_image.save(f'screenshot_tc_{tc.id}.png', File(f), save=False)
+                    if video_path and os.path.exists(video_path):
+                        with open(video_path, 'rb') as f:
+                            anomaly.preuve_video.save(f'video_tc_{tc.id}.webm', File(f), save=False)
                     anomaly.save()
                     anomaly_id = anomaly.id
 
                 tc.save()
 
                 # Write result file so live-logs/ knows execution is done
-                result = {'status': status, 'logs': logs, 'anomaly_id': anomaly_id}
+                result = {
+                    'status': status,
+                    'logs': logs,
+                    'anomaly_id': anomaly_id,
+                    'video_path': video_path,
+                }
                 with open(result_path, 'w') as f:
                     _json.dump(result, f)
 
@@ -398,9 +435,30 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                 'running': False,
                 'status': result.get('status'),
                 'anomaly_id': result.get('anomaly_id'),
+                'video_path': result.get('video_path'),
             })
 
         # Fallback: execution finished but no result file (old run or error)
         tc_data = test_case.data_json or {}
         stored_logs = tc_data.get('execution_logs', '') if isinstance(tc_data, dict) else ''
         return Response({'logs': stored_logs, 'running': False, 'status': test_case.status})
+
+    @action(detail=True, methods=['get'], url_path='serve-video')
+    def serve_video(self, request, pk=None):
+        """Serves the latest recorded Playwright video (.webm) for this test case."""
+        from django.http import FileResponse, Http404
+        test_case = self.get_object()
+        project_dir = os.path.abspath(os.path.join(settings.BASE_DIR, '..', 'project'))
+        output_dir = os.path.join(project_dir, 'test-results', f'test_{test_case.id}')
+        video_path = None
+        if os.path.exists(output_dir):
+            for root, _, files in os.walk(output_dir):
+                for file in files:
+                    if file.endswith('.webm'):
+                        video_path = os.path.join(root, file)
+                        break
+                if video_path:
+                    break
+        if not video_path or not os.path.exists(video_path):
+            raise Http404("Vidéo non trouvée")
+        return FileResponse(open(video_path, 'rb'), content_type='video/webm', as_attachment=False)

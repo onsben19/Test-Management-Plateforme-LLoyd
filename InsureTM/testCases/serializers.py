@@ -118,6 +118,6 @@ class TestCaseSerializer(serializers.ModelSerializer):
             'business_project_name', 'release_type',
             'test_case_ref', 'data_json', 'status',
             'tester', 'tester_name', 'assigned_tester_name',
-            'execution_date', 'proof_file', 'proof_hash',
+            'execution_date', 'proof_file', 'proof_hash', 'proof_video',
             'is_automated', 'automation_code', 'automation_script_path',
         ]
