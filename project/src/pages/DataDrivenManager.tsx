@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import {
     Upload, FileSpreadsheet, Calendar, Eye, Trash2, Edit, Search, Filter, MoreVertical, FileText,
-    Layers, X, CheckCircle, ShieldAlert, ShieldCheck, ShieldQuestion,
+    Layers, X, Check, CheckCircle, ShieldAlert, ShieldCheck, ShieldQuestion,
     Zap, TrendingUp, Clock, AlertTriangle, ArrowRight, ArrowLeft, LayoutGrid,
     Sparkles, ChevronRight, History, XCircle, Briefcase, Activity, Target,
     Award, Info, SortAsc, Bot, Flag, Users
@@ -93,6 +93,8 @@ const DataDrivenManager = () => {
 
     const [activeReleaseId, setActiveReleaseId] = useState<string | undefined>(location.state?.releaseId?.toString());
     const [activeReleaseName, setActiveReleaseName] = useState<string | undefined>(location.state?.releaseName);
+    const backBusinessProjectId = location.state?.businessProjectId;
+    const backBusinessProjectName = location.state?.businessProjectName;
 
     useEffect(() => {
         if (!activeReleaseId) {
@@ -451,12 +453,14 @@ const DataDrivenManager = () => {
         <PageLayout
             title="Campagnes de Tests"
             subtitle={`${activeReleaseName || 'SANS RELEASE'}`}
+            onBack={backBusinessProjectId ? () => navigate('/releases', { state: { businessProjectId: backBusinessProjectId, businessProjectName: backBusinessProjectName } }) : () => navigate(-1)}
+            backLabel={backBusinessProjectName ? `Releases: ${backBusinessProjectName}` : 'Retour'}
             actions={
                 <Button
+                    variant="secondary"
                     onClick={openCreateModal}
-                    icon={Upload}
                 >
-                    NOUVELLE CAMPAGNE
+                    Nouvelle campagne
                 </Button>
             }
         >
@@ -577,7 +581,10 @@ const DataDrivenManager = () => {
                                                             </div>
                                                         ))}
                                                     </div>
-                                                    <span className="text-[10px] text-white/30">{guard?.projected_end_date ? `Fin : ${new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}` : ''}</span>
+                                                    <div className="flex flex-col items-end gap-0.5">
+                                                        {file.estimated_end_date && <span className="text-[10px] text-white/30">Fin : {new Date(file.estimated_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>}
+                                                        {guard?.projected_end_date && <span className="text-[10px] text-violet-400">IA : {new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>}
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -622,7 +629,10 @@ const DataDrivenManager = () => {
                                                             </div>
                                                         ))}
                                                     </div>
-                                                    <span className="text-[10px] text-white/30">{guard?.projected_end_date ? `Fin : ${new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}` : ''}</span>
+                                                    <div className="flex flex-col items-end gap-0.5">
+                                                        {file.estimated_end_date && <span className="text-[10px] text-white/30">Fin : {new Date(file.estimated_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>}
+                                                        {guard?.projected_end_date && <span className="text-[10px] text-violet-400">IA : {new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>}
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -663,7 +673,10 @@ const DataDrivenManager = () => {
                                                             </div>
                                                         ))}
                                                     </div>
-                                                    <span className="text-[10px] text-white/30">{guard?.projected_end_date ? `Fin : ${new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}` : ''}</span>
+                                                    <div className="flex flex-col items-end gap-0.5">
+                                                        {file.estimated_end_date && <span className="text-[10px] text-white/30">Fin : {new Date(file.estimated_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>}
+                                                        {guard?.projected_end_date && <span className="text-[10px] text-violet-400">IA : {new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>}
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -777,7 +790,7 @@ const DataDrivenManager = () => {
                                             <div className="flex items-center gap-1.5 px-[11px] py-[5px] bg-[#E24B4A]/12 border-[0.5px] border-[#E24B4A]/25 rounded-[20px]">
                                                 <Clock size={12} className="text-[#F09595]" />
                                                 <span className="text-[11px] font-medium text-[#F09595]">
-                                                    Deadline {guard?.projected_end_date ? new Date(guard.projected_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
+                                                    Deadline {file.estimated_end_date ? new Date(file.estimated_end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'}
                                                 </span>
                                             </div>
                                         </div>
@@ -785,8 +798,7 @@ const DataDrivenManager = () => {
                                         {/* Section 2 — Description */}
                                         {file.description && (
                                             <div className="bg-[#1a2235] rounded-[12px] border-[0.5px] border-white/[0.07] p-[14px]">
-                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">
-                                                    <FileText size={12} />
+                                                <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">
                                                     DESCRIPTION
                                                 </div>
                                                 <p className="text-[13px] text-white/55 leading-[1.6]">{file.description}</p>
@@ -795,8 +807,7 @@ const DataDrivenManager = () => {
 
                                         {/* Section 3 — Progression & Cadence */}
                                         <div className="bg-[#1a2235] rounded-[12px] border-[0.5px] border-white/[0.07] p-[14px]">
-                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">
-                                                <TrendingUp size={12} />
+                                            <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">
                                                 PROGRESSION & CADENCE
                                             </div>
 
@@ -822,15 +833,12 @@ const DataDrivenManager = () => {
 
                                                 <div className="flex flex-col justify-center gap-1">
                                                     <div className="flex items-center gap-1.5">
-                                                        <CheckCircle size={10} className="text-[#5DCAA5]" />
                                                         <span className="text-[11px] font-medium text-[#5DCAA5]">{passed} réussis</span>
                                                     </div>
                                                     <div className="flex items-center gap-1.5">
-                                                        <AlertTriangle size={10} className="text-[#F09595]" />
                                                         <span className="text-[11px] font-medium text-[#F09595]">{failed} anomalies</span>
                                                     </div>
                                                     <div className="flex items-center gap-1.5">
-                                                        <Clock size={10} className="text-slate-400" />
                                                         <span className="text-[11px] font-medium text-slate-400">{restants} restants</span>
                                                     </div>
                                                 </div>
@@ -850,8 +858,7 @@ const DataDrivenManager = () => {
 
                                             <div className="grid grid-cols-2 gap-[8px]">
                                                 <div className="bg-[#111827] rounded-[8px] px-[12px] py-[10px]">
-                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">
-                                                        <Bot size={10} />
+                                                    <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">
                                                         CADENCE IA
                                                     </div>
                                                     <div className="flex items-baseline gap-1 mt-1">
@@ -860,8 +867,7 @@ const DataDrivenManager = () => {
                                                     </div>
                                                 </div>
                                                 <div className="bg-[#1a0f0f] border-[0.5px] border-[#E24B4A]/15 rounded-[8px] px-[12px] py-[10px]">
-                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#F09595] uppercase tracking-widest mb-1">
-                                                        <Flag size={10} />
+                                                    <div className="text-[10px] font-bold text-[#F09595] uppercase tracking-widest mb-1">
                                                         FIN ESTIMÉE
                                                     </div>
                                                     <div className="text-[16px] font-bold text-[#F09595] leading-none mt-1">
@@ -873,28 +879,26 @@ const DataDrivenManager = () => {
 
                                         {/* Section 4 — Insight IA */}
                                         <div className="bg-[#0d1a2e] border-l-[3px] border-l-[#378ADD] rounded-r-[12px] p-[14px]">
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <div className="w-[26px] h-[26px] bg-[#378ADD]/15 rounded-[8px] flex items-center justify-center shrink-0">
-                                                    <Sparkles size={12} className="text-[#378ADD]" />
-                                                </div>
+                                            <div className="mb-3">
                                                 <span className="text-[11px] font-bold text-[#378ADD] uppercase tracking-[0.07em]">INSIGHT IA</span>
                                             </div>
                                             <p className="text-[12px] italic text-white/45 leading-[1.6] mb-4 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' }}>
                                                 {guard?.message || "Il est essentiel d'accélérer le rythme des tests pour atteindre l'échéance."}
                                             </p>
-                                            <button
-                                                onClick={() => setIsOptimizingSidebar(true)}
-                                                className="px-[16px] py-[8px] bg-[#185FA5] text-[#B5D4F4] border-[0.5px] border-[#378ADD] rounded-[8px] text-[12px] font-medium transition-all hover:bg-[#1a68b5] flex items-center gap-2"
-                                            >
-                                                <Sparkles size={14} className="text-[#B5D4F4]" />
-                                                Optimiser
-                                            </button>
+                                            {/* Bouton Optimiser : uniquement en cas de retard détecté */}
+                                            {guard && (guard.delay_days > 0 || guard.status === 'WARNING' || guard.status === 'CRITICAL') && (
+                                                <button
+                                                    onClick={() => setIsOptimizingSidebar(true)}
+                                                    className="px-[16px] py-[8px] bg-[#185FA5] text-[#B5D4F4] border-[0.5px] border-[#378ADD] rounded-[8px] text-[12px] font-medium transition-all hover:bg-[#1a68b5]"
+                                                >
+                                                    Optimiser
+                                                </button>
+                                            )}
                                         </div>
 
                                         {/* Section 5 — Testeurs assignés */}
                                         <div className="bg-[#1a2235] rounded-[12px] border-[0.5px] border-white/[0.07] p-[14px]">
-                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">
-                                                <Users size={12} />
+                                            <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">
                                                 TESTEURS ASSIGNÉS ({(file.assigned_testers_names || []).length})
                                             </div>
                                             <div className="flex flex-col gap-3">
@@ -943,155 +947,198 @@ const DataDrivenManager = () => {
             {/* Campaign Modal */}
 
             {isModalOpen && (
-                <div className="fixed inset-0 z-[99999] flex items-start justify-center bg-slate-950/80 backdrop-blur-xl p-4 overflow-y-auto pt-24">
-                    <div className="bg-slate-900 border border-slate-300 dark:border-white/10 rounded-[2rem] w-full max-w-3xl shadow-[0_0_100px_rgba(37,99,235,0.1)] overflow-hidden flex flex-col max-h-[85vh]">
-                        <div className="px-6 py-6 border-b border-slate-200 dark:border-white/5 flex justify-between items-center bg-slate-100 dark:bg-white/5 flex-shrink-0">
+                <div className="fixed inset-0 z-[200000] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
+                    <div className="bg-[#0d1117] border border-white/[0.08] rounded-[20px] w-full max-w-2xl shadow-[0_32px_80px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col max-h-[92vh] my-auto">
+                        
+                        {/* Header */}
+                        <div className="px-6 pt-6 pb-5 flex items-center justify-between border-b border-white/[0.06] shrink-0">
                             <div>
-                                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                                    {editingCampaign ? 'Modifier Campagne' : 'Nouvelle Campagne'}
-                                </h2>
-                                <p className="text-blue-500 font-bold uppercase tracking-widest text-[10px] mt-1">Gérer les cahiers de tests</p>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className={`w-1.5 h-5 rounded-full ${editingCampaign ? 'bg-[#EF9F27]' : 'bg-[#378ADD]'}`} />
+                                    <h2 className="text-[17px] font-semibold text-white">
+                                        {editingCampaign ? 'Modifier la campagne' : 'Nouvelle campagne'}
+                                    </h2>
+                                </div>
+                                <p className="text-[11px] text-white/30 ml-4">
+                                    {editingCampaign ? `Édition · ${editingCampaign.name}` : 'Créer un nouveau cahier de tests'}
+                                </p>
                             </div>
-                            <button onClick={() => setIsModalOpen(false)} className="bg-slate-100 dark:bg-white/5 p-2 rounded-full text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:bg-white/10 border border-slate-300 dark:border-white/10 transition-all">
-                                <X className="w-5 h-5" />
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/[0.05] hover:bg-white/10 text-white/40 hover:text-white transition-all border border-white/[0.06]"
+                            >
+                                <X size={15} />
                             </button>
                         </div>
 
                         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-                            <div className="p-6 space-y-4 overflow-y-auto flex-1">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                    <div className="md:col-span-2 space-y-2">
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Titre de la campagne</label>
+                            <div className="p-6 space-y-5 overflow-y-auto flex-1">
+
+                                {/* Titre + Nb Tests */}
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div className="col-span-2 space-y-1.5">
+                                        <label className="text-[10px] font-bold text-white/30 uppercase tracking-[0.15em]">Titre de la campagne</label>
                                         <input
                                             type="text"
                                             value={campaignForm.title}
                                             onChange={(e) => setCampaignForm({ ...campaignForm, title: e.target.value })}
-                                            className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl px-6 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all placeholder:text-slate-700 font-bold"
-                                            placeholder="Ex: Regression Sprint 42"
+                                            className="w-full bg-[#1a2235] border border-white/[0.08] rounded-[10px] px-4 py-2.5 text-[13px] text-white placeholder:text-white/20 focus:border-[#378ADD]/50 focus:ring-0 outline-none transition-colors"
+                                            placeholder="Ex : Régression Sprint 42"
                                             required
                                         />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Nb. Tests</label>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-white/30 uppercase tracking-[0.15em]">Nb. tests</label>
                                         <input
                                             type="number"
                                             value={campaignForm.nb_test_cases}
                                             onChange={(e) => setCampaignForm({ ...campaignForm, nb_test_cases: parseInt(e.target.value) || 0 })}
-                                            className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl px-6 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
+                                            className="w-full bg-[#1a2235] border border-white/[0.08] rounded-[10px] px-4 py-2.5 text-[13px] text-white focus:border-[#378ADD]/50 focus:ring-0 outline-none transition-colors"
                                             min="0"
                                         />
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Notes & Description</label>
+                                {/* Description */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-white/30 uppercase tracking-[0.15em]">Description</label>
                                     <textarea
                                         value={campaignForm.description}
                                         onChange={(e) => setCampaignForm({ ...campaignForm, description: e.target.value })}
-                                        className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-[1.5rem] px-6 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none min-h-[100px] resize-none transition-all placeholder:text-slate-700 font-bold"
-                                        placeholder="Décrivez les objectifs de cette campagne..."
+                                        className="w-full bg-[#1a2235] border border-white/[0.08] rounded-[10px] px-4 py-2.5 text-[13px] text-white placeholder:text-white/20 focus:border-[#378ADD]/50 focus:ring-0 outline-none min-h-[80px] resize-none transition-colors"
+                                        placeholder="Objectifs de cette campagne…"
                                     />
                                 </div>
 
-                                <div className={`p-5 rounded-[1.5rem] border transition-all duration-500 ${showScheduleSelector ? 'bg-indigo-500/5 border-indigo-500/20' : 'bg-slate-100 dark:bg-white/5 border-slate-300 dark:border-white/10'}`}>
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-1.5 rounded-xl border ${showScheduleSelector ? 'bg-indigo-500/20 border-indigo-500/20 text-indigo-500' : 'bg-slate-100 dark:bg-white/5 border-slate-300 dark:border-white/10 text-slate-500'}`}>
-                                                <Clock className="w-4 h-4" />
-                                            </div>
-                                            <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Planification</span>
+                                {/* Planification */}
+                                <div className={`rounded-[12px] border transition-all duration-300 overflow-hidden ${showScheduleSelector ? 'border-[#6366f1]/30 bg-[#6366f1]/[0.04]' : 'border-white/[0.08] bg-[#1a2235]'}`}>
+                                    <div className="flex items-center justify-between px-4 py-3">
+                                        <div className="flex items-center gap-2">
+                                            <Clock size={14} className={showScheduleSelector ? 'text-[#818cf8]' : 'text-white/30'} />
+                                            <span className="text-[11px] font-semibold text-white/60 uppercase tracking-widest">Planification</span>
                                         </div>
                                         <button
                                             type="button"
                                             onClick={() => setShowScheduleSelector(!showScheduleSelector)}
-                                            className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border transition-all ${showScheduleSelector ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}
+                                            className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border transition-all ${showScheduleSelector ? 'bg-rose-500/10 text-[#F09595] border-rose-500/20' : 'bg-[#378ADD]/10 text-[#85B7EB] border-[#378ADD]/20 hover:bg-[#378ADD]/20'}`}
                                         >
-                                            {showScheduleSelector ? 'Annuler le différé' : 'Programmer'}
+                                            {showScheduleSelector ? 'Annuler' : 'Programmer'}
                                         </button>
                                     </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className={`grid gap-3 px-4 pb-4 ${showScheduleSelector ? 'grid-cols-2' : 'grid-cols-1'}`}>
                                         {showScheduleSelector && (
-                                            <div className="space-y-2 animate-in slide-in-from-top-2">
-                                                <label className="text-[9px] font-bold text-indigo-500 uppercase tracking-[0.2em] ml-1">Date de lancement</label>
+                                            <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-200">
+                                                <label className="text-[10px] font-bold text-[#818cf8] uppercase tracking-[0.15em]">Date de lancement</label>
                                                 <input
                                                     type="datetime-local"
                                                     value={campaignForm.scheduled_at}
                                                     onChange={(e) => setCampaignForm({ ...campaignForm, scheduled_at: e.target.value, start_date: e.target.value.split('T')[0] })}
-                                                    className="w-full bg-slate-950 border border-indigo-500/30 rounded-2xl px-6 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all font-bold"
+                                                    className="w-full bg-[#0d1117] border border-[#6366f1]/30 rounded-[8px] px-3 py-2 text-[12px] text-white focus:border-[#6366f1]/60 focus:ring-0 outline-none transition-colors"
                                                 />
                                             </div>
                                         )}
-                                        <div className="space-y-2">
-                                            <label className="text-[9px] font-bold text-blue-500 uppercase tracking-[0.2em] ml-1">Date d'échéance</label>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-[#85B7EB] uppercase tracking-[0.15em]">Date d'échéance</label>
                                             <input
                                                 type="date"
                                                 value={campaignForm.estimated_end_date}
                                                 onChange={(e) => setCampaignForm({ ...campaignForm, estimated_end_date: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-300 dark:border-white/10 rounded-2xl px-6 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
+                                                className="w-full bg-[#0d1117] border border-white/[0.08] rounded-[8px] px-3 py-2 text-[12px] text-white focus:border-[#378ADD]/50 focus:ring-0 outline-none transition-colors"
                                                 required
                                             />
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Import Excel (.xlsx)</label>
-                                    <div className={`relative border-2 border-dashed rounded-[1.5rem] p-6 flex flex-col items-center justify-center transition-all ${campaignForm.file ? 'border-blue-500 bg-blue-500/5' : 'border-slate-300 dark:border-white/10 hover:border-slate-400 dark:border-white/20 bg-slate-100 dark:bg-white/5'}`}>
+                                {/* Import Excel */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-white/30 uppercase tracking-[0.15em]">Cahier de tests (.xlsx)</label>
+                                    <div className={`relative border border-dashed rounded-[12px] p-5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${campaignForm.file ? 'border-[#378ADD]/60 bg-[#378ADD]/[0.06]' : 'border-white/10 hover:border-white/20 bg-[#1a2235]'}`}>
                                         <input type="file" onChange={handleFileChange} accept=".xlsx, .xls" className="absolute inset-0 opacity-0 cursor-pointer" required={!editingCampaign} />
-                                        <Upload className={`w-8 h-8 mb-2 ${campaignForm.file ? 'text-blue-500 animate-bounce' : 'text-slate-600'}`} />
-                                        <p className={`text-xs font-bold uppercase tracking-widest ${campaignForm.file ? 'text-white' : 'text-slate-500'}`}>
-                                            {campaignForm.file ? campaignForm.file.name : 'Déposez votre cahier de tests'}
+                                        <Upload size={20} className={campaignForm.file ? 'text-[#378ADD]' : 'text-white/20'} />
+                                        <p className={`text-[12px] font-medium text-center ${campaignForm.file ? 'text-[#85B7EB]' : 'text-white/30'}`}>
+                                            {campaignForm.file ? campaignForm.file.name : 'Glisser ou cliquer pour importer'}
                                         </p>
-                                        <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest mt-1">{editingCampaign ? 'Optionnel: Cliquez pour remplacer' : 'Maximum 10 Mo'}</p>
+                                        <p className="text-[10px] text-white/20">
+                                            {editingCampaign ? 'Optionnel — cliquez pour remplacer le fichier existant' : 'Formats acceptés : .xlsx, .xls · max 10 Mo'}
+                                        </p>
                                     </div>
                                 </div>
 
-                                <div className="space-y-4">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Équipe assignée</label>
-                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-100 dark:bg-white/5 p-4 rounded-[1.5rem] border border-slate-300 dark:border-white/10 max-h-56 overflow-y-auto custom-scrollbar">
-                                        {(testers || []).map(tester => (
-                                            <label key={tester.id} className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all border ${campaignForm.assigned_testers.includes(tester.id) ? 'bg-blue-600/20 border-blue-500 text-white' : 'bg-transparent border-slate-200 dark:border-white/5 text-slate-500 hover:border-slate-400 dark:border-white/20'}`}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={campaignForm.assigned_testers.includes(tester.id)}
-                                                    onChange={(e) => {
-                                                        const id = tester.id;
-                                                        if (e.target.checked) {
-                                                            // Ouvre le popup pour ce testeur spécifique
-                                                            setPendingTester(tester);
-                                                            setTempQuota(campaignForm.nb_test_cases || 0);
-                                                            setIsSingleQuotaModalOpen(true);
-                                                        } else {
-                                                            // Supprime simplement
-                                                            setCampaignForm({
-                                                                ...campaignForm,
-                                                                assigned_testers: campaignForm.assigned_testers.filter(tid => tid !== id)
-                                                            });
-                                                            const newQuotas = { ...testerQuotas };
-                                                            delete newQuotas[id];
-                                                            setTesterQuotas(newQuotas);
-                                                        }
-                                                    }}
-                                                    className="hidden"
-                                                />
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black ${campaignForm.assigned_testers.includes(tester.id) ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400'}`}>
-                                                    {tester.username.charAt(0).toUpperCase()}
-                                                </div>
-                                                <span className="text-xs font-bold truncate">{tester.username}</span>
-                                            </label>
-                                        ))}
+                                {/* Équipe */}
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[10px] font-bold text-white/30 uppercase tracking-[0.15em]">Équipe assignée</label>
+                                        {campaignForm.assigned_testers.length > 0 && (
+                                            <span className="text-[10px] font-semibold text-[#5DCAA5] bg-[#1D9E75]/10 border border-[#1D9E75]/20 px-2 py-0.5 rounded-full">
+                                                {campaignForm.assigned_testers.length} sélectionné{campaignForm.assigned_testers.length > 1 ? 's' : ''}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
+                                        {(testers || []).map(tester => {
+                                            const isSelected = campaignForm.assigned_testers.includes(tester.id);
+                                            const quota = testerQuotas[tester.id];
+                                            return (
+                                                <label
+                                                    key={tester.id}
+                                                    className={`flex items-center gap-2.5 p-2.5 rounded-[10px] cursor-pointer transition-all border ${isSelected ? 'bg-[#378ADD]/10 border-[#378ADD]/40' : 'bg-[#1a2235] border-white/[0.06] hover:border-white/20'}`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={(e) => {
+                                                            const id = tester.id;
+                                                            if (e.target.checked) {
+                                                                setPendingTester(tester);
+                                                                setTempQuota(campaignForm.nb_test_cases || 0);
+                                                                setIsSingleQuotaModalOpen(true);
+                                                            } else {
+                                                                setCampaignForm({
+                                                                    ...campaignForm,
+                                                                    assigned_testers: campaignForm.assigned_testers.filter(tid => tid !== id)
+                                                                });
+                                                                const newQuotas = { ...testerQuotas };
+                                                                delete newQuotas[id];
+                                                                setTesterQuotas(newQuotas);
+                                                            }
+                                                        }}
+                                                        className="hidden"
+                                                    />
+                                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${isSelected ? 'bg-[#378ADD] text-white' : 'bg-white/[0.08] text-white/40'}`}>
+                                                        {tester.username.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className={`text-[12px] font-medium truncate leading-tight ${isSelected ? 'text-white' : 'text-white/50'}`}>{tester.username}</span>
+                                                        {isSelected && quota != null && (
+                                                            <span className="text-[10px] text-[#5DCAA5] leading-tight">{quota} tests</span>
+                                                        )}
+                                                    </div>
+                                                    {isSelected && <Check size={12} className="text-[#378ADD] ml-auto shrink-0" />}
+                                                </label>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="px-10 py-8 bg-slate-100 dark:bg-white/5 border-t border-slate-200 dark:border-white/5 flex gap-4 shrink-0">
-                                <button type="button" onClick={() => setIsModalOpen(false)} disabled={isSubmitting} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                            {/* Footer */}
+                            <div className="px-6 py-4 border-t border-white/[0.06] flex items-center gap-3 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsModalOpen(false)}
+                                    disabled={isSubmitting}
+                                    className="px-5 py-2.5 text-[12px] font-medium text-white/40 hover:text-white transition-colors rounded-[8px] hover:bg-white/[0.05]"
+                                >
                                     Annuler
                                 </button>
-                                <button type="submit" disabled={isSubmitting} className="flex-[2] py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-900/40 active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50">
-                                    <CheckCircle className="w-4 h-4" />
-                                    {isSubmitting ? 'Enregistrement...' : (editingCampaign ? 'Enregistrer les modifications' : 'Lancer la campagne')}
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="flex-1 py-2.5 bg-[#378ADD] hover:bg-[#2e75bc] disabled:opacity-50 text-white rounded-[10px] text-[13px] font-semibold transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                                >
+                                    <CheckCircle size={15} />
+                                    {isSubmitting ? 'Enregistrement…' : (editingCampaign ? 'Enregistrer les modifications' : 'Lancer la campagne')}
                                 </button>
                             </div>
                         </form>
@@ -1101,7 +1148,7 @@ const DataDrivenManager = () => {
 
             {/* Delete Confirmation */}
             {deleteModal.isOpen && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
+                <div className="fixed inset-0 z-[200000] flex items-center justify-center bg-slate-950/80 backdrop-blur-xl animate-in fade-in">
                     <div className="bg-slate-900 border border-slate-300 dark:border-white/10 rounded-[3rem] p-10 max-w-sm w-full shadow-2xl animate-in zoom-in-95">
                         <div className="flex flex-col items-center text-center">
                             <div className="w-20 h-20 rounded-full bg-rose-500/10 flex items-center justify-center mb-6 border border-rose-500/20 shadow-[0_0_50px_rgba(244,63,94,0.1)]">
@@ -1124,7 +1171,7 @@ const DataDrivenManager = () => {
             {/* Single Quota Modal */}
             <AnimatePresence>
                 {isSingleQuotaModalOpen && pendingTester && (
-                    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-6">
+                    <div className="fixed inset-0 z-[200000] flex items-center justify-center p-6">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}

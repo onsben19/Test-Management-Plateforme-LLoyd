@@ -143,6 +143,10 @@ export const emailService = {
 
 export const userService = {
     getUsers: (params?: Record<string, unknown>) => api.get('/users/', { params }),
+    updateProfile: (data: FormData) =>
+        api.patch('/profile/', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+    requestPasswordReset: (identifier: string) =>
+        api.post('/forgot-password/', { identifier }),
 };
 
 export const aiService = {
@@ -166,8 +170,8 @@ export const aiService = {
         api.get(`/analytics/catchup-plan/${campaignId}/`),
     notifyCatchupPlan: (campaignId: string | number, testerIds: number[]) =>
         api.post(`/analytics/catchup-plan/${campaignId}/notify/`, { tester_ids: testerIds }),
-    applyCatchupPlan: (campaignId: string | number, testerIds: number[]) =>
-        api.post(`/analytics/catchup-plan/${campaignId}/`, { tester_ids: testerIds }),
+    applyCatchupPlan: (campaignId: string | number, assignments: { tester_id: number; test_count: number }[]) =>
+        api.post(`/analytics/catchup-plan/${campaignId}/`, { tester_ids: assignments }),
     applyRecommendation: (campaignId: string | number, actionId: string) =>
         api.post('/analytics/apply-recommendation/', { campaign_id: campaignId, action_id: actionId }),
     getReinforcementStatus: (campaignId: string | number) =>

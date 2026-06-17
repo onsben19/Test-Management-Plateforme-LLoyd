@@ -3,7 +3,7 @@ from .models import BusinessProject
 from .serializers import BusinessProjectSerializer
 
 class BusinessProjectViewSet(viewsets.ModelViewSet):
-    queryset = BusinessProject.objects.all()
+    queryset = BusinessProject.objects.select_related('created_by').prefetch_related('releases')
     serializer_class = BusinessProjectSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]

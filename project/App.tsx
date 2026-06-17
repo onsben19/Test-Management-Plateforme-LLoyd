@@ -1,49 +1,53 @@
-import React from 'react';
+import React, { lazy } from 'react';
 import '@radix-ui/themes/styles.css';
 import { Theme } from '@radix-ui/themes';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import GlobalAIChat from './src/components/GlobalAIChat';
-
-import Home from './src/pages/Home';
-import Login from './src/pages/Login';
-
-import Anomalies from './src/pages/Anomalies';
-import Settings from './src/pages/Settings';
-import ExecutionTracking from './src/pages/ExecutionTracking';
-import DataDrivenManager from './src/pages/DataDrivenManager';
-import ReleaseManager from './src/pages/ReleaseManager';
-import ProjectPortfolio from './src/pages/ProjectPortfolio';
-import TesterDashboard from './src/pages/TesterDashboard';
-import NotFound from './src/pages/NotFound';
-import Analytics from './src/pages/Analytics';
-import QANewsPage from './src/pages/QANewsPage';
-import CatchupPlanPage from './src/pages/CatchupPlanPage';
-import Profile from './src/pages/Profile';
-
-import UserManagement from './src/pages/UserManagement';
-import Unauthorized from './src/pages/Unauthorized';
-
-// Admin Pages
-import AdminReleases from './src/pages/admin/AdminReleases';
-import AdminCampaigns from './src/pages/admin/AdminCampaigns';
-import AdminExecutions from './src/pages/admin/AdminExecutions';
-import AdminAnomalies from './src/pages/admin/AdminAnomalies';
-import AdminComments from './src/pages/admin/AdminComments';
-import AdminEmails from './src/pages/admin/AdminEmails';
-import AdminAnalytics from './src/pages/admin/AdminAnalytics';
-import AdminDashboard from './src/pages/admin/AdminDashboard';
-import AdminQANews from './src/pages/admin/AdminQANews';
-import ManagerDashboard from './src/pages/manager/ManagerDashboard';
-import EmailDashboard from './src/pages/EmailDashboard';
-import ChatCenter from './src/pages/ChatCenter';
-
-
 import { AuthProvider } from './src/context/AuthContext';
 import RoleGuard from './src/components/RoleGuard';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { SidebarProvider } from './src/context/SidebarContext';
+
+// Pages chargées uniquement à la navigation (code splitting)
+const Home = lazy(() => import('./src/pages/Home'));
+const Login = lazy(() => import('./src/pages/Login'));
+const Anomalies = lazy(() => import('./src/pages/Anomalies'));
+const Settings = lazy(() => import('./src/pages/Settings'));
+const ExecutionTracking = lazy(() => import('./src/pages/ExecutionTracking'));
+const DataDrivenManager = lazy(() => import('./src/pages/DataDrivenManager'));
+const ReleaseManager = lazy(() => import('./src/pages/ReleaseManager'));
+const ProjectPortfolio = lazy(() => import('./src/pages/ProjectPortfolio'));
+const TesterDashboard = lazy(() => import('./src/pages/TesterDashboard'));
+const NotFound = lazy(() => import('./src/pages/NotFound'));
+const Analytics = lazy(() => import('./src/pages/Analytics'));
+const QANewsPage = lazy(() => import('./src/pages/QANewsPage'));
+const CatchupPlanPage = lazy(() => import('./src/pages/CatchupPlanPage'));
+const Profile = lazy(() => import('./src/pages/Profile'));
+const UserManagement = lazy(() => import('./src/pages/UserManagement'));
+const Unauthorized = lazy(() => import('./src/pages/Unauthorized'));
+const EmailDashboard = lazy(() => import('./src/pages/EmailDashboard'));
+const ChatCenter = lazy(() => import('./src/pages/ChatCenter'));
+
+// Admin pages
+const AdminReleases = lazy(() => import('./src/pages/admin/AdminReleases'));
+const AdminCampaigns = lazy(() => import('./src/pages/admin/AdminCampaigns'));
+const AdminExecutions = lazy(() => import('./src/pages/admin/AdminExecutions'));
+const AdminAnomalies = lazy(() => import('./src/pages/admin/AdminAnomalies'));
+const AdminComments = lazy(() => import('./src/pages/admin/AdminComments'));
+const AdminEmails = lazy(() => import('./src/pages/admin/AdminEmails'));
+const AdminAnalytics = lazy(() => import('./src/pages/admin/AdminAnalytics'));
+const AdminDashboard = lazy(() => import('./src/pages/admin/AdminDashboard'));
+const AdminQANews = lazy(() => import('./src/pages/admin/AdminQANews'));
+const ManagerDashboard = lazy(() => import('./src/pages/manager/ManagerDashboard'));
+
+const PageLoader = () => (
+  <div className="flex flex-col items-center justify-center min-h-screen bg-[#060a16] gap-4">
+    <div className="w-10 h-10 border-4 border-violet-500/20 border-t-violet-500 rounded-full animate-spin" />
+    <span className="text-white/30 text-xs font-semibold tracking-widest uppercase animate-pulse">Chargement...</span>
+  </div>
+);
 
 const App: React.FC = () => {
   return (
@@ -53,7 +57,7 @@ const App: React.FC = () => {
           <SidebarProvider>
             <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <main className="min-h-screen font-sans bg-background text-foreground transition-colors duration-300">
-                <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-[#060a16] text-white font-bold animate-pulse">Chargement des ressources...</div>}>
+                <React.Suspense fallback={<PageLoader />}>
                   <Routes>
                     <Route path="/login" element={<Login />} />
                     <Route path="/unauthorized" element={<Unauthorized />} />
@@ -99,9 +103,6 @@ const App: React.FC = () => {
                         <ReleaseManager />
                       </RoleGuard>
                     } />
-
-
-
 
                     <Route path="/analytics" element={
                       <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
@@ -156,8 +157,6 @@ const App: React.FC = () => {
                         <ChatCenter />
                       </RoleGuard>
                     } />
-
-
 
                     {/* Admin Routes */}
                     <Route path="/admin/releases" element={

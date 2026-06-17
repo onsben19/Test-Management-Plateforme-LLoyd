@@ -19,15 +19,15 @@ const SourceLogo: React.FC<{ source: string; className?: string }> = ({ source, 
 const getSourceStyle = (source: string) => {
     const srcLower = source.toLowerCase();
     if (srcLower.includes('ministry')) {
-        return { text: 'text-violet-400', label: 'Ministry of Testing' };
+        return { text: 'text-violet-400', label: 'Ministry of Testing', bg: 'from-violet-900/40 to-violet-950/60', glow: 'rgba(139,92,246,0.15)' };
     }
     if (srcLower.includes('testim')) {
-        return { text: 'text-cyan-400', label: 'Testim.io' };
+        return { text: 'text-cyan-400', label: 'Testim.io', bg: 'from-cyan-900/40 to-cyan-950/60', glow: 'rgba(6,182,212,0.15)' };
     }
     if (srcLower.includes('applitools')) {
-        return { text: 'text-teal-400', label: 'Applitools' };
+        return { text: 'text-teal-400', label: 'Applitools', bg: 'from-teal-900/40 to-teal-950/60', glow: 'rgba(20,184,166,0.15)' };
     }
-    return { text: 'text-[#85B7EB]', label: source };
+    return { text: 'text-[#85B7EB]', label: source, bg: 'from-blue-900/30 to-blue-950/50', glow: 'rgba(55,138,221,0.12)' };
 };
 
 const FILTERS = [
@@ -194,11 +194,15 @@ const QANewsHub: React.FC = () => {
                                 }`}
                             >
                                 {/* Zone Image */}
-                                <div className={`relative flex items-center justify-center bg-white/[0.02] ${
-                                    isFeatured ? 'h-full min-h-[160px]' : 'h-[120px] w-full'
-                                }`}>
-                                    <SourceLogo source={article.source} className="w-[48px] h-[48px] object-contain drop-shadow-lg" />
-                                    {isFeatured && <div className="absolute bottom-0 left-0 w-full h-[50%] bg-gradient-to-t from-[#0b0f19] to-transparent opacity-60" />}
+                                <div className={`relative flex items-center justify-center bg-gradient-to-b ${style.bg} ${
+                                    isFeatured ? 'h-full min-h-[160px]' : 'h-[130px] w-full'
+                                } overflow-hidden`}>
+                                    {/* Glow halo */}
+                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <div className="w-24 h-24 rounded-full blur-2xl opacity-70" style={{ background: style.glow }} />
+                                    </div>
+                                    <SourceLogo source={article.source} className={`relative z-10 object-contain drop-shadow-xl ${isFeatured ? 'w-[88px] h-[88px]' : 'w-[72px] h-[72px]'}`} />
+                                    <div className="absolute bottom-0 left-0 w-full h-[40%] bg-gradient-to-t from-[#0b0f19] to-transparent" />
                                 </div>
 
                                 {/* Body */}

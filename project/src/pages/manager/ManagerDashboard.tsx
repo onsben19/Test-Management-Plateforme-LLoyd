@@ -35,7 +35,8 @@ import {
     Pencil,
     Trash,
     Clock,
-    ShieldAlert
+    ShieldAlert,
+    Users
 } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -47,6 +48,7 @@ import CampaignDrawer from './components/CampaignDrawer';
 import CatchupPlanIA from '../../components/CatchupPlanIA';
 import ManagerRealtimeDashboard from './components/ManagerRealtimeDashboard';
 import HistoricalAnalyticsDashboard from './components/HistoricalAnalyticsDashboard';
+import TesterProfilesTab from './components/TesterProfilesTab';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -93,10 +95,10 @@ const ManagerDashboard = () => {
         setLoading(true);
         try {
             const [projectsRes, campaignsRes, anomaliesRes, businessProjectsRes] = await Promise.all([
-                projectService.getProjects(),
-                campaignService.getCampaigns(),
-                anomalyService.getAnomalies(),
-                businessProjectService.getBusinessProjects()
+                projectService.getProjects({ page_size: 1000 }),
+                campaignService.getCampaigns({ page_size: 1000 } as any),
+                anomalyService.getAnomalies({ page_size: 1000 }),
+                businessProjectService.getBusinessProjects({ page_size: 1000 })
             ]);
 
             const projData: any[] = projectsRes.data.results ?? projectsRes.data;
@@ -117,7 +119,11 @@ const ManagerDashboard = () => {
                 active_projects: projData.length,
                 total_campaigns: campData.length,
                 open_anomalies: anomData.filter((a: any) => (a.statut || a.status) === 'OUVERTE').length,
-                success_rate: Math.round((campData.reduce((s, c) => s + (c.passed_count || 0), 0) / (campData.reduce((s, c) => s + (c.nb_test_cases || 0), 0) || 1)) * 100),
+                success_rate: (() => {
+                    const p = campData.reduce((s, c) => s + (c.passed_count || 0), 0);
+                    const f = campData.reduce((s, c) => s + (c.failed_count || 0), 0);
+                    return p + f > 0 ? Math.round((p / (p + f)) * 100) : 0;
+                })(),
             });
             setAiBrief(briefRes.data.brief);
             setAiBriefTargetId(briefRes.data.target_id);
@@ -194,8 +200,15 @@ const ManagerDashboard = () => {
         // --- Stats (computed from campaign fields directly) ---
         const totalTestCases = filteredCamps.reduce((s: number, c: any) => s + (c.nb_test_cases || 0), 0);
         const totalPassed = filteredCamps.reduce((s: number, c: any) => s + (c.passed_count || 0), 0);
-        const successRate = totalTestCases > 0 ? Math.round((totalPassed / totalTestCases) * 100) : 0;
-        const openAnomalies = filteredAnoms.filter((a: any) => (a.statut || a.status) === 'OUVERTE').length;
+        const totalFailed = filteredCamps.reduce((s: number, c: any) => s + (c.failed_count || 0), 0);
+        const totalExecuted = totalPassed + totalFailed;
+        // Taux de réussite = passed / (passed + failed) — exclut les tests PENDING
+        const successRate = totalExecuted > 0 ? Math.round((totalPassed / totalExecuted) * 100) : 0;
+        // Couverture = (passed + failed) / total — inclut les tests PENDING
+        const coverageRate = totalTestCases > 0 ? Math.round((totalExecuted / totalTestCases) * 100) : 0;
+        const openAnomalies = filteredAnoms.filter((a: any) =>
+            ['OUVERTE', 'EN_INVESTIGATION'].includes(a.statut || a.status)
+        ).length;
 
         // --- Weekly bar chart (campaigns created per day) ---
         const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -251,17 +264,18 @@ const ManagerDashboard = () => {
 
         return {
             stats: {
-                activeProjects: projects.length,
+                activeProjects: selectedProjectId === 'all' ? projects.length : validReleaseIds.length,
                 totalCampaigns: filteredCamps.length,
                 openAnomalies,
                 successRate,
+                coverageRate,
                 totalTestCases,
                 totalPassed,
+                totalFailed,
+                totalExecuted,
             },
             weeklyChart,
-            distribution: distribution.length > 0
-                ? distribution
-                : [{ name: 'Aucune', value: 1, color: '#94a3b8' }],
+            distribution,
             releaseNames,
             campaignsByRelease,
             filteredCamps,
@@ -277,6 +291,7 @@ const ManagerDashboard = () => {
     const dashboardTabs = [
         { id: 'overview', label: t('managerDashboard.tabs.overview') || 'Vue d\'ensemble', icon: LayoutDashboard },
         { id: 'activity', label: t('managerDashboard.tabs.activity') || 'Activité', icon: Activity },
+        { id: 'testers', label: 'Testeurs', icon: Users },
     ];
 
 
@@ -470,7 +485,7 @@ const ManagerDashboard = () => {
                                     value={`${filteredData.stats.successRate}%`}
                                     icon={Award}
                                     variant="green"
-                                    description={`${filteredData.stats.totalPassed} / ${filteredData.stats.totalTestCases} tests`}
+                                    description={`${filteredData.stats.totalPassed} réussis / ${filteredData.stats.totalExecuted} exécutés (couverture : ${filteredData.stats.coverageRate}%)`}
                                     isLoading={loading}
                                 />
                                 <StatCard
@@ -544,25 +559,32 @@ const ManagerDashboard = () => {
                                             isLoading={loading}
                                             onSettingsClick={() => { setIsRefreshing(true); fetchData(); }}
                                         >
-                                            <div className="h-[260px] w-full">
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <PieChart>
-                                                        <Pie
-                                                            data={filteredData.distribution}
-                                                            cx="50%" cy="45%"
-                                                            innerRadius={52} outerRadius={80}
-                                                            paddingAngle={6} dataKey="value"
-                                                        >
-                                                            {filteredData.distribution.map((entry, i) => (
-                                                                <Cell key={i} fill={entry.color} />
-                                                            ))}
-                                                        </Pie>
-                                                        <Tooltip
-                                                            contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px', color: '#fff', fontSize: 12 }}
-                                                        />
-                                                        <Legend iconSize={8} formatter={(v) => <span className="text-xs font-bold text-slate-400">{v}</span>} />
-                                                    </PieChart>
-                                                </ResponsiveContainer>
+                                            <div className="h-[260px] w-full flex items-center justify-center">
+                                                {filteredData.distribution.length === 0 ? (
+                                                    <div className="flex flex-col items-center gap-2 text-slate-500">
+                                                        <CheckCircle2 className="w-10 h-10 text-emerald-500/40" />
+                                                        <p className="text-xs font-bold uppercase tracking-widest">Aucune anomalie</p>
+                                                    </div>
+                                                ) : (
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <PieChart>
+                                                            <Pie
+                                                                data={filteredData.distribution}
+                                                                cx="50%" cy="45%"
+                                                                innerRadius={52} outerRadius={80}
+                                                                paddingAngle={6} dataKey="value"
+                                                            >
+                                                                {filteredData.distribution.map((entry, i) => (
+                                                                    <Cell key={i} fill={entry.color} />
+                                                                ))}
+                                                            </Pie>
+                                                            <Tooltip
+                                                                contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px', color: '#fff', fontSize: 12 }}
+                                                            />
+                                                            <Legend iconSize={8} formatter={(v) => <span className="text-xs font-bold text-slate-400">{v}</span>} />
+                                                        </PieChart>
+                                                    </ResponsiveContainer>
+                                                )}
                                             </div>
                                         </DashboardWidget>
                                     </div>
@@ -690,6 +712,10 @@ const ManagerDashboard = () => {
                     {/* ================================================================
                         TAB 4 — ACTIVITÉ (REAL-TIME)
                     ================================================================ */}
+                    {activeTab === 'testers' && (
+                        <TesterProfilesTab />
+                    )}
+
                     {activeTab === 'activity' && (
                         <div className="space-y-8">
                             {/* Campaign Selector for Real-time */}

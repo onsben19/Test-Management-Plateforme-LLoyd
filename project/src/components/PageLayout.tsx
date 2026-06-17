@@ -3,6 +3,7 @@ import Header from './Header';
 import Sidebar from './Sidebar';
 import { useSidebar } from '../context/SidebarContext';
 import { motion } from 'framer-motion';
+import { ArrowLeft } from 'lucide-react';
 
 interface PageLayoutProps {
     children: React.ReactNode;
@@ -12,6 +13,8 @@ interface PageLayoutProps {
     loading?: boolean;
     noPadding?: boolean;
     fullHeight?: boolean;
+    onBack?: () => void;
+    backLabel?: string;
 }
 
 const PageLayout: React.FC<PageLayoutProps> = ({
@@ -21,7 +24,9 @@ const PageLayout: React.FC<PageLayoutProps> = ({
     actions,
     loading = false,
     noPadding = false,
-    fullHeight = false
+    fullHeight = false,
+    onBack,
+    backLabel = 'Retour'
 }) => {
     const { isOpen } = useSidebar();
 
@@ -57,6 +62,15 @@ const PageLayout: React.FC<PageLayoutProps> = ({
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ duration: 0.5 }}
                                 >
+                                    {onBack && (
+                                        <button
+                                            onClick={onBack}
+                                            className="flex items-center gap-1.5 mb-3 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors group w-fit"
+                                        >
+                                            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                                            <span className="text-xs font-bold uppercase tracking-widest">{backLabel}</span>
+                                        </button>
+                                    )}
                                     {title && (
                                         <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">
                                             {title}

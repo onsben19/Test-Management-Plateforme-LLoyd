@@ -33,6 +33,7 @@ export default defineConfig({
   },
   logLevel: 'info',
   build: {
+    chunkSizeWarningLimit: 2000,
     rollupOptions: {
       onwarn(warning, warn) {
         // ignore certain harmless warnings

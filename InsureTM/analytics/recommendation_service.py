@@ -1,7 +1,9 @@
 import logging
 import math
 from datetime import date, timedelta
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from django.utils import timezone
+from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from campaigns.models import Campaign
 from testCases.models import TestCase
@@ -39,10 +41,62 @@ class CatchupRecommendationManager:
             logger.error(f"Erreur appel n8n: {e}")
             return False
 
+    def _score_one_tester(self, tester, campaign, current_tester_ids, campaign_id, cutoff):
+        """Compute stats for a single tester — designed to run in a thread pool."""
+        from campaigns.models import CampaignAssignment
+
+        cache_key = f"catchup_tester_{tester.id}_{campaign_id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+
+        recent_tests = TestCase.objects.filter(
+            tester=tester,
+            execution_date__gte=cutoff
+        ).count()
+        tester_load = recent_tests / 3.0
+
+        perf = self.ml_guard.score_tester(tester.id, campaign_id)
+
+        is_already_in = tester.id in current_tester_ids
+
+        has_finished_quota = False
+        if is_already_in:
+            assignment = CampaignAssignment.objects.filter(campaign=campaign, tester=tester).first()
+            if assignment and assignment.test_quota > 0:
+                total_done = TestCase.objects.filter(
+                    campaign=campaign, tester=tester
+                ).exclude(status='PENDING').count()
+                has_finished_quota = total_done >= assignment.test_quota
+
+        result = {
+            "id": tester.id,
+            "name": (
+                f"{tester.first_name} {tester.last_name[0]}."
+                if tester.first_name and tester.last_name
+                else tester.username
+            ),
+            "email": tester.email,
+            "current_load": round(tester_load, 1),
+            "is_overloaded": tester_load > 8,
+            "is_already_in": is_already_in,
+            "has_finished_quota": has_finished_quota,
+            "ml_score": perf['score'],
+            "ml_label": perf['label'],
+            "ml_metrics": perf['metrics'],
+        }
+        cache.set(cache_key, result, timeout=120)
+        return result
+
     def get_catchup_plan(self, campaign_id):
+        plan_cache_key = f"catchup_plan_{campaign_id}"
+        cached_plan = cache.get(plan_cache_key)
+        if cached_plan:
+            return cached_plan
+
         try:
             campaign = Campaign.objects.get(id=campaign_id)
-            ml_status = self.ml_guard.get_campaign_status(campaign_id)
+            ml_status = self.ml_guard.get_campaign_status(campaign_id, generate_insight=False)
             
             delay_days = ml_status.get('delay_days', 0)
             current_velocity = ml_status.get('velocity', 0)
@@ -52,63 +106,33 @@ class CatchupRecommendationManager:
             finished_tests = ml_status.get('progress', {}).get('finished', 0)
             remaining_tests = max(0, total_tests - finished_tests)
             
-            # Calcul de la date cible (deadline originale)
             target_date = campaign.estimated_end_date
             if not target_date:
-                # Si pas de date, on prend la date d'aujourd'hui + 7 jours par défaut pour le calcul
                 target_date = timezone.now().date() + timedelta(days=7)
                 
             today = timezone.now().date()
-            days_left = (target_date - today).days
-            
-            if days_left <= 0:
-                days_left = 1 # Sécurité pour éviter division par zéro
-                
+            days_left = max(1, (target_date - today).days)
             required_velocity = remaining_tests / days_left
             
-            # Analyse des testeurs disponibles (ceux du projet ou tous les testeurs)
-            # On cherche des renforts parmi ceux qui ne sont pas déjà dans la campagne
-            current_tester_ids = list(campaign.assigned_testers.values_list('id', flat=True))
+            current_tester_ids = set(campaign.assigned_testers.values_list('id', flat=True))
+            all_relevant_testers = list(User.objects.filter(role='TESTER'))
+            cutoff = timezone.now() - timedelta(days=3)
             
-            # Pool de testeurs potentiels : tous les testeurs du système
-            all_relevant_testers = User.objects.filter(role='TESTER')
-            
-            from campaigns.models import CampaignAssignment
-            
+            # Score all testers in parallel (up to 8 threads)
             tester_stats = []
-            for tester in all_relevant_testers:
-                # 1. Measure recent load (last 3 days)
-                recent_tests = TestCase.objects.filter(
-                    tester=tester,
-                    execution_date__gte=timezone.now() - timedelta(days=3)
-                ).count()
-                tester_load = recent_tests / 3.0
-                
-                # 2. Get ML Performance Score
-                perf = self.ml_guard.score_tester(tester.id, campaign_id)
-                
-                is_already_in = tester.id in current_tester_ids
-                
-                # 3. Check if they finished their quota (if already in)
-                has_finished_quota = False
-                if is_already_in:
-                    assignment = CampaignAssignment.objects.filter(campaign=campaign, tester=tester).first()
-                    if assignment and assignment.test_quota > 0:
-                        total_done = TestCase.objects.filter(campaign=campaign, tester=tester).exclude(status='PENDING').count()
-                        has_finished_quota = total_done >= assignment.test_quota
-
-                tester_stats.append({
-                    "id": tester.id,
-                    "name": f"{tester.first_name} {tester.last_name[0]}." if tester.first_name and tester.last_name else tester.username,
-                    "email": tester.email,
-                    "current_load": round(tester_load, 1),
-                    "is_overloaded": tester_load > 8,
-                    "is_already_in": is_already_in,
-                    "has_finished_quota": has_finished_quota,
-                    "ml_score": perf['score'],
-                    "ml_label": perf['label'],
-                    "ml_metrics": perf['metrics']
-                })
+            with ThreadPoolExecutor(max_workers=min(8, len(all_relevant_testers) or 1)) as executor:
+                futures = {
+                    executor.submit(
+                        self._score_one_tester,
+                        tester, campaign, current_tester_ids, campaign_id, cutoff
+                    ): tester
+                    for tester in all_relevant_testers
+                }
+                for future in as_completed(futures):
+                    try:
+                        tester_stats.append(future.result())
+                    except Exception as exc:
+                        logger.warning(f"score_tester failed: {exc}")
                 
             # Distribution intelligente : on cherche des renforts
             # (ceux qui ne sont PAS dans la campagne OU ceux qui ont déjà fini leur quota)
@@ -136,12 +160,20 @@ class CatchupRecommendationManager:
                         "extra_tests_per_day": extra
                     })
 
-            # On ne retourne que les testeurs recommandés (renforts) ou ceux qui sont intéressants à voir
-            final_distribution = [t for t in tester_stats if t.get('status') == 'RECOMMENDED']
-            
-            # Si aucun renfort n'est disponible, on montre les testeurs actuels pour information
+            # Marquer les testeurs déjà assignés comme "CURRENT"
+            for t in tester_stats:
+                if t['is_already_in'] and t.get('status') != 'RECOMMENDED':
+                    t['status'] = 'CURRENT'
+
+            # Toujours inclure : renforts recommandés + équipe actuelle
+            final_distribution = [
+                t for t in tester_stats
+                if t.get('status') in ('RECOMMENDED', 'CURRENT')
+            ]
+
+            # Si vraiment personne, afficher tout le monde pour information
             if not final_distribution:
-                final_distribution = [t for t in tester_stats if t['is_already_in']]
+                final_distribution = tester_stats
 
             start_date_val = campaign.start_date.isoformat() if campaign.start_date else campaign.created_at.date().isoformat()
             projected_end_date_val = ml_status.get('projected_end_date')
@@ -162,9 +194,9 @@ class CatchupRecommendationManager:
                 "recommendation_engine": "ML Performance Model v1.0"
             }
 
-            # Étape 2 : Envoi automatique à n8n
-            self.send_to_n8n(plan_data)
-
+            # NE PAS appeler send_to_n8n ici — n8n est déclenché uniquement
+            # par NotifyCatchupView (bouton "Informer" du manager).
+            cache.set(plan_cache_key, plan_data, timeout=90)
             return plan_data
         except Exception as e:
             logger.exception("Error in CatchupRecommendationManager")

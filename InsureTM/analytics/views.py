@@ -591,13 +591,13 @@ class NotifyCatchupView(APIView):
         campaign = get_object_or_404(Campaign, id=campaign_id)
         
         from .ml_service import MLTimelineGuard
-        ml_guard = MLTimelineGuard(campaign)
-        ml_status = ml_guard.get_status(generate_insight=False)
+        ml_guard = MLTimelineGuard()
+        ml_status = ml_guard.get_campaign_status(campaign.id, generate_insight=False)
         real_delay_days = ml_status.get('delay_days', 0) if isinstance(ml_status, dict) else 0
 
         tester_distribution = []
         for t in testers:
-            tester_score_data = ml_guard.score_tester(t)
+            tester_score_data = ml_guard.score_tester(t.id)
             ml_score = tester_score_data.get('score', 0) if isinstance(tester_score_data, dict) else 0
             tester_distribution.append({
                 "tester_id": t.id,
@@ -632,7 +632,11 @@ class NotifyCatchupView(APIView):
 class AcceptReinforcementView(APIView):
     from rest_framework.permissions import AllowAny
     permission_classes = [AllowAny]
-    
+
+    def get(self, request):
+        """n8n sends a GET when the tester clicks the accept link in the email."""
+        return self.post(request)
+
     def post(self, request):
         # --- Token security check ---
         import os
@@ -871,50 +875,78 @@ class ApplyRecommendationActionView(APIView):
 
 class HistoricalReleasesView(APIView):
     permission_classes = [IsAuthenticated]
+    CACHE_TTL = 120
 
     def get(self, request):
+        from django.core.cache import cache
+        from django.db.models import Count, Q, Min, Max
+        project_id = request.query_params.get('project_id')
+        cache_key = f"hist_releases_{project_id or 'all'}"
+        cached = cache.get(cache_key)
+        if cached:
+            return Response(cached)
         try:
-            project_id = request.query_params.get('project_id')
             if project_id and project_id != 'all':
-                campaigns = Campaign.objects.filter(project__business_project_id=project_id).order_by('created_at')
+                campaigns = (Campaign.objects
+                             .filter(project__business_project_id=project_id)
+                             .select_related('project')
+                             .order_by('created_at'))
             else:
-                campaigns = Campaign.objects.all().order_by('-created_at')[:10] # Top 10 récentes globalement
-            
+                campaigns = (Campaign.objects
+                             .select_related('project')
+                             .order_by('-created_at')[:10])
+
+            # One aggregated query per campaign batch
+            campaign_ids = [c.id for c in campaigns]
+            tc_stats = (TestCase.objects
+                        .filter(campaign_id__in=campaign_ids)
+                        .values('campaign_id')
+                        .annotate(
+                            total=Count('id'),
+                            passed=Count('id', filter=Q(status='PASSED')),
+                            failed=Count('id', filter=Q(status='FAILED')),
+                            min_date=Min('execution_date'),
+                            max_date=Max('execution_date'),
+                        ))
+            tc_map = {r['campaign_id']: r for r in tc_stats}
+
+            anomaly_stats = (Anomalie.objects
+                             .filter(test_case__campaign_id__in=campaign_ids)
+                             .values('test_case__campaign_id')
+                             .annotate(cnt=Count('id')))
+            anomaly_map = {r['test_case__campaign_id']: r['cnt'] for r in anomaly_stats}
+
             data = []
             for camp in campaigns:
-                tcs = TestCase.objects.filter(campaign=camp)
-                # On utilise le count réel en base de préférence, ou nb_test_cases défini dans le modèle
-                total = tcs.count() or camp.nb_test_cases
-                passed = tcs.filter(status='PASSED').count()
-                
-                anomalies = Anomalie.objects.filter(test_case__campaign=camp).count()
-                
-                exec_dates = tcs.filter(execution_date__isnull=False).values_list('execution_date', flat=True)
-                velocity = 0
+                s = tc_map.get(camp.id, {})
+                total = s.get('total', 0) or camp.nb_test_cases or 0
+                passed = s.get('passed', 0)
+                failed = s.get('failed', 0)
+                executed = passed + failed
                 duration = 0
-                if exec_dates:
-                    start = min(exec_dates)
-                    end = max(exec_dates)
-                    duration = (end - start).days or 1
-                    velocity = len(exec_dates) / duration
-                
+                velocity = 0
+                if s.get('min_date') and s.get('max_date'):
+                    duration = (s['max_date'] - s['min_date']).days or 1
+                    velocity = executed / duration
+
                 if project_id and project_id != 'all':
                     version = camp.title or "N/A"
                 else:
-                    # En vue globale, on préfixe par l'initiale du projet pour plus de clarté
                     p_name = camp.project.name if camp.project else "PR"
                     version = f"{p_name[:3].upper()} - {camp.title or 'N/A'}"
-                
+
                 data.append({
                     "release_id": camp.id,
                     "version": version,
-                    "pass_rate": round((passed / total * 100), 1) if total > 0 else 0,
+                    "pass_rate": round((passed / executed * 100), 1) if executed > 0 else 0,
+                    "coverage_rate": round((executed / total * 100), 1) if total > 0 else 0,
                     "total_tests": total,
                     "avg_velocity": round(velocity, 1),
-                    "anomaly_count": anomalies,
+                    "anomaly_count": anomaly_map.get(camp.id, 0),
                     "duration_days": duration,
                     "completed_at": camp.estimated_end_date.isoformat() if camp.estimated_end_date else camp.created_at.isoformat()
                 })
+            cache.set(cache_key, data, timeout=self.CACHE_TTL)
             return Response(data)
         except Exception as e:
             logger.exception("Error in HistoricalReleasesView")
@@ -922,89 +954,86 @@ class HistoricalReleasesView(APIView):
 
 class HistoricalTestersView(APIView):
     permission_classes = [IsAuthenticated]
+    CACHE_TTL = 120
 
     def get(self, request):
+        from django.core.cache import cache
+        from django.db.models import Count, Q, Min, Max
+        from django.contrib.auth import get_user_model
+        from .ml_service import MLTimelineGuard
+
+        project_id = request.query_params.get('project_id')
+        cache_key = f"hist_testers_{project_id or 'all'}"
+        cached = cache.get(cache_key)
+        if cached:
+            return Response(cached)
+
         try:
-            project_id = request.query_params.get('project_id')
-            
-            # Identification des testeurs ayant participé
-            if project_id and project_id != 'all':
-                testers = TestCase.objects.filter(campaign__project__business_project_id=project_id).values('tester').distinct()
-            else:
-                testers = TestCase.objects.all().values('tester').distinct()
-            
-            data = []
-            from django.contrib.auth import get_user_model
-            from .ml_service import MLTimelineGuard
             User = get_user_model()
-            ml_guard = MLTimelineGuard()
-            
-            for t_dict in testers:
-                tester_id = t_dict['tester']
-                if not tester_id: continue
-                try:
-                    user = User.objects.get(id=tester_id)
-                except User.DoesNotExist:
+            base_qs = TestCase.objects.exclude(status='PENDING')
+            if project_id and project_id != 'all':
+                base_qs = base_qs.filter(campaign__project__business_project_id=project_id)
+
+            # Single aggregated query: group by (tester, campaign)
+            agg = (base_qs
+                   .values('tester_id', 'campaign_id', 'campaign__title')
+                   .annotate(
+                       passed=Count('id', filter=Q(status='PASSED')),
+                       total=Count('id'),
+                       min_date=Min('execution_date'),
+                       max_date=Max('execution_date'),
+                   )
+                   .order_by('tester_id', 'campaign__created_at'))
+
+            # Group results by tester
+            from collections import defaultdict
+            tester_map = defaultdict(list)
+            for row in agg:
+                if not row['tester_id']:
                     continue
-                
-                if project_id and project_id != 'all':
-                    campaigns = Campaign.objects.filter(project_id=project_id).order_by('created_at')
-                else:
-                    campaigns = Campaign.objects.all().order_by('created_at')
-                releases_perf = []
-                for camp in campaigns:
-                    tc_set = TestCase.objects.filter(campaign=camp, tester=user)
-                    if not tc_set.exists(): continue
-                    
-                    executed_tc_set = tc_set.exclude(status='PENDING')
-                    passed = executed_tc_set.filter(status='PASSED').count()
-                    total = executed_tc_set.count()
-                    
-                    exec_dates = tc_set.filter(execution_date__isnull=False).values_list('execution_date', flat=True)
-                    velocity = 0
-                    if exec_dates:
-                        start = min(exec_dates)
-                        end = max(exec_dates)
-                        dur = (end - start).days or 1
-                        velocity = len(exec_dates) / dur
-                    
-                    version = camp.title.split()[-1] if camp.title and camp.title.split() else (camp.title or "N/A")
-                    
-                    releases_perf.append({
-                        "version": version,
-                        "pass_rate": round((passed / total * 100), 1) if total > 0 else 0,
-                        "velocity": round(velocity, 1)
-                    })
-                
-                if not releases_perf: continue
-                
+                velocity = 0
+                if row['min_date'] and row['max_date']:
+                    dur = (row['max_date'] - row['min_date']).days or 1
+                    velocity = row['total'] / dur
+                title = row['campaign__title'] or 'N/A'
+                version = title.split()[-1] if title.split() else title
+                tester_map[row['tester_id']].append({
+                    "version": version,
+                    "pass_rate": round((row['passed'] / row['total'] * 100), 1) if row['total'] > 0 else 0,
+                    "velocity": round(velocity, 1),
+                })
+
+            tester_ids = list(tester_map.keys())
+            users = {u.id: u for u in User.objects.filter(id__in=tester_ids)}
+            ml_guard = MLTimelineGuard()
+
+            data = []
+            for tester_id, releases_perf in tester_map.items():
+                user = users.get(tester_id)
+                if not user or not releases_perf:
+                    continue
                 latest = releases_perf[-1]['pass_rate']
                 first = releases_perf[0]['pass_rate']
                 delta = latest - first
-                
                 trend = 'stable'
                 if delta > 5: trend = 'improving'
                 elif delta < -5: trend = 'declining'
-                
-                ml_perf = ml_guard.score_tester(tester_id=user.id)
-                
+
+                ml_perf = ml_guard.score_tester(tester_id=tester_id)
                 name = user.get_full_name() or user.username
-                initials = "".join([part[0] for part in name.split()[:2]]).upper()
+                initials = "".join([p[0] for p in name.split()[:2]]).upper()
 
                 data.append({
-                    "tester": {
-                        "id": user.id, 
-                        "name": name, 
-                        "initials": initials
-                    },
+                    "tester": {"id": tester_id, "name": name, "initials": initials},
                     "releases": releases_perf,
                     "trend": trend,
                     "latest_pass_rate": latest,
                     "delta_vs_first": round(delta, 1),
                     "ml_score": ml_perf.get("score", 50),
                     "ml_label": ml_perf.get("label", "NEUTRAL"),
-                    "ml_metrics": ml_perf.get("metrics", {})
+                    "ml_metrics": ml_perf.get("metrics", {}),
                 })
+            cache.set(cache_key, data, timeout=self.CACHE_TTL)
             return Response(data)
         except Exception as e:
             logger.exception("Error in HistoricalTestersView")
@@ -1012,56 +1041,63 @@ class HistoricalTestersView(APIView):
 
 class HistoricalModulesView(APIView):
     permission_classes = [IsAuthenticated]
+    CACHE_TTL = 180
 
     def get(self, request):
+        from django.core.cache import cache
+        from django.db.models import Count, Q
+
+        project_id = request.query_params.get('project_id')
+        cache_key = f"hist_modules_{project_id or 'all'}"
+        cached = cache.get(cache_key)
+        if cached:
+            return Response(cached)
+
         try:
-            project_id = request.query_params.get('project_id')
-            
             if project_id and project_id != 'all':
-                tcs = TestCase.objects.filter(campaign__project__business_project_id=project_id)
+                qs = TestCase.objects.filter(campaign__project__business_project_id=project_id)
             else:
-                tcs = TestCase.objects.all()
-            
-            modules = {}
-            for tc in tcs:
-                # Extraction du nom du module depuis le JSON
-                data = tc.data_json or {}
+                qs = TestCase.objects.all()
+
+            # Only fetch the fields we need — avoids loading heavy data_json blobs
+            rows = qs.only('id', 'status', 'campaign_id', 'data_json').iterator(chunk_size=500)
+
+            modules: dict = {}
+            for tc in rows:
+                raw = tc.data_json or {}
                 mod_name = "Core"
-                if isinstance(data, dict):
-                    mod_name = data.get('Module') or data.get('Domaine') or "Core"
-                elif isinstance(data, list):
-                    for item in data:
+                if isinstance(raw, dict):
+                    mod_name = raw.get('Module') or raw.get('Domaine') or "Core"
+                elif isinstance(raw, list):
+                    for item in raw:
                         if isinstance(item, dict):
                             found = item.get('Module') or item.get('Domaine')
                             if found:
                                 mod_name = found
                                 break
-                
+
                 if mod_name not in modules:
                     modules[mod_name] = {"fails": 0, "total": 0, "releases": set()}
-                
                 modules[mod_name]["total"] += 1
                 if tc.status == 'FAILED':
                     modules[mod_name]["fails"] += 1
                 modules[mod_name]["releases"].add(tc.campaign_id)
-                
-            data = []
+
+            result = []
             for name, stats in modules.items():
                 total = stats["total"]
                 fail_rate = round((stats["fails"] / total * 100), 1) if total > 0 else 0
-                status_val = 'healthy'
-                if fail_rate > 30: status_val = 'critical'
-                elif fail_rate > 15: status_val = 'warning'
-                
-                data.append({
+                status_val = 'critical' if fail_rate > 30 else 'warning' if fail_rate > 15 else 'healthy'
+                result.append({
                     "module_name": name,
                     "tc_range": f"{total} tests",
                     "fail_rates": [fail_rate],
                     "avg_fail_rate": fail_rate,
                     "status": status_val,
-                    "releases_affected": len(stats["releases"])
+                    "releases_affected": len(stats["releases"]),
                 })
-            return Response(data)
+            cache.set(cache_key, result, timeout=self.CACHE_TTL)
+            return Response(result)
         except Exception as e:
             logger.exception("Error in HistoricalModulesView")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

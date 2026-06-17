@@ -59,7 +59,11 @@ class TestCaseViewSet(viewsets.ModelViewSet):
 
         if status and status != 'ALL':
             queryset = queryset.filter(status=status)
-            
+
+        tester_id = self.request.query_params.get('tester_id')
+        if tester_id:
+            queryset = queryset.filter(tester_id=tester_id)
+
         if ordering:
             queryset = queryset.order_by(ordering)
 

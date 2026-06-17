@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Folder, Sparkles } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -23,14 +23,11 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClose, onSu
             const formData = new FormData();
             formData.append('name', name);
             formData.append('description', description);
-
             await onSubmit(formData);
-
-            // Reset form
             setName('');
             setDescription('');
         } catch (error) {
-            console.error("Failed to create project", error);
+            console.error('Failed to create project', error);
         } finally {
             setIsSubmitting(false);
         }
@@ -39,94 +36,78 @@ const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClose, onSu
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    {/* Backdrop */}
+                <div className="fixed inset-0 z-[200000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
-                    />
-
-                    {/* Modal Content */}
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        initial={{ opacity: 0, scale: 0.97, y: 12 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl rounded-[2rem] shadow-2xl w-full max-w-lg border border-slate-400 dark:border-white/20 dark:border-slate-700/50 overflow-hidden flex flex-col max-h-[90vh]"
+                        exit={{ opacity: 0, scale: 0.97, y: 12 }}
+                        transition={{ duration: 0.18 }}
+                        className="bg-[#0d1117] border border-white/[0.08] rounded-[20px] w-full max-w-md shadow-[0_32px_80px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col"
                     >
                         {/* Header */}
-                        <div className="p-8 border-b border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center">
-                                    <Folder className="w-6 h-6 text-blue-500" />
-                                </div>
-                                <div>
-                                    <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                        <div className="px-6 pt-6 pb-5 flex items-center justify-between border-b border-white/[0.06]">
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-1.5 h-5 rounded-full bg-[#378ADD]" />
+                                    <h2 className="text-[17px] font-semibold text-white">
                                         {t('adminDashboard.newProject.title')}
                                     </h2>
-                                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                                        INITIALISER UNE NOUVELLE RELEASE
-                                    </p>
                                 </div>
+                                <p className="text-[11px] text-white/30 ml-4">Créer un nouveau projet de portefeuille</p>
                             </div>
                             <button
                                 onClick={onClose}
-                                className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl text-slate-500 dark:text-slate-400 transition-all hover:scale-110 active:scale-90"
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/[0.05] hover:bg-white/10 text-white/40 hover:text-white transition-all border border-white/[0.06]"
                             >
-                                <X className="w-5 h-5" />
+                                <X size={15} />
                             </button>
                         </div>
 
-                        {/* Form */}
-                        <form id="new-project-form" onSubmit={handleSubmit} className="p-8 space-y-8 overflow-y-auto">
-                            <div className="space-y-3">
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                        {/* Body */}
+                        <form id="new-project-form" onSubmit={handleSubmit} className="p-6 space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-white/30 uppercase tracking-[0.15em]">
                                     {t('adminDashboard.newProject.nameLabel')}
                                 </label>
-                                <div className="relative group">
-                                    <input
-                                        type="text"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl px-5 py-4 text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all group-hover:border-slate-300 dark:group-hover:border-slate-600"
-                                        placeholder={t('adminDashboard.newProject.namePlaceholder')}
-                                        required
-                                    />
-                                    <Sparkles className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500/50 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </div>
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    className="w-full bg-[#1a2235] border border-white/[0.08] rounded-[10px] px-4 py-2.5 text-[13px] text-white placeholder:text-white/20 focus:border-[#378ADD]/50 focus:ring-0 outline-none transition-colors"
+                                    placeholder={t('adminDashboard.newProject.namePlaceholder')}
+                                    required
+                                />
                             </div>
 
-                            <div className="space-y-3">
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-white/30 uppercase tracking-[0.15em]">
                                     {t('adminDashboard.newProject.descLabel')}
                                 </label>
                                 <textarea
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl px-5 py-4 text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all min-h-[140px] group-hover:border-slate-300 dark:group-hover:border-slate-600 shadow-inner"
+                                    className="w-full bg-[#1a2235] border border-white/[0.08] rounded-[10px] px-4 py-2.5 text-[13px] text-white placeholder:text-white/20 focus:border-[#378ADD]/50 focus:ring-0 outline-none min-h-[100px] resize-none transition-colors"
                                     placeholder={t('adminDashboard.newProject.descPlaceholder')}
                                 />
                             </div>
                         </form>
 
                         {/* Footer */}
-                        <div className="p-8 border-t border-slate-200/50 dark:border-slate-700/50 flex justify-end gap-4 bg-slate-50/30 dark:bg-slate-800/30">
+                        <div className="px-6 py-4 border-t border-white/[0.06] flex items-center gap-3">
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-6 py-3 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all active:scale-95"
+                                className="px-5 py-2.5 text-[12px] font-medium text-white/40 hover:text-white transition-colors rounded-[8px] hover:bg-white/[0.05]"
                             >
                                 {t('adminDashboard.newProject.cancel')}
                             </button>
                             <button
                                 form="new-project-form"
                                 type="submit"
-                                disabled={isSubmitting}
-                                className="flex items-center gap-2.5 px-8 py-3 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-2xl transition-all shadow-xl shadow-blue-500/25 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+                                disabled={isSubmitting || !name.trim()}
+                                className="flex-1 py-2.5 bg-[#378ADD] hover:bg-[#2e75bc] disabled:opacity-40 text-white rounded-[10px] text-[13px] font-semibold transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
                             >
-                                <Plus className="w-5 h-5" />
+                                <Plus size={14} />
                                 {isSubmitting ? t('adminDashboard.newProject.submitting') : t('adminDashboard.newProject.submit')}
                             </button>
                         </div>

@@ -121,9 +121,17 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
 
     const healthyReleases = releaseData.filter(r => r.pass_rate >= 80).length;
     const totalReleases = releaseData.length;
+    // % de releases stables (pass_rate ≥ 80%)
     const readinessScore = totalReleases > 0
         ? Math.round((healthyReleases / totalReleases) * 100)
         : 0;
+    // Tendance réelle : delta moyen du pass_rate entre releases successives
+    const trendValue = (() => {
+        if (releaseData.length < 2) return null;
+        const deltas = releaseData.slice(1).map((r, i) => r.pass_rate - releaseData[i].pass_rate);
+        const avg = deltas.reduce((s, d) => s + d, 0) / deltas.length;
+        return Math.round(avg * 10) / 10;
+    })();
 
     const tdClass = "p-4 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-100 dark:group-hover:bg-white/5 transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-300 dark:group-hover:border-white/10";
 
@@ -140,7 +148,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                         {projectId === 'all' ? t('historicalAnalytics.titleAll') : t('historicalAnalytics.title')}
                     </h2>
                     <p className="text-sm font-bold text-slate-500">
-                        {projectId === 'all' ? t('historicalAnalytics.subtitleAll') : t('historicalAnalytics.subtitle', { count: releaseData.length || 6 })}
+                        {projectId === 'all' ? t('historicalAnalytics.subtitleAll') : t('historicalAnalytics.subtitle', { count: releaseData.length })}
                     </p>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 rounded-xl border border-blue-500/20 text-blue-600 dark:text-blue-400">
@@ -294,16 +302,21 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                             <div className="flex items-center gap-4">
                                 <span className="text-slate-500 uppercase tracking-widest flex items-center gap-2">
                                     <Target size={12} className="text-blue-500" />
-                                    Moyenne Globale : <span className="text-slate-900 dark:text-white">{readinessScore}%</span>
+                                    Releases stables (≥80%) : <span className="text-slate-900 dark:text-white">{readinessScore}%</span>
                                 </span>
                                 <div className="w-px h-4 bg-slate-200 dark:bg-white/10" />
                                 <span className="text-slate-500 uppercase tracking-widest">
-                                    Total : <span className="text-slate-900 dark:text-white">{releaseData.length || 6} Releases</span>
+                                    Total : <span className="text-slate-900 dark:text-white">{releaseData.length} Releases</span>
                                 </span>
                             </div>
-                            <span className="text-emerald-500 uppercase tracking-widest flex items-center gap-2 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                                <TrendingUp size={12} /> Tendance : +8% / release
-                            </span>
+                            {trendValue !== null ? (
+                                <span className={`uppercase tracking-widest flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-black ${trendValue >= 0 ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' : 'text-rose-400 bg-rose-500/10 border-rose-500/20'}`}>
+                                    <TrendingUp size={12} />
+                                    Tendance : {trendValue >= 0 ? '+' : ''}{trendValue}% / release
+                                </span>
+                            ) : (
+                                <span className="text-slate-500 uppercase tracking-widest text-[10px] font-black">— données insuffisantes</span>
+                            )}
                         </div>
                     </motion.div>
                 )}
@@ -318,7 +331,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                     >
                         <div className="flex items-center gap-3 text-slate-400 mb-4">
                             <Activity size={16} />
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">{t('historicalAnalytics.velocityTab.title', { count: releaseData.length || 6 })}</h3>
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">{t('historicalAnalytics.velocityTab.title', { count: releaseData.length })}</h3>
                         </div>
 
                         <div className="divide-y divide-white/5">
@@ -326,32 +339,19 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                 const latestVel = tester.releases.length > 0 ? tester.releases[tester.releases.length - 1].velocity : 0;
                                 const firstVel = tester.releases.length > 0 ? tester.releases[0].velocity : 0;
                                 const deltaVel = latestVel - firstVel;
-                                const deltaVelPercent = firstVel > 0 ? (deltaVel / firstVel) * 100 : 0;
+                                // Plafonné à ±100% pour un affichage lisible
+                                const rawPercent = firstVel > 0.1 ? (deltaVel / firstVel) * 100 : 0;
+                                const deltaVelPercent = Math.max(-100, Math.min(100, rawPercent));
 
                                 return (
                                 <div key={i} className="py-6 flex items-center justify-between group cursor-default">
                                     <div className="flex items-center gap-6">
-                                        <div className="relative">
-                                            <div className={`w-12 h-12 rounded-[1.2rem] flex items-center justify-center text-[11px] font-black text-white shadow-xl ${
-                                                    tester.ml_label === 'ELITE' ? 'bg-amber-500/20 text-amber-500 border-amber-500/30' :
-                                                    tester.ml_label === 'STABLE' ? 'bg-blue-500/20 text-blue-500 border-blue-500/30' :
-                                                    tester.ml_label === 'NEW_TALENT' ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30' :
-                                                    'bg-slate-500/20 text-slate-500 border-slate-500/30'
-                                                } border`}>
-                                                {tester.tester.initials}
-                                            </div>
-                                            {tester.ml_label === 'ELITE' && (
-                                                <div className="absolute -top-2 -right-2 p-1.5 bg-amber-500 rounded-full border-2 border-slate-200 dark:border-[#0f172a] shadow-lg">
-                                                    <Crown className="w-2.5 h-2.5 text-slate-900 dark:text-white" />
-                                                </div>
-                                            )}
+                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-black bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                            {tester.tester.initials}
                                         </div>
-                                        <div className="space-y-0.5">
-                                            <h4 className="text-base font-black text-slate-900 dark:text-white group-hover:translate-x-1 transition-transform">{tester.tester.name}</h4>
-                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                                {tester.ml_label === 'ELITE' ? 'Champion Quality (Elite)' : tester.ml_label === 'STABLE' ? 'Expert (Stable)' : tester.ml_label === 'NEW_TALENT' ? 'Nouveau Talent' : tester.ml_label === 'OVERLOADED' ? 'En Surcharge' : 'Testeur Junior'}
-                                            </p>
-                                        </div>
+                                        <h4 className="text-base font-black text-slate-900 dark:text-white group-hover:translate-x-1 transition-transform">
+                                            {tester.tester.name}
+                                        </h4>
                                     </div>
                                     <div className="flex items-center gap-10">
                                         <div className="text-right">
@@ -363,10 +363,10 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                         </div>
                                         <div className="text-right w-20">
                                             <p className="text-lg font-black text-slate-900 dark:text-white">
-                                                {latestVel} <span className="text-[10px]">/j</span>
+                                                {Number(latestVel).toFixed(1)} <span className="text-[10px]">/j</span>
                                             </p>
                                             <span className={`text-[10px] font-black uppercase tracking-widest ${deltaVel > 0 ? 'text-emerald-500' : deltaVel < 0 ? 'text-rose-500' : 'text-slate-500'}`}>
-                                                {deltaVel > 0 ? '↑' : deltaVel < 0 ? '↓' : ''} {Math.abs(Number(deltaVelPercent.toFixed(1)))}%
+                                                {deltaVelPercent === 0 ? '—' : `${deltaVel > 0 ? '↑' : '↓'} ${Math.abs(Number(deltaVelPercent.toFixed(1)))}${Math.abs(rawPercent) >= 100 ? '%+' : '%'}`}
                                             </span>
                                         </div>
                                     </div>

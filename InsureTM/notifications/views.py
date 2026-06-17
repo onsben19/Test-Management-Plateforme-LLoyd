@@ -9,7 +9,11 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Notification.objects.filter(recipient=self.request.user)
+        return (Notification.objects
+                .filter(recipient=self.request.user)
+                .only('id', 'title', 'message', 'is_read', 'created_at', 'type',
+                      'related_campaign_id', 'related_object_id')
+                .order_by('-created_at')[:50])
 
     @action(detail=True, methods=['post'])
     def mark_read(self, request, pk=None):

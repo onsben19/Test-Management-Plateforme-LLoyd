@@ -31,6 +31,11 @@ class MLTimelineGuard:
         self.model = MLTimelineGuard._cached_model
 
     def get_campaign_status(self, campaign_id, generate_insight=True):
+        from django.core.cache import cache
+        cache_key = f"campaign_status_{campaign_id}_{'insight' if generate_insight else 'fast'}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
         try:
             campaign = Campaign.objects.get(id=campaign_id)
             db_total = TestCase.objects.filter(campaign=campaign).count()
@@ -120,7 +125,7 @@ class MLTimelineGuard:
             else:
                 ai_message = "Analyse IA désactivée pour optimisation."
 
-            return self._format_response(
+            result = self._format_response(
                 risk_status, 
                 velocity, 
                 projected_end_date, 
@@ -129,6 +134,10 @@ class MLTimelineGuard:
                 finished_count,
                 total_cases
             )
+            # Cache fast (no insight) for 2 min, with insight for 5 min
+            ttl = 300 if generate_insight else 120
+            cache.set(cache_key, result, timeout=ttl)
+            return result
 
         except Campaign.DoesNotExist:
             return {"error": "Campagne introuvable"}
@@ -154,6 +163,12 @@ class MLTimelineGuard:
         ML scoring system for testers fitness & availability.
         Calculates a score from 0-100 based on behavioral and logistical features.
         """
+        from django.core.cache import cache
+        cache_key = f"ml_score_tester_{tester_id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+
         try:
             from testCases.models import TestCase
             from django.contrib.auth import get_user_model
@@ -190,7 +205,7 @@ class MLTimelineGuard:
             # 25% Productivity / 25% Constancy / 50% Availability
             final_score = (productivity_score * 0.25) + (constancy_score * 0.25) + (availability_score * 0.50)
             
-            return {
+            result = {
                 "score": round(final_score, 1),
                 "metrics": {
                     "productivity": round(productivity_score, 1),
@@ -200,6 +215,8 @@ class MLTimelineGuard:
                 },
                 "label": "ELITE" if final_score > 80 else "STABLE" if final_score > 40 else "OVERLOADED" if availability_score < 30 else "TRAINEE"
             }
+            cache.set(cache_key, result, timeout=300)
+            return result
         except Exception:
             return {"score": 50, "metrics": {}, "label": "NEUTRAL"}
 

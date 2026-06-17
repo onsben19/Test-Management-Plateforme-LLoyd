@@ -300,7 +300,29 @@ const ProjectPortfolio = () => {
                                 ) : (
                                     paginatedProjects.map((project, idx) => {
                                         const isActive = project.status !== 'TERMINÉ';
-                                        const progressWidth = isActive ? Math.min(100, Math.max(15, (project.releases_count || 0) * 20)) : 100;
+                                        // health_score = taux de réussite réel (passed / executed × 100) depuis l'API
+                                        const healthPct: number | null = project.health_score ?? null;
+                                        const healthLabel: string = project.health_label ?? 'Pas encore démarré';
+                                        const healthColor = healthPct === null
+                                            // Gris : aucun test planifié
+                                            ? { bar: '#475569', text: '#94A3B8' }
+                                            : healthLabel === 'Terminé ✓'
+                                            // Bleu acier : projet officiellement terminé
+                                            ? { bar: '#378ADD', text: '#85B7EB' }
+                                            : healthLabel === 'Complet ✓'
+                                            // Or : release 100% réussie + 0 anomalie
+                                            ? { bar: '#F59E0B', text: '#FCD34D' }
+                                            : healthPct >= 80
+                                            // Vert : très bon
+                                            ? { bar: '#1D9E75', text: '#5DCAA5' }
+                                            : healthPct >= 50
+                                            // Bleu : en cours
+                                            ? { bar: '#378ADD', text: '#85B7EB' }
+                                            : healthPct > 0
+                                            // Orange : démarrage
+                                            ? { bar: '#F59E0B', text: '#FCD34D' }
+                                            // Rouge : rien
+                                            : { bar: '#E24B4A', text: '#F09595' };
                                         
                                         return (
                                             <motion.div
@@ -342,9 +364,23 @@ const ProjectPortfolio = () => {
                                                 </div>
 
                                                 {/* Progress & Status & Actions */}
-                                                <div className="flex items-center gap-6 shrink-0 justify-end w-[250px]">
-                                                    <div className="w-[80px] h-[4px] bg-white/[0.07] rounded-[2px] overflow-hidden shrink-0">
-                                                        <div className={`h-full rounded-[2px] ${isActive ? 'bg-[#1D9E75]' : 'bg-[#E24B4A]'}`} style={{ width: `${progressWidth}%` }} />
+                                                <div className="flex items-center gap-6 shrink-0 justify-end w-[280px]">
+                                                    {/* Santé : barre + % + label */}
+                                                    <div className="flex flex-col gap-1 w-[110px] shrink-0">
+                                                        <div className="flex items-center justify-between">
+                                                            {/* Masquer le label si identique au badge Statut (éviter la redondance) */}
+                                                            {healthLabel !== 'Terminé ✓' && (
+                                                                <span style={{ fontSize: '9px', fontWeight: 700, color: healthColor.text, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                                                                    {healthLabel}
+                                                                </span>
+                                                            )}
+                                                            <span style={{ fontSize: '10px', fontWeight: 800, color: healthColor.text, marginLeft: 'auto' }}>
+                                                                {healthPct !== null ? `${healthPct}%` : '—'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="h-[4px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                                                            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${healthPct ?? 0}%`, background: healthColor.bar }} />
+                                                        </div>
                                                     </div>
                                                     
                                                     <span className={`text-[12px] px-[12px] py-[4px] rounded-full font-semibold tracking-wide border ${isActive ? 'bg-[#1D9E75]/15 text-[#5DCAA5] border-[#1D9E75]/30' : 'bg-[#E24B4A]/15 text-[#F09595] border-[#E24B4A]/30'}`}>
