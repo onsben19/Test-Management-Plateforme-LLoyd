@@ -1,4 +1,5 @@
 import os
+import re
 import groq
 import base64
 from django.db import connection
@@ -17,7 +18,8 @@ class GroqService:
     GROQ_FALLBACK_CHAIN = [
         "llama-3.3-70b-versatile",
         "llama-3.1-8b-instant",
-        "gemma2-9b-it",
+        "openai/gpt-oss-20b",
+        "openai/gpt-oss-120b",
     ]
 
     def _get_completion_with_fallback(self, messages, temperature=0.7, model_name="llama-3.3-70b-versatile"):
@@ -35,12 +37,19 @@ class GroqService:
                 return completion.choices[0].message.content.strip()
             except Exception as err:
                 err_str = str(err)
-                # Only continue to next model on rate-limit / quota errors
-                if '429' in err_str or 'rate' in err_str.lower() or 'quota' in err_str.lower():
-                    print(f"Groq model '{model}' quota/rate-limit hit, trying next model…")
+                retryable = (
+                    '429' in err_str
+                    or '413' in err_str
+                    or 'rate' in err_str.lower()
+                    or 'quota' in err_str.lower()
+                    or 'too large' in err_str.lower()
+                    or 'decommissioned' in err_str.lower()
+                    or 'model_not_found' in err_str.lower()
+                )
+                if retryable:
+                    print(f"Groq model '{model}' unavailable ({err_str[:120]}), trying next model…")
                     last_groq_error = err
                     continue
-                # Other errors (auth, bad request) → raise immediately
                 raise err
 
         # All Groq models exhausted → try Gemini cascade
@@ -159,6 +168,108 @@ class GroqService:
             results = cursor.fetchall()
 
         return [{k: serialize_value(v) for k, v in zip(columns, row)} for row in results]
+
+    def build_simple_plotly_config(self, data, title=None):
+        """Build a basic Plotly chart from SQL rows without calling an LLM."""
+        if not data:
+            return {"data": [], "layout": {"title": {"text": title or ""}}}
+
+        keys = list(data[0].keys())
+        label_key = keys[0]
+
+        def is_numeric(value):
+            if value is None or value == '':
+                return False
+            try:
+                float(value)
+                return True
+            except (TypeError, ValueError):
+                return False
+
+        value_key = next(
+            (k for k in keys[1:] if any(is_numeric(row.get(k)) for row in data)),
+            label_key,
+        )
+
+        labels = [str(row.get(label_key, '')) for row in data]
+        values = [float(row.get(value_key) or 0) for row in data]
+        chart_type = "pie" if len(labels) <= 6 and all(v >= 0 for v in values) else "bar"
+
+        trace = (
+            {
+                "type": "pie",
+                "labels": labels,
+                "values": values,
+                "hole": 0.4,
+                "textinfo": "percent+label",
+            }
+            if chart_type == "pie"
+            else {
+                "type": "bar",
+                "x": labels,
+                "y": values,
+                "marker": {"color": "#3b82f6"},
+            }
+        )
+
+        return {
+            "data": [trace],
+            "layout": {
+                "title": {"text": title or ""},
+                "paper_bgcolor": "transparent",
+                "plot_bgcolor": "transparent",
+                "margin": {"t": 40, "b": 80, "l": 40, "r": 20},
+                "xaxis": {"tickangle": -30, "automargin": True},
+                "autosize": True,
+            },
+        }
+
+    def refresh_plotly_data(self, existing_config, raw_data, title=None):
+        """Update an existing Plotly config with fresh SQL rows (no LLM)."""
+        if not raw_data:
+            if isinstance(existing_config, dict):
+                return existing_config
+            return {"data": [], "layout": {"title": {"text": title or ""}}}
+
+        keys = list(raw_data[0].keys())
+        label_key = keys[0]
+
+        def is_numeric(value):
+            if value is None or value == '':
+                return False
+            try:
+                float(value)
+                return True
+            except (TypeError, ValueError):
+                return False
+
+        value_key = next(
+            (k for k in keys[1:] if any(is_numeric(row.get(k)) for row in raw_data)),
+            label_key,
+        )
+        labels = [str(row.get(label_key, '')) for row in raw_data]
+        values = [float(row.get(value_key) or 0) for row in raw_data]
+
+        if not isinstance(existing_config, dict) or not existing_config.get('data'):
+            return self.build_simple_plotly_config(raw_data, title)
+
+        layout = dict(existing_config.get('layout') or {})
+        if title:
+            layout['title'] = {'text': title}
+
+        refreshed_traces = []
+        for trace in existing_config.get('data', []):
+            updated = dict(trace)
+            trace_type = updated.get('type', 'bar')
+            if trace_type == 'pie':
+                updated['labels'] = labels
+                updated['values'] = values
+            elif trace_type in ('bar', 'scatter', 'line'):
+                updated['x'] = labels
+                updated['y'] = values
+            refreshed_traces.append(updated)
+
+        return {"data": refreshed_traces, "layout": layout}
 
     def _parse_document(self, uploaded_file):
         """Extract text content from common document formats."""
@@ -471,7 +582,61 @@ class GroqService:
                 "type": "error", "sql": "", "data": []
             }
 
-    def reformulate_message(self, text, is_subject=False, is_test_steps=False):
+    def _clean_email_reformulation(self, original, result, is_subject=False):
+        """Cleanup for email reformulation — preserve facts, strip LLM artifacts."""
+        result = result.strip().strip('"\'')
+        result = re.sub(r'^(?:Objet|Subject)\s*:\s*', '', result, flags=re.I)
+        result = re.sub(r'^(?:Voici (?:le|la)|Message reformulé\s*:)\s*', '', result, flags=re.I)
+        result = re.sub(r'\[(?:Votre nom|Nom|Prénom|Date|Prenom)\]', '', result, flags=re.I)
+
+        if is_subject:
+            result = result.replace('**', '').replace('\n', ' ').replace('\r', ' ').strip()
+            result = re.sub(r'\s{2,}', ' ', result)
+            return result.strip(' .')
+
+        email_fluff = (
+            r'\s*(?:Je reste à votre entière disposition|Je reste à votre disposition)\s*\.?\s*$',
+            r'\s*N\'hésitez pas(?: à me contacter)?(?: si besoin)?\s*\.?\s*$',
+        )
+        for pattern in email_fluff:
+            if not re.search(pattern, original, flags=re.I):
+                result = re.sub(pattern, '', result, flags=re.I).strip()
+
+        if len(result) > len(original) * 1.7 + 40:
+            return original.strip()
+
+        return result.strip()
+
+    def _clean_chat_reformulation(self, original, result):
+        """Light cleanup for chat — stay close to what the user wrote."""
+        result = result.strip().strip('"\'')
+        result = re.sub(r'\[(?:Votre nom|Nom|Prénom|Date|Prenom)\]', '', result, flags=re.I)
+
+        # Remove greetings/closings added by the model if absent in original
+        if not re.match(r'^(?:Bonjour|Salut|Hello|Bonsoir)\b', original, flags=re.I):
+            result = re.sub(r'^(?:Bonjour|Salut|Hello|Bonsoir)\s*,?\s*', '', result, flags=re.I).strip()
+        if not re.search(r'(?:Cordialement|Merci(?: beaucoup)?)\s*\.?\s*$', original, flags=re.I):
+            result = re.sub(
+                r'\s*(?:Cordialement|Bien cordialement|Merci beaucoup)\s*\.?\s*$',
+                '',
+                result,
+                flags=re.I,
+            ).strip()
+
+        email_fluff = (
+            r'\s*(?:Je reste à votre disposition|N\'hésitez pas(?: à me contacter)?)\s*\.?\s*$',
+            r'\s*Merci de votre attention\s*\.?\s*$',
+        )
+        for pattern in email_fluff:
+            if not re.search(pattern, original, flags=re.I):
+                result = re.sub(pattern, '', result, flags=re.I).strip()
+
+        if len(result) > len(original) * 1.4 + 15:
+            return original.strip()
+
+        return result.strip()
+
+    def reformulate_message(self, text, is_subject=False, is_test_steps=False, is_chat=False, is_email=False):
         if is_test_steps:
             system_prompt = (
                 "Tu es un expert QA (Quality Assurance). Reformule les étapes de test suivantes en respectant EXACTEMENT ce format strict (en français) :\n\n"
@@ -485,26 +650,80 @@ class GroqService:
         else:
             if is_subject:
                 system_prompt = (
-                    "Tu es un expert en communication professionnelle. "
-                    "Reformule le texte suivant en un OBJET D'EMAIL clair et percutant. "
-                    "RÈGLES STRICTES : Une seule ligne. Pas de markdown. Pas de guillemets. Pas de retour à la ligne. En Français."
+                    "Tu reformules un OBJET D'EMAIL professionnel en français (contexte QA / tests logiciels). "
+                    "Une seule ligne, clair et concis. "
+                    "Garde EXACTEMENT les identifiants techniques (ex: TC-AUTH-001, ANO-42). "
+                    "Corrige l'orthographe sans changer le sens. "
+                    "Pas de guillemets. Pas de markdown. Pas de retour à la ligne. "
+                    "Pas de préfixe \"Objet:\".\n\n"
+                    "Exemples :\n"
+                    "- \"echec test connexion\" → \"Échec du test de connexion\"\n"
+                    "- \"tc-auth-001 failed\" → \"Échec — TC-AUTH-001\"\n"
+                    "- \"anomalie bloquante release 2\" → \"Anomalie bloquante — Release 2\""
                 )
             else:
-                system_prompt = (
-                    "Tu es un expert en communication QA professionnelle. "
-                    "Reformule le texte suivant en un CORPS D'EMAIL ou MESSAGE professionnel. "
-                    "RÈGLES : Ton formel, clair et bienveillant. En Français. "
-                    "Structure : salutation courte, corps du message structuré en 2-3 phrases, formule de politesse finale. "
-                    "Pas de markdown. Pas de titre. Pas d'explication hors du message."
-                )
+                if is_chat:
+                    system_prompt = (
+                        "Tu fais une reformulation LÉGÈRE d'un message de chat entre collègues. "
+                        "Corrige l'orthographe, les accents et la grammaire. "
+                        "Fluidifie la phrase seulement si nécessaire. "
+                        "Garde le MÊME sens, le MÊME ton et le MÊME niveau de langue que l'auteur. "
+                        "Si l'auteur tutoie (tu/te/ton), conserve le tutoiement. "
+                        "Si l'auteur vouvoie, conserve le vouvoiement. "
+                        "Ne réécris pas le message de zéro. Ne le rends pas plus sec ni plus direct. "
+                        "N'ajoute pas de Bonjour, Cordialement ou formule de politesse si elles ne sont pas déjà dans le texte. "
+                        "Ne change pas les identifiants (TC-AUTH-001, etc.). Pas de placeholder. Pas de markdown. Pas de guillemets.\n\n"
+                        "Exemples :\n"
+                        "- \"jai fini le test ca marche pas\" → \"J'ai fini le test, ça ne marche pas.\"\n"
+                        "- \"tu peux regarder stp?\" → \"Tu peux regarder, stp ?\"\n"
+                        "- \"salut est ce que tu as vu lanomalie\" → \"Salut, est-ce que tu as vu l'anomalie ?\"\n"
+                        "- \"le cas tc-auth-001 a echoue\" → \"Le cas TC-AUTH-001 a échoué.\"\n\n"
+                        "Retourne UNIQUEMENT le message reformulé."
+                    )
+                elif is_email:
+                    system_prompt = (
+                        "Tu reformules le CORPS d'un email professionnel en français (contexte QA / assurance / tests logiciels). "
+                        "Corrige l'orthographe et la grammaire, améliore la clarté, ton professionnel sobre. "
+                        "Garde EXACTEMENT le même sens et toutes les informations factuelles : "
+                        "IDs de cas de test, noms de campagnes, statuts (PASSED/FAILED), numéros d'anomalie, dates, noms propres. "
+                        "Ne modifie pas les identifiants techniques (TC-AUTH-001 reste TC-AUTH-001). "
+                        "Structure simple : salutation courte si absente (Bonjour,), corps en 1 à 3 phrases, formule courte (Cordialement ou Merci). "
+                        "Ne pas allonger inutilement. Ne pas inventer de détails. Pas de placeholder [Votre nom]. Pas de markdown.\n\n"
+                        "Exemples :\n"
+                        "- \"bonjour le test tc-auth-001 a echoue\" → \"Bonjour,\\n\\nLe cas de test TC-AUTH-001 a échoué.\\n\\nCordialement\"\n"
+                        "- \"pouvez vous verifier lanomalie 42 stp\" → \"Bonjour,\\n\\nPouvez-vous vérifier l'anomalie 42, s'il vous plaît ?\\n\\nCordialement\"\n"
+                        "- \"merci de traiter le bug login avant vendredi\" → \"Bonjour,\\n\\nMerci de traiter le bug de connexion avant vendredi.\\n\\nCordialement\"\n\n"
+                        "Retourne UNIQUEMENT le corps de l'email reformulé."
+                    )
+                else:
+                    system_prompt = (
+                        "Tu es un assistant de rédaction professionnelle en français. "
+                        "Reformule le texte suivant de façon SIMPLE et NATURELLE : corrige l'orthographe et la grammaire, "
+                        "améliore légèrement la clarté, garde le même sens et un ton professionnel mais sobre. "
+                        "RÈGLES STRICTES : "
+                        "Ne pas allonger inutilement le message. "
+                        "Ne pas ajouter de détails, d'arguments ou de phrases que l'auteur n'a pas mentionnés. "
+                        "Ne pas ajouter de placeholder du type [Votre nom], [Nom], [Date]. "
+                        "Structure légère : salutation courte si absente, corps du message, formule de politesse courte. "
+                        "Pas de markdown. Pas de titre. Pas de commentaire hors message. "
+                        "Retourne UNIQUEMENT le texte reformulé."
+                    )
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Reformulate: {text}"}
+            {"role": "user", "content": text}
         ]
-        # Use fast/cheap model for reformulation — simple rewriting task
-        result = self._get_completion_with_fallback(messages, temperature=0.3, model_name="llama-3.1-8b-instant")
+        temperature = 0.1 if is_chat else (0.15 if is_email else 0.2)
+        result = self._get_completion_with_fallback(messages, temperature=temperature, model_name="llama-3.1-8b-instant")
         if is_subject:
-            result = result.replace("**", "").replace("\n", " ").replace("\r", " ").strip()
+            result = self._clean_email_reformulation(text, result, is_subject=True)
+        elif is_chat:
+            result = self._clean_chat_reformulation(text, result)
+        elif is_email:
+            result = self._clean_email_reformulation(text, result, is_subject=False)
+        else:
+            result = re.sub(r'\[Votre nom\]', '', result, flags=re.I)
+            result = re.sub(r'\[Nom\]', '', result, flags=re.I)
+            result = result.strip()
         return result
     def generate_dashboard_brief(self, stats):
         """Generate a contextual AI brief for the manager dashboard with 5-min time-based rotation and deep data."""
@@ -774,11 +993,6 @@ class GroqService:
             cause = data.get("cause", "APP_BUG")
             titre = data.get("titre", f"Échec automatique : {test_title}")
             description = data.get("description", logs[-1000:])
-            
-            # Préfixe le titre pour signaler clairement un faux positif de script
-            if cause == "SCRIPT_ERROR":
-                titre = f"[SCRIPT] {titre}"
-                description = f"⚠️ Cause probable : Erreur dans le script généré (pas un bug applicatif).\n\n{description}"
             
             return titre, description
         except Exception as e:

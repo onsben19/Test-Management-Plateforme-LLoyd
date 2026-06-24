@@ -231,15 +231,24 @@ class SavedVisualizationViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def refresh(self, request, pk=None):
         vis = self.get_object()
+        if not vis.sql or not vis.sql.strip():
+            return Response({'error': 'Aucune requête SQL enregistrée pour cette visualisation.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        groq = GroqService()
         try:
-            groq = GroqService()
-            data = groq.execute_query(vis.sql)
-            vis.data = data
-            vis.save()
-            serializer = self.get_serializer(vis)
-            return Response(serializer.data)
+            raw_data = groq.execute_query(vis.sql)
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            logger.exception("SQL refresh failed for saved visualization %s", vis.id)
+            return Response({'error': f'Erreur SQL : {e}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if vis.type == 'plotly':
+            vis.data = groq.refresh_plotly_data(vis.data, raw_data, vis.title)
+        else:
+            vis.data = raw_data
+
+        vis.save()
+        return Response(self.get_serializer(vis).data)
 
 
 class CampaignTimelineGuardView(APIView):
@@ -267,12 +276,20 @@ class ReformulateMessageView(APIView):
         message = request.data.get('message')
         is_subject = request.data.get('is_subject', False)
         is_test_steps = request.data.get('is_test_steps', False)
+        is_chat = request.data.get('is_chat', False)
+        is_email = request.data.get('is_email', False)
 
         if not message:
             return Response({'error': 'Message is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            reformulated = GroqService().reformulate_message(message, is_subject=is_subject, is_test_steps=is_test_steps)
+            reformulated = GroqService().reformulate_message(
+                message,
+                is_subject=is_subject,
+                is_test_steps=is_test_steps,
+                is_chat=is_chat,
+                is_email=is_email,
+            )
             return Response({'reformulated_message': reformulated})
         except Exception as e:
             logger.exception("Error reformulating message for user %s", request.user.username)
@@ -876,78 +893,153 @@ class ApplyRecommendationActionView(APIView):
 class HistoricalReleasesView(APIView):
     permission_classes = [IsAuthenticated]
     CACHE_TTL = 120
+    DEFAULT_PAGE_SIZE = 10
+    MAX_PAGE_SIZE = 50
+
+    @staticmethod
+    def _pass_rate(release_id, tc_map, planned_map):
+        s = tc_map.get(release_id, {})
+        passed = s.get('passed', 0)
+        failed = s.get('failed', 0)
+        executed = passed + failed
+        return round((passed / executed * 100), 1) if executed > 0 else 0
+
+    @staticmethod
+    def _build_release_row(release, tc_map, planned_map, anomaly_map, project_id):
+        s = tc_map.get(release.id, {})
+        db_total = s.get('total', 0)
+        total = max(db_total, planned_map.get(release.id, 0))
+        passed = s.get('passed', 0)
+        failed = s.get('failed', 0)
+        executed = passed + failed
+        duration = 0
+        velocity = 0
+        if s.get('min_date') and s.get('max_date'):
+            duration = (s['max_date'] - s['min_date']).days or 1
+            velocity = executed / duration
+
+        if project_id and project_id != 'all':
+            version = release.name or 'N/A'
+        else:
+            bp_name = release.business_project.name if release.business_project else 'Global'
+            version = f"{bp_name} > {release.name or 'N/A'}"
+
+        return {
+            "release_id": release.id,
+            "version": version,
+            "pass_rate": HistoricalReleasesView._pass_rate(release.id, tc_map, planned_map),
+            "coverage_rate": round((executed / total * 100), 1) if total > 0 else 0,
+            "total_tests": total,
+            "avg_velocity": round(velocity, 1),
+            "anomaly_count": anomaly_map.get(release.id, 0),
+            "duration_days": duration,
+            "completed_at": release.created_at.isoformat(),
+        }
 
     def get(self, request):
         from django.core.cache import cache
-        from django.db.models import Count, Q, Min, Max
+        from django.db.models import Count, Q, Min, Max, Sum
+        from Project.models import Project
+
         project_id = request.query_params.get('project_id')
-        cache_key = f"hist_releases_{project_id or 'all'}"
+        page = max(1, int(request.query_params.get('page', 1)))
+        page_size = min(
+            int(request.query_params.get('page_size', self.DEFAULT_PAGE_SIZE)),
+            self.MAX_PAGE_SIZE,
+        )
+        cache_key = f"hist_releases_v3_{project_id or 'all'}_p{page}_ps{page_size}"
         cached = cache.get(cache_key)
         if cached:
             return Response(cached)
         try:
+            releases_qs = Project.objects.select_related('business_project')
             if project_id and project_id != 'all':
-                campaigns = (Campaign.objects
-                             .filter(project__business_project_id=project_id)
-                             .select_related('project')
-                             .order_by('created_at'))
-            else:
-                campaigns = (Campaign.objects
-                             .select_related('project')
-                             .order_by('-created_at')[:10])
+                releases_qs = releases_qs.filter(business_project_id=project_id)
 
-            # One aggregated query per campaign batch
-            campaign_ids = [c.id for c in campaigns]
-            tc_stats = (TestCase.objects
-                        .filter(campaign_id__in=campaign_ids)
-                        .values('campaign_id')
-                        .annotate(
-                            total=Count('id'),
-                            passed=Count('id', filter=Q(status='PASSED')),
-                            failed=Count('id', filter=Q(status='FAILED')),
-                            min_date=Min('execution_date'),
-                            max_date=Max('execution_date'),
-                        ))
-            tc_map = {r['campaign_id']: r for r in tc_stats}
+            ordered_qs = releases_qs.order_by('-created_at')
+            total_count = ordered_qs.count()
+            if total_count == 0:
+                payload = {
+                    "count": 0,
+                    "page": page,
+                    "page_size": page_size,
+                    "total_pages": 0,
+                    "summary": {"stable_percent": 0, "trend_delta": None, "stable_releases": 0},
+                    "results": [],
+                }
+                cache.set(cache_key, payload, timeout=self.CACHE_TTL)
+                return Response(payload)
 
-            anomaly_stats = (Anomalie.objects
-                             .filter(test_case__campaign_id__in=campaign_ids)
-                             .values('test_case__campaign_id')
-                             .annotate(cnt=Count('id')))
-            anomaly_map = {r['test_case__campaign_id']: r['cnt'] for r in anomaly_stats}
+            all_release_ids = list(ordered_qs.values_list('id', flat=True))
+            offset = (page - 1) * page_size
+            page_releases = list(ordered_qs[offset:offset + page_size])
+            page_release_ids = [r.id for r in page_releases]
 
-            data = []
-            for camp in campaigns:
-                s = tc_map.get(camp.id, {})
-                total = s.get('total', 0) or camp.nb_test_cases or 0
-                passed = s.get('passed', 0)
-                failed = s.get('failed', 0)
-                executed = passed + failed
-                duration = 0
-                velocity = 0
-                if s.get('min_date') and s.get('max_date'):
-                    duration = (s['max_date'] - s['min_date']).days or 1
-                    velocity = executed / duration
+            tc_stats = (
+                TestCase.objects
+                .filter(campaign__project_id__in=all_release_ids)
+                .values('campaign__project_id')
+                .annotate(
+                    total=Count('id'),
+                    passed=Count('id', filter=Q(status='PASSED')),
+                    failed=Count('id', filter=Q(status='FAILED')),
+                    min_date=Min('execution_date'),
+                    max_date=Max('execution_date'),
+                )
+            )
+            tc_map = {r['campaign__project_id']: r for r in tc_stats}
 
-                if project_id and project_id != 'all':
-                    version = camp.title or "N/A"
-                else:
-                    p_name = camp.project.name if camp.project else "PR"
-                    version = f"{p_name[:3].upper()} - {camp.title or 'N/A'}"
+            planned_stats = (
+                Campaign.objects
+                .filter(project_id__in=all_release_ids)
+                .values('project_id')
+                .annotate(planned=Sum('nb_test_cases'))
+            )
+            planned_map = {r['project_id']: r['planned'] or 0 for r in planned_stats}
 
-                data.append({
-                    "release_id": camp.id,
-                    "version": version,
-                    "pass_rate": round((passed / executed * 100), 1) if executed > 0 else 0,
-                    "coverage_rate": round((executed / total * 100), 1) if total > 0 else 0,
-                    "total_tests": total,
-                    "avg_velocity": round(velocity, 1),
-                    "anomaly_count": anomaly_map.get(camp.id, 0),
-                    "duration_days": duration,
-                    "completed_at": camp.estimated_end_date.isoformat() if camp.estimated_end_date else camp.created_at.isoformat()
-                })
-            cache.set(cache_key, data, timeout=self.CACHE_TTL)
-            return Response(data)
+            anomaly_stats = (
+                Anomalie.objects
+                .filter(test_case__campaign__project_id__in=all_release_ids)
+                .values('test_case__campaign__project_id')
+                .annotate(cnt=Count('id'))
+            )
+            anomaly_map = {r['test_case__campaign__project_id']: r['cnt'] for r in anomaly_stats}
+
+            pass_rates_newest_first = [
+                self._pass_rate(rid, tc_map, planned_map) for rid in all_release_ids
+            ]
+            stable_releases = sum(1 for p in pass_rates_newest_first if p >= 80)
+            stable_percent = round((stable_releases / total_count) * 100) if total_count else 0
+
+            trend_delta = None
+            if len(pass_rates_newest_first) >= 2:
+                chronological = list(reversed(pass_rates_newest_first))
+                deltas = [
+                    chronological[i + 1] - chronological[i]
+                    for i in range(len(chronological) - 1)
+                ]
+                trend_delta = round(sum(deltas) / len(deltas), 1)
+
+            results = [
+                self._build_release_row(r, tc_map, planned_map, anomaly_map, project_id)
+                for r in page_releases
+            ]
+
+            total_pages = (total_count + page_size - 1) // page_size
+            payload = {
+                "count": total_count,
+                "page": page,
+                "page_size": page_size,
+                "total_pages": total_pages,
+                "summary": {
+                    "stable_percent": stable_percent,
+                    "stable_releases": stable_releases,
+                    "trend_delta": trend_delta,
+                },
+                "results": results,
+            }
+            cache.set(cache_key, payload, timeout=self.CACHE_TTL)
+            return Response(payload)
         except Exception as e:
             logger.exception("Error in HistoricalReleasesView")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

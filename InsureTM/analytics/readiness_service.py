@@ -121,8 +121,14 @@ class ReleaseReadinessManager:
             # 4. Blocking Anomaly Guard (10%) - Binary safety
             blocking_score = 10 if (total_executed > 0 and blocking_count == 0) else 0
 
-            # Global score calculation
-            total_score = round(pass_rate_score + ml_stability_score + anomaly_score + blocking_score)
+            # Global score — aligné sur la somme des piliers arrondis (cohérence UI)
+            breakdown = {
+                "test_pass_rate": round(pass_rate_score, 1),
+                "ml_stability": round(ml_stability_score, 1),
+                "anomalies_health": round(anomaly_score, 1),
+                "blocking_guard": round(blocking_score, 1),
+            }
+            total_score = round(sum(breakdown.values()))
             
             # Critical Rule: If there is any blocking anomaly, the campaign is strictly not ready
             if blocking_count > 0:
@@ -153,12 +159,7 @@ class ReleaseReadinessManager:
 
             return {
                 "score": total_score,
-                "breakdown": {
-                    "test_pass_rate": round(pass_rate_score, 1),
-                    "ml_stability": round(ml_stability_score, 1),
-                    "anomalies_health": round(anomaly_score, 1),
-                    "blocking_guard": round(blocking_score, 1)
-                },
+                "breakdown": breakdown,
                 "source_data": {
                     "project_id": project_id,
                     "campaign_id": campaigns[0].id if campaigns else None,

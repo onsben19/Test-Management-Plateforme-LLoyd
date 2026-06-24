@@ -1,5 +1,5 @@
 # Project/views.py
-from rest_framework import viewsets
+from rest_framework import viewsets, filters
 from django.db.models import Q
 from .models import Project
 from .serializers import ProjectSerializer
@@ -23,6 +23,9 @@ Connectez-vous pour voir les détails.
 
 class ProjectViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['created_at', 'name']
+    ordering = ['-created_at']
 
     def get_queryset(self):
         queryset = Project.objects.all()

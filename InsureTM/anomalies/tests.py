@@ -95,3 +95,63 @@ class AnomalieSHAProofTestCase(TestCase):
         
         serializer = AnomalieSerializer(data=data)
         self.assertTrue(serializer.is_valid())
+
+
+class AnomalieSearchTestCase(TestCase):
+    def setUp(self):
+        self.manager = User.objects.create_user(
+            username='manager',
+            email='manager@lloyd.com',
+            password='password',
+            role='MANAGER',
+        )
+        self.project = Project.objects.create(name='Project Lloyd')
+        self.campaign = Campaign.objects.create(title='Campaign 1', project=self.project)
+        self.test_case = TestCaseModel.objects.create(
+            test_case_ref='TC_01',
+            campaign=self.campaign,
+        )
+        self.anomaly = Anomalie.objects.create(
+            test_case=self.test_case,
+            titre='Bug login',
+            description='Erreur OTP',
+            cree_par=self.manager,
+        )
+
+    def test_search_by_anomaly_id(self):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user=self.manager)
+        response = client.get('/api/anomalies/', {'search': str(self.anomaly.id)})
+        self.assertEqual(response.status_code, 200)
+        results = response.data.get('results', response.data)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['id'], self.anomaly.id)
+
+    def test_search_by_hash_prefixed_id(self):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user=self.manager)
+        response = client.get('/api/anomalies/', {'search': f'#{self.anomaly.id}'})
+        self.assertEqual(response.status_code, 200)
+        results = response.data.get('results', response.data)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['id'], self.anomaly.id)
+
+    def test_numeric_search_excludes_unrelated_ids(self):
+        from rest_framework.test import APIClient
+
+        other = Anomalie.objects.create(
+            test_case=self.test_case,
+            titre='Autre bug',
+            description='Sans lien',
+            cree_par=self.manager,
+        )
+        client = APIClient()
+        client.force_authenticate(user=self.manager)
+        response = client.get('/api/anomalies/', {'search': str(self.anomaly.id)})
+        self.assertEqual(response.status_code, 200)
+        results = response.data.get('results', response.data)
+        ids = {item['id'] for item in results}
+        self.assertIn(self.anomaly.id, ids)
+        self.assertNotIn(other.id, ids)

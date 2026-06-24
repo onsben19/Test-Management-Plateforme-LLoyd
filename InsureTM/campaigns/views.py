@@ -37,6 +37,7 @@ class CampaignViewSet(viewsets.ModelViewSet):
             )
 
         project_id = self.request.query_params.get('project')
+        business_project_id = self.request.query_params.get('business_project')
         search = self.request.query_params.get('search')
         tester = self.request.query_params.get('tester')
         release_type = self.request.query_params.get('release_type')
@@ -44,10 +45,14 @@ class CampaignViewSet(viewsets.ModelViewSet):
         if project_id:
             queryset = queryset.filter(project_id=project_id)
 
+        if business_project_id:
+            queryset = queryset.filter(project__business_project_id=business_project_id)
+
         if search:
             queryset = queryset.filter(Q(title__icontains=search) | Q(description__icontains=search))
-            
-        if tester:
+
+        # Un testeur ne peut jamais voir les campagnes d'un autre via ce filtre
+        if tester and not (hasattr(user, 'role') and user.role == 'TESTER'):
             queryset = queryset.filter(assigned_testers__username__icontains=tester)
             
         if release_type and release_type != 'all':

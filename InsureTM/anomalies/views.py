@@ -1,6 +1,9 @@
 import logging
+import re
+from pathlib import Path
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Q, TextField
+from django.db.models.functions import Cast
 from django.http import HttpResponse
 from datetime import datetime
 from fpdf import FPDF
@@ -17,6 +20,36 @@ from .serializers import AnomalieSerializer
 
 logger = logging.getLogger(__name__)
 
+PDF_FONT_CANDIDATES = (
+    '/usr/share/fonts/truetype/freefont/FreeSans.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+)
+PDF_FONT_BOLD_CANDIDATES = (
+    '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+)
+
+EXPORT_COLUMNS = (
+    ('ID', 0.05),
+    ('Titre', 0.22),
+    ('Gravité', 0.08),
+    ('Priorité', 0.07),
+    ('Statut', 0.08),
+    ('Test lié', 0.10),
+    ('Release', 0.11),
+    ('Campagne', 0.12),
+    ('Créé par', 0.08),
+    ('Date', 0.09),
+)
+
+
+def _resolve_pdf_font(candidates):
+    for path in candidates:
+        if Path(path).is_file():
+            return path
+    return None
+
+
 class AnomalieViewSet(viewsets.ModelViewSet):
     queryset = Anomalie.objects.all()
     serializer_class = AnomalieSerializer
@@ -24,7 +57,12 @@ class AnomalieViewSet(viewsets.ModelViewSet):
     parser_classes = (MultiPartParser, FormParser)
 
     def get_queryset(self):
-        queryset = Anomalie.objects.all()
+        queryset = Anomalie.objects.select_related(
+            'test_case',
+            'test_case__campaign',
+            'test_case__campaign__project',
+            'cree_par',
+        )
         
         if self.request.user.role == 'TESTER':
             queryset = queryset.filter(cree_par=self.request.user)
@@ -37,11 +75,24 @@ class AnomalieViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(test_case__campaign_id=campaign_id)
 
         if search:
-            queryset = queryset.filter(
-                Q(titre__icontains=search) |
-                Q(description__icontains=search) |
-                Q(test_case__campaign__title__icontains=search)
-            )
+            term = search.strip()
+            if term.startswith('#'):
+                term = term[1:].strip()
+
+            if re.fullmatch(r'\d+', term):
+                queryset = queryset.annotate(
+                    pk_str=Cast('pk', TextField()),
+                ).filter(pk_str__icontains=term)
+            else:
+                queryset = queryset.filter(
+                    Q(titre__icontains=term) |
+                    Q(description__icontains=term) |
+                    Q(test_case__campaign__title__icontains=term) |
+                    Q(test_case__test_case_ref__icontains=term) |
+                    Q(cree_par__username__icontains=term) |
+                    Q(cree_par__first_name__icontains=term) |
+                    Q(cree_par__last_name__icontains=term)
+                )
 
         if impact and impact != 'ALL' and impact != 'Tout':
             queryset = queryset.filter(impact=impact.upper())
@@ -111,66 +162,182 @@ class AnomalieViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def export_pdf(self, request):
         queryset = self.get_queryset()
-        
+
+        font_regular = _resolve_pdf_font(PDF_FONT_CANDIDATES)
+        font_bold = _resolve_pdf_font(PDF_FONT_BOLD_CANDIDATES)
+        font_family = 'FreeSans' if font_regular else 'helvetica'
+
         class PDF(FPDF):
             def header(self):
-                self.set_fill_color(239, 68, 68) # Red-500
-                self.rect(0, 0, 300, 10, 'F')
-                self.set_font('helvetica', 'B', 24)
-                self.set_text_color(30, 41, 59) # Slate-800
-                self.cell(0, 30, "Rapport d'Anomalies - InsureTM", ln=True, align='L')
-                self.set_font('helvetica', 'I', 10)
-                self.set_text_color(100, 116, 139) # Slate-500
-                self.cell(0, 10, f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}", ln=True, align='L')
-                self.ln(5)
+                self.set_fill_color(239, 68, 68)
+                self.rect(0, 0, self.w, 5, 'F')
+                self.set_font(font_family, 'B', 14)
+                self.set_text_color(30, 41, 59)
+                self.set_y(8)
+                self.cell(0, 7, pdf_text("Rapport d'Anomalies - InsureTM"), ln=True, align='L')
+                self.set_font(font_family, '', 8)
+                self.set_text_color(100, 116, 139)
+                generated_label = 'Généré le' if font_regular else 'Genere le'
+                generated_at = datetime.now().strftime(
+                    '%d/%m/%Y à %H:%M' if font_regular else '%d/%m/%Y a %H:%M'
+                )
+                self.cell(
+                    0, 5,
+                    pdf_text(f'{generated_label} {generated_at}'),
+                    ln=True,
+                    align='L',
+                )
+                self.ln(1)
 
-        pdf = PDF()
+            def draw_table_header(self, col_widths):
+                self.set_font(font_family, 'B', 7)
+                self.set_fill_color(248, 250, 252)
+                self.set_text_color(71, 85, 105)
+                x = self.l_margin
+                y = self.get_y()
+                for (header, _), width in zip(EXPORT_COLUMNS, col_widths):
+                    self.set_xy(x, y)
+                    self.cell(width, 7, pdf_text(header), border=1, align='L', fill=True)
+                    x += width
+                self.ln(7)
+
+        def pdf_text(value):
+            text = str(value or '-')
+            if font_regular:
+                return text
+            return text.encode('latin-1', 'replace').decode('latin-1')
+
+        pdf = PDF(orientation='L', unit='mm', format='A4')
+        pdf.set_margins(4, 10, 4)
+        pdf.set_auto_page_break(auto=True, margin=10)
+        if font_regular:
+            pdf.add_font(font_family, '', font_regular)
+            pdf.add_font(font_family, 'B', font_bold or font_regular)
         pdf.add_page()
-        pdf.set_font('helvetica', 'B', 10)
-        pdf.set_fill_color(248, 250, 252) # Slate-50
-        pdf.set_text_color(71, 85, 105) # Slate-600
-        
-        headers = [('ID', 15), ('Titre / Description', 100), ('Impact', 30), ('Projet', 40), ('Test lié', 40), ('Date', 25)]
-        for h, w in headers:
-            pdf.cell(w, 10, h, border=1, align='L', fill=True)
-        pdf.ln()
 
-        pdf.set_font('helvetica', '', 9)
-        pdf.set_text_color(30, 41, 59) # Slate-800
+        available_w = pdf.w - pdf.l_margin - pdf.r_margin
+        col_widths = [available_w * ratio for _, ratio in EXPORT_COLUMNS]
+
+        pdf.draw_table_header(col_widths)
+
+        row_h = 7
         fill = False
         for an in queryset:
-            text_y = pdf.get_y()
-            if text_y > 175:
+            if pdf.get_y() > pdf.h - pdf.b_margin - row_h:
                 pdf.add_page()
-                text_y = pdf.get_y()
-            pdf.set_font('helvetica', 'B', 9)
-            pdf.cell(15, 12, f"#{an.id}", border='TB', fill=fill)
-            pdf.set_x(25)
-            desc = (an.description or "")[:120] + "..." if an.description and len(an.description) > 120 else (an.description or "")
-            safe_titre = str(an.titre).encode('latin-1', 'replace').decode('latin-1')
-            safe_desc = desc.encode('latin-1', 'replace').decode('latin-1')
-            pdf.multi_cell(100, 6, f"{safe_titre}\n{safe_desc}", border='TB', align='L', fill=fill)
-            pdf.set_xy(125, text_y)
-            if an.impact in ['CRITIQUE', 'BLOQUANTES']:
-                pdf.set_text_color(239, 68, 68)
-            elif an.impact in ['MAJEUR', 'MINEURS']:
-                pdf.set_text_color(234, 179, 8)
-            else:
-                pdf.set_text_color(59, 130, 246)
-            pdf.cell(30, 12, an.impact or "MINEURS", border='TB', fill=fill)
-            pdf.set_text_color(30, 41, 59)
-            proj_name = "-"
-            if an.test_case and an.test_case.campaign and an.test_case.campaign.project:
-                proj_name = an.test_case.campaign.project.name[:20]
-            pdf.cell(40, 12, proj_name, border='TB', fill=fill)
-            test_ref = an.test_case.test_case_ref[:20] if an.test_case else "-"
-            pdf.cell(40, 12, test_ref, border='TB', fill=fill)
-            pdf.cell(25, 12, an.cree_le.strftime('%d/%m/%Y'), border='TB', fill=fill)
-            pdf.ln()
+                pdf.draw_table_header(col_widths)
+
+            values = self._anomaly_export_fields(an)
+            x = pdf.l_margin
+            y = pdf.get_y()
+            for col_idx, ((_, _), width, value) in enumerate(zip(EXPORT_COLUMNS, col_widths, values)):
+                pdf.set_xy(x, y)
+                text = pdf_text(value)
+                is_date_col = col_idx == len(EXPORT_COLUMNS) - 1
+                if not is_date_col and col_idx != 0:
+                    max_chars = max(6, int(width / 1.9))
+                    if len(text) > max_chars:
+                        text = text[: max_chars - 3] + '...'
+                style = 'B' if col_idx == 0 else ''
+                pdf.set_font(font_family, style, 7)
+                if col_idx == 2:
+                    if an.impact in ['CRITIQUE', 'BLOQUANTES']:
+                        pdf.set_text_color(239, 68, 68)
+                    elif an.impact in ['MAJEUR', 'MINEURS']:
+                        pdf.set_text_color(234, 179, 8)
+                    else:
+                        pdf.set_text_color(59, 130, 246)
+                else:
+                    pdf.set_text_color(30, 41, 59)
+                pdf.cell(width, row_h, text, border=1, align='L', fill=fill)
+                x += width
+            pdf.set_y(y + row_h)
             fill = not fill
 
         response = HttpResponse(bytes(pdf.output()), content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="rapport_anomalies.pdf"'
+        return response
+
+    def _anomaly_export_fields(self, an):
+        test_ref = an.test_case.test_case_ref if an.test_case else ''
+        project_name = '-'
+        campaign_title = '-'
+        if an.test_case and an.test_case.campaign:
+            campaign_title = an.test_case.campaign.title or '-'
+            if an.test_case.campaign.project:
+                project_name = an.test_case.campaign.project.name or '-'
+        if an.cree_par:
+            author = f"{an.cree_par.first_name} {an.cree_par.last_name}".strip() or an.cree_par.username
+        else:
+            author = 'Inconnu'
+        return [
+            an.id,
+            str(an.titre or '').replace('\x00', ''),
+            an.impact or 'A_DEFINIR',
+            an.priorite or 'A_DEFINIR',
+            an.statut or 'OUVERTE',
+            test_ref or '-',
+            project_name,
+            campaign_title,
+            author,
+            an.cree_le.strftime('%d/%m/%Y'),
+        ]
+
+    @action(detail=False, methods=['get'])
+    def export_xlsx(self, request):
+        import io
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Font, PatternFill
+        from openpyxl.utils import get_column_letter
+
+        queryset = self.get_queryset()
+        headers = [
+            'ID', 'Titre', 'Gravité', 'Priorité', 'Statut',
+            'Test lié', 'Release', 'Campagne', 'Créé par', 'Date',
+        ]
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'Anomalies'
+        ws.append(headers)
+
+        header_font = Font(bold=True, color='FFFFFF')
+        header_fill = PatternFill('solid', fgColor='1E293B')
+        for col_idx, _ in enumerate(headers, start=1):
+            cell = ws.cell(row=1, column=col_idx)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+
+        for an in queryset:
+            ws.append(self._anomaly_export_fields(an))
+
+        for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+            for cell in row:
+                cell.alignment = Alignment(vertical='top', wrap_text=True)
+
+        min_widths = [8, 42, 14, 12, 14, 16, 22, 28, 18, 12]
+        for col_idx, min_w in enumerate(min_widths, start=1):
+            letter = get_column_letter(col_idx)
+            max_len = min_w
+            for cell in ws[letter]:
+                if cell.value is not None:
+                    max_len = max(max_len, min(len(str(cell.value)) + 2, 55 if col_idx == 2 else 35))
+            ws.column_dimensions[letter].width = max_len
+
+        ws.freeze_panes = 'A2'
+        ws.auto_filter.ref = ws.dimensions
+
+        buffer = io.BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = (
+            f'attachment; filename="anomalies_export_{datetime.now().strftime("%Y-%m-%d")}.xlsx"'
+        )
         return response
 
     @action(detail=False, methods=['post'])

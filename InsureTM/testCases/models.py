@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
@@ -74,9 +74,23 @@ class TestCase(models.Model):
     def __str__(self):
         return f"{self.test_case_ref} - {self.campaign.title}"
 
+
+@receiver(post_save, sender=TestCase)
+@receiver(post_delete, sender=TestCase)
+def invalidate_bp_health_on_test_case_change(sender, instance, **kwargs):
+    from business_projects.health_cache import invalidate_bp_health_for_campaign
+    invalidate_bp_health_for_campaign(instance.campaign_id)
+
+
 @receiver(post_save, sender=TestCase)
 def broadcast_test_case_event(sender, instance, created, **kwargs):
+    if instance.status == 'PENDING':
+        return
+
     try:
+        from analytics.ml_service import invalidate_campaign_timeline_cache
+        invalidate_campaign_timeline_cache(instance.campaign_id)
+
         channel_layer = get_channel_layer()
         group_name = f'campaign_{instance.campaign.id}'
         

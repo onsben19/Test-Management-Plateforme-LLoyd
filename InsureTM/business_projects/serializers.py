@@ -31,11 +31,6 @@ class BusinessProjectSerializer(serializers.ModelSerializer):
         if cached is not None:
             return cached
 
-        if obj.status == 'TERMINÉ':
-            result = {'score': 100.0, 'label': 'Terminé ✓', 'open_anomalies': 0}
-            cache.set(cache_key, result, timeout=120)
-            return result
-
         from campaigns.models import Campaign
         from testCases.models import TestCase
         from anomalies.models import Anomalie
@@ -47,14 +42,15 @@ class BusinessProjectSerializer(serializers.ModelSerializer):
             .only('id', 'nb_test_cases')
         )
         if not campaigns:
-            result = {'score': None, 'label': 'Pas encore démarré', 'open_anomalies': 0}
+            label = 'Terminé ✓' if obj.status == 'TERMINÉ' else 'Pas encore démarré'
+            result = {'score': None, 'label': label, 'open_anomalies': 0}
             cache.set(cache_key, result, timeout=120)
             return result
 
         camp_ids = [c.id for c in campaigns]
         nb_map = {c.id: (c.nb_test_cases or 0) for c in campaigns}
 
-        # One aggregated query: passed count + total count per campaign
+        # One aggregated query: passed/failed/total per campaign
         tc_stats = (
             TestCase.objects
             .filter(campaign_id__in=camp_ids)
@@ -62,6 +58,7 @@ class BusinessProjectSerializer(serializers.ModelSerializer):
             .annotate(
                 total_db=Count('id'),
                 passed=Count('id', filter=Q(status='PASSED')),
+                failed=Count('id', filter=Q(status='FAILED')),
             )
         )
         tc_map = {r['campaign_id']: r for r in tc_stats}
@@ -78,41 +75,62 @@ class BusinessProjectSerializer(serializers.ModelSerializer):
         )
         anom_map = {r['test_case__campaign_id']: r['cnt'] for r in anom_stats}
 
-        scores = []
-        has_complete = False
-        total_open = sum(anom_map.values())
+        total_planned = 0
+        total_passed = 0
+        total_failed = 0
+        total_open = 0
+        campaigns_complete = 0
+        campaigns_with_tests = 0
 
         for camp in campaigns:
             s = tc_map.get(camp.id)
-            if not s:
-                continue
-            total = max(nb_map[camp.id], s['total_db'])
-            if total == 0:
-                continue
-            passed = s['passed']
-            score = round((min(passed, total) / total) * 100, 1)
-            scores.append(score)
-            if score == 100.0 and anom_map.get(camp.id, 0) == 0:
-                has_complete = True
+            planned = max(nb_map[camp.id], s['total_db'] if s else 0)
+            passed = s['passed'] if s else 0
+            failed = s['failed'] if s else 0
+            open_anom = anom_map.get(camp.id, 0)
 
-        if not scores:
-            result = {'score': None, 'label': 'Pas encore démarré', 'open_anomalies': total_open}
+            total_planned += planned
+            total_passed += passed
+            total_failed += failed
+            total_open += open_anom
+
+            if planned > 0 and (passed + failed) > 0:
+                campaigns_with_tests += 1
+                if passed >= planned and failed == 0 and open_anom == 0:
+                    campaigns_complete += 1
+
+        total_executed = total_passed + total_failed
+
+        if total_executed == 0 or total_planned == 0:
+            label = 'Terminé ✓' if obj.status == 'TERMINÉ' else 'Pas encore démarré'
+            result = {'score': None, 'label': label, 'open_anomalies': total_open}
             cache.set(cache_key, result, timeout=120)
             return result
 
-        best = max(scores)
-        if has_complete:
+        # Score global = part des tests planifiés réussis (pas le max d'une seule campagne)
+        score = round((min(total_passed, total_planned) / total_planned) * 100, 1)
+        success_rate = round((total_passed / total_executed) * 100, 1) if total_executed else 0
+        all_campaigns_done = (
+            campaigns_with_tests > 0
+            and campaigns_complete == len(campaigns)
+            and total_passed >= total_planned
+        )
+
+        if all_campaigns_done and total_open == 0:
             label = 'Complet ✓'
-        elif best >= 80:
+        elif success_rate >= 80 and total_open == 0:
             label = 'Excellent'
-        elif best >= 50:
+        elif score >= 50 or total_executed >= total_planned * 0.5:
             label = 'En cours'
-        elif best > 0:
+        elif score > 0 or total_executed > 0:
             label = 'Démarrage'
         else:
             label = 'Pas encore démarré'
 
-        result = {'score': best, 'label': label, 'open_anomalies': total_open}
+        if obj.status == 'TERMINÉ':
+            label = 'Terminé ✓'
+
+        result = {'score': score, 'label': label, 'open_anomalies': total_open}
         cache.set(cache_key, result, timeout=120)
         return result
 

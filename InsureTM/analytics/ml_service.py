@@ -2,11 +2,20 @@ from django.utils import timezone
 from datetime import timedelta
 from campaigns.models import Campaign
 from testCases.models import TestCase
-from testCases.models import TestCase
 import math
 import joblib
 import os
 import pandas as pd
+
+
+def invalidate_campaign_timeline_cache(campaign_id):
+    """Invalidate cached timeline guard / AI insight after campaign metadata changes."""
+    from django.core.cache import cache
+    for suffix in ('insight', 'fast'):
+        cache.delete(f"campaign_status_{campaign_id}_{suffix}")
+        cache.delete(f"campaign_status_v2_{campaign_id}_{suffix}")
+        cache.delete(f"campaign_status_v3_{campaign_id}_{suffix}")
+
 
 class MLTimelineGuard:
     _cached_model = None
@@ -30,9 +39,74 @@ class MLTimelineGuard:
         
         self.model = MLTimelineGuard._cached_model
 
+    def _compute_effective_velocity(self, executed_tests, first_exec_date, today):
+        """
+        Estime le rythme actuel en privilégiant les fenêtres récentes
+        (détecte l'accélération du testeur).
+        """
+        finished_count = executed_tests.count()
+        days_since_first = max(1, (today - first_exec_date).days)
+        velocity_overall = finished_count / days_since_first
+
+        now = timezone.now()
+        recent_7d = executed_tests.filter(execution_date__gte=now - timedelta(days=7)).count()
+        days_7d = max(1, min(7, days_since_first + 1))
+        velocity_7d = recent_7d / days_7d
+
+        recent_3d = executed_tests.filter(execution_date__gte=now - timedelta(days=3)).count()
+        days_3d = max(1, min(3, days_since_first + 1))
+        velocity_3d = recent_3d / days_3d if recent_3d > 0 else 0
+
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_finished = executed_tests.filter(execution_date__gte=today_start).count()
+
+        return max(velocity_overall, velocity_7d, velocity_3d, float(today_finished))
+
+    def _project_completion(self, remaining_cases, velocity):
+        """Projection linéaire : Dl = ceil(cas restants / vélocité effective)."""
+        if remaining_cases <= 0:
+            return 0
+        if velocity <= 0:
+            return None
+        return max(0, math.ceil(remaining_cases / velocity))
+
+    def _predict_ml_days(self, total_cases, finished_count, days_elapsed):
+        """
+        Prédiction Random Forest (Dml) — mêmes features que research/train_model.py.
+        Retourne None si le modèle .joblib est absent ou en cas d'erreur.
+        """
+        if not self.model or finished_count >= total_cases:
+            return None
+        remaining = total_cases - finished_count
+        if remaining <= 0:
+            return 0
+        simple_velocity = finished_count / max(1, days_elapsed)
+        try:
+            features = pd.DataFrame([{
+                'total_cases': int(total_cases),
+                'finished_cases': int(finished_count),
+                'days_elapsed': int(max(1, days_elapsed)),
+                'velocity': float(max(simple_velocity, 0.1)),
+            }])
+            raw = float(self.model.predict(features)[0])
+            return max(0, math.ceil(raw))
+        except Exception as e:
+            print(f"Erreur prédiction Random Forest: {e}")
+            return None
+
+    def _combine_projections(self, linear_days, ml_days):
+        """Garde-fou documenté : Dp = min(Dml, Dl) quand les deux existent."""
+        if linear_days is None and ml_days is None:
+            return None
+        if linear_days is None:
+            return ml_days
+        if ml_days is None:
+            return linear_days
+        return min(ml_days, linear_days)
+
     def get_campaign_status(self, campaign_id, generate_insight=True):
         from django.core.cache import cache
-        cache_key = f"campaign_status_{campaign_id}_{'insight' if generate_insight else 'fast'}"
+        cache_key = f"campaign_status_v3_{campaign_id}_{'insight' if generate_insight else 'fast'}"
         cached = cache.get(cache_key)
         if cached:
             return cached
@@ -47,92 +121,119 @@ class MLTimelineGuard:
             ).exclude(status='PENDING')
             
             finished_count = executed_tests.count()
-            
-            # 2. Préparation des Features pour le modèle
+
+            # 2. Dates effectives — la cadence se calcule depuis la 1ère exécution,
+            # pas depuis le start_date (sinon un démarrage tardif fausse tout en « EN RETARD »).
             start_date = campaign.start_date
-            if not start_date and executed_tests.exists():
-                start_date = executed_tests.order_by('execution_date').first().execution_date.date()
-            
             if not start_date:
                 start_date = campaign.created_at.date()
 
-            days_elapsed = (timezone.now().date() - start_date).days
-            if days_elapsed <= 0:
-                days_elapsed = 1
+            first_execution = executed_tests.order_by('execution_date').first()
+            today = timezone.now().date()
+            if first_execution and first_execution.execution_date:
+                first_exec_date = first_execution.execution_date.date()
+                days_elapsed = max(1, (today - first_exec_date).days)
+                velocity = self._compute_effective_velocity(
+                    executed_tests, first_exec_date, today
+                )
+            else:
+                days_elapsed = max(1, (today - start_date).days)
+                velocity = 0
 
-            velocity = finished_count / days_elapsed
-            
-            # 3. Inférence (Modèle ML local)
+            remaining_cases = total_cases - finished_count
+            linear_days = None
+            ml_days = None
+
+            # 3. Projection de fin — Dp = min(Dml Random Forest, Dl linéaire)
             if finished_count >= total_cases and total_cases > 0:
-                # Cas où la campagne est terminée
                 days_needed = 0
                 risk_status = "OPTIMAL"
-            elif self.model and velocity > 0:
-                # Création du DataFrame pour l'inférence
-                input_df = pd.DataFrame([{
-                    'total_cases': total_cases,
-                    'finished_cases': finished_count,
-                    'days_elapsed': days_elapsed,
-                    'velocity': velocity
-                }])
-                # Le modèle prédit les jours restants
-                days_needed = math.ceil(self.model.predict(input_df)[0])
-                # Sécurité : si on est proche de la fin, le calcul linéaire est parfois plus précis
-                remaining_cases = total_cases - finished_count
-                linear_days = math.ceil(remaining_cases / velocity)
-                # On prend le min pour éviter les prédictions trop pessimistes du modèle sur les petites données C'est une sécurité
-                days_needed = min(days_needed, linear_days)
-            else:
-                # Fallback sur calcul linéaire si pas de modèle ou pas de données
-                remaining_cases = total_cases - finished_count
-                if velocity == 0:
+                projected_end_date = today
+            elif velocity > 0:
+                linear_days = self._project_completion(remaining_cases, velocity)
+                ml_days = self._predict_ml_days(total_cases, finished_count, days_elapsed)
+                days_needed = self._combine_projections(linear_days, ml_days)
+                if days_needed is None:
                     if total_cases == 0:
-                         return self._format_response("INITIAL", 0, None, 0, "Aucun test défini.")
-                    # Si on a déjà commencé (days_elapsed > 1) mais 0 tests -> c'est un risque
+                        return self._format_response("INITIAL", 0, None, 0, 0, "Aucun test défini.")
                     status = "WAITING" if days_elapsed <= 1 else "WARNING"
-                    return self._format_response(status, 0, None, 0, "En attente d'exécution." if status == "WAITING" else "La campagne a débuté mais aucun test n'a été validé.")
-                days_needed = math.ceil(remaining_cases / velocity)
-
-            projected_end_date = timezone.now().date() + timedelta(days=days_needed)
-            
-            # 4. Analyse de risque (si pas déjà mise à OPTIMAL par le check terminé)
-            if finished_count < total_cases:
-                delay_days = 0
-                risk_status = "OPTIMAL"
-                
-                if campaign.estimated_end_date:
-                    delay_days = (projected_end_date - campaign.estimated_end_date).days
-                    if delay_days > 5:
-                        risk_status = "CRITICAL"
-                    elif delay_days > 0:
-                        risk_status = "WARNING"
+                    return self._format_response(
+                        status, 0, None, 0, 0,
+                        "En attente d'exécution." if status == "WAITING"
+                        else "La campagne a débuté mais aucun test n'a été validé."
+                    )
+                projected_end_date = today + timedelta(days=days_needed)
             else:
-                delay_days = 0
+                if total_cases == 0:
+                    return self._format_response("INITIAL", 0, None, 0, 0, "Aucun test défini.")
+                status = "WAITING" if days_elapsed <= 1 else "WARNING"
+                return self._format_response(
+                    status, 0, None, 0, 0,
+                    "En attente d'exécution." if status == "WAITING"
+                    else "La campagne a débuté mais aucun test n'a été validé."
+                )
+
+            # 4. Avance / retard par rapport à la deadline
+            advance_days = 0
+            delay_days = 0
+            risk_status = "OPTIMAL"
+            if finished_count < total_cases and campaign.estimated_end_date:
+                days_left = (campaign.estimated_end_date - today).days
+                slack_days = (campaign.estimated_end_date - projected_end_date).days
+
+                if days_left < 0:
+                    delay_days = abs(days_left)
+                    risk_status = "CRITICAL" if delay_days > 5 else "WARNING"
+                elif velocity > 0 and remaining_cases > 0:
+                    required_velocity = remaining_cases / max(1, days_left)
+                    if slack_days > 0:
+                        advance_days = slack_days
+                        delay_days = 0
+                        risk_status = "OPTIMAL"
+                    elif slack_days == 0:
+                        risk_status = "OPTIMAL"
+                    else:
+                        delay_days = abs(slack_days)
+                        risk_status = "CRITICAL" if delay_days > 5 else "WARNING"
+                else:
+                    if slack_days >= 0:
+                        advance_days = slack_days
+                        risk_status = "OPTIMAL"
+                    else:
+                        delay_days = abs(slack_days)
+                        risk_status = "CRITICAL" if delay_days > 5 else "WARNING"
+            elif finished_count >= total_cases:
                 risk_status = "OPTIMAL"
             
             # 5. Insight IA (Groq)
             if generate_insight:
                 failed_count = executed_tests.filter(status='FAILED').count()
                 ai_message = self._generate_ai_insight(
-                    campaign.title, 
-                    finished_count, 
-                    total_cases, 
-                    velocity, 
+                    campaign.title,
+                    finished_count,
+                    total_cases,
+                    velocity,
                     projected_end_date,
                     campaign.estimated_end_date,
-                    failed_count=failed_count
+                    failed_count=failed_count,
+                    advance_days=advance_days,
+                    delay_days=delay_days,
+                    risk_status=risk_status,
                 )
             else:
                 ai_message = "Analyse IA désactivée pour optimisation."
 
             result = self._format_response(
-                risk_status, 
-                velocity, 
-                projected_end_date, 
-                delay_days, 
+                risk_status,
+                velocity,
+                projected_end_date,
+                delay_days,
+                advance_days,
                 ai_message,
                 finished_count,
-                total_cases
+                total_cases,
+                linear_days=linear_days,
+                ml_days=ml_days,
             )
             # Cache fast (no insight) for 2 min, with insight for 5 min
             ttl = 300 if generate_insight else 120
@@ -144,19 +245,38 @@ class MLTimelineGuard:
         except Exception as e:
             return {"error": str(e)}
 
-    def _format_response(self, status, velocity, end_date, delay, message, finished=0, total=0):
-        return {
+    def _format_velocity(self, velocity):
+        """Affichage cadence : entier arrondi (pas de 0,5 test/jour)."""
+        return max(0, int(round(velocity)))
+
+    def _format_response(
+        self, status, velocity, end_date, delay, advance, message,
+        finished=0, total=0, linear_days=None, ml_days=None,
+    ):
+        display_velocity = self._format_velocity(velocity)
+
+        payload = {
             "status": status,
-            "velocity": math.ceil(velocity),
+            "velocity": display_velocity,
             "projected_end_date": end_date.isoformat() if end_date else None,
             "delay_days": max(0, delay),
+            "advance_days": max(0, advance),
             "message": message,
             "progress": {
                 "finished": finished,
                 "total": total,
                 "percentage": round((finished / total * 100), 1) if total > 0 else 0
-            }
+            },
         }
+        if linear_days is not None or ml_days is not None:
+            combined = self._combine_projections(linear_days, ml_days)
+            payload["projection"] = {
+                "linear_days": linear_days,
+                "ml_days": ml_days,
+                "combined_days": combined,
+                "model_used": self.model is not None and ml_days is not None,
+            }
+        return payload
 
     def score_tester(self, tester_id, campaign_id=None):
         """
@@ -220,21 +340,64 @@ class MLTimelineGuard:
         except Exception:
             return {"score": 50, "metrics": {}, "label": "NEUTRAL"}
 
-    def _generate_ai_insight(self, title, finished, total, velocity, projected, target, failed_count=0):
+    def _generate_ai_insight(
+        self,
+        title,
+        finished,
+        total,
+        velocity,
+        projected,
+        target,
+        failed_count=0,
+        advance_days=0,
+        delay_days=0,
+        risk_status="OPTIMAL",
+    ):
         if finished >= total and total > 0:
             if failed_count > 0:
                 return "Tous les cas de tests ont été exécutés, mais des anomalies ont été détectées. Les corrections doivent être validées."
             return "Objectif atteint ! Tous les cas de tests ont été validés avec succès. La campagne est terminée."
 
+        projected_label = projected.strftime('%d/%m/%Y') if projected else '—'
+        target_label = target.strftime('%d/%m/%Y') if target else '—'
+        cadence = self._format_velocity(velocity)
+
+        if risk_status == "OPTIMAL" and advance_days > 0:
+            return (
+                f"La campagne « {title} » est en avance de {advance_days} jour(s) sur l'échéance "
+                f"({target_label}). Avec {finished}/{total} tests exécutés et une cadence de "
+                f"{cadence} test(s)/jour, la fin est estimée au {projected_label}. "
+                f"Maintenez ce rythme pour conserver l'avance."
+            )
+
+        if risk_status == "OPTIMAL":
+            return (
+                f"La campagne « {title} » progresse normalement ({finished}/{total} tests, "
+                f"{cadence} test(s)/jour). Fin estimée au {projected_label}, "
+                f"dans les délais prévus ({target_label})."
+            )
+
+        if velocity <= 0 or risk_status == "WAITING":
+            return (
+                f"La campagne « {title} » a démarré mais aucun test n'a encore été exécuté. "
+                f"Lancez les premières exécutions pour activer le suivi prédictif."
+            )
+
         prompt = f"""
         Expert QA Platform Analyser.
         Campaign: {title}
         Progress: {finished}/{total}
-        Velocity: {velocity:.2f} tests/day
-        ML Projected End: {projected}
-        Deadline: {target}
-        
+        Velocity: {cadence} tests/day
+        Projected End: {projected_label}
+        Deadline: {target_label}
+        Risk status: {risk_status}
+        Days ahead of deadline: {advance_days}
+        Days behind schedule: {delay_days}
+        Failed tests: {failed_count}
+
         Provide a very short professional advice (max 2 sentences) in French.
+        If days ahead of deadline > 0, acknowledge the positive trajectory and do NOT urge acceleration.
+        If days behind schedule > 0, recommend concrete actions to catch up.
         """
         try:
             completion = self.groq_service.client.chat.completions.create(
@@ -243,5 +406,10 @@ class MLTimelineGuard:
                 temperature=0.5,
             )
             return completion.choices[0].message.content.strip()
-        except:
+        except Exception:
+            if delay_days > 0:
+                return (
+                    f"Retard estimé de {delay_days} jour(s) sur l'échéance ({target_label}). "
+                    f"Accélérez les exécutions ou réallouez les testeurs pour rattraper le planning."
+                )
             return "Analyse IA temporairement indisponible."

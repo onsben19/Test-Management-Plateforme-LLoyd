@@ -201,6 +201,9 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         
         config_injection = f"test.use({{ screenshot: 'on', baseURL: '{frontend_url}', storageState: '{storage_state_path}' }});\n"
             
+        # Remplacer localhost par le service nginx du réseau Docker
+        code = code.replace('http://localhost', frontend_url).replace('https://localhost', frontend_url)
+
         if 'test.use' not in code:
             code = code.replace("from '@playwright/test';", f"from '@playwright/test';\n\n{config_injection}")
 
@@ -359,7 +362,10 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                         anomaly_desc = "Le test a échoué. Diagnostic IA indisponible."
 
                     safe_title = str(anomaly_title).replace('\x00', '')[:250]
-                    safe_desc = str(anomaly_desc).replace('\x00', '') + f"\n\n--- LOGS ---\n{logs.replace(chr(0), '')}"
+                    brief_desc = str(anomaly_desc).replace('\x00', '').strip()
+                    safe_desc = brief_desc
+                    if logs:
+                        safe_desc += f"\n\n--- LOGS ---\n{logs.replace(chr(0), '')}"
 
                     anomaly = Anomalie(
                         test_case=tc,
@@ -379,6 +385,7 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                             anomaly.preuve_video.save(f'video_tc_{tc.id}.webm', File(f), save=False)
                     anomaly.save()
                     anomaly_id = anomaly.id
+                    tc_data['anomaly_id'] = anomaly_id
 
                 tc.save()
 
@@ -445,7 +452,17 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         # Fallback: execution finished but no result file (old run or error)
         tc_data = test_case.data_json or {}
         stored_logs = tc_data.get('execution_logs', '') if isinstance(tc_data, dict) else ''
-        return Response({'logs': stored_logs, 'running': False, 'status': test_case.status})
+        anomaly_id = tc_data.get('anomaly_id') if isinstance(tc_data, dict) else None
+        if anomaly_id is None and test_case.status == 'FAILED':
+            latest = test_case.anomalies.order_by('-cree_le').values_list('id', flat=True).first()
+            if latest:
+                anomaly_id = latest
+        return Response({
+            'logs': stored_logs,
+            'running': False,
+            'status': test_case.status,
+            'anomaly_id': anomaly_id,
+        })
 
     @action(detail=True, methods=['get'], url_path='serve-video')
     def serve_video(self, request, pk=None):

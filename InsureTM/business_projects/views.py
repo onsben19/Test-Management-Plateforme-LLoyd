@@ -1,4 +1,5 @@
 from rest_framework import viewsets, permissions, filters
+from .health_cache import invalidate_bp_health
 from .models import BusinessProject
 from .serializers import BusinessProjectSerializer
 
@@ -20,5 +21,6 @@ class BusinessProjectViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         instance = serializer.save()
+        invalidate_bp_health(instance.id)
         if instance.status == 'TERMINÉ':
             instance.releases.update(status='COMPLETED')

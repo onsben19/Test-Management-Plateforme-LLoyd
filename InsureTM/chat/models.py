@@ -31,3 +31,17 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Msg by {self.author} at {self.created_at}"
+
+
+class ConversationReadCursor(models.Model):
+    """Per-user read position in a conversation (for unread counts and read receipts)."""
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='read_cursors')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='chat_read_cursors')
+    last_read_message = models.ForeignKey(Message, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('conversation', 'user')
+
+    def __str__(self):
+        return f"Read cursor user={self.user_id} conv={self.conversation_id}"

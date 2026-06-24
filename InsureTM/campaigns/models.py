@@ -1,5 +1,7 @@
 from django.db import models
 from django.conf import settings
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 
 class Campaign(models.Model):
     # IMPORTANT : Ne pas importer Project. Utiliser 'Project.Project'
@@ -53,3 +55,19 @@ class TaskAssignment(models.Model):
 
     class Meta:
         unique_together = ('campaign', 'test_case_ref')
+
+
+@receiver(post_save, sender=Campaign)
+@receiver(post_delete, sender=Campaign)
+def invalidate_bp_health_on_campaign_change(sender, instance, **kwargs):
+    from business_projects.health_cache import invalidate_bp_health_for_campaign
+    from analytics.ml_service import invalidate_campaign_timeline_cache
+    invalidate_bp_health_for_campaign(instance.id)
+    invalidate_campaign_timeline_cache(instance.id)
+
+
+@receiver(post_save, sender=CampaignAssignment)
+@receiver(post_delete, sender=CampaignAssignment)
+def invalidate_timeline_on_assignment_change(sender, instance, **kwargs):
+    from analytics.ml_service import invalidate_campaign_timeline_cache
+    invalidate_campaign_timeline_cache(instance.campaign_id)
