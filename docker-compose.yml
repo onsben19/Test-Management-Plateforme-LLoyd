@@ -53,6 +53,7 @@ services:
   # ─────────────────────────────────────────────────────────
   frontend:
     build:
+      context: ./project
       dockerfile: Dockerfile
     container_name: insuretm-frontend
     restart: unless-stopped
