@@ -6,7 +6,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 
 urlpatterns = [
     path('admin/', admin.site.urls), 
-    path('api/login', LoginView.as_view(), name='token_obtain_pair'),
+    path('api/login/', LoginView.as_view(), name='token_obtain_pair'),
     path('api/verify-2fa/', Verify2FAView.as_view(), name='verify_2fa'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/logout/', TokenBlacklistView.as_view(), name='token_blacklist'),
