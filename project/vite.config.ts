@@ -10,17 +10,18 @@ export default defineConfig({
     },
   },
   server: {
+     allowedHosts: ['insuretb.tech', '.insuretb.tech'],
     proxy: {
       '/api': {
-        target: 'http://localhost:80',
+        target: 'https://api.insuretb.tech',
         changeOrigin: true,
       },
       '/media': {
-        target: 'http://localhost:80',
+        target: 'https://api.insuretb.tech',
         changeOrigin: true,
       },
       '/ws': {
-        target: 'ws://localhost:80',
+        target: 'wss://api.insuretb.tech',
         ws: true,
         changeOrigin: true,
       },
