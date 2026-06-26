@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const login = async (username: string, pass: string) => {
-        const response = await api.post('/login/', { username, password: pass });
+        const response = await api.post('https://api.insuretb.tech/api/login', { username, password: pass });
 
         if (response.data.requires_2fa) {
             return { requires_2fa: true, username: response.data.username };
