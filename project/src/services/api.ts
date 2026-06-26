@@ -4,7 +4,7 @@ import axios from 'axios';
 // Axios instance
 // ---------------------------------------------------------------------------
 const api = axios.create({
-    baseURL: '/api',
+    baseURL: 'https://api.insuretb.tech/api',
     headers: { 'Content-Type': 'application/json' },
 });
 
