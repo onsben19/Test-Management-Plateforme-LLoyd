@@ -58,24 +58,24 @@ services:
     container_name: insuretm-frontend
     restart: unless-stopped
     expose:
-      - "80"
+      - "4173"
 
   # ─────────────────────────────────────────────────────────
   # Nginx — Reverse Proxy (unique entry point)
   # ─────────────────────────────────────────────────────────
-  nginx:
-    image: nginx:alpine
-    container_name: insuretm-nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - media_data:/app/media:ro
-      - static_data:/app/staticfiles:ro
-    depends_on:
-      - backend
-      - frontend
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: insuretm-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+  #     - media_data:/app/media:ro
+  #     - static_data:/app/staticfiles:ro
+  #   depends_on:
+  #     - backend
+  #     - frontend
 
   # ─────────────────────────────────────────────────────────
   # n8n — Workflow Automation
