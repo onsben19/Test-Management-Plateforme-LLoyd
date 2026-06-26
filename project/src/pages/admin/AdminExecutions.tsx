@@ -18,6 +18,7 @@ const AdminExecutions = () => {
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const initialSearch = queryParams.get('search') || '';
+    const highlightId = queryParams.get('highlight');
 
     const [executions, setExecutions] = useState<TestItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -62,6 +63,12 @@ const AdminExecutions = () => {
     useEffect(() => {
         fetchExecutions();
     }, []);
+
+    useEffect(() => {
+        if (!highlightId || executions.length === 0) return;
+        const found = executions.find((t) => t.id === highlightId);
+        if (found) setEditingTest(found);
+    }, [highlightId, executions]);
 
     const filteredTests = useMemo(() => {
         const query = searchQuery.toLowerCase();
@@ -175,14 +182,14 @@ const AdminExecutions = () => {
 
                 {/* Toolbar */}
                 <div className="px-8 py-4 shrink-0">
-                    <div className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-white/10 rounded-[2.5rem] p-6 flex flex-col xl:flex-row items-center gap-6 shadow-2xl">
+                    <div className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-[2.5rem] p-6 flex flex-col xl:flex-row items-center gap-6 shadow-2xl">
                         <div className="relative flex-1 w-full group">
                             <input
                                 type="text"
                                 placeholder={t('adminExecutions.search')}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-[1.5rem] px-8 py-4 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold placeholder-slate-500"
+                                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-[1.5rem] px-8 py-4 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold placeholder-slate-500"
                             />
                         </div>
                         <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
@@ -192,10 +199,10 @@ const AdminExecutions = () => {
                                     onChange={(e) => setGroupBy(e.target.value as 'none' | 'campaign' | 'release' | 'project')}
                                     className="bg-transparent text-slate-900 dark:text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none"
                                 >
-                                    <option value="none" className="bg-slate-900">{t('adminExecutions.controls.none')}</option>
-                                    <option value="project" className="bg-slate-900">{t('adminExecutions.controls.project') || 'Par Projet'}</option>
-                                    <option value="campaign" className="bg-slate-900">{t('adminExecutions.controls.campaign')}</option>
-                                    <option value="release" className="bg-slate-900">{t('adminExecutions.controls.release')}</option>
+                                    <option value="none" className="bg-white dark:bg-slate-900">{t('adminExecutions.controls.none')}</option>
+                                    <option value="project" className="bg-white dark:bg-slate-900">{t('adminExecutions.controls.project') || 'Par Projet'}</option>
+                                    <option value="campaign" className="bg-white dark:bg-slate-900">{t('adminExecutions.controls.campaign')}</option>
+                                    <option value="release" className="bg-white dark:bg-slate-900">{t('adminExecutions.controls.release')}</option>
                                 </select>
                             </div>
 
@@ -205,8 +212,8 @@ const AdminExecutions = () => {
                                     onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
                                     className="bg-transparent text-slate-900 dark:text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none"
                                 >
-                                    <option value="newest" className="bg-slate-900">RÉCENTS</option>
-                                    <option value="oldest" className="bg-slate-900">ANCIENS</option>
+                                    <option value="newest" className="bg-white dark:bg-slate-900">RÉCENTS</option>
+                                    <option value="oldest" className="bg-white dark:bg-slate-900">ANCIENS</option>
                                 </select>
                             </div>
                         </div>

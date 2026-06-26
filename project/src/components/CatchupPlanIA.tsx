@@ -35,30 +35,70 @@ const formatDate = (dateStr?: string | Date) => {
     }
 };
 
-const ML_LABELS: Record<string, string> = {
-    ELITE: 'Élite',
-    STABLE: 'Stable',
-    OVERLOADED: 'Surchargé',
-    TRAINEE: 'Junior',
-    NEW_TALENT: 'Nouveau Talent',
-    NEUTRAL: 'Neutre',
-};
-
-const ML_LABEL_COLORS: Record<string, string> = {
-    ELITE: 'text-[#5DCAA5]',
-    STABLE: 'text-[#85B7EB]',
-    OVERLOADED: 'text-[#F09595]',
-    TRAINEE: 'text-[#EF9F27]',
-    NEW_TALENT: 'text-[#EF9F27]',
-    NEUTRAL: 'text-white/40',
-};
-
 /** Compute where a date falls on the timeline [0–100%] */
 const computeMarkerPct = (markerDate: Date, startDate: Date, endDate: Date): number => {
     const total = endDate.getTime() - startDate.getTime();
     if (total <= 0) return 0;
     const offset = markerDate.getTime() - startDate.getTime();
     return Math.max(0, Math.min(100, (offset / total) * 100));
+};
+
+const MARKER_MIN_GAP = 16;
+
+const getTesterSuitability = (score: number) => {
+    if (score >= 75) return { label: 'Très adapté', color: 'text-emerald-600 dark:text-[#5DCAA5]' };
+    if (score >= 55) return { label: 'Adapté', color: 'text-blue-600 dark:text-[#85B7EB]' };
+    if (score >= 35) return { label: 'Disponible', color: 'text-amber-600 dark:text-[#EF9F27]' };
+    return { label: 'Charge élevée', color: 'text-rose-600 dark:text-[#F09595]' };
+};
+
+interface TimelineMarker {
+    key: string;
+    pct: number;
+    title: string;
+    date: string;
+    titleClass: string;
+    dateClass: string;
+}
+
+const buildTimelineMarkers = (
+    todayPct: number,
+    deadlinePct: number | null,
+    deadlineDate?: string,
+): { mode: 'separate'; markers: TimelineMarker[] } | { mode: 'combined'; centerPct: number; today: TimelineMarker; deadline: TimelineMarker } => {
+    const today: TimelineMarker = {
+        key: 'today',
+        pct: todayPct,
+        title: "AUJOURD'HUI",
+        date: formatDate(new Date()),
+        titleClass: 'text-[#378ADD]',
+        dateClass: 'text-[#378ADD]',
+    };
+    const deadline: TimelineMarker | null = deadlinePct != null ? {
+        key: 'deadline',
+        pct: deadlinePct,
+        title: 'DEADLINE',
+        date: formatDate(deadlineDate),
+        titleClass: 'text-slate-500 dark:text-white/40',
+        dateClass: 'text-slate-900 dark:text-white/60',
+    } : null;
+
+    const showToday = todayPct > 6 && todayPct < 94;
+    const showDeadline = deadline != null && deadline.pct > 6 && deadline.pct < 96;
+
+    if (showToday && showDeadline && deadline && Math.abs(todayPct - deadline.pct) < MARKER_MIN_GAP) {
+        return {
+            mode: 'combined',
+            centerPct: (todayPct + deadline.pct) / 2,
+            today,
+            deadline,
+        };
+    }
+
+    const markers: TimelineMarker[] = [];
+    if (showToday) markers.push(today);
+    if (showDeadline && deadline) markers.push(deadline);
+    return { mode: 'separate', markers };
 };
 
 const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied, onClose }) => {
@@ -163,14 +203,14 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
 
     if (loading) {
         return (
-            <div className="bg-[#111827] border border-white/5 rounded-2xl p-12 flex flex-col items-center justify-center space-y-6">
+            <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/5 rounded-2xl p-12 flex flex-col items-center justify-center space-y-6">
                 <div className="relative">
                     <div className="w-16 h-16 border-4 border-[#378ADD]/20 border-t-[#378ADD] rounded-full animate-spin" />
                     <Brain className="absolute inset-0 m-auto text-[#378ADD] animate-pulse" size={24} />
                 </div>
                 <div className="text-center">
-                    <h3 className="text-white font-medium text-sm mb-2">Préparation des Recommandations</h3>
-                    <p className="text-white/40 text-[10px] uppercase font-bold tracking-tight">L'assistant cherche les meilleurs testeurs...</p>
+                    <h3 className="text-slate-900 dark:text-white font-medium text-sm mb-2">Préparation des Recommandations</h3>
+                    <p className="text-slate-500 dark:text-white/40 text-[10px] uppercase font-bold tracking-tight">L'assistant cherche les meilleurs testeurs...</p>
                 </div>
             </div>
         );
@@ -187,10 +227,12 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
     const startD = plan.start_date ? new Date(plan.start_date) : null;
     const projectedD = plan.projected_end_date ? new Date(plan.projected_end_date) : null;
     const deadlineD = plan.deadline ? new Date(plan.deadline) : null;
-    const timelineEnd = projectedD || deadlineD || new Date();
     const timelineStart = startD || new Date();
+    const timelineEnd = [projectedD, deadlineD].filter((d): d is Date => !!d && !isNaN(d.getTime()))
+        .sort((a, b) => b.getTime() - a.getTime())[0] || new Date();
     const todayPct = startD ? computeMarkerPct(new Date(), timelineStart, timelineEnd) : 35;
-    const deadlinePct = startD && deadlineD ? computeMarkerPct(deadlineD, timelineStart, timelineEnd) : 50;
+    const deadlinePct = startD && deadlineD ? computeMarkerPct(deadlineD, timelineStart, timelineEnd) : null;
+    const timelineLabels = buildTimelineMarkers(todayPct, deadlinePct, plan.deadline);
 
     // Estimated impact: sum of recommended_extra from selected testers
     const estimatedImpact = (plan.tester_distribution || [])
@@ -202,7 +244,7 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
             {/* Bouton Retour (si onClose est fourni, sinon on l'affiche quand même par défaut) */}
 
             {/* Section 1 — Header */}
-            <div className="bg-[#111827] rounded-[14px] border-[0.5px] border-white/[0.08] p-4">
+            <div className="bg-white dark:bg-[#111827] rounded-[14px] border-[0.5px] border-slate-200 dark:border-white/[0.08] p-4">
                 <div className="flex items-center gap-2 mb-3">
                     <div className="px-3 py-1 bg-[#378ADD]/15 rounded-full flex items-center justify-center">
                         <span className="text-[11px] font-semibold text-[#85B7EB]">Recommandation</span>
@@ -213,24 +255,24 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
                     </div>
                 </div>
 
-                <h2 className="text-[18px] font-medium text-[#e8eaf6] mb-2">{plan.campaign_title || 'Optimisation de Campagne'}</h2>
+                <h2 className="text-[18px] font-medium text-slate-800 dark:text-[#e8eaf6] mb-2">{plan.campaign_title || 'Optimisation de Campagne'}</h2>
                 <div className="border-l-[2px] border-[#378ADD]/40 pl-3 mb-5">
-                    <p className="text-[12px] italic text-white/40">"{plan.recommendation_engine || "Modèle d'analyse de performance v1.0"}"</p>
+                    <p className="text-[12px] italic text-slate-500 dark:text-white/40">"{plan.recommendation_engine || "Modèle d'analyse de performance v1.0"}"</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-[#1a2235] rounded-[10px] px-[13px] py-[11px]">
-                        <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">RYTHME NÉCESSAIRE</div>
+                    <div className="bg-slate-50 dark:bg-[#1a2235] rounded-[10px] px-[13px] py-[11px]">
+                        <div className="text-[10px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest mb-1">RYTHME NÉCESSAIRE</div>
                         <div className="flex items-baseline gap-1">
-                            <span className="text-[20px] font-bold text-white leading-none">{reqVel}</span>
-                            <span className="text-[12px] text-white/40">tests/j</span>
+                            <span className="text-[20px] font-bold text-slate-900 dark:text-white leading-none">{reqVel}</span>
+                            <span className="text-[12px] text-slate-500 dark:text-white/40">tests/j</span>
                         </div>
                     </div>
-                    <div className="bg-[#1a2235] rounded-[10px] px-[13px] py-[11px] relative">
-                        <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">RYTHME ACTUEL</div>
+                    <div className="bg-slate-50 dark:bg-[#1a2235] rounded-[10px] px-[13px] py-[11px] relative">
+                        <div className="text-[10px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest mb-1">RYTHME ACTUEL</div>
                         <div className="flex items-baseline gap-1 mb-1">
                             <span className="text-[20px] font-bold text-[#F09595] leading-none">{curVel}</span>
-                            <span className="text-[12px] text-white/40">tests/j</span>
+                            <span className="text-[12px] text-slate-500 dark:text-white/40">tests/j</span>
                         </div>
                         {reqVel > curVel && (
                             <div className="absolute right-[13px] top-[11px] bg-[#E24B4A]/10 px-2 py-0.5 rounded-md flex items-center gap-1 border border-[#E24B4A]/20">
@@ -243,9 +285,9 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
             </div>
 
             {/* Section 2 — Timeline Projection IA */}
-            <div className="bg-[#111827] rounded-[14px] border-[0.5px] border-white/[0.08] p-4">
+            <div className="bg-white dark:bg-[#111827] rounded-[14px] border-[0.5px] border-slate-200 dark:border-white/[0.08] p-4">
                 <div className="flex items-center justify-between mb-6">
-                    <div className="text-[11px] font-medium text-white/40 tracking-widest uppercase">PROJECTION IA — IMPACT DU RETARD</div>
+                    <div className="text-[11px] font-medium text-slate-500 dark:text-white/40 tracking-widest uppercase">PROJECTION IA — IMPACT DU RETARD</div>
                     <div className="bg-[#E24B4A]/15 px-3 py-1 rounded-full border border-[#E24B4A]/20">
                         <span className="text-[11px] font-semibold text-[#F09595]">+{delayDays} jours</span>
                     </div>
@@ -253,47 +295,53 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
 
                 <div className="relative mb-3 pt-2">
                     <div className="h-[6px] w-full rounded-[3px] bg-[#E24B4A] flex items-center relative">
-                        <div className="h-full rounded-l-[3px] bg-[#1D9E75]" style={{ width: `${todayPct}%` }}></div>
-                        {/* Marqueur Aujourd'hui */}
-                        <div className="absolute w-3 h-3 rounded-full bg-[#378ADD] border-[2px] border-[#111827]" style={{ left: `calc(${todayPct}% - 6px)` }}></div>
-                        {/* Marqueur Deadline */}
-                        {deadlineD && (
-                            <div className="absolute w-3 h-3 rounded-full bg-[#EF9F27] border-[2px] border-[#111827]" style={{ left: `calc(${deadlinePct}% - 6px)` }}></div>
+                        <div className="h-full rounded-l-[3px] bg-[#1D9E75]" style={{ width: `${todayPct}%` }} />
+                        <div
+                            className="absolute w-3 h-3 rounded-full bg-[#378ADD] border-2 border-white dark:border-[#111827] shadow-sm"
+                            style={{ left: `calc(${todayPct}% - 6px)` }}
+                        />
+                        {deadlineD && deadlinePct != null && (
+                            <div
+                                className="absolute w-3 h-3 rounded-full bg-[#EF9F27] border-2 border-white dark:border-[#111827] shadow-sm"
+                                style={{ left: `calc(${deadlinePct}% - 6px)` }}
+                            />
                         )}
                     </div>
                 </div>
 
-                {/* Labels positionnés dynamiquement selon les vraies dates */}
-                <div className="relative h-8 mt-1">
-                    {/* DÉBUT — toujours à gauche */}
-                    <div className="absolute left-0 flex flex-col items-start" style={{ transform: 'translateX(0%)' }}>
-                        <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-0.5">DÉBUT</span>
-                        <span className="text-[11px] font-medium text-white/60">{formatDate(plan.start_date)}</span>
+                <div className={`relative mt-1 ${timelineLabels.mode === 'combined' ? 'h-10' : 'h-8'}`}>
+                    <div className="absolute left-0 flex flex-col items-start">
+                        <span className="text-[9px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest mb-0.5">DÉBUT</span>
+                        <span className="text-[11px] font-medium text-slate-900 dark:text-white/60">{formatDate(plan.start_date)}</span>
                     </div>
 
-                    {/* AUJOURD'HUI — positionné à todayPct% */}
-                    {todayPct > 8 && todayPct < 92 && (
+                    {timelineLabels.mode === 'combined' ? (
                         <div
-                            className="absolute flex flex-col items-center"
-                            style={{ left: `${todayPct}%`, transform: 'translateX(-50%)' }}
+                            className="absolute flex flex-col items-center gap-1 px-2"
+                            style={{ left: `${timelineLabels.centerPct}%`, transform: 'translateX(-50%)', maxWidth: '220px' }}
                         >
-                            <span className="text-[9px] font-bold text-[#378ADD] uppercase tracking-widest mb-0.5">AUJOURD'HUI</span>
-                            <span className="text-[11px] font-medium text-[#378ADD]">{formatDate(new Date())}</span>
+                            <div className="flex items-center gap-2 whitespace-nowrap bg-white/90 dark:bg-[#111827]/90 rounded-md px-2 py-1 border border-slate-200 dark:border-white/10 shadow-sm">
+                                <span className="text-[10px] font-bold text-[#378ADD]">{timelineLabels.today.date}</span>
+                                <span className="text-slate-300 dark:text-white/20">·</span>
+                                <span className="text-[9px] font-bold text-[#378ADD] uppercase">Auj.</span>
+                                <span className="text-slate-300 dark:text-white/20">|</span>
+                                <span className="text-[10px] font-medium text-slate-700 dark:text-white/60">{timelineLabels.deadline.date}</span>
+                                <span className="text-[9px] font-bold text-slate-500 dark:text-white/40 uppercase">Deadline</span>
+                            </div>
                         </div>
+                    ) : (
+                        timelineLabels.markers.map((marker) => (
+                            <div
+                                key={marker.key}
+                                className="absolute flex flex-col items-center"
+                                style={{ left: `${marker.pct}%`, transform: 'translateX(-50%)' }}
+                            >
+                                <span className={`text-[9px] font-bold uppercase tracking-widest mb-0.5 ${marker.titleClass}`}>{marker.title}</span>
+                                <span className={`text-[11px] font-medium ${marker.dateClass}`}>{marker.date}</span>
+                            </div>
+                        ))
                     )}
 
-                    {/* DEADLINE — positionné à deadlinePct% si différent de fin */}
-                    {deadlineD && deadlinePct > 8 && deadlinePct < 95 && (
-                        <div
-                            className="absolute flex flex-col items-center"
-                            style={{ left: `${deadlinePct}%`, transform: 'translateX(-50%)' }}
-                        >
-                            <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-0.5">DEADLINE</span>
-                            <span className="text-[11px] font-medium text-white/60">{formatDate(plan.deadline)}</span>
-                        </div>
-                    )}
-
-                    {/* FIN ESTIMÉE — toujours à droite */}
                     <div className="absolute right-0 flex flex-col items-end">
                         <span className="text-[9px] font-bold text-[#F09595] uppercase tracking-widest mb-0.5">FIN ESTIMÉE</span>
                         <span className="text-[11px] font-medium text-[#F09595]">{formatDate(plan.projected_end_date)}</span>
@@ -310,10 +358,11 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
                 const TesterCard = ({ rec }: { rec: any }) => {
                     const isSelected = selectedTesterIds.includes(rec.id);
                     const isCurrent = rec.status === 'CURRENT';
+                    const suitability = getTesterSuitability(rec.ml_score || 0);
                     return (
                         <div
                             onClick={() => toggleTesterSelection(rec.id)}
-                            className={`bg-[#1a2235] rounded-[10px] border-[0.5px] p-3 flex flex-col justify-between cursor-pointer transition-all ${
+                            className={`bg-slate-50 dark:bg-[#1a2235] rounded-[10px] border-[0.5px] p-3 flex flex-col justify-between cursor-pointer transition-all ${
                                 isSelected
                                     ? isCurrent ? 'border-[#EF9F27]' : 'border-[#378ADD]'
                                     : isCurrent ? 'border-[#EF9F27]/20 hover:border-[#EF9F27]/40' : 'border-[#378ADD]/20 hover:border-[#378ADD]/40'
@@ -324,17 +373,16 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
                                     <User size={16} className="text-white" />
                                 </div>
                                 <div className="flex flex-col justify-center min-w-0">
-                                    <span className="text-[13px] font-medium text-white leading-tight truncate">{rec.name}</span>
-                                    <span className={`text-[11px] font-semibold mt-0.5 ${isCurrent ? 'text-[#EF9F27]' : 'text-[#5DCAA5]'}`}>
-                                        {rec.ml_score}% fit
+                                    <span className="text-[13px] font-medium text-slate-900 dark:text-white leading-tight truncate">{rec.name}</span>
+                                    <span className={`text-[11px] font-semibold mt-0.5 ${suitability.color}`}>
+                                        {suitability.label}
                                     </span>
+                                    {rec.current_load > 0 && (
+                                        <span className="text-[10px] text-slate-500 dark:text-white/40 mt-0.5">
+                                            {rec.current_load} test{rec.current_load > 1 ? 's' : ''} en cours
+                                        </span>
+                                    )}
                                 </div>
-                            </div>
-
-                            <div className="bg-white/[0.06] rounded-[6px] py-1 px-2 text-center mb-3">
-                                <span className={`text-[11px] font-semibold ${ML_LABEL_COLORS[rec.ml_label] || 'text-white/40'}`}>
-                                    {ML_LABELS[rec.ml_label] || rec.ml_label || 'Stable'}
-                                </span>
                             </div>
 
                             <button
@@ -352,13 +400,13 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
                 };
 
                 return (
-                    <div className="bg-[#111827] rounded-[14px] border-[0.5px] border-white/[0.08] p-4 space-y-4">
+                    <div className="bg-white dark:bg-[#111827] rounded-[14px] border-[0.5px] border-slate-200 dark:border-white/[0.08] p-4 space-y-4">
                         {/* Équipe actuelle */}
                         {current.length > 0 && (
                             <div>
                                 <div className="flex items-center gap-2 mb-3">
                                     <div className="w-1.5 h-3.5 rounded-full bg-[#EF9F27]" />
-                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                                    <span className="text-[10px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest">
                                         Équipe actuelle ({current.length})
                                     </span>
                                 </div>
@@ -373,7 +421,7 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
                             <div>
                                 <div className="flex items-center gap-2 mb-3">
                                     <div className="w-1.5 h-3.5 rounded-full bg-[#378ADD]" />
-                                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                                    <span className="text-[10px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest">
                                         Renforts recommandés par l'IA ({reinforcements.length})
                                     </span>
                                 </div>
@@ -384,7 +432,7 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
                         )}
 
                         {all.length === 0 && (
-                            <p className="text-[12px] text-white/30 italic text-center py-4">
+                            <p className="text-[12px] text-slate-500 dark:text-white/30 italic text-center py-4">
                                 Aucun testeur disponible pour cette campagne.
                             </p>
                         )}
@@ -393,11 +441,11 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
             })()}
 
             {/* Section 4 — Suivi des notifications */}
-            <div className="bg-[#111827] rounded-[14px] border-[0.5px] border-white/[0.08] p-4">
+            <div className="bg-white dark:bg-[#111827] rounded-[14px] border-[0.5px] border-slate-200 dark:border-white/[0.08] p-4">
                 <div className="flex items-center justify-between mb-4">
                     <div>
-                        <div className="text-[13px] font-medium text-white leading-tight mb-0.5">Suivi des notifications</div>
-                        <div className="text-[11px] text-white/40">Mise à jour toutes les 15s</div>
+                        <div className="text-[13px] font-medium text-slate-900 dark:text-white leading-tight mb-0.5">Suivi des notifications</div>
+                        <div className="text-[11px] text-slate-500 dark:text-white/40">Mise à jour toutes les 15s</div>
                     </div>
                     {monitoring?.summary?.accepted > 0 && (
                         <div className="bg-[#1D9E75]/15 border border-[#1D9E75]/20 px-3 py-1 rounded-full">
@@ -408,24 +456,24 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
 
                 <div className="flex flex-col gap-2">
                     {monitoring?.notifications?.map((n: any) => (
-                        <div key={n.tester_id} className="bg-[#1a2235] rounded-[9px] px-[11px] py-[9px] flex items-center justify-between">
+                        <div key={n.tester_id} className="bg-slate-50 dark:bg-[#1a2235] rounded-[9px] px-[11px] py-[9px] flex items-center justify-between">
                             <div className="flex items-center gap-2 overflow-hidden flex-1 pr-4">
-                                <div className={`w-[28px] h-[28px] rounded-full flex items-center justify-center shrink-0 text-[12px] font-bold text-white ${n.status === 'ACCEPTED' ? 'bg-[#1D9E75]' : 'bg-[#378ADD]'}`}>
+                                <div className={`w-[28px] h-[28px] rounded-full flex items-center justify-center shrink-0 text-[12px] font-bold text-slate-900 dark:text-white ${n.status === 'ACCEPTED' ? 'bg-[#1D9E75]' : 'bg-[#378ADD]'}`}>
                                     {n.tester_name?.charAt(0).toUpperCase() || 'U'}
                                 </div>
                                 <div className="flex flex-col min-w-0">
-                                    <span className="text-[12px] font-medium text-white truncate">{n.tester_name}</span>
-                                    <span className="text-[10px] text-white/40 truncate">{n.tester_email}</span>
+                                    <span className="text-[12px] font-medium text-slate-900 dark:text-white truncate">{n.tester_name}</span>
+                                    <span className="text-[10px] text-slate-500 dark:text-white/40 truncate">{n.tester_email}</span>
                                 </div>
                             </div>
                             <div className="flex items-center gap-4 shrink-0">
                                 <div className="flex flex-col items-end">
-                                    <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">ENVOYÉ</span>
-                                    <span className="text-[11px] text-white/60">{n.sent_at || '—'}</span>
+                                    <span className="text-[9px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest">ENVOYÉ</span>
+                                    <span className="text-[11px] text-slate-600 dark:text-white/60">{n.sent_at || '—'}</span>
                                 </div>
                                 <div className="flex flex-col items-end">
-                                    <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">RÉPONDU</span>
-                                    <span className="text-[11px] text-white/60">{n.replied_at || '—'}</span>
+                                    <span className="text-[9px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest">RÉPONDU</span>
+                                    <span className="text-[11px] text-slate-600 dark:text-white/60">{n.replied_at || '—'}</span>
                                 </div>
                                 {(() => {
                                     const s = n.status;
@@ -443,20 +491,20 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
                         </div>
                     ))}
                     {(!monitoring?.notifications || monitoring.notifications.length === 0) && (
-                        <div className="text-[11px] text-white/40 italic py-2">Aucune notification en cours.</div>
+                        <div className="text-[11px] text-slate-500 dark:text-white/40 italic py-2">Aucune notification en cours.</div>
                     )}
                 </div>
             </div>
 
             {/* Section 5 — Footer action */}
-            <div className="bg-[#111827] rounded-[14px] border-[0.5px] border-[#378ADD]/20 p-[14px] flex items-center justify-between gap-3">
+            <div className="bg-white dark:bg-[#111827] rounded-[14px] border-[0.5px] border-[#378ADD]/20 p-[14px] flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="w-[34px] h-[34px] rounded-[8px] bg-[#378ADD]/10 flex items-center justify-center shrink-0 border border-[#378ADD]/20">
                         <Users size={16} className="text-[#378ADD]" />
                     </div>
                     <div className="min-w-0">
-                        <div className="text-[13px] font-medium text-white">{selectedTesterIds.length} testeur(s) sélectionné(s)</div>
-                        <div className="text-[11px] text-white/40">
+                        <div className="text-[13px] font-medium text-slate-900 dark:text-white">{selectedTesterIds.length} testeur(s) sélectionné(s)</div>
+                        <div className="text-[11px] text-slate-500 dark:text-white/40">
                             Impact estimé : {estimatedImpact > 0 ? `+${estimatedImpact} tests/jour` : '—'}
                         </div>
                     </div>
@@ -465,7 +513,7 @@ const CatchupPlanIA: React.FC<CatchupPlanIAProps> = ({ campaignId, onPlanApplied
                     <button
                         onClick={fetchPlan}
                         title="Actualiser"
-                        className="w-[34px] h-[34px] flex items-center justify-center rounded-[8px] border border-white/10 hover:bg-white/5 transition-colors text-white/60 hover:text-white"
+                        className="w-[34px] h-[34px] flex items-center justify-center rounded-[8px] border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-slate-500 dark:text-white/60 hover:text-slate-900 dark:hover:text-white"
                     >
                         <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
                     </button>

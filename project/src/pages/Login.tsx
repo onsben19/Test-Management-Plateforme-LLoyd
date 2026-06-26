@@ -21,7 +21,7 @@ const Login = () => {
   const [verifiedUsername, setVerifiedUsername] = useState('');
   const navigate = useNavigate();
   const { login, verify2FA, forgotPassword } = useAuth();
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -89,12 +89,12 @@ const Login = () => {
       </div>
 
       <div className="w-full max-w-md p-8 relative z-10">
-        <div className="glass-panel shadow-2xl dark:shadow-none rounded-2xl p-8 space-y-8 animate-in fade-in zoom-in duration-500 bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-400 dark:border-white/20 dark:border-slate-700/50">
+        <div className="glass-panel shadow-2xl dark:shadow-none rounded-2xl p-8 space-y-8 animate-in fade-in zoom-in duration-500 bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-400 dark:border-slate-300 dark:border-white/20 dark:border-slate-700/50">
           {/* Logo / Header */}
           <div className="text-center space-y-2">
-            <div className="w-48 h-20 bg-slate-100 dark:bg-white/5 dark:bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-200/20 dark:border-white/10 p-4 transition-all duration-500 hover:scale-105">
+            <div className="w-48 h-20 bg-slate-100 dark:bg-white/5 dark:bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-200/20 dark:border-slate-200 dark:border-white/10 p-4 transition-all duration-500 hover:scale-105">
               <img
-                src={theme === 'dark' ? '/logo-lloyd-dark.webp' : '/logo-lloyd-light.webp'}
+                src={resolvedTheme === 'dark' ? '/logo-lloyd-dark.webp' : '/logo-lloyd-light.webp'}
                 alt="Lloyd Logo"
                 onError={(e) => { (e.target as HTMLImageElement).src = '/logo-lloyd.webp'; }}
                 className="w-full h-full object-contain dark:brightness-0 dark:invert transition-all duration-300"

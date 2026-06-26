@@ -59,6 +59,19 @@ interface RawData {
     anomalies: any[];
 }
 
+const getAnomalyCampaignId = (a: any): string | null => {
+    const id = a.campaign_id ?? a.test_case?.campaign ?? null;
+    return id != null ? String(id) : null;
+};
+
+const isOpenAnomaly = (a: any): boolean => {
+    const status = String(a.statut || a.status || 'OUVERTE').toUpperCase();
+    return status !== 'RESOLUE';
+};
+
+const countOpenAnomalies = (items: any[]): number =>
+    items.filter(isOpenAnomaly).length;
+
 
 // ---------------------------------------------------------------------------
 // ManagerDashboard
@@ -118,7 +131,7 @@ const ManagerDashboard = () => {
             const briefRes = await aiService.getDashboardBrief({
                 active_projects: projData.length,
                 total_campaigns: campData.length,
-                open_anomalies: anomData.filter((a: any) => (a.statut || a.status) === 'OUVERTE').length,
+                open_anomalies: countOpenAnomalies(anomData),
                 success_rate: (() => {
                     const p = campData.reduce((s, c) => s + (c.passed_count || 0), 0);
                     const f = campData.reduce((s, c) => s + (c.failed_count || 0), 0);
@@ -183,32 +196,34 @@ const ManagerDashboard = () => {
                 })
                 .map((p: any) => p.id);
 
+        const validReleaseIdSet = new Set(validReleaseIds.map(String));
+
         const filteredCamps = selectedProjectId === 'all'
             ? campaigns
             : campaigns.filter((c: any) => {
                 const pId = c.project_id ?? (c.project && typeof c.project === 'object' ? c.project.id : c.project);
-                return validReleaseIds.includes(pId);
+                return validReleaseIdSet.has(String(pId));
             });
+
+        const filteredCampIdSet = new Set(filteredCamps.map((c: any) => String(c.id)));
 
         const filteredAnoms = anomalies.filter((a: any) => {
             if (selectedProjectId === 'all') return true;
-            // We don't have project_id on anomaly, we filter by matching campaign
-            const campIds = filteredCamps.map((c: any) => c.id);
-            return campIds.some((id: number) => a.campaign_id === id);
+            const anomCampId = getAnomalyCampaignId(a);
+            return anomCampId != null && filteredCampIdSet.has(anomCampId);
         });
+
+        const openAnoms = filteredAnoms.filter(isOpenAnomaly);
+        const openFromCampaigns = filteredCamps.reduce((s: number, c: any) => s + (c.anomalies_count || 0), 0);
+        const openAnomalies = Math.max(countOpenAnomalies(openAnoms), openFromCampaigns);
 
         // --- Stats (computed from campaign fields directly) ---
         const totalTestCases = filteredCamps.reduce((s: number, c: any) => s + (c.nb_test_cases || 0), 0);
         const totalPassed = filteredCamps.reduce((s: number, c: any) => s + (c.passed_count || 0), 0);
         const totalFailed = filteredCamps.reduce((s: number, c: any) => s + (c.failed_count || 0), 0);
         const totalExecuted = totalPassed + totalFailed;
-        // Taux de réussite = passed / (passed + failed) — exclut les tests PENDING
         const successRate = totalExecuted > 0 ? Math.round((totalPassed / totalExecuted) * 100) : 0;
-        // Couverture = (passed + failed) / total — inclut les tests PENDING
         const coverageRate = totalTestCases > 0 ? Math.round((totalExecuted / totalTestCases) * 100) : 0;
-        const openAnomalies = filteredAnoms.filter((a: any) =>
-            ['OUVERTE', 'EN_INVESTIGATION'].includes(a.statut || a.status)
-        ).length;
 
         // --- Weekly bar chart (campaigns created per day) ---
         const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -231,11 +246,12 @@ const ManagerDashboard = () => {
             };
         });
 
-        // --- Anomaly distribution for pie chart ---
+        // --- Anomaly distribution for pie chart (anomalies ouvertes uniquement) ---
         const distribution = [
-            { name: 'Critique / Bloquante', value: filteredAnoms.filter((a: any) => ['CRITIQUE', 'BLOQUANTES'].includes(a.impact)).length, color: '#f43f5e' },
-            { name: 'Majeure / Mineure', value: filteredAnoms.filter((a: any) => ['MAJEUR', 'MINEURS'].includes(a.impact)).length, color: '#f59e0b' },
-            { name: 'Autres (UX/Text)', value: filteredAnoms.filter((a: any) => ['COSMETIQUE', 'TEXTE', 'SIMPLE', 'FONCTIONNALITE'].includes(a.impact)).length, color: '#3b82f6' },
+            { name: 'Critique / Bloquante', value: openAnoms.filter((a: any) => ['CRITIQUE', 'BLOQUANTES'].includes(a.impact)).length, color: '#f43f5e' },
+            { name: 'Majeure / Mineure', value: openAnoms.filter((a: any) => ['MAJEUR', 'MINEURS'].includes(a.impact)).length, color: '#f59e0b' },
+            { name: 'Autres (UX/Text)', value: openAnoms.filter((a: any) => ['COSMETIQUE', 'TEXTE', 'SIMPLE', 'FONCTIONNALITE'].includes(a.impact)).length, color: '#3b82f6' },
+            { name: 'À définir', value: openAnoms.filter((a: any) => !a.impact || a.impact === 'A_DEFINIR').length, color: '#64748b' },
         ].filter(d => d.value > 0);
 
         // --- Release grouping ---
@@ -257,7 +273,7 @@ const ManagerDashboard = () => {
         if (noReleaseCamps.length > 0) campaignsByRelease['__no_release__'] = noReleaseCamps;
 
         // --- Recent activity from anomalies (most recent first) ---
-        const recentActivity = [...filteredAnoms]
+        const recentActivity = [...openAnoms]
             .sort((a, b) => new Date(b.cree_le ?? b.date_signalement ?? 0).getTime()
                 - new Date(a.cree_le ?? a.date_signalement ?? 0).getTime())
             .slice(0, 10);
@@ -437,7 +453,7 @@ const ManagerDashboard = () => {
                     <button
                         onClick={() => { setIsRefreshing(true); fetchData(); }}
                         title={t('adminDashboard.refresh')}
-                        className={`p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white transition-all shadow-sm ${isRefreshing ? 'animate-spin' : ''}`}
+                        className={`p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-slate-900 dark:hover:text-white transition-all shadow-sm ${isRefreshing ? 'animate-spin' : ''}`}
                     >
                         <RefreshCw className="w-4 h-4" />
                     </button>
@@ -562,8 +578,19 @@ const ManagerDashboard = () => {
                                             <div className="h-[260px] w-full flex items-center justify-center">
                                                 {filteredData.distribution.length === 0 ? (
                                                     <div className="flex flex-col items-center gap-2 text-slate-500">
-                                                        <CheckCircle2 className="w-10 h-10 text-emerald-500/40" />
-                                                        <p className="text-xs font-bold uppercase tracking-widest">Aucune anomalie</p>
+                                                        {filteredData.stats.openAnomalies > 0 ? (
+                                                            <>
+                                                                <ShieldAlert className="w-10 h-10 text-rose-500/40" />
+                                                                <p className="text-xs font-bold uppercase tracking-widest">
+                                                                    {filteredData.stats.openAnomalies} anomalie(s) ouverte(s)
+                                                                </p>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <CheckCircle2 className="w-10 h-10 text-emerald-500/40" />
+                                                                <p className="text-xs font-bold uppercase tracking-widest">Aucune anomalie</p>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 ) : (
                                                     <ResponsiveContainer width="100%" height="100%">
@@ -598,24 +625,24 @@ const ManagerDashboard = () => {
                     {activeTab === 'projects' && (
                         <div className="space-y-8">
                             {/* Group Mode Switcher */}
-                            <div className="flex items-center gap-3 bg-slate-100 dark:bg-white/5 p-1.5 rounded-2xl border border-slate-300 dark:border-white/10 w-fit">
+                            <div className="flex items-center gap-3 bg-slate-100 dark:bg-white/5 p-1.5 rounded-2xl border border-slate-300 dark:border-slate-200 dark:border-white/10 w-fit">
                                 <button
                                     onClick={() => setGroupMode('project')}
-                                    className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all ${groupMode === 'project' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:text-white'}`}
+                                    className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all ${groupMode === 'project' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
                                 >
                                     <Target className="w-4 h-4" />
                                     PROJET
                                 </button>
                                 <button
                                     onClick={() => setGroupMode('release')}
-                                    className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all ${groupMode === 'release' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-white'}`}
+                                    className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all ${groupMode === 'release' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
                                 >
                                     <Layers className="w-4 h-4" />
                                     RELEASE
                                 </button>
                                 <button
                                     onClick={() => setGroupMode('none')}
-                                    className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all ${groupMode === 'none' ? 'bg-slate-700 text-white shadow-lg shadow-slate-600/20' : 'text-slate-400 hover:text-white'}`}
+                                    className={`flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all ${groupMode === 'none' ? 'bg-slate-700 text-white shadow-lg shadow-slate-600/20' : 'text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
                                 >
                                     <LayoutGrid className="w-4 h-4" />
                                     GRILLE
@@ -728,7 +755,7 @@ const ManagerDashboard = () => {
                                         className="bg-transparent text-sm font-black text-slate-900 dark:text-white focus:outline-none flex-1 cursor-pointer"
                                     >
                                         {filteredData.filteredCamps.map((c: any) => (
-                                            <option key={c.id} value={c.id} className="bg-slate-900 text-slate-900 dark:text-white">
+                                            <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
                                                 {c.title}
                                             </option>
                                         ))}
@@ -762,7 +789,7 @@ const ManagerDashboard = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto"
+                        className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/60 dark:bg-slate-900/60 dark:bg-black/80 backdrop-blur-md p-4 overflow-y-auto"
                     >
                         <motion.div
                             initial={{ scale: 0.9, y: 20 }}

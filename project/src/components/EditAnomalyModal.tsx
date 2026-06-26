@@ -381,7 +381,7 @@ const EditAnomalyModal: React.FC<EditAnomalyModalProps> = ({ anomaly, onClose, o
                     <button
                         onClick={handleSubmit}
                         disabled={isSubmitting}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 shadow-lg shadow-blue-500/20"
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-900 dark:text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 shadow-lg shadow-blue-500/20"
                     >
                         <Save className="w-4 h-4" />
                         {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}

@@ -1,6 +1,6 @@
+import os
 import requests
 
-# Les données complètes pour tester le workflow n8n
 data = {
     "campaign_id": 45,
     "campaign_title": "Audit Qualité Algorithme ML",
@@ -22,12 +22,8 @@ data = {
     ]
 }
 
-# OPTION A : URL de TEST (Nécessite de cliquer sur 'Listen for test event' à chaque fois)
-# url = "http://localhost:5678/webhook-test/catchup-plan/"
-
-# OPTION B : URL de PRODUCTION (Recommandé)
-# Pour l'utiliser : Activez le workflow en haut à droite dans n8n (toggle 'Active')
-url = "http://localhost:5678/webhook/catchup-plan/"
+n8n_base = os.environ.get('N8N_BASE_URL', 'http://insuretm-n8n:5678').rstrip('/')
+url = f"{n8n_base}/webhook/catchup-plan/"
 
 print("Envoi des données à n8n...")
 try:

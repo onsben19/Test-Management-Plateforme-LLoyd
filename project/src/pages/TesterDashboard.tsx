@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PageLayout from '../components/PageLayout';
 import { useAuth } from '../context/AuthContext';
@@ -14,6 +14,7 @@ import { Target, Activity, FileText as FileIcon } from 'lucide-react';
 import QANewsHub from '../components/QANewsHub';
 import ValidateCasDeTest from '../components/ValidateCasDeTest';
 import { PendingReinforcements } from '../components/PendingReinforcements';
+import { formatCadencePerDay } from '../utils/cadence';
 
 const highlightPlaywrightCode = (rawCode: string) => {
     if (!rawCode) return '';
@@ -63,15 +64,16 @@ const highlightPlaywrightCode = (rawCode: string) => {
 
 // Campaign Enrichment Helper — computed purely from real API data + optional ML insights
 const getCampaignEnrichedData = (camp: any, mlData?: any) => {
-    // 1. Raw counts from API
     const total     = camp.nb_test_cases  ?? 0;
     const passed    = camp.passed_count   ?? 0;
     const failed    = camp.failed_count   ?? 0;
+    const executed  = camp.executed_count ?? (passed + failed);
     const anomalies = camp.anomalies_count ?? 0;
 
-    // 2. Derived metrics
-    const percentage = total > 0 ? Math.round(((passed + failed) / total) * 100) : 0;
-    const restants   = Math.max(0, total - passed - failed);
+    const percentage = camp.progress_percentage != null
+        ? camp.progress_percentage
+        : (total > 0 ? Math.round((executed / total) * 100) : 0);
+    const restants   = Math.max(0, total - executed);
     const release_type = camp.release_type || 'RECETTE';
     const manager = camp.manager_name || camp.imported_by_name || 'Non défini';
 
@@ -83,12 +85,13 @@ const getCampaignEnrichedData = (camp: any, mlData?: any) => {
                    : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     // 4. ML-augmented fields (from Timeline Guard, optional)
-    const velocity = mlData?.velocity ?? (passed + failed > 0 ? 1 : 0);
+    const velocity = formatCadencePerDay(mlData?.velocity ?? (passed + failed > 0 ? 1 : 0));
     const fin_ia   = mlData?.projected_end_date
                    ? new Date(mlData.projected_end_date)
                    : echeance;
 
-    // 5. Retard: days between echeance and fin_ia when fin_ia > echeance
+    // 5. Avance / retard par rapport à l'échéance
+    const advance_days = mlData?.advance_days ?? 0;
     const retard = mlData?.delay_days != null
         ? mlData.delay_days
         : fin_ia > echeance
@@ -112,6 +115,7 @@ const getCampaignEnrichedData = (camp: any, mlData?: any) => {
         velocity,
         restants,
         retard,
+        advance_days,
         deadline_today,
         debut,
         echeance,
@@ -123,10 +127,12 @@ const getCampaignEnrichedData = (camp: any, mlData?: any) => {
 const TesterDashboard = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const location = useLocation();
     const { user } = useAuth();
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
+    const currentPageRef = useRef(1);
     const [totalItems, setTotalItems] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
@@ -156,6 +162,10 @@ const TesterDashboard = () => {
     const [blinkingDateType, setBlinkingDateType] = useState<'debut' | 'echeance' | 'fin_ia' | null>(null);
     const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('grid');
     const [executionMode, setExecutionMode] = useState<'headless' | 'headed' | 'ui'>('headless');
+
+    // noVNC via nginx (/novnc/) — works in Docker prod and Vite dev (proxy in vite.config.ts)
+    const novncViewerUrl = '/novnc/vnc.html?autoconnect=true&resize=scale';
+    const novncIframeUrl = '/novnc/vnc.html?autoconnect=true&resize=scale&view_only=0&show_dot=true';
 
     const closeAllCals = () => {
         setCalendarOpen(false);
@@ -250,7 +260,7 @@ const TesterDashboard = () => {
     });
     const [generatingCode, setGeneratingCode] = useState(false);
     const [executingCode, setExecutingCode] = useState(false);
-    const [executionResult, setExecutionResult] = useState<{ status: string; logs: string; anomaly_id?: string; video_url?: string } | null>(null);
+    const [executionResult, setExecutionResult] = useState<{ status: string; logs: string; anomaly_id?: number | string; video_url?: string } | null>(null);
     const [liveLogs, setLiveLogs] = useState<string>('');
     const [showExecModal, setShowExecModal] = useState(false);
     const logsEndRef = React.useRef<HTMLDivElement>(null);
@@ -299,24 +309,26 @@ const TesterDashboard = () => {
         setValidationMode(null);
     };
 
-    const handleViewAnomaly = (anomalyId?: number) => {
+    const handleViewAnomaly = (anomalyId?: number | string) => {
         const id = anomalyId ?? executionResult?.anomaly_id;
+        if (id === undefined || id === null || id === '') {
+            toast.error("Aucune anomalie associée à cette exécution.");
+            return;
+        }
         setExecutionResult(null);
         setLiveLogs('');
         setValidationModal({ isOpen: false, campaign: null });
+        setIsValidationOpen(false);
         navigate('/anomalies', { state: { openAnomalyId: id } });
     };
 
     useEffect(() => {
-        if (user) {
-            setCurrentPage(1);
-            fetchAssignedCampaigns(1);
-        }
-    }, [user, searchQuery, sortOrder, releaseTypeFilter]);
+        currentPageRef.current = currentPage;
+    }, [currentPage]);
 
-    const fetchAssignedCampaigns = async (page = 1) => {
+    const fetchAssignedCampaigns = useCallback(async (page = 1, silent = false) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
             const response = await campaignService.getCampaigns({
                 page,
                 search: searchQuery,
@@ -324,17 +336,21 @@ const TesterDashboard = () => {
                 release_type: releaseTypeFilter
             });
             const responseData = response.data || {};
-            const data = (responseData.results || (Array.isArray(responseData) ? responseData : []));
-            const count = responseData.count || (Array.isArray(data) ? data.length : 0);
+            const rawData = (responseData.results || (Array.isArray(responseData) ? responseData : []));
+            // Garde-fou : un testeur ne voit que ses campagnes assignées
+            const data = user?.role === 'TESTER' && user?.id
+                ? rawData.filter((c: any) => (c.assigned_testers || []).includes(user.id))
+                : rawData;
+            const count = user?.role === 'TESTER' ? data.length : (responseData.count || data.length);
             setTotalItems(count);
             setCampaigns(data);
 
-            // Calculate total tests planned & passed
             const total = Array.isArray(data) ? data.reduce((sum: number, c: any) => sum + (c.nb_test_cases || 0), 0) : 0;
-            const totalPassed = Array.isArray(data) ? data.reduce((sum: number, c: any) => sum + (c.passed_count || 0), 0) : 0;
-            const avgCompletion = total > 0 ? Math.round((totalPassed / total) * 100) : 0;
+            const executed = Array.isArray(data)
+                ? data.reduce((sum: number, c: any) => sum + (c.executed_count ?? ((c.passed_count || 0) + (c.failed_count || 0))), 0)
+                : 0;
+            const avgCompletion = total > 0 ? Math.round((executed / total) * 100) : 0;
 
-            // Fetch Anomalies for the user
             try {
                 const anomaliesRes = await anomalyService.getAnomalies();
                 const anomData = anomaliesRes.data.results || anomaliesRes.data;
@@ -345,10 +361,8 @@ const TesterDashboard = () => {
                 setStats(prev => ({ ...prev, totalTests: total, avgCompletion }));
             }
 
-            // Fetch AI data for each campaign (ML Insights only)
             const campaignIds = data.map((c: any) => c.id);
             if (campaignIds.length > 0) {
-                // ML Insights (Timeline Guard)
                 Promise.all(campaignIds.map((id: any) => aiService.getTimelineGuard(id).catch(() => null)))
                     .then(results => {
                         const mlMap: Record<string, any> = {};
@@ -359,16 +373,76 @@ const TesterDashboard = () => {
                     }).catch(err => console.error("Error fetching ML insights", err));
             }
         } catch (error) {
-            console.error("Failed to fetch campaigns", error);
+            if (!silent) console.error("Failed to fetch campaigns", error);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
-    };
+    }, [searchQuery, sortOrder, releaseTypeFilter, user?.id, user?.role]);
+
+    useEffect(() => {
+        if (user) {
+            setCurrentPage(1);
+            fetchAssignedCampaigns(1);
+        }
+    }, [user, searchQuery, sortOrder, releaseTypeFilter, fetchAssignedCampaigns]);
+
+    // Rafraîchissement auto après validation par un testeur
+    useEffect(() => {
+        if (!user) return;
+
+        const poll = setInterval(() => {
+            fetchAssignedCampaigns(currentPageRef.current, true);
+        }, 20000);
+
+        const onFocus = () => fetchAssignedCampaigns(currentPageRef.current, true);
+        window.addEventListener('focus', onFocus);
+
+        return () => {
+            clearInterval(poll);
+            window.removeEventListener('focus', onFocus);
+        };
+    }, [user, fetchAssignedCampaigns]);
+
+    const campaignIdsKey = campaigns.map(c => c.id).join(',');
+
+    useEffect(() => {
+        if (!campaignIdsKey) return;
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const token = localStorage.getItem('access_token');
+        const sockets: WebSocket[] = [];
+
+        campaigns.forEach(camp => {
+            const wsUrl = `${protocol}//${window.location.host}/ws/campaigns/${camp.id}/live/?token=${token}`;
+            const ws = new WebSocket(wsUrl);
+            ws.onmessage = () => {
+                fetchAssignedCampaigns(currentPageRef.current, true);
+            };
+            sockets.push(ws);
+        });
+
+        return () => sockets.forEach(ws => ws.close());
+    }, [campaignIdsKey, fetchAssignedCampaigns]);
+
+    useEffect(() => {
+        const campaignId = new URLSearchParams(location.search).get('campaign');
+        if (!campaignId || campaigns.length === 0) return;
+        const id = Number(campaignId);
+        if (!Number.isFinite(id)) return;
+        if (campaigns.some((c) => c.id === id)) {
+            openDrawer(id);
+        }
+    }, [location.search, campaigns]);
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
         fetchAssignedCampaigns(page);
     };
+
+    const getFreshCampaign = useCallback((campOrId: any) => {
+        const id = typeof campOrId === 'object' ? campOrId?.id : campOrId;
+        return campaigns.find(c => c.id === id) || (typeof campOrId === 'object' ? campOrId : null);
+    }, [campaigns]);
 
     const filteredCampaigns = useMemo(() => {
         let list = campaigns || [];
@@ -442,7 +516,7 @@ const TesterDashboard = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const campaignToValidate = validationModal.campaign || activeDetailCampaign;
+        const campaignToValidate = getFreshCampaign(validationModal.campaign || activeDetailCampaign);
         if (!campaignToValidate || !user) return;
 
         if (testCaseForm.executionType === 'ai') {
@@ -463,7 +537,7 @@ const TesterDashboard = () => {
                 const executionData = new FormData();
                 executionData.append('campaign', campaignToValidate.id);
                 executionData.append('test_case_ref', testCaseForm.test_case_ref);
-                executionData.append('status', 'PASSED');
+                executionData.append('status', 'PENDING');
                 executionData.append('tester', user.id.toString());
                 executionData.append('data_json', JSON.stringify({ manualData: testCaseForm.manualData }));
 
@@ -509,7 +583,7 @@ const TesterDashboard = () => {
                                     anomaly_id: res.data.anomaly_id,
                                     video_url: res.data.video_path ? executionService.getVideoUrl(testId) : undefined,
                                 });
-                                fetchAssignedCampaigns(currentPage);
+                                fetchAssignedCampaigns(currentPageRef.current, true);
                                 resolve();
                             }
                         } catch (err) {
@@ -530,7 +604,6 @@ const TesterDashboard = () => {
         }
 
         try {
-            const campaignToValidate = validationModal.campaign || activeDetailCampaign;
             const executionData = new FormData();
             executionData.append('campaign', campaignToValidate.id);
             executionData.append('test_case_ref', testCaseForm.test_case_ref);
@@ -570,7 +643,7 @@ const TesterDashboard = () => {
             }
 
             setValidationModal({ isOpen: false, campaign: null });
-            fetchAssignedCampaigns(currentPage);
+            fetchAssignedCampaigns(currentPageRef.current, true);
         } catch (error) {
             console.error("Submission failed", error);
             let errMsg = t('testerDashboard.toasts.validationError');
@@ -638,26 +711,17 @@ const TesterDashboard = () => {
                     const enrichedDates = getCampaignEnrichedData(camp, mlInsights[camp.id]);
                     setCalendarCurrentDate(new Date(enrichedDates.debut.getFullYear(), enrichedDates.debut.getMonth(), 15));
                 }}
-                className={`group relative overflow-hidden transition-all duration-300 flex flex-col h-full cursor-pointer select-none`}
-                style={{
-                    background: isActive ? '#131e30' : '#111827',
-                    borderRadius: '12px',
-                    border: isActive ? '0.5px solid rgba(55,138,221,0.4)' : '0.5px solid rgba(255,255,255,0.08)',
-                    padding: '14px'
-                }}
+                className={`group relative overflow-hidden transition-all duration-300 flex flex-col h-full cursor-pointer select-none rounded-xl p-3.5 border ${
+                    isActive
+                        ? 'bg-blue-50 dark:bg-[#131e30] border-blue-300 dark:border-blue-500/40'
+                        : 'bg-white dark:bg-[#111827] border-slate-200 dark:border-white/[0.08] shadow-sm dark:shadow-none'
+                }`}
             >
                 {/* Ligne top : badges à gauche + pourcentage en vert #1D9E75 17px à droite */}
                 <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-1.5">
                         {isRecette && (
-                            <span
-                                className="px-2 py-0.5 rounded-[4px] text-[9px] font-semibold tracking-wider"
-                                style={{
-                                    background: 'rgba(255,255,255,0.07)',
-                                    color: 'rgba(255,255,255,0.45)',
-                                    border: '0.5px solid rgba(255,255,255,0.12)'
-                                }}
-                            >
+                            <span className="px-2 py-0.5 rounded text-[9px] font-semibold tracking-wider bg-slate-100 dark:bg-white/[0.07] text-slate-600 dark:text-white/45 border border-slate-200 dark:border-white/[0.12]">
                                 RECETTE
                             </span>
                         )}
@@ -673,14 +737,7 @@ const TesterDashboard = () => {
                                 PREPROD
                             </span>
                         )}
-                        <span
-                            className="px-2 py-0.5 rounded-[4px] text-[9px] font-semibold tracking-wider"
-                            style={{
-                                background: 'rgba(255,255,255,0.05)',
-                                color: 'rgba(255,255,255,0.35)',
-                                border: '0.5px solid rgba(255,255,255,0.09)'
-                            }}
-                        >
+                        <span className="px-2 py-0.5 rounded text-[9px] font-semibold tracking-wider bg-slate-100 dark:bg-white/[0.05] text-slate-500 dark:text-white/35 border border-slate-200 dark:border-white/[0.09]">
                             {enriched.nb_test_cases} test{enriched.nb_test_cases > 1 ? 's' : ''}
                         </span>
                     </div>
@@ -693,18 +750,18 @@ const TesterDashboard = () => {
                 </div>
 
                 {/* Titre en 13px blanc 500 */}
-                <h3 className="text-[13px] font-medium text-white mb-1.5 leading-snug line-clamp-2">
+                <h3 className="text-[13px] font-medium text-slate-900 dark:text-white mb-1.5 leading-snug line-clamp-2">
                     {camp.title}
                 </h3>
 
                 {/* Date de création avec icône calendrier, 10px muted */}
-                <div className="flex items-center justify-between text-[10px] text-white/40 mb-3">
+                <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-white/40 mb-3">
                     <div className="flex items-center gap-1">
                         <Calendar size={11} className="shrink-0" />
                         <span>Créé le {new Date(camp.created_at).toLocaleDateString('fr-FR')}</span>
                     </div>
                     {enriched.manager && (
-                        <div className="flex items-center gap-1 text-white/50 bg-white/5 px-1.5 py-0.5 rounded border border-white/[0.04]">
+                        <div className="flex items-center gap-1 text-slate-500 dark:text-white/50 bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/[0.04]">
                             <User size={9} className="shrink-0" />
                             <span>Par {enriched.manager}</span>
                         </div>
@@ -714,11 +771,11 @@ const TesterDashboard = () => {
                 {/* Description tronquée à 2 lignes ou placeholder italic muted si vide */}
                 <div className="mb-4">
                     {camp.description ? (
-                        <p className="text-[11px] text-white/50 leading-relaxed line-clamp-2">
+                        <p className="text-[11px] text-slate-500 dark:text-white/50 leading-relaxed line-clamp-2">
                             {camp.description}
                         </p>
                     ) : (
-                        <p className="text-[11px] text-white/30 italic">
+                        <p className="text-[11px] text-slate-500 dark:text-white/30 italic">
                             Aucune description.
                         </p>
                     )}
@@ -726,7 +783,7 @@ const TesterDashboard = () => {
 
                 {/* Barre de progression 3px verte + métadonnée "X/Y tests" à gauche + badge "Terminé" vert pill à droite */}
                 <div className="mt-auto space-y-2">
-                    <div className="h-[3px] w-full bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-[3px] w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
                         <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{
@@ -737,7 +794,7 @@ const TesterDashboard = () => {
                     </div>
 
                     <div className="flex justify-between items-center text-[10px]">
-                        <span className="text-white/40 font-medium">
+                        <span className="text-slate-500 dark:text-white/40 font-medium">
                             {enriched.passed_count + enriched.failed_count}/{enriched.nb_test_cases} validés
                         </span>
                         {enriched.restants === 0 && (
@@ -801,8 +858,7 @@ const TesterDashboard = () => {
 
                 {/* Hint discret "Voir détails" en 10px bleu rgba(55,138,221,0.6) avec icône sidebar-right */}
                 <div
-                    className="mt-3.5 pt-3 border-t border-white/[0.04] flex items-center justify-between text-[10px] font-medium transition-colors"
-                    style={{ color: 'rgba(55,138,221,0.8)' }}
+                    className="mt-3.5 pt-3 border-t border-slate-200 dark:border-white/[0.04] flex items-center justify-between text-[10px] font-medium text-blue-600 dark:text-blue-400/80 transition-colors"
                 >
                     <span>Voir détails</span>
                     <Sidebar size={12} className="opacity-70 group-hover:translate-x-0.5 transition-transform" />
@@ -854,7 +910,7 @@ const TesterDashboard = () => {
         const isPreprod = enriched.release_type.toUpperCase() === 'PREPROD';
 
         return (
-            <div className="space-y-6 text-slate-100 max-w-5xl mx-auto w-full">
+            <div className="space-y-6 max-w-5xl mx-auto w-full">
                 {/* Header de page */}
                 <div className="space-y-4 pb-2">
                     <button
@@ -863,11 +919,11 @@ const TesterDashboard = () => {
                             setExecutionResult(null);
                             closeForm();
                         }}
-                        className="text-sm text-white/50 hover:text-white transition-colors flex items-center gap-1 font-bold"
+                        className="text-sm text-slate-500 dark:text-white/50 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1 font-bold"
                     >
                         ← Mon Espace
                     </button>
-                    <div className="text-xs text-white/40 flex items-center gap-1 font-medium -mt-2">
+                    <div className="text-xs text-slate-500 dark:text-white/40 flex items-center gap-1 font-medium -mt-2">
                         <span>version 1.0</span>
                         <span>›</span>
                         <span>{camp.business_project_name || camp.project_name || 'projet2'}</span>
@@ -876,23 +932,20 @@ const TesterDashboard = () => {
                     </div>
 
                     {/* Campaign Detail Header Card */}
-                    <div
-                        style={{ background: '#111827', borderRadius: '12px', border: '0.5px solid rgba(255,255,255,0.08)', padding: '20px 24px' }}
-                        className="flex flex-col md:flex-row md:items-center justify-between gap-6"
-                    >
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-white/[0.08] p-5 md:px-6">
                         <div className="space-y-3">
-                            <h2 className="text-2xl font-bold text-white leading-none">{camp.title}</h2>
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white leading-none">{camp.title}</h2>
                             {camp.description && (
-                                <p className="text-sm text-white/45 leading-relaxed max-w-xl">{camp.description}</p>
+                                <p className="text-sm text-slate-500 dark:text-white/45 leading-relaxed max-w-xl">{camp.description}</p>
                             )}
                             <div className="flex items-center gap-2 flex-wrap">
                                 {isRecette && (
-                                    <span style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', border: '0.5px solid rgba(255,255,255,0.1)' }} className="px-3 py-1 rounded-[12px] text-[9px] font-bold uppercase tracking-wider">Recette</span>
+                                    <span className="px-3 py-1 rounded-xl text-[9px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-white/[0.05] text-slate-600 dark:text-white/50 border border-slate-200 dark:border-white/10">Recette</span>
                                 )}
                                 {isPreprod && (
                                     <span style={{ background: 'rgba(29,158,117,0.15)', color: '#5DCAA5', border: '0.5px solid rgba(29,158,117,0.25)' }} className="px-3 py-1 rounded-[12px] text-[9px] font-bold uppercase tracking-wider">Preprod</span>
                                 )}
-                                <span style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', border: '0.5px solid rgba(255,255,255,0.1)' }} className="px-3 py-1 rounded-[12px] text-[9px] font-bold uppercase tracking-wider">
+                                <span className="px-3 py-1 rounded-xl text-[9px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-white/[0.05] text-slate-600 dark:text-white/50 border border-slate-200 dark:border-white/10">
                                     {enriched.nb_test_cases} test{enriched.nb_test_cases > 1 ? 's' : ''}
                                 </span>
                                 {enriched.restants === 0 && (
@@ -902,7 +955,7 @@ const TesterDashboard = () => {
                                         <span style={{ background: 'rgba(239,68,68,0.15)', color: '#F09595', border: '0.5px solid rgba(239,68,68,0.25)' }} className="px-3 py-1 rounded-[12px] text-[9px] font-bold uppercase tracking-wider">Anomalies</span>
                                     )
                                 )}
-                                <span style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', border: '0.5px solid rgba(255,255,255,0.1)' }} className="px-3 py-1 rounded-[12px] text-[9px] font-bold uppercase tracking-wider">
+                                <span className="px-3 py-1 rounded-xl text-[9px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-white/[0.05] text-slate-600 dark:text-white/50 border border-slate-200 dark:border-white/10">
                                     Créé par {enriched.manager}
                                 </span>
                             </div>
@@ -911,11 +964,11 @@ const TesterDashboard = () => {
                         <div className="flex items-center gap-4">
                             <div className="flex flex-col items-end">
                                 {/* Small progress bar */}
-                                <div className="h-[4px] w-36 bg-white/10 rounded-full overflow-hidden mb-1.5">
+                                <div className="h-[4px] w-36 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden mb-1.5">
                                     <div className="h-full bg-[#1D9E75] rounded-full" style={{ width: `${progressPercentage}%` }} />
                                 </div>
                                 {/* Counter */}
-                                <span className="text-[10px] text-white/40 font-bold tracking-wider">
+                                <span className="text-[10px] text-slate-500 dark:text-white/40 font-bold tracking-wider">
                                     {enriched.passed_count + enriched.failed_count} / {enriched.nb_test_cases} validés
                                 </span>
                             </div>
@@ -925,24 +978,21 @@ const TesterDashboard = () => {
                     </div>
                 </div>
 
-                <hr className="border-white/[0.08] mb-6" />
+                <hr className="border-slate-200 dark:border-white/[0.08] mb-6" />
 
                 {/* Métriques */}
-                <div
-                    style={{ background: '#111827', borderRadius: '12px', border: '0.5px solid rgba(255,255,255,0.08)' }}
-                    className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-white/[0.06]"
-                >
+                <div className="bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-white/[0.08] grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-200 dark:divide-white/[0.06] shadow-sm dark:shadow-none">
                     {/* Réussis → /execution filtré PASSED + campagne */}
                     <button
                         type="button"
                         onClick={() => navigate('/execution', { state: { statusFilter: 'passed', campaignName: camp.title } })}
-                        className="px-4 py-3 flex items-center justify-between group text-left hover:bg-white/[0.03] transition-colors"
+                        className="px-4 py-3 flex items-center justify-between group text-left hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
                     >
                         <div>
-                            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider block group-hover:text-[#1D9E75] transition-colors">Réussis</span>
+                            <span className="text-[9px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-wider block group-hover:text-[#1D9E75] transition-colors">Réussis</span>
                             <span className="text-xl font-bold text-[#1D9E75] mt-0.5 block">{enriched.passed_count}</span>
                         </div>
-                        <div className="w-12 h-[3px] bg-white/5 rounded-full overflow-hidden shrink-0">
+                        <div className="w-12 h-[3px] bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden shrink-0">
                             <div className="h-full bg-[#1D9E75] rounded-full" style={{ width: `${(enriched.passed_count / (enriched.nb_test_cases || 1)) * 100}%` }} />
                         </div>
                     </button>
@@ -950,22 +1000,22 @@ const TesterDashboard = () => {
                     <button
                         type="button"
                         onClick={() => navigate('/anomalies', { state: { campaignId: camp.id, campaignName: camp.title } })}
-                        className="px-4 py-3 flex items-center justify-between group text-left hover:bg-white/[0.03] transition-colors"
+                        className="px-4 py-3 flex items-center justify-between group text-left hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors"
                     >
                         <div>
-                            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider block group-hover:text-[#F09595] transition-colors">Anomalies</span>
+                            <span className="text-[9px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-wider block group-hover:text-[#F09595] transition-colors">Anomalies</span>
                             <span className="text-xl font-bold text-[#F09595] mt-0.5 block">{enriched.anomalies_count}</span>
                         </div>
-                        <div className="w-12 h-[3px] bg-white/5 rounded-full overflow-hidden shrink-0">
+                        <div className="w-12 h-[3px] bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden shrink-0">
                             <div className="h-full bg-[#F09595] rounded-full" style={{ width: `${enriched.anomalies_count > 0 ? 100 : 0}%` }} />
                         </div>
                     </button>
                     <div className="px-4 py-3 flex items-center justify-between">
                         <div>
-                            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider block">Test/jour</span>
+                            <span className="text-[9px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-wider block">Test/jour</span>
                             <span className="text-xl font-bold text-[#85B7EB] mt-0.5 block">{enriched.velocity}</span>
                         </div>
-                        <div className="w-12 h-[3px] bg-white/5 rounded-full overflow-hidden shrink-0">
+                        <div className="w-12 h-[3px] bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden shrink-0">
                             {(() => {
                                 const durationDays = Math.max(1, Math.ceil((enriched.echeance.getTime() - enriched.debut.getTime()) / 86_400_000));
                                 const dailyGoal = Math.max(1, Math.ceil(enriched.nb_test_cases / durationDays));
@@ -976,11 +1026,11 @@ const TesterDashboard = () => {
                     </div>
                     <div className="px-4 py-3 flex items-center justify-between">
                         <div>
-                            <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider block">Restants</span>
-                            <span className="text-xl font-bold text-white/80 mt-0.5 block">{enriched.restants}</span>
+                            <span className="text-[9px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-wider block">Restants</span>
+                            <span className="text-xl font-bold text-slate-900 dark:text-white/80 mt-0.5 block">{enriched.restants}</span>
                         </div>
-                        <div className="w-12 h-[3px] bg-white/5 rounded-full overflow-hidden shrink-0">
-                            <div className="h-full bg-white/20 rounded-full" style={{ width: `${(enriched.restants / (enriched.nb_test_cases || 1)) * 100}%` }} />
+                        <div className="w-12 h-[3px] bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden shrink-0">
+                            <div className="h-full bg-slate-400 dark:bg-white/20 rounded-full" style={{ width: `${(enriched.restants / (enriched.nb_test_cases || 1)) * 100}%` }} />
                         </div>
                     </div>
                 </div>
@@ -1001,30 +1051,16 @@ const TesterDashboard = () => {
                                 type="button"
                                 onClick={() => setIsValidationOpen(false)}
                                 title="Afficher le calendrier"
-                                style={{
-                                    background: '#111827',
-                                    borderRadius: '12px',
-                                    border: '0.5px solid rgba(255,255,255,0.08)',
-                                    padding: '12px 8px',
-                                    width: '100%',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    gap: '10px',
-                                    cursor: 'pointer',
-                                    transition: 'border-color 0.2s',
-                                    minWidth: '44px',
-                                }}
-                                className="hover:border-white/20"
+                                className="w-full flex flex-col items-center gap-2.5 cursor-pointer transition-colors min-w-[44px] bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-white/[0.08] p-3 hover:border-slate-300 dark:hover:border-white/20"
                             >
-                                <Calendar className="w-4 h-4 text-white/30" />
+                                <Calendar className="w-4 h-4 text-slate-500 dark:text-white/30" />
                                 {/* Début */}
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
                                     <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#378ADD', display: 'block' }} />
-                                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.7)', lineHeight: 1 }}>
+                                    <span className="text-[11px] font-bold text-slate-700 dark:text-white/70 leading-none">
                                         {enriched.debut.getDate()}
                                     </span>
-                                    <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', lineHeight: 1 }}>
+                                    <span className="text-[8px] text-slate-500 dark:text-white/30 uppercase leading-none">
                                         {enriched.debut.toLocaleDateString('fr-FR', { month: 'short' })}
                                     </span>
                                 </div>
@@ -1034,7 +1070,7 @@ const TesterDashboard = () => {
                                     <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(93,202,165,0.9)', lineHeight: 1 }}>
                                         {enriched.echeance.getDate()}
                                     </span>
-                                    <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', lineHeight: 1 }}>
+                                    <span className="text-[8px] text-slate-500 dark:text-white/30 uppercase leading-none">
                                         {enriched.echeance.toLocaleDateString('fr-FR', { month: 'short' })}
                                     </span>
                                 </div>
@@ -1044,21 +1080,18 @@ const TesterDashboard = () => {
                                     <span style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(240,149,149,0.9)', lineHeight: 1 }}>
                                         {enriched.fin_ia.getDate()}
                                     </span>
-                                    <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', lineHeight: 1 }}>
+                                    <span className="text-[8px] text-slate-500 dark:text-white/30 uppercase leading-none">
                                         {enriched.fin_ia.toLocaleDateString('fr-FR', { month: 'short' })}
                                     </span>
                                 </div>
                                 {/* Indicateur expand */}
-                                <ChevronRight className="w-3 h-3 text-white/20 mt-1" />
+                                <ChevronRight className="w-3 h-3 text-slate-400 dark:text-white/20 mt-1" />
                             </button>
                         )}
 
                         {/* ── Calendrier complet (quand validation fermée) ── */}
                         {!isValidationOpen && (
-                        <div
-                            style={{ background: '#111827', borderRadius: '12px', border: '0.5px solid rgba(255,255,255,0.08)', padding: '16px 20px', width: '100%' }}
-                            className="space-y-4 animate-fadeIn"
-                        >
+                        <div className="bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-white/[0.08] p-4 md:p-5 w-full space-y-4 animate-fadeIn shadow-sm dark:shadow-none">
                             {(() => {
                                 const currentYear = calendarCurrentDate.getFullYear();
                                 const currentMonth = calendarCurrentDate.getMonth();
@@ -1094,25 +1127,25 @@ const TesterDashboard = () => {
                                 return (
                                     <div className="w-full">
                                         <div className="flex justify-between items-center mb-3">
-                                            <span className="text-xs font-bold text-white uppercase tracking-wider">
+                                            <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                                                 Calendrier
                                             </span>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs font-semibold text-white/75">
+                                                <span className="text-xs font-semibold text-slate-900 dark:text-white/75">
                                                     {monthNames[currentMonth]} {currentYear}
                                                 </span>
                                                 <div className="flex gap-1">
                                                     <button
                                                         type="button"
                                                         onClick={handlePrevMonth}
-                                                        className="w-[20px] h-[20px] bg-white/5 hover:bg-white/10 rounded-[4px] flex items-center justify-center text-white/60 hover:text-white transition-colors text-[10px]"
+                                                        className="w-[20px] h-[20px] bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded flex items-center justify-center text-slate-500 dark:text-white/60 hover:text-slate-900 dark:hover:text-white transition-colors text-[10px]"
                                                     >
                                                         &lt;
                                                     </button>
                                                     <button
                                                         type="button"
                                                         onClick={handleNextMonth}
-                                                        className="w-[20px] h-[20px] bg-white/5 hover:bg-white/10 rounded-[4px] flex items-center justify-center text-white/60 hover:text-white transition-colors text-[10px]"
+                                                        className="w-[20px] h-[20px] bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded flex items-center justify-center text-slate-500 dark:text-white/60 hover:text-slate-900 dark:hover:text-white transition-colors text-[10px]"
                                                     >
                                                         &gt;
                                                     </button>
@@ -1121,7 +1154,7 @@ const TesterDashboard = () => {
                                         </div>
 
                                         {/* Légende interactive avec dates */}
-                                        <div className="grid grid-cols-3 gap-2 text-[10px] text-white/45 mb-4 border-b border-white/5 pb-3">
+                                        <div className="grid grid-cols-3 gap-2 text-[10px] text-slate-500 dark:text-white/45 mb-4 border-b border-slate-200 dark:border-white/5 pb-3">
                                             <button
                                                 type="button"
                                                 onClick={() => {
@@ -1129,13 +1162,13 @@ const TesterDashboard = () => {
                                                     setBlinkingDateType('debut');
                                                     setTimeout(() => setBlinkingDateType(null), 3000);
                                                 }}
-                                                className="flex flex-col items-center gap-1 hover:text-white transition-colors bg-white/5 p-1.5 rounded-lg border border-white/[0.04]"
+                                                className="flex flex-col items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors bg-slate-50 dark:bg-white/5 p-1.5 rounded-lg border border-slate-200 dark:border-white/[0.04]"
                                             >
                                                 <div className="flex items-center gap-1">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-[#378ADD]" />
                                                     <span className="font-bold text-[9px] uppercase tracking-wider">Début</span>
                                                 </div>
-                                                <span className="text-white/75 font-semibold text-[10px]">
+                                                <span className="text-slate-700 dark:text-white/75 font-semibold text-[10px]">
                                                     {enriched.debut.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                                                 </span>
                                             </button>
@@ -1147,7 +1180,7 @@ const TesterDashboard = () => {
                                                     setBlinkingDateType('echeance');
                                                     setTimeout(() => setBlinkingDateType(null), 3000);
                                                 }}
-                                                className="flex flex-col items-center gap-1 hover:text-white transition-colors bg-white/5 p-1.5 rounded-lg border border-white/[0.04]"
+                                                className="flex flex-col items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors bg-slate-50 dark:bg-white/5 p-1.5 rounded-lg border border-slate-200 dark:border-white/[0.04]"
                                             >
                                                 <div className="flex items-center gap-1">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-[#1D9E75]" />
@@ -1165,21 +1198,22 @@ const TesterDashboard = () => {
                                                     setBlinkingDateType('fin_ia');
                                                     setTimeout(() => setBlinkingDateType(null), 3000);
                                                 }}
-                                                className="flex flex-col items-center gap-1 hover:text-white transition-colors bg-white/5 p-1.5 rounded-lg border border-white/[0.04]"
+                                                className="flex flex-col items-center gap-1 hover:text-slate-900 dark:hover:text-white transition-colors bg-slate-50 dark:bg-white/5 p-1.5 rounded-lg border border-slate-200 dark:border-white/[0.04]"
                                             >
                                                 <div className="flex items-center gap-1">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-[#E24B4A]" />
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${enriched.advance_days > 0 ? 'bg-[#1D9E75]' : enriched.retard > 0 ? 'bg-[#E24B4A]' : 'bg-[#378ADD]'}`} />
                                                     <span className="font-bold text-[9px] uppercase tracking-wider">Fin estimée</span>
                                                 </div>
-                                                <span className="text-[#F09595] font-semibold text-[10px]">
+                                                <span className={`font-semibold text-[10px] ${enriched.advance_days > 0 ? 'text-[#5DCAA5]' : enriched.retard > 0 ? 'text-[#F09595]' : 'text-[#85B7EB]'}`}>
                                                     {enriched.fin_ia.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                                    {enriched.advance_days > 0 && ` · -${enriched.advance_days}j`}
                                                 </span>
                                             </button>
                                         </div>
 
                                         <div className="grid grid-cols-7 gap-0.5 text-center">
                                             {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, i) => (
-                                                <span key={i} className="text-[10px] font-bold text-white/30 uppercase py-0.5">
+                                                <span key={i} className="text-[10px] font-bold text-slate-500 dark:text-white/30 uppercase py-0.5">
                                                     {d}
                                                 </span>
                                             ))}
@@ -1222,12 +1256,12 @@ const TesterDashboard = () => {
                                                         {hasHighlight ? (
                                                             <div
                                                                 style={bgStyle}
-                                                                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${isBlinking ? 'animate-pulse ring-2 ring-amber-400 ring-offset-1 ring-offset-[#111827]' : ''}`}
+                                                                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${isBlinking ? 'animate-pulse ring-2 ring-amber-400 ring-offset-1 ring-offset-white dark:ring-offset-[#111827]' : ''}`}
                                                             >
                                                                 {day}
                                                             </div>
                                                         ) : (
-                                                            <span className={`text-white/70 ${isDebut && isBlinking ? 'text-amber-400 font-bold scale-110 transition-all animate-pulse' : ''}`}>{day}</span>
+                                                            <span className={`text-slate-600 dark:text-white/70 ${isDebut && isBlinking ? 'text-amber-400 font-bold scale-110 transition-all animate-pulse' : ''}`}>{day}</span>
                                                         )}
                                                         {isDebut && (
                                                             <span className={`w-1 h-1 bg-[#378ADD] rounded-full absolute bottom-0.5 left-1/2 -translate-x-1/2 ${isBlinking ? 'animate-ping duration-300' : ''}`} />
@@ -1238,7 +1272,7 @@ const TesterDashboard = () => {
                                         </div>
 
                                         {isFinIaTooFar && (
-                                            <div className="mt-3 text-[11px] text-[#F09595]/80 italic border-t border-white/5 pt-2 text-center">
+                                            <div className="mt-3 text-[11px] text-[#F09595]/80 italic border-t border-slate-200 dark:border-white/5 pt-2 text-center">
                                                 Fin estimée trop lointaine pour s'afficher sur ce mois
                                             </div>
                                         )}
@@ -1258,28 +1292,22 @@ const TesterDashboard = () => {
                         }}
                     >
                         {enriched.restants === 0 && enriched.failed_count === 0 ? (
-                            <div
-                                style={{ background: '#111827', borderRadius: '12px', border: '0.5px solid rgba(29,158,117,0.3)', padding: '20px' }}
-                                className="max-w-[600px] mx-auto w-full text-center space-y-2.5"
-                            >
+                            <div className="max-w-[600px] mx-auto w-full text-center space-y-2.5 bg-white dark:bg-[#111827] rounded-xl border border-emerald-200 dark:border-emerald-500/30 p-5 shadow-sm dark:shadow-none">
                                 <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[#5DCAA5] flex items-center justify-center mx-auto">
                                     <CheckCircle className="w-6 h-6" />
                                 </div>
-                                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Validation terminée à 100%</h3>
-                                <p className="text-xs text-white/40 max-w-sm mx-auto leading-relaxed">
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Validation terminée à 100%</h3>
+                                <p className="text-xs text-slate-500 dark:text-white/40 max-w-sm mx-auto leading-relaxed">
                                     Tous les cas de test ont été exécutés et validés. Il n'y a plus aucun test en attente de validation sur cette campagne.
                                 </p>
                             </div>
                         ) : enriched.restants === 0 && enriched.failed_count > 0 ? (
-                            <div
-                                style={{ background: '#111827', borderRadius: '12px', border: '0.5px solid rgba(240,149,149,0.3)', padding: '20px' }}
-                                className="max-w-[600px] mx-auto w-full text-center space-y-2.5"
-                            >
+                            <div className="max-w-[600px] mx-auto w-full text-center space-y-2.5 bg-white dark:bg-[#111827] rounded-xl border border-rose-200 dark:border-rose-400/30 p-5 shadow-sm dark:shadow-none">
                                 <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 text-[#F09595] flex items-center justify-center mx-auto">
                                     <AlertTriangle className="w-6 h-6" />
                                 </div>
-                                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Validation terminée avec anomalies</h3>
-                                <p className="text-xs text-white/40 max-w-sm mx-auto leading-relaxed">
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Validation terminée avec anomalies</h3>
+                                <p className="text-xs text-slate-500 dark:text-white/40 max-w-sm mx-auto leading-relaxed">
                                     Tous les cas de test ont été exécutés, mais {enriched.failed_count} {enriched.failed_count > 1 ? 'anomalies ont été détectées' : 'anomalie a été détectée'}. En attente de correction et de re-validation.
                                 </p>
                             </div>
@@ -1287,54 +1315,47 @@ const TesterDashboard = () => {
                             <div className="hidden" />
                         )}
                         <>
-                            {!isValidationOpen && (
-                                <div
-                                    style={{ background: '#111827', borderRadius: '12px', border: '0.5px solid rgba(255,255,255,0.08)', padding: '16px' }}
-                                    className="flex items-center justify-between max-w-[600px] mx-auto w-full"
-                                >
+                            {!isValidationOpen && enriched.restants > 0 && (
+                                <div className="flex items-center justify-between max-w-[600px] mx-auto w-full bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-white/[0.08] p-4 shadow-sm dark:shadow-none">
                                     <div>
-                                        <h3 className="text-sm font-semibold text-white">Prêt à valider un cas de test ?</h3>
-                                        <p className="text-xs text-white/40 mt-1">Générez un script d'automatisation ou enregistrez un résultat manuel</p>
+                                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Prêt à valider un cas de test ?</h3>
+                                        <p className="text-xs text-slate-500 dark:text-white/40 mt-1">Générez un script d'automatisation ou enregistrez un résultat manuel</p>
                                     </div>
                                     <button
                                         type="button"
                                         onClick={openValidation}
-                                        style={{ background: '#185FA5', color: '#B5D4F4', border: '0.5px solid #378ADD', borderRadius: '10px', padding: '11px 22px' }}
-                                        className="text-xs font-bold transition-all hover:brightness-110"
+                                        className="text-xs font-bold transition-all hover:brightness-110 bg-[#185FA5] text-[#B5D4F4] border border-[#378ADD] rounded-[10px] px-5 py-2.5"
                                     >
                                         Valider un cas de test
                                     </button>
                                 </div>
                             )}
 
-                            {/* Section validation */}
-                            {isValidationOpen && (
+                            {/* Section validation — masquée si quota épuisé */}
+                            {isValidationOpen && enriched.restants > 0 && (
                                 <div id="validation-section" className="space-y-4 w-full">
 
                                     {/* Bloc choix du mode */}
-                                    <div style={{ background: '#111827', borderRadius: '12px', border: '0.5px solid rgba(55,138,221,0.25)', padding: '20px' }} className="space-y-4">
+                                    <div className="space-y-4 bg-white dark:bg-[#111827] rounded-xl border border-blue-200 dark:border-blue-500/25 p-5 shadow-sm dark:shadow-none">
                                         <div>
-                                            <h3 className="text-sm font-bold text-white">Comment souhaitez-vous valider ce cas de test ?</h3>
-                                            <p className="text-xs text-white/40 mt-0.5">Sélectionnez le mode de validation automatisé ou manuel</p>
+                                            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Comment souhaitez-vous valider ce cas de test ?</h3>
+                                            <p className="text-xs text-slate-500 dark:text-white/40 mt-0.5">Sélectionnez le mode de validation automatisé ou manuel</p>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {/* Card Validation par l'IA */}
                                             <div
                                                 onClick={() => selectMode('ia')}
-                                                style={{
-                                                    background: validationMode === 'ia' ? '#131e30' : '#1a2235',
-                                                    borderRadius: '10px',
-                                                    border: validationMode === 'ia' ? '1px solid #378ADD' : '0.5px solid rgba(255,255,255,0.08)',
-                                                    padding: '16px',
-                                                    cursor: 'pointer'
-                                                }}
-                                                className="space-y-2 transition-all"
+                                                className={`space-y-2 transition-all rounded-[10px] p-4 cursor-pointer border ${
+                                                    validationMode === 'ia'
+                                                        ? 'bg-blue-50 dark:bg-[#131e30] border-blue-400 dark:border-[#378ADD]'
+                                                        : 'bg-slate-50 dark:bg-[#1a2235] border-slate-200 dark:border-white/[0.08]'
+                                                }`}
                                             >
                                                 <span className="inline-block px-2 py-0.5 rounded-[4px] text-[9px] font-bold bg-[#185FA5]/15 text-[#85B7EB] border border-[#185FA5]/25">
                                                     Automatisée
                                                 </span>
-                                                <h4 className="text-xs font-bold text-white">Validation par l'IA</h4>
-                                                <p className="text-[11px] text-white/40 leading-relaxed">
+                                                <h4 className="text-xs font-bold text-slate-900 dark:text-white">Validation par l'IA</h4>
+                                                <p className="text-[11px] text-slate-500 dark:text-white/40 leading-relaxed">
                                                     Générez automatiquement un script de test Playwright grâce à l'IA d'après vos étapes rédigées.
                                                 </p>
                                             </div>
@@ -1342,20 +1363,17 @@ const TesterDashboard = () => {
                                             {/* Card Validation Manuelle */}
                                             <div
                                                 onClick={() => selectMode('manual')}
-                                                style={{
-                                                    background: validationMode === 'manual' ? '#131e30' : '#1a2235',
-                                                    borderRadius: '10px',
-                                                    border: validationMode === 'manual' ? '1px solid #378ADD' : '0.5px solid rgba(255,255,255,0.08)',
-                                                    padding: '16px',
-                                                    cursor: 'pointer'
-                                                }}
-                                                className="space-y-2 transition-all"
+                                                className={`space-y-2 transition-all rounded-[10px] p-4 cursor-pointer border ${
+                                                    validationMode === 'manual'
+                                                        ? 'bg-blue-50 dark:bg-[#131e30] border-blue-400 dark:border-[#378ADD]'
+                                                        : 'bg-slate-50 dark:bg-[#1a2235] border-slate-200 dark:border-white/[0.08]'
+                                                }`}
                                             >
                                                 <span className="inline-block px-2 py-0.5 rounded-[4px] text-[9px] font-bold bg-[rgba(29,158,117,0.15)] text-[#5DCAA5] border border-[rgba(29,158,117,0.25)]">
                                                     Manuelle
                                                 </span>
-                                                <h4 className="text-xs font-bold text-white">Validation Manuelle</h4>
-                                                <p className="text-[11px] text-white/40 leading-relaxed">
+                                                <h4 className="text-xs font-bold text-slate-900 dark:text-white">Validation Manuelle</h4>
+                                                <p className="text-[11px] text-slate-500 dark:text-white/40 leading-relaxed">
                                                     Saisissez les résultats du test manuellement, joignez des captures d'écran et déclarez des anomalies.
                                                 </p>
                                             </div>
@@ -1370,7 +1388,7 @@ const TesterDashboard = () => {
                                             <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '14px 18px' }} className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
                                                     <Terminal className="w-4 h-4 text-blue-400" />
-                                                    <span className="text-xs font-black text-white uppercase tracking-widest">Exécution Playwright</span>
+                                                    <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Exécution Playwright</span>
                                                     <span className="text-[10px] text-slate-500">— {testCaseForm.test_case_ref}</span>
                                                 </div>
                                                 {executingCode && (
@@ -1398,12 +1416,12 @@ const TesterDashboard = () => {
                                                     <div className="flex items-center gap-2 px-4 py-2 bg-purple-500/5">
                                                         <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
                                                         <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest">Écran en direct</span>
-                                                        <a href="http://localhost:6080/vnc.html?autoconnect=true&resize=scale" target="_blank" rel="noreferrer" className="ml-auto text-[9px] text-slate-500 hover:text-slate-300 underline">Ouvrir en plein écran</a>
+                                                        <a href={novncViewerUrl} target="_blank" rel="noreferrer" className="ml-auto text-[9px] text-slate-500 hover:text-slate-300 underline">Ouvrir en plein écran</a>
                                                     </div>
                                                     {/* 16:9 aspect ratio wrapper matches 1280x720 Xvfb resolution */}
                                                     <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', background: '#000' }}>
                                                         <iframe
-                                                            src="http://localhost:6080/vnc.html?autoconnect=true&resize=scale&view_only=0&show_dot=true"
+                                                            src={novncIframeUrl}
                                                             style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
                                                             title="noVNC Live View"
                                                             allow="fullscreen"
@@ -1464,15 +1482,14 @@ const TesterDashboard = () => {
                                                 /* Formulaire IA */
                                                 <form
                                                     onSubmit={handleSubmit}
-                                                    style={{ background: '#111827', borderRadius: '12px', border: '0.5px solid rgba(255,255,255,0.08)', padding: '20px' }}
-                                                    className="space-y-4"
+                                                    className="space-y-4 bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-white/[0.08] p-5 shadow-sm dark:shadow-none"
                                                 >
                                                     <div className="flex justify-between items-center">
-                                                        <h3 className="text-sm font-bold text-white">Validation automatisée par l'IA</h3>
+                                                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">Validation automatisée par l'IA</h3>
                                                         <button
                                                             type="button"
                                                             onClick={closeForm}
-                                                            className="text-[28px] text-white/50 hover:text-white transition-colors leading-none"
+                                                            className="text-[28px] text-slate-500 dark:text-white/50 hover:text-slate-900 dark:hover:text-white transition-colors leading-none"
                                                         >
                                                             ×
                                                         </button>
@@ -1480,21 +1497,20 @@ const TesterDashboard = () => {
 
                                                     {/* Champ Nom du cas de test / Référence */}
                                                     <div className="space-y-1.5">
-                                                        <label className="text-[10px] uppercase tracking-wider text-white/45 font-bold block">Nom du cas de test / Référence</label>
+                                                        <label className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-white/45 font-bold block">Nom du cas de test / Référence</label>
                                                         <input
                                                             required
                                                             type="text"
                                                             value={testCaseForm.test_case_ref}
                                                             onChange={(e) => setTestCaseForm({ ...testCaseForm, test_case_ref: e.target.value })}
                                                             placeholder="Ex: TC-001 Connexion"
-                                                            style={{ background: '#1a2235', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '9px', padding: '10px 13px' }}
-                                                            className="w-full text-white text-xs outline-none focus:border-blue-500/50 transition-colors font-medium"
+                                                            className="w-full app-input text-xs font-medium"
                                                         />
                                                     </div>
 
                                                     {/* textarea Étapes du test */}
                                                     <div className="space-y-1.5">
-                                                        <div className="flex justify-between items-center text-[10px] uppercase tracking-wider text-white/45 font-bold">
+                                                        <div className="flex justify-between items-center text-[10px] uppercase tracking-wider text-slate-500 dark:text-white/45 font-bold">
                                                             <span>Étapes du test</span>
                                                             <button
                                                                 type="button"
@@ -1531,8 +1547,7 @@ const TesterDashboard = () => {
                                                                 setTestCaseForm({ ...testCaseForm, manualData: e.target.value });
                                                             }}
                                                             placeholder="Saisissez les étapes du test..."
-                                                            style={{ background: '#1a2235', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '9px', padding: '10px 13px', minHeight: '90px', height: 'auto' }}
-                                                            className="w-full text-white text-xs outline-none focus:border-blue-500/50 transition-colors resize-none overflow-hidden"
+                                                            className="w-full app-input text-xs min-h-[90px] resize-none overflow-hidden"
                                                         />
                                                     </div>
 
@@ -1561,7 +1576,7 @@ const TesterDashboard = () => {
                                                                             setIsCopied(true);
                                                                             setTimeout(() => setIsCopied(false), 2000);
                                                                         }}
-                                                                        className="w-6 h-6 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 text-white/40 hover:text-emerald-400 transition-colors"
+                                                                        className="w-6 h-6 flex items-center justify-center rounded bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 dark:text-white/40 hover:text-emerald-400 transition-colors"
                                                                     >
                                                                         {isCopied ? <CheckCircle className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                                                                     </button>
@@ -1570,13 +1585,13 @@ const TesterDashboard = () => {
                                                                         type="button"
                                                                         title={isEditing ? 'Valider les modifications' : 'Éditer le code'}
                                                                         onClick={() => setIsEditing(!isEditing)}
-                                                                        className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${isEditing ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 hover:bg-white/10 text-white/40 hover:text-white'}`}
+                                                                        className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${isEditing ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white'}`}
                                                                     >
                                                                         <Edit2 className="w-3 h-3" />
                                                                     </button>
                                                                 </div>
                                                             </div>
-                                                            <div className="bg-slate-950 border border-white/5 rounded-lg p-2.5 font-mono text-[9px] leading-relaxed">
+                                                            <div className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg p-2.5 font-mono text-[9px] leading-relaxed">
                                                                 {isEditing ? (
                                                                     <textarea
                                                                         value={testCaseForm.code}
@@ -1585,12 +1600,12 @@ const TesterDashboard = () => {
                                                                             e.target.style.height = 'auto';
                                                                             e.target.style.height = e.target.scrollHeight + 'px';
                                                                         }}
-                                                                        className="w-full bg-transparent text-white/70 outline-none border-none resize-none overflow-hidden"
+                                                                        className="w-full bg-transparent text-slate-600 dark:text-white/70 outline-none border-none resize-none overflow-hidden"
                                                                         style={{ minHeight: '80px', height: 'auto' }}
                                                                     />
                                                                 ) : (
                                                                     <pre
-                                                                        className="text-white/70 whitespace-pre-wrap font-mono text-[9px]"
+                                                                        className="text-slate-600 dark:text-white/70 whitespace-pre-wrap font-mono text-[9px]"
                                                                         dangerouslySetInnerHTML={{ __html: highlightPlaywrightCode(testCaseForm.code) }}
                                                                     />
                                                                 )}
@@ -1681,15 +1696,14 @@ const TesterDashboard = () => {
                                                 /* Formulaire Manuel */
                                                 <form
                                                     onSubmit={handleSubmit}
-                                                    style={{ background: '#111827', borderRadius: '12px', border: '0.5px solid rgba(255,255,255,0.08)', padding: '20px' }}
-                                                    className="space-y-4"
+                                                    className="space-y-4 bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-white/[0.08] p-5 shadow-sm dark:shadow-none"
                                                 >
                                                     <div className="flex justify-between items-center">
-                                                        <h3 className="text-sm font-bold text-white">Validation manuelle</h3>
+                                                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">Validation manuelle</h3>
                                                         <button
                                                             type="button"
                                                             onClick={closeForm}
-                                                            className="text-[28px] text-white/50 hover:text-white transition-colors leading-none"
+                                                            className="text-[28px] text-slate-500 dark:text-white/50 hover:text-slate-900 dark:hover:text-white transition-colors leading-none"
                                                         >
                                                             ×
                                                         </button>
@@ -1697,30 +1711,23 @@ const TesterDashboard = () => {
 
                                                     {/* Champ Nom du cas de test / Référence */}
                                                     <div className="space-y-1.5">
-                                                        <label className="text-[10px] uppercase tracking-wider text-white/45 font-bold block">Nom du cas de test / Référence</label>
+                                                        <label className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-white/45 font-bold block">Nom du cas de test / Référence</label>
                                                         <input
                                                             required
                                                             type="text"
                                                             value={testCaseForm.test_case_ref}
                                                             onChange={(e) => setTestCaseForm({ ...testCaseForm, test_case_ref: e.target.value })}
                                                             placeholder="Ex: TC-001 Connexion"
-                                                            style={{ background: '#1a2235', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '9px', padding: '10px 13px' }}
-                                                            className="w-full text-white text-xs outline-none focus:border-blue-500/50 transition-colors font-medium"
+                                                            className="w-full app-input text-xs font-medium"
                                                         />
                                                     </div>
 
                                                     {/* Upload Capture */}
                                                     <div className="space-y-1.5">
-                                                        <label className="text-[10px] uppercase tracking-wider text-white/45 font-bold block">Preuve d'exécution / Capture</label>
+                                                        <label className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-white/45 font-bold block">Preuve d'exécution / Capture</label>
                                                         <div className="flex items-center gap-2">
                                                             <label
-                                                                style={{
-                                                                    border: '0.5px dashed rgba(255,255,255,0.15)',
-                                                                    background: 'rgba(255,255,255,0.02)',
-                                                                    borderRadius: '9px',
-                                                                    padding: '10px 13px'
-                                                                }}
-                                                                className="flex-1 cursor-pointer text-center transition-all hover:bg-white/5"
+                                                                className="flex-1 cursor-pointer text-center transition-all hover:bg-slate-100 dark:hover:bg-white/5 border border-dashed border-slate-300 dark:border-white/15 bg-slate-50 dark:bg-white/[0.02] rounded-lg px-3 py-2.5"
                                                             >
                                                                 <input
                                                                     type="file"
@@ -1732,7 +1739,7 @@ const TesterDashboard = () => {
                                                                     }}
                                                                     className="hidden"
                                                                 />
-                                                                <span className="text-[10px] text-white/40 block truncate">
+                                                                <span className="text-[10px] text-slate-500 dark:text-white/40 block truncate">
                                                                     {testCaseForm.anomaly_file ? testCaseForm.anomaly_file.name : "Cliquez pour ajouter une capture"}
                                                                 </span>
                                                             </label>
@@ -1740,8 +1747,7 @@ const TesterDashboard = () => {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => setTestCaseForm({ ...testCaseForm, anomaly_file: null })}
-                                                                    style={{ background: '#1a2235', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '9px', padding: '10px' }}
-                                                                    className="text-rose-400"
+                                                                    className="text-rose-400 bg-slate-100 dark:bg-[#1a2235] border border-slate-200 dark:border-white/10 rounded-lg p-2.5"
                                                                 >
                                                                     ×
                                                                 </button>
@@ -1751,7 +1757,7 @@ const TesterDashboard = () => {
 
                                                     {/* Statut Exécution */}
                                                     <div className="space-y-1.5">
-                                                        <label className="text-[10px] uppercase tracking-wider text-white/45 font-bold block">Statut de l'exécution</label>
+                                                        <label className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-white/45 font-bold block">Statut de l'exécution</label>
                                                         <div className="grid grid-cols-2 gap-2">
                                                             <button
                                                                 type="button"
@@ -1798,40 +1804,37 @@ const TesterDashboard = () => {
                                                             <h4 className="text-[11px] font-bold text-rose-500 uppercase tracking-wider">Déclaration d'anomalie</h4>
 
                                                             <div className="space-y-1.5">
-                                                                <label className="text-[9px] uppercase text-white/40 font-bold block">Titre</label>
+                                                                <label className="text-[9px] uppercase text-slate-500 dark:text-white/40 font-bold block">Titre</label>
                                                                 <input
                                                                     type="text"
                                                                     required
                                                                     value={testCaseForm.anomaly_title}
                                                                     onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_title: e.target.value })}
                                                                     placeholder="Titre de l'anomalie"
-                                                                    style={{ background: '#1a2235', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '9px', padding: '8px 11px' }}
-                                                                    className="w-full text-white text-xs outline-none focus:border-rose-500/50"
+                                                                    className="w-full app-input text-xs"
                                                                 />
                                                             </div>
 
                                                             <div className="space-y-1.5">
-                                                                <label className="text-[9px] uppercase text-white/40 font-bold block">Visibilité</label>
+                                                                <label className="text-[9px] uppercase text-slate-500 dark:text-white/40 font-bold block">Visibilité</label>
                                                                 <select
                                                                     value={testCaseForm.anomaly_visibility}
                                                                     onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_visibility: e.target.value })}
-                                                                    style={{ background: '#1a2235', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '9px', padding: '8px 11px' }}
-                                                                    className="w-full text-white text-xs outline-none"
+                                                                    className="w-full app-input text-xs"
                                                                 >
-                                                                    <option value="PUBLIQUE" className="bg-slate-900">PUBLIQUE</option>
-                                                                    <option value="PRIVEE" className="bg-slate-900">PRIVÉE</option>
+                                                                    <option value="PUBLIQUE" className="bg-white dark:bg-slate-900">PUBLIQUE</option>
+                                                                    <option value="PRIVEE" className="bg-white dark:bg-slate-900">PRIVÉE</option>
                                                                 </select>
                                                             </div>
 
                                                             <div className="space-y-1.5">
-                                                                <label className="text-[9px] uppercase text-white/40 font-bold block">Description</label>
+                                                                <label className="text-[9px] uppercase text-slate-500 dark:text-white/40 font-bold block">Description</label>
                                                                 <textarea
                                                                     required
                                                                     value={testCaseForm.anomaly_description}
                                                                     onChange={e => setTestCaseForm({ ...testCaseForm, anomaly_description: e.target.value })}
                                                                     placeholder="Description..."
-                                                                    style={{ background: '#1a2235', border: '0.5px solid rgba(255,255,255,0.1)', borderRadius: '9px', padding: '8px 11px' }}
-                                                                    className="w-full text-white text-xs outline-none min-h-[60px] resize-none"
+                                                                    className="w-full app-input text-xs min-h-[60px] resize-none"
                                                                 />
                                                             </div>
                                                         </div>
@@ -1862,9 +1865,10 @@ const TesterDashboard = () => {
     };
 
     if (activeDetailCampaign) {
+        const freshDetailCampaign = getFreshCampaign(activeDetailCampaign) || activeDetailCampaign;
         return (
             <PageLayout>
-                {renderCampaignDetailsPage(activeDetailCampaign)}
+                {renderCampaignDetailsPage(freshDetailCampaign)}
             </PageLayout>
         );
     }
@@ -1879,7 +1883,7 @@ const TesterDashboard = () => {
                 <PendingReinforcements />
 
                 {/* Mon avancement global panel */}
-                <div className="bg-[#111827] border border-white/10 rounded-[12px] p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-[12px] p-6 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="flex items-center gap-6 w-full md:w-auto flex-1">
                         {/* Left side: dynamic global % */}
                         <div className="text-[42px] font-black text-[#1D9E75] leading-none shrink-0">
@@ -1887,12 +1891,12 @@ const TesterDashboard = () => {
                         </div>
                         {/* Middle side: Progress bar */}
                         <div className="flex-1 min-w-0 space-y-2">
-                            <h3 className="text-sm font-semibold text-white">Mon avancement global</h3>
+                            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Mon avancement global</h3>
                             <div className="h-[6px] w-full bg-white/10 rounded-full overflow-hidden">
                                 <div className="h-full rounded-full bg-[#1D9E75]" style={{ width: `${globalStats.percentage}%` }} />
                             </div>
-                            <div className="text-[11px] text-white/40">
-                                <span className="font-semibold text-white/60">{globalStats.executed} / {globalStats.total}</span> tests exécutés sur <span className="font-semibold text-white/60">{campaigns.length} campagne{campaigns.length !== 1 ? 's' : ''}</span>
+                            <div className="text-[11px] text-slate-500 dark:text-white/40">
+                                <span className="font-semibold text-slate-900 dark:text-white/60">{globalStats.executed} / {globalStats.total}</span> tests exécutés sur <span className="font-semibold text-slate-900 dark:text-white/60">{campaigns.length} campagne{campaigns.length !== 1 ? 's' : ''}</span>
                             </div>
                         </div>
                     </div>
@@ -1983,12 +1987,12 @@ const TesterDashboard = () => {
                         </div>
 
                         {/* Toggle Grille / Kanban */}
-                        <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-2xl p-1">
+                        <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-1">
                             <button
                                 type="button"
                                 onClick={() => setViewMode('grid')}
                                 title="Vue grille"
-                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
+                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-white/10 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white'}`}
                             >
                                 <LayoutGrid className="w-3.5 h-3.5" />
                                 Grille
@@ -1997,7 +2001,7 @@ const TesterDashboard = () => {
                                 type="button"
                                 onClick={() => setViewMode('kanban')}
                                 title="Vue Kanban"
-                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'kanban' ? 'bg-[#185FA5]/60 text-[#85B7EB] border border-[#378ADD]/30' : 'text-white/40 hover:text-white'}`}
+                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${viewMode === 'kanban' ? 'bg-[#185FA5]/60 text-[#85B7EB] border border-[#378ADD]/30' : 'text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white'}`}
                             >
                                 <Columns3 className="w-3.5 h-3.5" />
                                 Kanban
@@ -2014,7 +2018,7 @@ const TesterDashboard = () => {
                                     ))}
                                 </div>
                             ) : (campaigns || []).length === 0 ? (
-                                <div className="text-center py-32 bg-slate-50 dark:bg-white/5 rounded-[2.5rem] border border-dashed border-slate-300 dark:border-white/10">
+                                <div className="text-center py-32 bg-slate-50 dark:bg-white/5 rounded-[2.5rem] border border-dashed border-slate-300 dark:border-slate-200 dark:border-white/10">
                                     <List className="w-16 h-16 text-slate-400 dark:text-slate-600 mx-auto mb-4 opacity-50" />
                                     <p className="text-xl font-bold text-slate-400 italic">
                                         {(campaigns || []).length === 0 ? t('testerDashboard.state.emptyAssigned') : t('testerDashboard.state.emptySearch')}
@@ -2073,13 +2077,13 @@ const TesterDashboard = () => {
                                                         >
                                                             <div className="flex items-center gap-2">
                                                                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: col.dot, display: 'inline-block', flexShrink: 0 }} />
-                                                                <span className="text-xs font-black text-white uppercase tracking-widest">{col.label}</span>
+                                                                <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">{col.label}</span>
                                                             </div>
-                                                            <span className="text-[10px] font-bold text-white/40 bg-white/5 px-2 py-0.5 rounded-full">{colItems.length}</span>
+                                                            <span className="text-[10px] font-bold text-slate-500 dark:text-white/40 bg-white/5 px-2 py-0.5 rounded-full">{colItems.length}</span>
                                                         </div>
 
                                                         {colItems.length === 0 ? (
-                                                            <div className="flex flex-col items-center justify-center py-10 rounded-xl border border-dashed border-white/[0.06] text-white/20 text-xs font-semibold gap-2">
+                                                            <div className="flex flex-col items-center justify-center py-10 rounded-xl border border-dashed border-slate-200 dark:border-white/[0.06] text-slate-400 dark:text-white/20 text-xs font-semibold gap-2">
                                                                 <List className="w-5 h-5 opacity-40" />
                                                                 Aucune campagne
                                                             </div>
@@ -2089,9 +2093,9 @@ const TesterDashboard = () => {
                                                                     {/* Label sous-groupe */}
                                                                     {sg.label && (
                                                                         <div className="flex items-center gap-2 px-1">
-                                                                            <span className="text-[9px] font-black text-white/30 uppercase tracking-widest truncate">{sg.label}</span>
-                                                                            <div className="flex-1 h-px bg-white/[0.05]" />
-                                                                            <span className="text-[9px] text-white/20">{sg.items.length}</span>
+                                                                            <span className="text-[9px] font-black text-slate-500 dark:text-white/30 uppercase tracking-widest truncate">{sg.label}</span>
+                                                                            <div className="flex-1 h-px bg-slate-100 dark:bg-white/[0.05]" />
+                                                                            <span className="text-[9px] text-slate-400 dark:text-white/20">{sg.items.length}</span>
                                                                         </div>
                                                                     )}
                                                                     {sg.items.map(camp => renderCampaignCard(camp))}
@@ -2153,7 +2157,7 @@ const TesterDashboard = () => {
                         {/* Side Drawer Component */}
                         <div
                             id="drawer"
-                            className={`shrink-0 transition-all duration-300 overflow-hidden ${isDrawerOpen ? 'w-[260px] border border-[rgba(55,138,221,0.25)] p-4 bg-[#111827] rounded-[12px]' : 'w-0 border-none p-0'}`}
+                            className={`shrink-0 transition-all duration-300 overflow-hidden ${isDrawerOpen ? 'w-[260px] border border-blue-200 dark:border-blue-500/25 p-4 bg-white dark:bg-[#111827] rounded-xl shadow-sm dark:shadow-none' : 'w-0 border-none p-0'}`}
                         >
                             {isDrawerOpen && (() => {
                                 const activeCamp = campaigns.find(c => c.id === selectedCampaignId);
@@ -2163,12 +2167,12 @@ const TesterDashboard = () => {
                                     <div className="space-y-4">
                                         {/* Header */}
                                         <div className="flex justify-between items-start gap-4 relative">
-                                            <h4 className="text-[13px] font-medium text-white leading-snug pr-6">
+                                            <h4 className="text-[13px] font-medium text-slate-900 dark:text-white leading-snug pr-6">
                                                 {activeCamp.title}
                                             </h4>
                                             <button
                                                 onClick={closeDrawer}
-                                                className="w-6 h-6 flex items-center justify-center text-white/50 hover:text-white bg-white/5 rounded hover:bg-white/10 shrink-0 absolute top-0 right-0 text-[18px]"
+                                                className="w-6 h-6 flex items-center justify-center text-slate-500 dark:text-white/50 hover:text-slate-900 dark:hover:text-white bg-white/5 rounded hover:bg-slate-100 dark:hover:bg-white/10 shrink-0 absolute top-0 right-0 text-[18px]"
                                             >
                                                 ×
                                             </button>
@@ -2177,28 +2181,28 @@ const TesterDashboard = () => {
                                         {/* Badges */}
                                         <div className="flex items-center gap-1.5">
                                             {activeEnriched.release_type.toUpperCase() === 'RECETTE' ? (
-                                                <span className="px-2 py-0.5 rounded-[4px] text-[9px] font-semibold bg-white/[0.07] text-white/45 border border-white/12">RECETTE</span>
+                                                <span className="px-2 py-0.5 rounded text-[9px] font-semibold bg-slate-100 dark:bg-white/[0.07] text-slate-600 dark:text-white/45 border border-slate-200 dark:border-white/12">RECETTE</span>
                                             ) : (
                                                 <span className="px-2 py-0.5 rounded-[4px] text-[9px] font-semibold bg-[rgba(29,158,117,0.15)] text-[#5DCAA5] border border-[rgba(29,158,117,0.25)]">PREPROD</span>
                                             )}
-                                            <span className="px-2 py-0.5 rounded-[4px] text-[9px] font-semibold bg-white/[0.05] text-white/35 border border-white/9">
+                                            <span className="px-2 py-0.5 rounded text-[9px] font-semibold bg-slate-100 dark:bg-white/[0.05] text-slate-500 dark:text-white/35 border border-slate-200 dark:border-white/10">
                                                 {activeEnriched.nb_test_cases} test{activeEnriched.nb_test_cases > 1 ? 's' : ''}
                                             </span>
                                             <span className="text-[11px] font-bold ml-auto text-[#1D9E75]">{activeEnriched.percentage}%</span>
                                         </div>
 
-                                        <hr className="border-white/[0.06]" />
+                                        <hr className="border-slate-200 dark:border-white/[0.06]" />
 
                                         {/* MÉTRIQUES */}
                                         <div>
-                                            <div className="text-[9px] font-bold text-white/40 uppercase tracking-wider mb-2">MÉTRIQUES</div>
-                                            <div className="grid grid-cols-2 gap-2 bg-[#1a2235] p-2.5 rounded-[8px] text-center">
+                                            <div className="text-[9px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-wider mb-2">MÉTRIQUES</div>
+                                            <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-[#1a2235] p-2.5 rounded-[8px] text-center">
                                                 <div>
-                                                    <div className="text-[9px] text-white/40 uppercase font-semibold">Réussis</div>
+                                                    <div className="text-[9px] text-slate-500 dark:text-white/40 uppercase font-semibold">Réussis</div>
                                                     <div className="text-[20px] font-bold text-[#1D9E75]">{activeEnriched.passed_count}</div>
                                                 </div>
                                                 <div>
-                                                    <div className="text-[9px] text-white/40 uppercase font-semibold">Anomalies</div>
+                                                    <div className="text-[9px] text-slate-500 dark:text-white/40 uppercase font-semibold">Anomalies</div>
                                                     <div className="text-[20px] font-bold text-[#F09595]">{activeEnriched.anomalies_count}</div>
                                                 </div>
                                             </div>
@@ -2206,45 +2210,48 @@ const TesterDashboard = () => {
 
                                         {/* INFORMATIONS */}
                                         <div>
-                                            <div className="text-[9px] font-bold text-white/40 uppercase tracking-wider mb-2">INFORMATIONS</div>
+                                            <div className="text-[9px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-wider mb-2">INFORMATIONS</div>
                                             <div className="space-y-2">
                                                 <div className="flex justify-between items-center text-[11px]">
-                                                    <span className="text-white/35">Manager</span>
-                                                    <span className="text-white/75 font-medium">{activeEnriched.manager}</span>
+                                                    <span className="text-slate-500 dark:text-white/35">Manager</span>
+                                                    <span className="text-slate-700 dark:text-white/75 font-medium">{activeEnriched.manager}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center text-[11px]">
-                                                    <span className="text-white/35">Vélocité</span>
-                                                    <span className="text-white/75 font-medium">{activeEnriched.velocity} test/jour</span>
+                                                    <span className="text-slate-500 dark:text-white/35">Vélocité</span>
+                                                    <span className="text-slate-700 dark:text-white/75 font-medium">{activeEnriched.velocity} test/jour</span>
                                                 </div>
                                                 <div className="flex justify-between items-center text-[11px]">
-                                                    <span className="text-white/35">Restants</span>
-                                                    <span className="text-white/75 font-medium">{activeEnriched.restants} tests</span>
+                                                    <span className="text-slate-500 dark:text-white/35">Restants</span>
+                                                    <span className="text-slate-700 dark:text-white/75 font-medium">{activeEnriched.restants} tests</span>
                                                 </div>
                                                 <div className="flex justify-between items-center text-[11px]">
-                                                    <span className="text-white/35">Début</span>
-                                                    <span className="text-white/75 font-medium">{activeEnriched.debut.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                                                    <span className="text-slate-500 dark:text-white/35">Début</span>
+                                                    <span className="text-slate-700 dark:text-white/75 font-medium">{activeEnriched.debut.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center text-[11px]">
-                                                    <span className="text-white/35">Échéance</span>
-                                                    <span className="text-white/75 font-medium">{activeEnriched.echeance.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                                                    <span className="text-slate-500 dark:text-white/35">Échéance</span>
+                                                    <span className="text-slate-700 dark:text-white/75 font-medium">{activeEnriched.echeance.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center text-[11px]">
-                                                    <span className="text-white/35">Fin estimée</span>
-                                                    <span className="text-white/75 font-medium">{activeEnriched.fin_ia.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                                                    <span className="text-slate-500 dark:text-white/35">Fin estimée</span>
+                                                    <span className={`font-medium ${activeEnriched.advance_days > 0 ? 'text-[#5DCAA5]' : activeEnriched.retard > 0 ? 'text-[#F09595]' : 'text-slate-700 dark:text-white/75'}`}>
+                                                        {activeEnriched.fin_ia.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                                        {activeEnriched.advance_days > 0 && ` (${activeEnriched.advance_days}j d'avance)`}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* PROGRESSION */}
                                         <div className="space-y-2">
-                                            <div className="h-[3px] w-full bg-white/5 rounded-full overflow-hidden">
+                                            <div className="h-[3px] w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
                                                 <div
                                                     className="h-full rounded-full bg-[#1D9E75]"
                                                     style={{ width: `${activeEnriched.percentage}%` }}
                                                 />
                                             </div>
                                             <div className="flex justify-between items-center text-[10px]">
-                                                <span className="text-white/40">{activeEnriched.passed_count + activeEnriched.failed_count}/{activeEnriched.nb_test_cases} validés</span>
+                                                <span className="text-slate-500 dark:text-white/40">{activeEnriched.passed_count + activeEnriched.failed_count}/{activeEnriched.nb_test_cases} validés</span>
                                                 {activeEnriched.restants === 0 && (
                                                     activeEnriched.failed_count === 0 ? (
                                                         <span className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase bg-[rgba(29,158,117,0.15)] text-[#5DCAA5] border border-[rgba(29,158,117,0.25)]">Terminé</span>
@@ -2278,20 +2285,20 @@ const TesterDashboard = () => {
                                                 type="button"
                                                 id="calBtn"
                                                 onClick={(e) => handleOpenCal(e.currentTarget, e)}
-                                                className={`w-7 h-7 flex items-center justify-center text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded-[7px] border border-white/10 transition-colors cal-btn ${calendarOpen ? 'active' : ''}`}
+                                                className={`w-7 h-7 flex items-center justify-center text-white/60 hover:text-slate-900 dark:hover:text-white bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-[7px] border border-slate-200 dark:border-white/10 transition-colors cal-btn ${calendarOpen ? 'active' : ''}`}
                                             >
                                                 <Calendar size={14} />
                                             </button>
                                         </div>
 
-                                        <hr className="border-white/[0.06]" />
+                                        <hr className="border-slate-200 dark:border-white/[0.06]" />
 
                                         {/* Actions */}
                                         <div className="space-y-2 pt-2">
                                             <button
                                                 type="button"
                                                 onClick={() => handleOpenExcel(activeCamp.excel_file)}
-                                                className="w-full py-2 bg-transparent hover:bg-white/5 text-white border border-white/10 rounded-[8px] text-[10px] font-semibold tracking-wider uppercase transition-colors"
+                                                className="w-full py-2 bg-transparent hover:bg-slate-100 dark:hover:bg-white/5 text-white border border-slate-200 dark:border-white/10 rounded-[8px] text-[10px] font-semibold tracking-wider uppercase transition-colors"
                                             >
                                                 Excel
                                             </button>
@@ -2351,7 +2358,7 @@ const TesterDashboard = () => {
                             <div
                                 id="calPopover"
                                 onClick={(e) => e.stopPropagation()}
-                                className="absolute z-[200] bg-[#111827] rounded-[12px] border border-[rgba(55,138,221,0.3)] p-[14px] w-[260px] shadow-2xl transition-all duration-200"
+                                className="absolute z-[200] bg-white dark:bg-[#111827] rounded-[12px] border border-[rgba(55,138,221,0.3)] p-[14px] w-[260px] shadow-2xl transition-all duration-200"
                                 style={{
                                     top: `${calendarPosition.top}px`,
                                     left: `${calendarPosition.left}px`,
@@ -2364,28 +2371,28 @@ const TesterDashboard = () => {
                                         e.stopPropagation();
                                         closeAllCals();
                                     }}
-                                    className="absolute top-2 right-2 text-white/40 hover:text-white text-[14px] font-bold"
+                                    className="absolute top-2 right-2 text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white text-[14px] font-bold"
                                 >
                                     ×
                                 </button>
 
                                 {/* Header */}
                                 <div className="flex justify-between items-center mb-3.5 mt-1">
-                                    <span className="text-[11px] font-medium text-white">
+                                    <span className="text-[11px] font-medium text-slate-900 dark:text-white">
                                         {monthNames[currentMonth]} {currentYear}
                                     </span>
                                     <div className="flex gap-1">
                                         <button
                                             type="button"
                                             onClick={handlePrevMonth}
-                                            className="w-[22px] h-[22px] bg-white/5 hover:bg-white/10 rounded-[6px] flex items-center justify-center text-white/60 hover:text-white transition-colors"
+                                            className="w-[22px] h-[22px] bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-[6px] flex items-center justify-center text-white/60 hover:text-slate-900 dark:hover:text-white transition-colors"
                                         >
                                             <ChevronLeft size={12} />
                                         </button>
                                         <button
                                             type="button"
                                             onClick={handleNextMonth}
-                                            className="w-[22px] h-[22px] bg-white/5 hover:bg-white/10 rounded-[6px] flex items-center justify-center text-white/60 hover:text-white transition-colors"
+                                            className="w-[22px] h-[22px] bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-[6px] flex items-center justify-center text-white/60 hover:text-slate-900 dark:hover:text-white transition-colors"
                                         >
                                             <ChevronRight size={12} />
                                         </button>
@@ -2393,7 +2400,7 @@ const TesterDashboard = () => {
                                 </div>
 
                                 {/* Legend */}
-                                <div className="flex flex-wrap gap-2 text-[9px] text-white/40 mb-3.5 border-b border-white/5 pb-2">
+                                <div className="flex flex-wrap gap-2 text-[9px] text-slate-500 dark:text-white/40 mb-3.5 border-b border-slate-200 dark:border-white/5 pb-2">
                                     <div className="flex items-center gap-1">
                                         <span className="w-1.5 h-1.5 rounded-full bg-[#378ADD]" />
                                         <span>Début</span>
@@ -2411,7 +2418,7 @@ const TesterDashboard = () => {
                                 {/* Calendar grid */}
                                 <div className="grid grid-cols-7 gap-1 text-center">
                                     {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, i) => (
-                                        <span key={i} className="text-[9px] font-bold text-white/30 uppercase py-1">
+                                        <span key={i} className="text-[9px] font-bold text-slate-500 dark:text-white/30 uppercase py-1">
                                             {d}
                                         </span>
                                     ))}
@@ -2429,7 +2436,7 @@ const TesterDashboard = () => {
                                         const isPast = date < new Date(new Date().toDateString());
 
                                         let bgStyle = {};
-                                        let colorStyle = 'text-white/70';
+                                        let colorStyle = 'text-slate-600 dark:text-white/70';
 
                                         if (isToday) {
                                             bgStyle = { background: 'rgba(55,138,221,0.2)' };
@@ -2444,7 +2451,7 @@ const TesterDashboard = () => {
                                             colorStyle = 'text-[#F09595] font-semibold';
                                         }
                                         if (isPast && !isToday && !isEcheance && !isFinIa) {
-                                            colorStyle = 'text-white/20';
+                                            colorStyle = 'text-slate-400 dark:text-white/20';
                                         }
 
                                         return (
@@ -2467,7 +2474,7 @@ const TesterDashboard = () => {
 
                                 {/* Warning note */}
                                 {isFinIaTooFar && (
-                                    <div className="mt-3.5 text-[10px] text-[#F09595]/80 italic border-t border-white/5 pt-2 text-center">
+                                    <div className="mt-3.5 text-[10px] text-[#F09595]/80 italic border-t border-slate-200 dark:border-white/5 pt-2 text-center">
                                         Fin estimée trop lointaine pour s'afficher sur ce mois
                                     </div>
                                 )}
@@ -2485,7 +2492,7 @@ const TesterDashboard = () => {
                                 setExecutionResult(null);
                                 setLiveLogs('');
                             }}
-                            campaign={validationModal.campaign}
+                            campaign={getFreshCampaign(validationModal.campaign) || validationModal.campaign}
                             testCaseForm={testCaseForm}
                             setTestCaseForm={setTestCaseForm}
                             handleGenerateScript={handleGenerateScript}
@@ -2499,18 +2506,18 @@ const TesterDashboard = () => {
                         />
                     )}
                     {isCodeModalOpen && (
-                        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[250] flex items-center justify-center p-4">
+                        <div className="fixed inset-0 bg-slate-200/80 dark:bg-slate-200/80 dark:bg-slate-950/80 backdrop-blur-sm z-[250] flex items-center justify-center p-4">
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                className="bg-[#111827] border border-white/10 rounded-2xl max-w-4xl w-full overflow-hidden flex flex-col shadow-2xl max-h-[85vh]"
+                                className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-2xl max-w-4xl w-full overflow-hidden flex flex-col shadow-2xl max-h-[85vh]"
                             >
                                 {/* Header */}
                                 <div className="p-6 pb-4 border-b border-white/[0.08] flex items-center justify-between relative shrink-0">
                                     <div className="flex items-center gap-2">
                                         <Code className="w-5 h-5 text-[#85B7EB]" />
-                                        <h3 className="text-sm font-bold text-white uppercase tracking-wider">Code Playwright</h3>
+                                        <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Code Playwright</h3>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {/* Copier */}
@@ -2522,7 +2529,7 @@ const TesterDashboard = () => {
                                                 setIsCopied(true);
                                                 setTimeout(() => setIsCopied(false), 2000);
                                             }}
-                                            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${isCopied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 hover:bg-white/10 text-white/50 hover:text-white'}`}
+                                            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${isCopied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 dark:text-white/50 hover:text-slate-900 dark:hover:text-white'}`}
                                         >
                                             {isCopied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                                         </button>
@@ -2531,7 +2538,7 @@ const TesterDashboard = () => {
                                             type="button"
                                             title={isEditing ? 'Valider les modifications' : 'Éditer le code'}
                                             onClick={() => setIsEditing(!isEditing)}
-                                            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${isEditing ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-white/5 hover:bg-white/10 text-white/50 hover:text-white'}`}
+                                            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${isEditing ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 dark:text-white/50 hover:text-slate-900 dark:hover:text-white'}`}
                                         >
                                             <Edit2 className="w-4 h-4" />
                                         </button>
@@ -2540,7 +2547,7 @@ const TesterDashboard = () => {
                                             type="button"
                                             title="Fermer"
                                             onClick={() => setIsCodeModalOpen(false)}
-                                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 dark:text-white/50 hover:text-slate-900 dark:hover:text-white transition-colors"
                                         >
                                             <X className="w-4 h-4" />
                                         </button>
@@ -2553,7 +2560,7 @@ const TesterDashboard = () => {
                                         <textarea
                                             value={testCaseForm.code}
                                             onChange={(e) => setTestCaseForm({ ...testCaseForm, code: e.target.value })}
-                                            className="w-full min-h-[400px] h-[50vh] bg-transparent text-white/85 font-mono text-xs leading-relaxed resize-none outline-none border border-white/5 rounded-lg p-4 bg-slate-950 custom-scrollbar"
+                                            className="w-full min-h-[400px] h-[50vh] bg-transparent text-white/85 font-mono text-xs leading-relaxed resize-none outline-none border border-slate-200 dark:border-white/5 rounded-lg p-4 bg-slate-950 custom-scrollbar"
                                             spellCheck={false}
                                         />
                                     ) : (
@@ -2569,7 +2576,7 @@ const TesterDashboard = () => {
                                     <button
                                         type="button"
                                         onClick={() => setIsCodeModalOpen(false)}
-                                        className="px-5 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors"
+                                        className="px-5 py-2 bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-white rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors"
                                     >
                                         Fermer
                                     </button>

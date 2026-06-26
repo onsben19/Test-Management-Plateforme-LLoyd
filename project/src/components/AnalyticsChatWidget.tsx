@@ -407,7 +407,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
 
         if (valueKey && (msg.type === 'bar' || !msg.type)) {
             return (
-                <div className="mt-3 h-[300px] w-full p-6 rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-[rgba(255,255,255,0.02)] shadow-inner">
+                <div className="mt-3 h-[300px] w-full p-6 rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-white/[0.02] shadow-inner">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={normalized} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
                             <defs>
@@ -456,17 +456,17 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                 <div className={`flex flex-col ${msg.type === 'plotly' || msg.type === 'bar' ? 'w-full max-w-full' : 'max-w-[85%]'} ${isUser ? 'items-end' : 'items-start'}`}>
                     {isUser && isEditing ? (
                         <div className="flex flex-col gap-2 w-72">
-                            <textarea autoFocus value={editingText} onChange={e => setEditingText(e.target.value)} className="w-full bg-[rgba(255,255,255,0.03)] backdrop-blur-md border border-[#378ADD] text-white rounded-xl px-3 py-2 text-sm resize-none focus:outline-none" rows={3} />
+                            <textarea autoFocus value={editingText} onChange={e => setEditingText(e.target.value)} className="w-full bg-slate-50 dark:bg-white/[0.03] backdrop-blur-md border border-[#378ADD] text-white rounded-xl px-3 py-2 text-sm resize-none focus:outline-none" rows={3} />
                             <div className="flex items-center justify-end gap-2">
-                                <button onClick={() => setEditingMessageId(null)} className="text-xs text-[rgba(255,255,255,0.5)] px-3 py-1.5 rounded-lg hover:bg-[rgba(255,255,255,0.05)]">{t('analytics.chat.cancel')}</button>
+                                <button onClick={() => setEditingMessageId(null)} className="text-xs text-slate-500 dark:text-white/50 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:bg-white/[0.05]">{t('analytics.chat.cancel')}</button>
                                 <button onClick={() => handleEditSubmit(msg.id)} className="flex items-center gap-1.5 text-xs bg-[#185FA5] text-white px-3 py-1.5 rounded-lg"><Check className="w-3.5 h-3.5" />{t('analytics.chat.resend')}</button>
                             </div>
                         </div>
                     ) : (
                         <>
-                            <div className={`relative px-[13px] py-[11px] border ${isUser ? 'bg-[#185FA5] text-[#e8eaf6] border-[#378ADD] rounded-[10px] rounded-tr-[2px]' : msg.type === 'error' ? 'bg-[rgba(255,0,0,0.1)] border-[rgba(255,0,0,0.2)] text-[#ff6b6b] rounded-[10px] rounded-tl-[2px]' : 'bg-[rgba(255,255,255,0.03)] backdrop-blur-md text-[#e8eaf6] border-[rgba(255,255,255,0.07)] rounded-[10px] rounded-tl-[2px]'} ${msg.type === 'plotly' || msg.type === 'bar' ? 'w-full' : ''}`}>
+                            <div className={`relative px-[13px] py-[11px] border ${isUser ? 'bg-[#185FA5] text-slate-800 dark:text-[#e8eaf6] border-[#378ADD] rounded-[10px] rounded-tr-[2px]' : msg.type === 'error' ? 'bg-[rgba(255,0,0,0.1)] border-[rgba(255,0,0,0.2)] text-[#ff6b6b] rounded-[10px] rounded-tl-[2px]' : 'bg-slate-50 dark:bg-white/[0.03] backdrop-blur-md text-slate-800 dark:text-[#e8eaf6] border-slate-200 dark:border-white/[0.07] rounded-[10px] rounded-tl-[2px]'} ${msg.type === 'plotly' || msg.type === 'bar' ? 'w-full' : ''}`}>
                                 {!isUser && (
-                                    <div className="flex items-center gap-2 mb-2 pb-2 border-b border-[rgba(255,255,255,0.07)]">
+                                    <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-200 dark:border-white/[0.07]">
                                         <div className="px-2 py-0.5 bg-[rgba(55,138,221,0.1)] border-[0.5px] border-[rgba(55,138,221,0.2)] rounded-[4px] flex items-center">
                                             <span className="text-[9px] font-medium text-[#85B7EB] uppercase tracking-wider">Source Experte</span>
                                         </div>
@@ -476,14 +476,14 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                                     </div>
                                 )}
                                 {(msg.file || msg.fileName) && (
-                                    <div className="mb-3 rounded-xl overflow-hidden border border-[rgba(255,255,255,0.1)]">
+                                    <div className="mb-3 rounded-xl overflow-hidden border border-slate-200 dark:border-white/10">
                                         {(msg.file?.match(/\.(jpeg|jpg|gif|png|webp|data:image)/i) || (msg.fileName?.match(/\.(jpeg|jpg|gif|png|webp)/i))) ? (
                                             <img src={msg.file} alt="File" className="w-full max-h-40 object-cover" />
                                         ) : (
-                                            <div className="p-4 bg-[rgba(255,255,255,0.02)] flex items-center gap-3">
+                                            <div className="p-4 bg-slate-50 dark:bg-white/[0.02] flex items-center gap-3">
                                                 <Paperclip className="w-5 h-5 text-[#85B7EB]" />
                                                 <div className="flex flex-col">
-                                                    <span className="text-xs font-medium text-white truncate max-w-[200px]">
+                                                    <span className="text-xs font-medium text-slate-900 dark:text-white truncate max-w-[200px]">
                                                         {msg.fileName || msg.file?.split('/').pop() || 'Fichier'}
                                                     </span>
                                                     {msg.file && !msg.file.startsWith('data:') && (
@@ -499,18 +499,18 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                                 <p className="text-[13px] leading-[1.6] whitespace-pre-wrap">{msg.text}</p>
                                 
                                 {!isUser && msg.sql && (
-                                    <div className="mt-4 pt-3 border-t border-[rgba(255,255,255,0.07)]">
+                                    <div className="mt-4 pt-3 border-t border-slate-200 dark:border-white/[0.07]">
                                         <div className="flex items-center justify-between mb-2">
-                                            <span className="text-[9px] font-medium text-[rgba(255,255,255,0.4)] uppercase tracking-wider flex items-center gap-1.5">
+                                            <span className="text-[9px] font-medium text-slate-500 dark:text-white/40 uppercase tracking-wider flex items-center gap-1.5">
                                                 <Zap className="w-[10px] h-[10px] text-[#D89B48]" />
                                                 Raisonnement Cognitif
                                             </span>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-[8px] font-medium text-[rgba(255,255,255,0.4)] bg-[rgba(255,255,255,0.05)] px-2 py-0.5 rounded-full border border-[rgba(255,255,255,0.1)]">SQL-Llama-3.3</span>
+                                                <span className="text-[8px] font-medium text-slate-500 dark:text-white/40 bg-slate-100 dark:bg-white/[0.05] px-2 py-0.5 rounded-full border border-slate-200 dark:border-white/10">SQL-Llama-3.3</span>
                                                 {editingSqlMessageId !== msg.id && (
                                                     <button
                                                         onClick={() => { setEditingSqlMessageId(msg.id); setEditingSqlText(msg.sql || ''); }}
-                                                        className="p-1 hover:bg-[rgba(255,255,255,0.1)] rounded-md text-[rgba(255,255,255,0.4)] hover:text-[#85B7EB] transition-colors"
+                                                        className="p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded-md text-slate-500 dark:text-white/40 hover:text-[#85B7EB] transition-colors"
                                                         title="Modifier la requête SQL"
                                                     >
                                                         <Edit2 className="w-3 h-3" />
@@ -523,13 +523,13 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                                                 <textarea
                                                     value={editingSqlText}
                                                     onChange={e => setEditingSqlText(e.target.value)}
-                                                    className="w-full bg-[#0b0e14] text-[#5DCAA5] font-mono text-[10px] rounded-[8px] p-3 border border-[#378ADD] focus:border-[#85B7EB] outline-none resize-none h-32"
+                                                    className="w-full bg-slate-50 dark:bg-[#0b0e14] text-[#5DCAA5] font-mono text-[10px] rounded-[8px] p-3 border border-[#378ADD] focus:border-[#85B7EB] outline-none resize-none h-32"
                                                     disabled={isExecutingSql}
                                                 />
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
                                                         onClick={() => setEditingSqlMessageId(null)}
-                                                        className="px-2.5 py-1 text-[10px] uppercase font-medium tracking-wider text-[rgba(255,255,255,0.4)] hover:bg-[rgba(255,255,255,0.05)] rounded-[6px] border border-[rgba(255,255,255,0.1)] transition-all"
+                                                        className="px-2.5 py-1 text-[10px] uppercase font-medium tracking-wider text-slate-500 dark:text-white/40 hover:bg-slate-100 dark:bg-white/[0.05] rounded-[6px] border border-slate-200 dark:border-white/10 transition-all"
                                                         disabled={isExecutingSql}
                                                     >
                                                         Annuler
@@ -549,7 +549,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="bg-[#0b0e14] rounded-[8px] p-3 font-mono text-[10px] text-[#85B7EB] overflow-x-auto border border-[rgba(255,255,255,0.05)]">
+                                            <div className="bg-slate-50 dark:bg-[#0b0e14] rounded-[8px] p-3 font-mono text-[10px] text-[#85B7EB] overflow-x-auto border border-slate-200 dark:border-white/5">
                                                 <code className="whitespace-pre">{msg.sql}</code>
                                             </div>
                                         )}
@@ -571,31 +571,31 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                                     </div>
                                 )}
                             </div>
-                            {isUser && <button onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }} className="mt-1 opacity-0 group-hover:opacity-100 flex items-center gap-1 text-[10px] text-[rgba(255,255,255,0.4)] hover:text-[#85B7EB] px-2 py-1 rounded-[6px] hover:bg-[rgba(255,255,255,0.05)]"><Pencil className="w-[10px] h-[10px]" />{t('analytics.chat.edit')}</button>}
+                            {isUser && <button onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }} className="mt-1 opacity-0 group-hover:opacity-100 flex items-center gap-1 text-[10px] text-slate-500 dark:text-white/40 hover:text-[#85B7EB] px-2 py-1 rounded-[6px] hover:bg-slate-100 dark:bg-white/[0.05]"><Pencil className="w-[10px] h-[10px]" />{t('analytics.chat.edit')}</button>}
                         </>
                     )}
-                    <span className="text-[10px] mt-1 text-[rgba(255,255,255,0.25)] px-1">{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="text-[10px] mt-1 text-slate-400 dark:text-white/25 px-1">{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
             </motion.div>
         );
     };
 
     const renderInput = () => (
-        <div className="shrink-0 p-[12px_14px] border-t border-[rgba(255,255,255,0.07)]">
+        <div className="shrink-0 p-[12px_14px] border-t border-slate-200 dark:border-white/[0.07]">
             <div className="relative">
                 {selectedFile && (
                     <div className="mb-4 relative inline-block group">
                         {filePreview ? (
                             <div className="relative">
-                                <img src={filePreview} className="w-20 h-20 object-cover rounded-xl border border-[rgba(255,255,255,0.1)] shadow-xl" alt="Preview" />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
+                                <img src={filePreview} className="w-20 h-20 object-cover rounded-xl border border-slate-200 dark:border-white/10 shadow-xl" alt="Preview" />
+                                <div className="absolute inset-0 bg-slate-100 dark:bg-slate-100 dark:bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
                                     <X className="text-white w-6 h-6 cursor-pointer" onClick={() => { setSelectedFile(null); setFilePreview(null); }} />
                                 </div>
                             </div>
                         ) : (
-                            <div className="w-20 h-20 bg-[rgba(255,255,255,0.03)] backdrop-blur-md rounded-xl border border-[rgba(255,255,255,0.1)] flex flex-col items-center justify-center p-2 relative">
+                            <div className="w-20 h-20 bg-slate-50 dark:bg-white/[0.03] backdrop-blur-md rounded-xl border border-slate-200 dark:border-white/10 flex flex-col items-center justify-center p-2 relative">
                                 <Paperclip className="w-6 h-6 text-[#AFA9EC] mb-1" />
-                                <span className="text-[10px] font-medium text-[rgba(255,255,255,0.4)] truncate w-full text-center px-1">{selectedFile.name}</span>
+                                <span className="text-[10px] font-medium text-slate-500 dark:text-white/40 truncate w-full text-center px-1">{selectedFile.name}</span>
                                 <button onClick={() => { setSelectedFile(null); setFilePreview(null); }} className="absolute -top-2 -right-2 bg-rose-500 text-white p-1 rounded-full shadow-lg hover:bg-rose-400 transition-colors"><X className="w-3 h-3" /></button>
                             </div>
                         )}
@@ -608,9 +608,9 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                     <button 
                         type="button" 
                         onClick={() => fileInputRef.current?.click()} 
-                        className="absolute left-2 w-[30px] h-[30px] flex items-center justify-center rounded-[8px] hover:bg-[rgba(255,255,255,0.05)] transition-colors"
+                        className="absolute left-2 w-[30px] h-[30px] flex items-center justify-center rounded-[8px] hover:bg-slate-100 dark:bg-white/[0.05] transition-colors"
                     >
-                        <Paperclip className="w-[14px] h-[14px] text-[rgba(255,255,255,0.4)]" />
+                        <Paperclip className="w-[14px] h-[14px] text-slate-500 dark:text-white/40" />
                     </button>
                     
                     <textarea 
@@ -631,7 +631,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                             }
                         }}
                         placeholder="Posez une question sur vos données..." 
-                        className="w-full bg-[rgba(255,255,255,0.03)] backdrop-blur-md border border-[rgba(255,255,255,0.1)] rounded-[10px] pl-[40px] pr-[85px] py-[12px] text-[12px] text-white placeholder-[rgba(255,255,255,0.4)] outline-none resize-none overflow-hidden" 
+                        className="w-full bg-slate-50 dark:bg-white/[0.03] backdrop-blur-md border border-slate-200 dark:border-white/10 rounded-[10px] pl-[40px] pr-[85px] py-[12px] text-[12px] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-white/40 outline-none resize-none overflow-hidden" 
                         disabled={loading} 
                         rows={1}
                         data-gramm="false"
@@ -674,11 +674,11 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                     <div className="w-[52px] h-[52px] rounded-[14px] bg-[rgba(127,119,221,0.2)] border-[0.5px] border-[rgba(127,119,221,0.3)] flex items-center justify-center mb-[16px]">
                         <span className="font-medium text-[#AFA9EC] text-[20px]">IA</span>
                     </div>
-                    <h3 className="font-[500] text-white text-[16px] mb-1">Assistant Analytics</h3>
-                    <p className="text-[rgba(255,255,255,0.4)] text-[12px] mb-[32px]">Analysez vos données de test en langage naturel</p>
+                    <h3 className="font-[500] text-slate-900 dark:text-white text-[16px] mb-1">Assistant Analytics</h3>
+                    <p className="text-slate-500 dark:text-white/40 text-[12px] mb-[32px]">Analysez vos données de test en langage naturel</p>
                     
                     <div className="w-full text-left mb-[8px]">
-                        <span className="text-[10px] uppercase text-[rgba(255,255,255,0.3)] tracking-wider font-medium">SUGGESTIONS — LANCER UN AUDIT COGNITIF</span>
+                        <span className="text-[10px] uppercase text-slate-500 dark:text-white/30 tracking-wider font-medium">SUGGESTIONS — LANCER UN AUDIT COGNITIF</span>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-[10px] w-full">
@@ -691,10 +691,10 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                             <button
                                 key={s.key}
                                 onClick={() => handleSendMessage(undefined, s.title)}
-                                className="relative overflow-hidden flex flex-col justify-center bg-[#1a2235] border-[0.5px] border-[rgba(255,255,255,0.07)] hover:border-[rgba(127,119,221,0.4)] hover:shadow-[0_0_15px_rgba(127,119,221,0.1)] p-[14px_16px] rounded-[10px] transition-all duration-300 text-left group"
+                                className="relative overflow-hidden flex flex-col justify-center bg-slate-50 dark:bg-[#1a2235] border-[0.5px] border-slate-200 dark:border-slate-200 dark:border-white/[0.07] hover:border-[rgba(127,119,221,0.4)] hover:shadow-[0_0_15px_rgba(127,119,221,0.1)] p-[14px_16px] rounded-[10px] transition-all duration-300 text-left group"
                             >
                                 <div className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-[rgba(255,255,255,0.06)] to-transparent -translate-x-[100%] group-hover:translate-x-[50%] transition-transform duration-[1200ms] ease-in-out" />
-                                <span className="text-[13px] font-[500] text-white truncate relative z-10 mb-1">{s.title}</span>
+                                <span className="text-[13px] font-[500] text-slate-900 dark:text-white truncate relative z-10 mb-1">{s.title}</span>
                                 <span className="text-[11px] text-[rgba(255,255,255,0.35)] leading-[1.4] line-clamp-2 relative z-10">{s.desc}</span>
                             </button>
                         ))}
@@ -707,7 +707,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                     <div className="w-[28px] h-[28px] rounded-[8px] bg-[rgba(127,119,221,0.2)] flex items-center justify-center shrink-0">
                         <span className="font-[500] text-[#AFA9EC] text-[12px] animate-pulse">IA</span>
                     </div>
-                    <div className="bg-[#1a2235] border border-[rgba(255,255,255,0.07)] rounded-[10px] rounded-tl-[2px] px-[16px] py-[12px] flex flex-col gap-2 min-w-[150px]">
+                    <div className="bg-slate-50 dark:bg-[#1a2235] border border-slate-200 dark:border-white/[0.07] rounded-[10px] rounded-tl-[2px] px-[16px] py-[12px] flex flex-col gap-2 min-w-[150px]">
                         <div className="flex items-center gap-1.5">
                             <span className="text-[9px] font-medium text-[#AFA9EC] uppercase tracking-wider">Audit en cours</span>
                             <div className="flex gap-1 ml-1">
@@ -742,7 +742,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                             <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-wider">Épingler au Dashboard</h3>
                             <button
                                 onClick={() => setSaveVisModal({ isOpen: false, msg: null, title: '' })}
-                                className="p-1.5 hover:bg-slate-100 dark:bg-white/5 rounded-full text-slate-400 hover:text-white transition-colors"
+                                className="p-1.5 hover:bg-slate-100 dark:bg-white/5 rounded-full text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -783,15 +783,15 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
 
     if (embedded) {
         return (
-            <div className="w-full h-full flex flex-col bg-transparent relative overflow-hidden">
+            <div className="w-full h-full min-h-0 flex flex-col bg-transparent relative overflow-hidden">
                 {/* Header assistant */}
-                <div className="shrink-0 p-[10px_14px] border-b border-[rgba(255,255,255,0.07)] flex items-center justify-between">
+                <div className="shrink-0 p-[10px_14px] border-b border-slate-200 dark:border-white/[0.07] flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-[28px] h-[28px] rounded-[8px] bg-[rgba(127,119,221,0.2)] flex items-center justify-center shrink-0">
                             <span className="font-[500] text-[#AFA9EC] text-[12px]">IA</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="font-[500] text-white text-[12px] leading-tight">Assistant IA</span>
+                            <span className="font-[500] text-slate-900 dark:text-white text-[12px] leading-tight">Assistant IA</span>
                             <div className="flex items-center gap-1.5 mt-0.5">
                                 <span className="w-[6px] h-[6px] rounded-full bg-[#5DCAA5]" />
                                 <span className="text-[10px] text-[#5DCAA5] tracking-[0.04em]">Moteur cognitif actif</span>
@@ -801,7 +801,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                     
                     <button
                         onClick={() => { setMessages([WELCOME_MSG]); setActiveConvId(null); if (onConversationStarted) onConversationStarted(''); }}
-                        className="flex items-center gap-1.5 px-[12px] py-[6px] rounded-[8px] bg-[rgba(255,255,255,0.05)] border-[0.5px] border-[rgba(255,255,255,0.1)] text-white hover:bg-[rgba(255,255,255,0.08)] transition-colors"
+                        className="flex items-center gap-1.5 px-[12px] py-[6px] rounded-[8px] bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-white/[0.08] transition-colors"
                     >
                         <Plus className="w-[11px] h-[11px]" />
                         <span className="text-[11px] font-medium">Nouveau</span>
@@ -823,7 +823,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
 
     return (
         <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-slate-900">
-            <div className="shrink-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
+            <div className="shrink-0 bg-slate-50 dark:bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     {!embedded && onToggleSidebar && (
                         <button onClick={onToggleSidebar} className="p-2 -ml-2 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-800 rounded-lg transition-all">{isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}</button>
@@ -840,7 +840,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                         color="#3b82f6"
                         speed="5s"
                         thickness={1}
-                        innerClassName="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white rounded-xl transition-all"
+                        innerClassName="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-slate-900 dark:text-white rounded-xl transition-all"
                     >
                         <Plus className="w-4 h-4" />Nouveau
                     </StarBorder>

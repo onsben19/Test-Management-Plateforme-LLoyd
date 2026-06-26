@@ -1,6 +1,7 @@
 import React from 'react';
 import { PlayCircle, CheckCircle, XCircle, Clock, User, Camera, Eye, Pencil, Trash2, Layers, Sparkles, Video } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
+import { buildTableRowTdClass } from '../utils/tableRowStyles';
 
 export interface TestItem {
     id: string;
@@ -114,19 +115,24 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
     // Inside <tbody>, we can simply map groups.
 
     const renderRow = (test: TestItem, index: number) => {
-        const tdClass = "px-8 py-5 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-100 dark:group-hover:bg-white/5 transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-300 dark:group-hover:border-white/10";
+        const isSelected = selectedTestId === test.id;
+        const tdClass = buildTableRowTdClass({ selected: isSelected });
 
         return (
             <tr
                 key={test.id || index}
                 onClick={() => onSelectTest(test)}
-                className={`group transition-all duration-300 cursor-pointer ${selectedTestId === test.id ? 'bg-blue-600/5' : ''}`}
+                className="group transition-all duration-300 cursor-pointer"
             >
                 <td className={tdClass}>
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-3">
                             <div className="flex flex-col gap-1">
-                                <span className={`text-base font-bold tracking-tight truncate max-w-[300px] transition-colors ${selectedTestId === test.id ? 'text-blue-400' : 'text-white group-hover:text-blue-400'}`}>
+                                <span className={`text-base font-bold tracking-tight truncate max-w-[300px] transition-colors ${
+                                    isSelected
+                                        ? 'text-blue-600 dark:text-blue-400'
+                                        : 'text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                                }`}>
                                     {test.name || 'Test sans nom'}
                                 </span>
                                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest opacity-60 truncate max-w-[300px]">
@@ -198,7 +204,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                                     <img
                                         src={url}
                                         alt={`Preuve ${i + 1}`}
-                                        className="w-10 h-10 object-cover rounded-lg border border-slate-300 dark:border-white/10 group-hover/cap:border-blue-400/60 group-hover/cap:scale-110 transition-all duration-200"
+                                        className="w-10 h-10 object-cover rounded-lg border border-slate-300 dark:border-slate-200 dark:border-white/10 group-hover/cap:border-blue-400/60 group-hover/cap:scale-110 transition-all duration-200"
                                     />
                                     <div className="absolute inset-0 bg-blue-400/0 group-hover/cap:bg-blue-400/10 rounded-lg transition-all" />
                                 </button>
@@ -342,14 +348,14 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
             {/* Modale texte long (logs, scripts) ou image (captures) */}
             {logModal && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 dark:bg-slate-900/50 dark:bg-black/70 backdrop-blur-sm"
                     onClick={() => setLogModal(null)}
                 >
                     <div
-                        className="relative bg-slate-900 border border-slate-300 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-3xl mx-4 flex flex-col max-h-[85vh]"
+                        className="relative bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-3xl mx-4 flex flex-col max-h-[85vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-300 dark:border-white/10 flex-shrink-0">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-300 dark:border-slate-200 dark:border-white/10 flex-shrink-0">
                             <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">{logModal.title}</span>
                             <div className="flex items-center gap-3">
                                 {/* Bouton download — uniquement pour le texte (pas les images) */}
@@ -378,7 +384,7 @@ const ExecutionTestList: React.FC<ExecutionTestListProps> = ({
                                 <img
                                     src={logModal.content.replace('__IMAGE__', '')}
                                     alt={logModal.title}
-                                    className="max-w-full max-h-full object-contain rounded-xl border border-slate-300 dark:border-white/10"
+                                    className="max-w-full max-h-full object-contain rounded-xl border border-slate-300 dark:border-slate-200 dark:border-white/10"
                                 />
                             </div>
                         ) : (

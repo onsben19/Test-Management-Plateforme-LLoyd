@@ -26,7 +26,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
             {/* Header */}
             <div className="p-8 pb-6 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-gradient-to-b from-white/[0.03] to-transparent backdrop-blur-3xl">
                 <div className="flex items-center gap-6 overflow-hidden">
-                    <div className="w-16 h-16 bg-slate-50 dark:bg-[#1a1f2e] rounded-2xl flex items-center justify-center border border-slate-300 dark:border-white/10 flex-shrink-0 shadow-2xl relative">
+                    <div className="w-16 h-16 bg-slate-50 dark:bg-[#1a1f2e] rounded-2xl flex items-center justify-center border border-slate-300 dark:border-slate-200 dark:border-white/10 flex-shrink-0 shadow-2xl relative">
                         <Hash className="w-7 h-7 text-blue-400" />
                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-slate-200 dark:border-[#0b0e14]" />
                     </div>
@@ -109,7 +109,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                                 </button>
                             )}
                         </div>
-                        <div className="bg-slate-50 dark:bg-[#0d1117] border border-slate-300 dark:border-white/10 rounded-2xl p-6">
+                        <div className="bg-slate-50 dark:bg-[#0d1117] border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-2xl p-6">
                             <pre className={`text-slate-700 dark:text-slate-300 font-mono text-[11px] overflow-y-auto whitespace-pre-wrap transition-all ${showFullLogs ? 'max-h-[500px]' : 'max-h-32'}`}>
                                 {test.execution_logs}
                             </pre>
@@ -148,7 +148,7 @@ const ReviewPanel: React.FC<ReviewPanelProps> = ({ test, onClose, onUpdate, embe
                         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-1">Capture de l'exécution</h3>
                         <div className="grid grid-cols-1 gap-4">
                             {test.captures.map((cap, idx) => (
-                                <img key={idx} src={cap} alt={`Capture ${idx}`} className="w-full rounded-2xl border border-slate-300 dark:border-white/10 shadow-2xl object-contain max-h-96" />
+                                <img key={idx} src={cap} alt={`Capture ${idx}`} className="w-full rounded-2xl border border-slate-300 dark:border-slate-200 dark:border-white/10 shadow-2xl object-contain max-h-96" />
                             ))}
                         </div>
                     </section>

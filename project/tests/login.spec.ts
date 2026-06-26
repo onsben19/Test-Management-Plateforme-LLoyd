@@ -35,12 +35,10 @@ test.describe('Flux de Connexion (Login)', () => {
     // Attendre que l'application réagisse après le clic (max 5 secondes)
     await page.waitForTimeout(3000);
 
-    const currentUrl = page.url();
+    const pathname = new URL(page.url()).pathname;
 
-    if (currentUrl === 'http://localhost:5173/') {
-      // Cas 1: Connexion réussie sans 2FA
-      expect(currentUrl).toBe('http://localhost:5173/');
-      console.log('✅ Redirection réussie vers le Dashboard !');
+    if (pathname === '/' || pathname === '/manager' || pathname === '/tester-dashboard') {
+      console.log('✅ Redirection réussie après connexion !');
     } else {
       // Cas 2: On est toujours sur /login. On vérifie pourquoi.
       const otpInputVisible = await page.locator('input[maxlength="6"]').isVisible();

@@ -10,12 +10,14 @@ interface ThemeProviderProps {
 
 interface ThemeProviderState {
     theme: Theme;
+    resolvedTheme: 'dark' | 'light';
     setTheme: (theme: Theme) => void;
     toggleTheme: () => void;
 }
 
 const initialState: ThemeProviderState = {
     theme: 'dark',
+    resolvedTheme: 'dark',
     setTheme: () => null,
     toggleTheme: () => null,
 };
@@ -31,33 +33,43 @@ export function ThemeProvider({
     const [theme, setTheme] = useState<Theme>(
         () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
     );
+    const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>('dark');
 
     useEffect(() => {
         const root = window.document.documentElement;
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-        root.classList.remove('light', 'dark');
+        const applyTheme = () => {
+            root.classList.remove('light', 'dark');
+
+            const effective =
+                theme === 'system'
+                    ? mediaQuery.matches
+                        ? 'dark'
+                        : 'light'
+                    : theme;
+
+            root.classList.add(effective);
+            setResolvedTheme(effective);
+        };
+
+        applyTheme();
 
         if (theme === 'system') {
-            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-                .matches
-                ? 'dark'
-                : 'light';
-
-            root.classList.add(systemTheme);
-            return;
+            mediaQuery.addEventListener('change', applyTheme);
+            return () => mediaQuery.removeEventListener('change', applyTheme);
         }
-
-        root.classList.add(theme);
     }, [theme]);
 
     const value = {
         theme,
+        resolvedTheme,
         setTheme: (theme: Theme) => {
             localStorage.setItem(storageKey, theme);
             setTheme(theme);
         },
         toggleTheme: () => {
-            const newTheme = theme === 'dark' ? 'light' : 'dark';
+            const newTheme = resolvedTheme === 'dark' ? 'light' : 'dark';
             localStorage.setItem(storageKey, newTheme);
             setTheme(newTheme);
         }

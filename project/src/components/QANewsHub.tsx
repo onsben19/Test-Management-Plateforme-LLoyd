@@ -19,15 +19,15 @@ const SourceLogo: React.FC<{ source: string; className?: string }> = ({ source, 
 const getSourceStyle = (source: string) => {
     const srcLower = source.toLowerCase();
     if (srcLower.includes('ministry')) {
-        return { text: 'text-violet-400', label: 'Ministry of Testing', bg: 'from-violet-900/40 to-violet-950/60', glow: 'rgba(139,92,246,0.15)' };
+        return { text: 'text-violet-600 dark:text-violet-400', label: 'Ministry of Testing', bg: 'from-violet-100 to-violet-200 dark:from-violet-900/40 dark:to-violet-950/60', glow: 'rgba(139,92,246,0.15)' };
     }
     if (srcLower.includes('testim')) {
-        return { text: 'text-cyan-400', label: 'Testim.io', bg: 'from-cyan-900/40 to-cyan-950/60', glow: 'rgba(6,182,212,0.15)' };
+        return { text: 'text-cyan-600 dark:text-cyan-400', label: 'Testim.io', bg: 'from-cyan-100 to-cyan-200 dark:from-cyan-900/40 dark:to-cyan-950/60', glow: 'rgba(6,182,212,0.15)' };
     }
     if (srcLower.includes('applitools')) {
-        return { text: 'text-teal-400', label: 'Applitools', bg: 'from-teal-900/40 to-teal-950/60', glow: 'rgba(20,184,166,0.15)' };
+        return { text: 'text-teal-600 dark:text-teal-400', label: 'Applitools', bg: 'from-teal-100 to-teal-200 dark:from-teal-900/40 dark:to-teal-950/60', glow: 'rgba(20,184,166,0.15)' };
     }
-    return { text: 'text-[#85B7EB]', label: source, bg: 'from-blue-900/30 to-blue-950/50', glow: 'rgba(55,138,221,0.12)' };
+    return { text: 'text-blue-600 dark:text-[#85B7EB]', label: source, bg: 'from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-950/50', glow: 'rgba(55,138,221,0.12)' };
 };
 
 const FILTERS = [
@@ -128,10 +128,10 @@ const QANewsHub: React.FC = () => {
                 <div className="flex justify-between items-start mb-[20px]">
                     <div className="flex flex-col gap-[12px]">
                         <div>
-                            <h2 className="text-[22px] font-[500] text-white">
-                                Veille Technologique <span className="text-[#378ADD]">QA</span>
+                            <h2 className="text-[22px] font-[500] text-slate-900 dark:text-white">
+                                Actualités <span className="text-[#378ADD]">QA</span>
                             </h2>
-                            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-[1.6] max-w-[560px] mt-[6px]">
+                            <p className="text-[12px] text-slate-500 dark:text-white/40 leading-[1.6] max-w-[560px] mt-[6px]">
                                 Notre IA scrute en temps réel les meilleures sources mondiales de l'assurance qualité pour vous proposer des articles pertinents et des conseils d'experts actionnables.
                             </p>
                         </div>
@@ -151,7 +151,7 @@ const QANewsHub: React.FC = () => {
                     <button 
                         onClick={handleScrapeAndFetch}
                         disabled={loading}
-                        className="px-3.5 py-1.5 rounded-xl bg-[rgba(255,255,255,0.05)] border-[0.5px] border-[rgba(255,255,255,0.1)] text-white/70 hover:text-white text-[11px] font-bold transition-all disabled:opacity-50"
+                        className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-white/5 border-[0.5px] border-slate-200 dark:border-white/10 text-slate-600 dark:text-white/70 hover:text-slate-900 dark:hover:text-white text-[11px] font-bold transition-all disabled:opacity-50"
                         title="Relancer le scraping IA"
                     >
                         {isRefreshing ? 'Actualisation...' : 'Actualiser'}
@@ -169,8 +169,8 @@ const QANewsHub: React.FC = () => {
                                 onClick={() => setActiveFilter(f)}
                                 className={`flex items-center gap-[6px] px-[12px] py-[5px] rounded-[20px] text-[11px] font-[500] transition-colors border-[0.5px] ${
                                     isActive 
-                                        ? 'bg-[rgba(55,138,221,0.2)] text-[#85B7EB] border-[rgba(55,138,221,0.35)]' 
-                                        : 'bg-[rgba(255,255,255,0.04)] text-[rgba(255,255,255,0.4)] border-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.08)]'
+                                        ? 'bg-blue-50 dark:bg-[rgba(55,138,221,0.2)] text-blue-600 dark:text-[#85B7EB] border-blue-200 dark:border-[rgba(55,138,221,0.35)]' 
+                                        : 'bg-slate-100 dark:bg-white/[0.04] text-slate-500 dark:text-white/40 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/[0.08]'
                                 }`}
                             >
                                 {hasLogo && <SourceLogo source={f} className="w-[12px] h-[12px] object-contain rounded-sm" />}
@@ -189,7 +189,7 @@ const QANewsHub: React.FC = () => {
                         return (
                             <div 
                                 key={article.id}
-                                className={`group bg-white/[0.03] backdrop-blur-xl rounded-[14px] border-[0.5px] border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)] transition-colors overflow-hidden ${
+                                className={`group bg-white dark:bg-white/[0.03] backdrop-blur-xl rounded-[14px] border-[0.5px] border-slate-200 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/15 transition-colors overflow-hidden shadow-sm dark:shadow-none ${
                                     isFeatured ? 'col-span-2 grid grid-cols-2' : 'flex flex-col'
                                 }`}
                             >
@@ -202,7 +202,7 @@ const QANewsHub: React.FC = () => {
                                         <div className="w-24 h-24 rounded-full blur-2xl opacity-70" style={{ background: style.glow }} />
                                     </div>
                                     <SourceLogo source={article.source} className={`relative z-10 object-contain drop-shadow-xl ${isFeatured ? 'w-[88px] h-[88px]' : 'w-[72px] h-[72px]'}`} />
-                                    <div className="absolute bottom-0 left-0 w-full h-[40%] bg-gradient-to-t from-[#0b0f19] to-transparent" />
+                                    <div className="absolute bottom-0 left-0 w-full h-[40%] bg-gradient-to-t from-slate-200/80 dark:from-[#0b0f19] to-transparent" />
                                 </div>
 
                                 {/* Body */}
@@ -227,24 +227,24 @@ const QANewsHub: React.FC = () => {
                                         })}
                                     </div>
                                     
-                                    <h3 className={`text-white font-[500] leading-[1.4] ${
+                                    <h3 className={`text-slate-900 dark:text-white font-[500] leading-[1.4] ${
                                         isFeatured ? 'text-[16px]' : 'text-[14px]'
                                     }`} style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                         {article.title}
                                     </h3>
                                     
-                                    <div className="bg-[#0d1a2e] border-l-[2px] border-[#378ADD] rounded-r-[8px] p-[8px_10px]">
+                                    <div className="bg-blue-50 dark:bg-[#0d1a2e] border-l-[2px] border-[#378ADD] rounded-r-[8px] p-[8px_10px]">
                                         <div className="flex items-center gap-[4px] mb-[3px]">
                                             <span className="text-[9px] text-[#378ADD] uppercase font-[600]">Analyse IA</span>
                                         </div>
-                                        <p className="text-[11px] italic text-[rgba(255,255,255,0.45)] leading-[1.5]" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                        <p className="text-[11px] italic text-slate-600 dark:text-white/45 leading-[1.5]" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                             {article.ai_tip}
                                         </p>
                                     </div>
                                     
                                     {/* Footer */}
-                                    <div className="mt-auto pt-[8px] border-t-[0.5px] border-[rgba(255,255,255,0.06)] flex justify-between items-center">
-                                        <div className="flex items-center gap-[6px] text-[rgba(255,255,255,0.25)]">
+                                    <div className="mt-auto pt-[8px] border-t-[0.5px] border-slate-200 dark:border-white/[0.06] flex justify-between items-center">
+                                        <div className="flex items-center gap-[6px] text-slate-400 dark:text-white/25">
                                             <span className="text-[11px] font-[500]">{article.date}</span>
                                         </div>
                                         <button 

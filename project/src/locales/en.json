@@ -76,20 +76,32 @@
             "executions": "Execution Tracking",
             "anomalies": "Anomalies",
             "comments": "Comments",
-            "messages": "Messaging",
+            "messages": "Emails",
             "aiDiscussions": "AI Discussions",
             "aiAnalytics": "AI Analytics",
             "projects": "Available Projects",
-            "chat": "Chat Center"
+            "chat": "Messaging",
+            "qaNews": "QA News"
         }
     },
     "header": {
         "notifications": "Notifications",
         "newNotifications": "{{count}} new",
         "noNotifications": "No notifications",
+        "markAllRead": "Mark all as read",
+        "justNow": "Just now",
+        "minutesAgo": "{{count}} min ago",
+        "hoursAgo": "{{count}}h ago",
         "profile": "Profile",
+        "myProfile": "My Profile",
+        "settings": "Settings",
+        "logout": "Log out",
+        "defaultUser": "User",
+        "toggleSidebar": "Toggle sidebar",
         "darkMode": "Dark Mode",
         "lightMode": "Light Mode",
+        "enableLightMode": "Enable light mode",
+        "enableDarkMode": "Enable dark mode",
         "language": "Language"
     },
     "stats": {
@@ -432,6 +444,7 @@
             "oldest": "Oldest",
             "group": "Group:",
             "none": "None",
+            "project": "Project",
             "campaign": "Campaign",
             "release": "Release"
         },
@@ -511,7 +524,7 @@
             "resolved": "Resolved",
             "resolvedDesc": "Corrected and validated anomalies"
         },
-        "searchPlaceholder": "Search for an anomaly, test, assigned...",
+        "searchPlaceholder": "Search for an anomaly, ID, test, assigned...",
         "filters": {
             "severity": "Severity",
             "all": "All",
@@ -521,11 +534,19 @@
         },
         "actions": {
             "refresh": "Refresh",
-            "exportCsv": "CSV",
+            "exportCsv": "Excel",
             "exportPdf": "PDF",
             "report": "Report Anomaly",
             "edit": "Edit",
             "delete": "Delete"
+        },
+        "export": {
+            "id": "ID",
+            "title": "Title",
+            "priority": "Priority",
+            "description": "Description",
+            "csvError": "Error while generating the CSV.",
+            "pdfSuccess": "PDF report generated successfully!"
         },
         "table": {
             "anomaly": "Anomaly",
@@ -566,7 +587,27 @@
             "deleteError": "Error during deletion.",
             "pdfError": "Error during PDF generation."
         },
-        "testFallback": "Test #{{id}}"
+        "testFallback": "Test #{{id}}",
+        "detail": {
+            "reportedDate": "Reported date",
+            "reporter": "Reporter",
+            "defaultReporter": "System Auditor",
+            "details": "Anomaly details",
+            "noDescription": "No detailed description.",
+            "executionLogs": "Execution logs",
+            "collapseLogs": "Collapse",
+            "expandLogs": "View logs",
+            "proofs": "Evidence",
+            "fullscreen": "Fullscreen",
+            "screenshot": "Screenshot",
+            "videoReplay": "Video replay",
+            "playwrightScript": "Playwright script",
+            "download": "Download",
+            "release": "Release",
+            "campaign": "Campaign",
+            "relatedTest": "Related test",
+            "close": "Close"
+        }
     },
     "testerDashboard": {
         "title": "My Tester Space",
@@ -579,6 +620,7 @@
         },
         "searchPlaceholder": "Search for a campaign...",
         "controls": {
+            "groupByProject": "Grouped by Project",
             "groupByRelease": "Grouped by Release",
             "simpleGrid": "Simple Grid",
             "recent": "Most recent",

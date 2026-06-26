@@ -351,7 +351,7 @@ const KPIComponent = ({ label, value, unit, icon: Icon, delta, deltaType, color,
     };
 
     return (
-        <div className={`p-6 rounded-[2.5rem] bg-white dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 relative overflow-hidden group transition-all duration-500 ${borderHoverClasses[color]}`}>
+        <div className={`p-6 rounded-[2.5rem] bg-white dark:bg-white/[0.03] border border-slate-100 dark:border-slate-200 dark:border-white/5 relative overflow-hidden group transition-all duration-500 ${borderHoverClasses[color]}`}>
             {pulse && <div className="absolute inset-0 bg-rose-500/5 animate-pulse" />}
             
             {/* Sweep Hover Effect */}
@@ -392,13 +392,13 @@ const TesterRow = ({ tester }: { tester: TesterLiveStatus }) => {
             exit={{ opacity: 0, scale: 0.95 }}
             className={`group relative p-4 rounded-3xl border transition-all ${isIdle
                 ? 'bg-amber-500/5 border-amber-500/20'
-                : 'bg-white dark:bg-white/[0.02] border-slate-100 dark:border-white/5 hover:border-blue-500/30'
+                : 'bg-white dark:bg-white/[0.02] border-slate-100 dark:border-slate-200 dark:border-white/5 hover:border-blue-500/30'
                 }`}
         >
             <div className="flex items-center gap-4">
                 {/* Avatar */}
                 <div className="relative shrink-0">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-white/10 dark:to-white/5 border border-slate-300 dark:border-white/10 flex items-center justify-center text-sm font-black text-slate-400 overflow-hidden">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-white/10 dark:to-white/5 border border-slate-300 dark:border-slate-200 dark:border-white/10 flex items-center justify-center text-sm font-black text-slate-400 overflow-hidden">
                         {tester.avatar ? <img src={tester.avatar} className="w-full h-full object-cover" /> : tester.name.charAt(0)}
                     </div>
                     <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-slate-200 dark:border-[#0b0e14] ${tester.status === 'active' ? 'bg-emerald-500' : tester.status === 'idle' ? 'bg-amber-500' : 'bg-slate-500'
@@ -434,7 +434,7 @@ const TesterRow = ({ tester }: { tester: TesterLiveStatus }) => {
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
                     <button
                         onClick={() => navigate(`/chat?userId=${tester.id}`)}
-                        className="px-3 py-1.5 bg-blue-600 rounded-xl text-[9px] font-black text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/40 uppercase tracking-widest"
+                        className="px-3 py-1.5 bg-blue-600 rounded-xl text-[9px] font-black text-slate-900 dark:text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/40 uppercase tracking-widest"
                     >
                         {t('managerDashboard.realtime.contact')}
                     </button>

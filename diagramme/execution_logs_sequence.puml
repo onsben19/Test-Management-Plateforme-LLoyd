@@ -1,6 +1,6 @@
 @startuml
 
-title Vue Runtime Détaillée - Exécution Automatisée et Streaming des Logs\nInsureTM - Plateforme de Gestion de Campagnes de Test Lloyd
+title Diagramme de Séquence : Exécution Automatisée Playwright et Suivi des Logs\nInsureTM - Plateforme de Gestion de Campagnes de Test Lloyd
 
 skinparam Shadowing false
 hide footbox
@@ -25,87 +25,94 @@ skinparam sequence {
 }
 
 actor ":Testeur" as Tester
-participant "«IHM»\nInterface React" as Frontend
-participant "«Consumer»\nDjango Channels" as Consumer
-participant "«Contrôleur»\nBackend Django" as Backend
-participant "«Processus»\nPlaywright CLI" as Playwright
-database "«Entité»\nBase de Données" as DB
+participant "«IHM»\nInterface React" as Front
+participant "«Contrôleur»\nBackend Django (API)" as Back
+database "«Entité»\nBase PostgreSQL" as DB
 
-group Préparation et génération du script de test
+group Préparation et génération du script
 
-    Tester -> Frontend: saisirEtapesTest()
-
-    opt Reformulation assistée par IA
-        Tester -> Frontend: clicAmeliorer()
-        Frontend -> Backend: reformulerEtapes(etapes)
-        activate Backend
-        Backend --> Frontend: retours etapesReformulees()
-        deactivate Backend
-    end
-
-    Tester -> Frontend: clicGenererScript()
-    Frontend -> Backend: genererScriptPlaywright(etapes)
-    activate Backend
-    Backend -> Backend: genererScriptParIA()
-    Backend -> DB: enregistrerScript(code, chemin)
-    activate DB
-    DB --> Backend: retours confirmationEnregistrement()
-    deactivate DB
-    Backend --> Frontend: retours scriptGenere(code)
-    deactivate Backend
+    Tester -> Front : saisirEtapesTest()
+    Tester -> Front : clicGenererScript()
+    Front -> Back : genererScriptPlaywright(etapes)
+    activate Back
+    Back -> Back : genererScriptParIA()
+    Back --> Front : retours(scriptGenere)
+    deactivate Back
 
 end
 
-group Exécution du test et streaming des logs en temps réel
+group Exécution du test et suivi des logs
 
-    Tester -> Frontend: clicExecuterEtEnregistrer()
-    Frontend -> Consumer: ouvrirConnexionWebSocket()
-    activate Consumer
-    Frontend -> Backend: lancerExecution()
-    activate Backend
-    Backend -> Playwright: demarrerTest(scriptPath)
-    activate Playwright
+    Tester -> Front : choisirMode(headless | headed)
+    Tester -> Front : clicExecuterEtEnregistrer()
 
-    loop Pendant l'exécution du test
-        Playwright -> Backend: transmettreLog(ligne)
-        Backend -> Consumer: diffuserLog(ligne)
-        Consumer --> Frontend: retours logTempsReel(ligne)
-        Frontend --> Tester: afficherLog(ligne)
+    Front -> Back : creerCasDeTest(PENDING)
+    activate Back
+    Back -> DB : enregistrerTestCase()
+    DB --> Back : retours(id)
+    Back --> Front : retours(id)
+    deactivate Back
+
+    Front -> Back : enregistrerScript(code)
+    activate Back
+    Back --> Front : retours(confirmation)
+    deactivate Back
+
+    Front -> Back : lancerExecution(mode)
+    activate Back
+    Back -> Back : demarrerPlaywright(mode)
+    note right of Back
+        Thread arrière-plan.
+        Headed : navigateur sur Xvfb + noVNC.
+    end note
+    Back --> Front : retours(RUNNING)
+    deactivate Back
+
+    loop Polling HTTP (1,5 s)
+        Front -> Back : consulterLogs(id)
+        activate Back
+        Back --> Front : retours(logs, running)
+        deactivate Back
+        Front --> Tester : afficherLogs()
+
+        opt Mode Headed
+            Front --> Tester : afficherEcranVirtuel(noVNC)
+        end
     end
 
-    Playwright --> Backend: retours finExecution(statut, screenshot.png)
-    deactivate Playwright
-    deactivate Consumer
-
-    Backend -> Backend: recupererCaptureEcran()
-    Backend -> DB: enregistrerResultat(statut, date, screenshot)
+    Back -> Back : finaliserExecution()
+    Back -> DB : enregistrerResultat(statut, preuves)
     activate DB
-    DB --> Backend: retours confirmation()
+    DB --> Back : retours(confirmation)
     deactivate DB
+
+    Front -> Back : consulterLogs(id)
+    activate Back
+    Back --> Front : retours(running=false, statut)
+    deactivate Back
 
 end
 
 alt statut == FAILED
 
-    group Création automatique de l'anomalie
+    Back -> Back : genererAnomalieParIA(logs)
+    Back -> DB : creerAnomalie()
+    activate DB
+    DB --> Back : retours(anomaly_id)
+    deactivate DB
 
-        Backend -> Backend: genererAnomalieParIA(logs)
-        Backend -> DB: creerAnomalie(titre, description, screenshot)
-        activate DB
-        DB --> Backend: retours anomalieCree(id)
-        deactivate DB
+    Back --> Front : retours(FAILED, anomaly_id)
+    Front --> Tester : afficherEchec()
 
+    opt Voir l'anomalie
+        Tester -> Front : clicVoirAnomalie()
+        Front --> Tester : ouvrirDetailAnomalie()
     end
-
-    Backend --> Frontend: retours resultatFinal(FAILED, anomaly_id)
-    deactivate Backend
-    Frontend --> Tester: afficherNotification(\n"Test echoue - Anomalie creee automatiquement")
 
 else statut == PASSED
 
-    Backend --> Frontend: retours resultatFinal(PASSED)
-    deactivate Backend
-    Frontend --> Tester: afficherNotification("Test reussi")
+    Back --> Front : retours(PASSED)
+    Front --> Tester : afficherSucces()
 
 end
 

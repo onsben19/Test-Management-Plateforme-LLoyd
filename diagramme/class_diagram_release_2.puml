@@ -1,0 +1,261 @@
+@startuml
+skinparam style strictuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam DefaultFontName Arial
+skinparam DefaultFontSize 11
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 70
+
+skinparam class {
+    BackgroundColor       #FFFFFF
+    BorderColor           #333333
+    BorderThickness       1.2
+    HeaderBackgroundColor #F8F9FA
+    FontColor             #000000
+    AttributeFontColor    #000000
+    StereotypeFontColor   #000000
+}
+
+skinparam enum {
+    BackgroundColor       #FFFFFF
+    BorderColor           #333333
+    HeaderBackgroundColor #F8F9FA
+}
+
+title <b>Diagramme de Classes — Release 2</b>\n<i>Gestion QA & Automatisation — InsureTM</i>
+
+'══════════════════════════════════════════════════════════
+' ENUMERATIONS
+'══════════════════════════════════════════════════════════
+enum RoleEnum <<enumeration>> {
+    ADMIN
+    MANAGER
+    TESTER
+}
+
+enum ReleaseStatus <<enumeration>> {
+    ACTIVE
+    PLANNING
+    COMPLETED
+}
+
+enum ReleaseType <<enumeration>> {
+    PREPROD
+    RECETTE
+}
+
+enum TestStatus <<enumeration>> {
+    PENDING
+    PASSED
+    FAILED
+}
+
+enum ImpactEnum <<enumeration>> {
+    FONCTIONNALITE
+    SIMPLE
+    TEXTE
+    COSMETIQUE
+    MINEURS
+    MAJEUR
+    CRITIQUE
+    BLOQUANTES
+}
+
+enum PrioriteEnum <<enumeration>> {
+    NORMALE
+    BASSE
+    ELEVEE
+    URGENTE
+    IMMEDIATE
+}
+
+enum VisibiliteEnum <<enumeration>> {
+    PUBLIQUE
+    PRIVEE
+}
+
+enum StatutAnomalie <<enumeration>> {
+    OUVERTE
+    EN_INVESTIGATION
+    RESOLUE
+}
+
+'══════════════════════════════════════════════════════════
+' CLASSES
+'══════════════════════════════════════════════════════════
+class User <<AbstractUser>> {
+    + id : Integer
+    + username : String
+    + email : String <<unique>>
+    + otp_code : String
+    + otp_expiry : DateTime
+    --
+    + {static} generate_random_password(length: int=12): String
+    - _generate_random_password(length: int=12): String
+    + save(*args, **kwargs): void
+    + __str__(): String
+    + get_queryset(): List<User>
+    + get_serializer_class(): Class
+    + perform_create(serializer: Object): void
+    + login(credentials: Object): Response
+    + verify2FA(otp: String): Response
+    + forgotPassword(email: String): Response
+}
+
+class Project {
+    + id : Integer
+    + name : String
+    + description : Text
+    + created_at : DateTime
+    + created_by : User
+    --
+    + __str__(): String
+    + save(*args, **kwargs): void
+    + get_queryset(): List<Project>
+    + perform_create(serializer: Object): void
+    + perform_update(serializer: Object): void
+    + perform_destroy(instance: Project): void
+}
+
+class Release {
+    + id : Integer
+    + name : String
+    + business_project : Project
+    + description : Text
+    + status : ReleaseStatus
+    + release_type : ReleaseType
+    + created_at : DateTime
+    + created_by : User
+    --
+    + __str__(): String
+    + save(*args, **kwargs): void
+    + get_queryset(): List<Release>
+    + perform_create(serializer: Object): void
+    + perform_update(serializer: Object): void
+    + perform_destroy(instance: Release): void
+}
+
+class Campaign {
+    + id : Integer
+    + title : String
+    + release : Release
+    + description : Text
+    + start_date : Date
+    + estimated_end_date : Date
+    + scheduled_at : DateTime
+    + excel_file : File
+    + nb_test_cases : Integer
+    + created_at : DateTime
+    + imported_by : User
+    --
+    + __str__(): String
+    + save(*args, **kwargs): void
+    + get_queryset(): List<Campaign>
+    + perform_create(serializer: Object): void
+    + perform_update(serializer: Object): void
+    + perform_destroy(instance: Campaign): void
+    + dashboard(request: Object, pk: Integer): Response
+}
+
+class CampaignAssignment {
+    + id : Integer
+    + campaign : Campaign
+    + tester : User
+    + test_quota : Integer
+    + assigned_at : DateTime
+    --
+    + __str__(): String
+    + save(*args, **kwargs): void
+}
+
+class TaskAssignment {
+    + id : Integer
+    + campaign : Campaign
+    + tester : User
+    + test_case_ref : String
+    + is_completed : Boolean
+    + assigned_at : DateTime
+    --
+    + __str__(): String
+    + save(*args, **kwargs): void
+}
+
+class TestCase {
+    + id : Integer
+    + test_case_ref : String
+    + campaign : Campaign
+    + data_json : JSONField
+    + is_automated : Boolean
+    + automation_code : Text
+    + automation_script_path : String
+    + execution_date : DateTime
+    + proof_file : File
+    + proof_hash : String
+    + proof_video : File
+    + executed_by : User
+    --
+    + __str__(): String
+    + save(*args, **kwargs): void
+    + get_queryset(): List<TestCase>
+    + perform_update(serializer: Object): void
+    + perform_destroy(instance: TestCase): void
+    + generate_script(request: Object, pk: Integer): Response
+    + generate_script_standalone(request: Object): Response
+    + save_script(request: Object, pk: Integer): Response
+    + execute_script(request: Object, pk: Integer): Response
+    + broadcast_test_case_event(sender: Object, instance: Object, created: Boolean): void
+}
+
+class Anomalie {
+    + id : Integer
+    + titre : String
+    + cas_de_test : TestCase
+    + description : Text
+    + preuve_image : File
+    + preuve_hash : String
+    + cree_le : DateTime
+    + declared_by : User
+    --
+    + __str__(): String
+    + save(*args, **kwargs): void
+    + get_queryset(): List<Anomalie>
+    + perform_create(serializer: Object): void
+    + perform_update(serializer: Object): void
+    + export_pdf(request: Object): Response
+}
+
+'══════════════════════════════════════════════════════════
+' ASSOCIATIONS (Lignes solides / Diamants)
+'══════════════════════════════════════════════════════════
+Project "1" *-- "0..*" Release : contient >
+Release "1" *-- "0..*" Campaign : contient >
+Campaign "1" *-- "0..*" TestCase : comporte >
+Campaign "1" *-- "0..*" CampaignAssignment : alloue >
+Campaign "1" *-- "0..*" TaskAssignment : répartit >
+TestCase "1" *-- "0..*" Anomalie : génère >
+
+'══════════════════════════════════════════════════════════
+' RELATIONS AVEC USER (Unidirectionnelles)
+'══════════════════════════════════════════════════════════
+Project "0..*" -up-> "1" User : Créé par
+Release "0..*" -up-> "1" User : Créé par
+CampaignAssignment "0..*" -up-> "1" User : Assigné à
+TaskAssignment "0..*" -up-> "1" User : tester >
+TestCase "0..*" -up-> "1" User : Exécuté par
+Anomalie "0..*" -up-> "1" User : Déclaré par
+
+'══════════════════════════════════════════════════════════
+' ENUMERATION LINKS (Lignes pointillées)
+'══════════════════════════════════════════════════════════
+User .up.> RoleEnum : role
+Release ..> ReleaseStatus : status
+Release ..> ReleaseType : release_type
+TestCase ..> TestStatus : status
+Anomalie ..> ImpactEnum : impact
+Anomalie ..> PrioriteEnum : priorite
+Anomalie ..> VisibiliteEnum : visibilite
+Anomalie ..> StatutAnomalie : statut
+
+@enduml

@@ -1,0 +1,90 @@
+@startuml
+left to right direction
+
+title Diagramme de Cas d'Utilisation Global - Plateforme InsureTM
+
+actor "Testeur" as T
+actor "Manager" as M
+actor "Admin" as A
+
+package "Plateforme InsureTM" {
+    
+    usecase "S'authentifier" as Auth
+    usecase "Valider par double facteur (2FA OTP)" as UC_2FA
+    
+    ' Modules Globaux (Grandes Gestions)
+    usecase "Administrer les accès et les comptes" as UC_Admin
+    usecase "Structurer le référentiel (Projets, Releases, Campagnes)" as UC_Projet
+    usecase "Orchestrer les assignations de test" as UC_Equipe
+    usecase "Exécuter les cas de test" as UC_Test
+    usecase "Traiter les anomalies détectées" as UC_Anomaly
+    usecase "Solliciter le moteur cognitif IA (Analytique & Chat)" as UC_IA
+    usecase "Collaborer en temps réel (Chat & Mails)" as UC_Com
+    usecase "Consulter la veille technologique QA" as UC_Veille
+
+    ' Sous-modules (Extensions conditionnelles)
+    usecase "Déléguer l'exécution au moteur automatisé" as UC_AutoTest
+    usecase "Visualiser l'écran en temps réel (noVNC)" as UC_LiveView
+    usecase "Enregistrer les preuves d'exécution (captures & vidéos)" as UC_Proof
+    usecase "Qualifier l'anomalie assistée par IA" as UC_AnomalyIA
+    usecase "Automatiser les demandes de renfort" as UC_Relance
+    usecase "Générer les exports documentaires (PDF/CSV)" as UC_Export
+    
+    ' --- Relations d'Extension ---
+    UC_Test <.. UC_AutoTest : <<extend>>
+    UC_Test <.. UC_Export : <<extend>>
+    UC_AutoTest <.. UC_LiveView : <<extend>>
+    UC_AutoTest <.. UC_Proof : <<extend>>
+    UC_Anomaly <.. UC_AnomalyIA : <<extend>>
+    UC_Anomaly <.. UC_Export : <<extend>>
+    UC_Equipe <.. UC_Relance : <<extend>>
+    
+    ' --- Relations d'Inclusion (Authentification obligatoire) ---
+    Auth ..> UC_2FA : <<include>>
+    
+    UC_Admin ..> Auth : <<include>>
+    UC_Projet ..> Auth : <<include>>
+    UC_Equipe ..> Auth : <<include>>
+    UC_Test ..> Auth : <<include>>
+    UC_Anomaly ..> Auth : <<include>>
+    UC_IA ..> Auth : <<include>>
+    UC_Com ..> Auth : <<include>>
+    UC_Veille ..> Auth : <<include>>
+}
+
+' Systèmes Externes
+rectangle "Modèle IA Groq" as Groq <<system>>
+rectangle "Moteur Playwright" as PW <<system>>
+rectangle "Serveur noVNC" as NoVNC <<system>>
+rectangle "Plateforme n8n" as n8n <<system>>
+rectangle "Serveur SMTP" as SMTP <<system>>
+rectangle "Sources QA (Web)" as WebSrc <<system>>
+
+' --- Associations Acteurs -> Cas (Principaux) ---
+T -- UC_Test
+T -- UC_Anomaly
+T -- UC_IA
+T -- UC_Com
+T -- UC_Veille
+
+M -- UC_Projet
+M -- UC_Equipe
+M -- UC_Test
+M -- UC_Anomaly
+M -- UC_IA
+M -- UC_Com
+M -- UC_Veille
+
+A -- UC_Admin
+
+' --- Associations Cas -> Systèmes Externes ---
+UC_AutoTest ..> PW
+UC_LiveView ..> NoVNC
+UC_AnomalyIA ..> Groq
+UC_IA ..> Groq
+UC_Veille ..> Groq
+UC_Veille ..> WebSrc
+UC_Relance ..> n8n
+UC_Com ..> SMTP
+
+@enduml

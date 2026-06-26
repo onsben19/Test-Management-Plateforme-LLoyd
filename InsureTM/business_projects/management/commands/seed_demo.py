@@ -6,6 +6,7 @@ Crée : 10 projets business → 5 releases → 12 campagnes uniques
 import random
 from datetime import date, timedelta
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 
@@ -15,6 +16,14 @@ from campaigns.models import Campaign, CampaignAssignment
 from testCases.models import TestCase
 
 User = get_user_model()
+
+
+def _display_url(path: str) -> str:
+    base = getattr(settings, 'APP_URL', '').rstrip('/')
+    if not base:
+        return path
+    return f'{base}{path}' if path.startswith('/') else f'{base}/{path}'
+
 
 BUSINESS_PROJECTS = [
     ("Refonte Portail Sinistres Auto",       "Modernisation du portail de déclaration et suivi des sinistres automobiles."),
@@ -78,113 +87,113 @@ CAMPAIGN_TEST_SCENARIOS = {
     "Tests Fonctionnels Authentification": [
         (
             "TC-AUTH-001 Connexion valide avec OTP",
-            "Aller sur http://localhost/login\nSaisir l'email et le mot de passe d'un compte valide\nCliquer sur Se connecter\nVérifier que la page affiche un champ pour saisir un code OTP",
+            "Aller sur /login\nSaisir l'email et le mot de passe d'un compte valide\nCliquer sur Se connecter\nVérifier que la page affiche un champ pour saisir un code OTP",
             "L'utilisateur arrive sur l'écran OTP après authentification.",
-            "http://localhost/login",
+            "/login",
         ),
         (
             "TC-AUTH-002 Connexion avec identifiants incorrects",
-            "Aller sur http://localhost/login\nSaisir l'email : faux@inexistant.com\nSaisir le mot de passe : mauvaismdp123\nCliquer sur Se connecter\nVérifier que le texte Bienvenue est visible sur la page",
+            "Aller sur /login\nSaisir l'email : faux@inexistant.com\nSaisir le mot de passe : mauvaismdp123\nCliquer sur Se connecter\nVérifier que le texte Bienvenue est visible sur la page",
             "Un message d'erreur s'affiche et l'utilisateur reste sur la page de connexion.",
-            "http://localhost/login",
+            "/login",
         ),
     ],
     "Validation Parcours Souscription": [
         (
             "TC-SOUSCR-001 Affichage kanban campagnes",
-            "Aller sur http://localhost/login\nSe connecter avec un compte manager valide\nSaisir le code OTP\nAller sur http://localhost/manager\nVérifier que la page contient EN RETARD ou EN COURS",
+            "Aller sur /login\nSe connecter avec un compte manager valide\nSaisir le code OTP\nAller sur /manager\nVérifier que la page contient EN RETARD ou EN COURS",
             "Le kanban manager s'affiche avec les colonnes de suivi.",
-            "http://localhost/manager",
+            "/manager",
         ),
         (
             "TC-SOUSCR-002 Accès non autorisé kanban",
-            "Aller directement sur http://localhost/manager sans se connecter\nVérifier que la page affiche un tableau kanban avec des campagnes modifiables",
+            "Aller directement sur /manager sans se connecter\nVérifier que la page affiche un tableau kanban avec des campagnes modifiables",
             "L'accès est refusé ou redirige vers la page de connexion.",
-            "http://localhost/manager",
+            "/manager",
         ),
     ],
     "Tests Régression Paiement": [
         (
             "TC-REGR-001 Liste anomalies accessible",
-            "Aller sur http://localhost/login\nSe connecter avec un compte valide\nSaisir le code OTP\nAller sur http://localhost/anomalies\nVérifier que la page contient le titre Anomalies ou une liste",
+            "Aller sur /login\nSe connecter avec un compte valide\nSaisir le code OTP\nAller sur /anomalies\nVérifier que la page contient le titre Anomalies ou une liste",
             "La page anomalies charge correctement.",
-            "http://localhost/anomalies",
+            "/anomalies",
         ),
         (
             "TC-REGR-002 Création anomalie sans titre",
-            "Aller sur http://localhost/anomalies\nCliquer sur Nouvelle anomalie\nLaisser le champ titre vide\nCliquer sur Enregistrer\nVérifier que le message Anomalie créée apparaît",
+            "Aller sur /anomalies\nCliquer sur Nouvelle anomalie\nLaisser le champ titre vide\nCliquer sur Enregistrer\nVérifier que le message Anomalie créée apparaît",
             "La validation bloque l'enregistrement sans titre.",
-            "http://localhost/anomalies",
+            "/anomalies",
         ),
     ],
     "Audit Sécurité et Droits d'Accès": [
         (
             "TC-SEC-001 Redirection login si non authentifié",
-            "Aller directement sur http://localhost/manager sans se connecter\nVérifier que la page redirige vers /login ou affiche Accès non autorisé",
+            "Aller directement sur /manager sans se connecter\nVérifier que la page redirige vers /login ou affiche Accès non autorisé",
             "L'utilisateur non connecté ne peut pas accéder au manager.",
-            "http://localhost/manager",
+            "/manager",
         ),
         (
             "TC-SEC-002 Testeur accède à la gestion utilisateurs",
-            "Se connecter avec un compte testeur\nAller sur http://localhost/users\nVérifier que la liste complète des utilisateurs est modifiable",
+            "Se connecter avec un compte testeur\nAller sur /users\nVérifier que la liste complète des utilisateurs est modifiable",
             "Un testeur ne doit pas pouvoir gérer les utilisateurs.",
-            "http://localhost/users",
+            "/users",
         ),
     ],
     "Tests Interface Mobile": [
         (
             "TC-MOB-001 Affichage login sur mobile 375px",
-            "Ouvrir http://localhost/login avec une fenêtre de 375 pixels de large\nVérifier que le formulaire est visible sans scroll horizontal\nVérifier que le bouton Se connecter est visible",
+            "Ouvrir /login avec une fenêtre de 375 pixels de large\nVérifier que le formulaire est visible sans scroll horizontal\nVérifier que le bouton Se connecter est visible",
             "La page login est utilisable sur mobile.",
-            "http://localhost/login",
+            "/login",
         ),
         (
             "TC-MOB-002 Débordement formulaire 320px",
-            "Ouvrir http://localhost/login avec une fenêtre de 320 pixels de large\nVérifier qu'aucun élément ne dépasse horizontalement",
+            "Ouvrir /login avec une fenêtre de 320 pixels de large\nVérifier qu'aucun élément ne dépasse horizontalement",
             "Aucun débordement horizontal sur petit écran.",
-            "http://localhost/login",
+            "/login",
         ),
     ],
     "Validation Export PDF/CSV": [
         (
             "TC-EXP-001 Chargement page anomalies avec données",
-            "Se connecter puis aller sur http://localhost/anomalies\nVérifier que la page affiche une liste ou un tableau",
+            "Se connecter puis aller sur /anomalies\nVérifier que la page affiche une liste ou un tableau",
             "La page anomalies se charge avec des données.",
-            "http://localhost/anomalies",
+            "/anomalies",
         ),
         (
             "TC-EXP-002 Export CSV déclenche téléchargement immédiat",
-            "Aller sur http://localhost/anomalies\nCliquer sur Exporter CSV\nVérifier que le fichier téléchargé contient plus de 100 lignes",
+            "Aller sur /anomalies\nCliquer sur Exporter CSV\nVérifier que le fichier téléchargé contient plus de 100 lignes",
             "L'export CSV ne doit pas inventer des données inexistantes.",
-            "http://localhost/anomalies",
+            "/anomalies",
         ),
     ],
     "Tests API REST Partenaires": [
         (
             "TC-API-001 Accès page Analytics",
-            "Se connecter avec un compte manager\nAller sur http://localhost/analytics\nVérifier que la page s'affiche avec des graphiques ou boutons",
+            "Se connecter avec un compte manager\nAller sur /analytics\nVérifier que la page s'affiche avec des graphiques ou boutons",
             "La page Analytics est accessible.",
-            "http://localhost/analytics",
+            "/analytics",
         ),
         (
             "TC-API-002 Réponse IA sur question invalide",
-            "Aller sur http://localhost/analytics\nSaisir dans le chat IA : Quelle est la météo à Paris demain ?\nVérifier que l'IA retourne un graphique météo précis",
+            "Aller sur /analytics\nSaisir dans le chat IA : Quelle est la météo à Paris demain ?\nVérifier que l'IA retourne un graphique météo précis",
             "L'IA doit refuser les questions hors périmètre QA.",
-            "http://localhost/analytics",
+            "/analytics",
         ),
     ],
     "Recette Fonctionnelle Utilisateur": [
         (
             "TC-RECT-001 Affichage portefeuille projets",
-            "Se connecter avec un compte manager\nAller sur http://localhost/portfolio\nVérifier qu'au moins un projet business est affiché",
+            "Se connecter avec un compte manager\nAller sur /portfolio\nVérifier qu'au moins un projet business est affiché",
             "Le portefeuille liste les projets seedés.",
-            "http://localhost/portfolio",
+            "/portfolio",
         ),
         (
             "TC-RECT-002 Projet créé sans champ nom",
-            "Aller sur http://localhost/portfolio\nCliquer sur Nouveau projet\nLaisser le nom vide\nCliquer sur Enregistrer\nVérifier que le projet apparaît dans la liste",
+            "Aller sur /portfolio\nCliquer sur Nouveau projet\nLaisser le nom vide\nCliquer sur Enregistrer\nVérifier que le projet apparaît dans la liste",
             "La validation doit empêcher la création sans nom.",
-            "http://localhost/portfolio",
+            "/portfolio",
         ),
     ],
     "Tests Notifications et Alertes": [
@@ -192,55 +201,55 @@ CAMPAIGN_TEST_SCENARIOS = {
             "TC-NOTIF-001 Ouverture panneau notifications",
             "Se connecter avec un compte valide\nVérifier la présence de l'icône cloche\nCliquer sur l'icône\nVérifier qu'un panneau s'ouvre",
             "Le panneau de notifications s'ouvre au clic.",
-            "http://localhost",
+            "/",
         ),
         (
             "TC-NOTIF-002 Clic notification redirige vers page détail",
             "Cliquer sur l'icône cloche\nCliquer sur la première notification\nVérifier un détail complet avec bouton Résoudre fonctionnel",
             "Les notifications sans détail ne doivent pas simuler une page complète.",
-            "http://localhost",
+            "/",
         ),
     ],
     "Validation Calculs Tarification": [
         (
             "TC-TARIF-001 Affichage tableau de bord manager",
-            "Se connecter avec un compte manager\nAller sur http://localhost/manager/dashboard\nVérifier que des indicateurs ou statistiques sont affichés",
+            "Se connecter avec un compte manager\nAller sur /manager/dashboard\nVérifier que des indicateurs ou statistiques sont affichés",
             "Le dashboard manager charge les KPIs.",
-            "http://localhost/manager/dashboard",
+            "/manager/dashboard",
         ),
         (
             "TC-TARIF-002 Readiness Score cohérent avec données",
-            "Aller sur http://localhost/manager/dashboard\nVérifier que le Readiness Score est inférieur à 50% pour les releases en retard",
+            "Aller sur /manager/dashboard\nVérifier que le Readiness Score est inférieur à 50% pour les releases en retard",
             "Le score doit refléter l'état réel des campagnes.",
-            "http://localhost/manager/dashboard",
+            "/manager/dashboard",
         ),
     ],
     "Tests Compatibilité Navigateurs": [
         (
             "TC-COMPAT-001 Rendu formulaire login",
-            "Aller sur http://localhost/login\nVérifier que les champs email et mot de passe sont visibles\nVérifier que le bouton Se connecter est visible",
+            "Aller sur /login\nVérifier que les champs email et mot de passe sont visibles\nVérifier que le bouton Se connecter est visible",
             "Le formulaire de connexion est correctement rendu.",
-            "http://localhost/login",
+            "/login",
         ),
         (
             "TC-COMPAT-002 Validation format email",
             "Saisir dans le champ email : pasunmail\nSaisir le mot de passe : Test1234!\nCliquer sur Se connecter\nVérifier que la connexion réussit",
             "Un email mal formaté doit être rejeté.",
-            "http://localhost/login",
+            "/login",
         ),
     ],
     "Tests Chiffrement et RGPD": [
         (
             "TC-RGPD-001 Accès page profil utilisateur",
-            "Se connecter avec un compte valide\nAller sur http://localhost/profile\nVérifier que les informations de l'utilisateur connecté sont affichées",
+            "Se connecter avec un compte valide\nAller sur /profile\nVérifier que les informations de l'utilisateur connecté sont affichées",
             "La page profil est accessible.",
-            "http://localhost/profile",
+            "/profile",
         ),
         (
             "TC-RGPD-002 Mise à jour prénom persistée",
-            "Aller sur http://localhost/profile\nModifier le prénom avec TestRGPD\nCliquer sur Enregistrer\nRecharger la page\nVérifier que le prénom affiché est TestRGPD",
+            "Aller sur /profile\nModifier le prénom avec TestRGPD\nCliquer sur Enregistrer\nRecharger la page\nVérifier que le prénom affiché est TestRGPD",
             "Les modifications profil doivent être persistées.",
-            "http://localhost/profile",
+            "/profile",
         ),
     ],
 }
@@ -318,6 +327,10 @@ class Command(BaseCommand):
         Release.objects.all().delete()
         BusinessProject.objects.all().delete()
         self.stdout.write(self.style.SUCCESS("   Base nettoyée.\n"))
+
+        public_url = getattr(settings, 'APP_URL', '').rstrip('/')
+        if public_url:
+            self.stdout.write(self.style.SUCCESS(f"🌐 APP_URL : {public_url}\n"))
 
         managers = list(User.objects.filter(role='MANAGER'))
         if not managers:
@@ -416,7 +429,8 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("   Cache invalidé."))
 
         if testers:
+            dashboard_url = _display_url('/tester-dashboard')
             self.stdout.write(
-                "\n📋 Prochaine étape : connectez-vous en testeur sur http://localhost/tester-dashboard"
+                f"\n📋 Prochaine étape : connectez-vous en testeur sur {dashboard_url}"
                 "\n   → Ouvrez une campagne assignée → exécutez les cas TC-* manuellement ou via IA."
             )

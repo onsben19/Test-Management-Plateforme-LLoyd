@@ -74,7 +74,7 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
         if (!body.trim()) { toast.warning(t('email.toasts.aiWarningBody')); return; }
         try {
             setReformulating(true);
-            const response = await aiService.reformulate(body, false);
+            const response = await aiService.reformulate(body, false, false, false, true);
             const reformulated = response.data?.reformulated_message || response.data?.message;
             if (reformulated) { setBody(reformulated); toast.success(t('email.toasts.reformulated')); }
             else toast.error(t('email.toasts.noReformulation'));
@@ -135,7 +135,7 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md"
+                className="absolute inset-0 bg-slate-900/60 dark:bg-slate-900/60 dark:bg-slate-900/60 dark:bg-black/80 backdrop-blur-md"
                 onClick={onClose}
             />
 
@@ -143,10 +143,10 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                className="relative bg-white/80 dark:bg-[#0d1225]/90 backdrop-blur-2xl border border-slate-400 dark:border-white/20 dark:border-slate-700/50 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-w-2xl w-full overflow-hidden"
+                className="relative bg-white/80 dark:bg-[#0d1225]/90 backdrop-blur-2xl border border-slate-400 dark:border-slate-300 dark:border-white/20 dark:border-slate-700/50 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-w-2xl w-full overflow-hidden"
             >
                 {/* Header */}
-                <div className="p-8 border-b border-slate-200/50 dark:border-slate-700/50 bg-slate-300 dark:bg-white/20 dark:bg-slate-900/40 flex justify-between items-center">
+                <div className="p-8 border-b border-slate-200/50 dark:border-slate-700/50 bg-slate-300 dark:bg-white/20 dark:bg-slate-200/60 dark:bg-slate-900/40 flex justify-between items-center">
                     <div>
                         <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
                             <div className="p-2 bg-blue-500 rounded-xl shadow-lg shadow-blue-500/20">
@@ -158,7 +158,7 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-all group"
+                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-all group"
                     >
                         <X className="w-6 h-6 text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-900 dark:hover:text-white" />
                     </button>
@@ -224,7 +224,7 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                                                     className="p-4 hover:bg-blue-500/10 cursor-pointer flex items-center justify-between transition-colors group border-b border-slate-100/50 dark:border-slate-700/30 last:border-0"
                                                 >
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs font-black text-slate-600 dark:text-slate-300 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                                                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs font-black text-slate-600 dark:text-slate-300 group-hover:bg-blue-500 group-hover:text-slate-900 dark:hover:text-white transition-all">
                                                             {u.username.charAt(0).toUpperCase()}
                                                         </div>
                                                         <div>
@@ -284,7 +284,7 @@ const ComposeEmailModal: React.FC<ComposeEmailModalProps> = ({ onClose, onSucces
                                     type="button"
                                     onClick={handleReformulate}
                                     disabled={reformulating || !body.trim()}
-                                    className="flex items-center gap-2 p-3 rounded-2xl text-slate-400 hover:text-blue-400 bg-slate-100 dark:bg-white/5 hover:bg-blue-500/10 border border-slate-200/50 dark:border-white/5 hover:border-blue-500/20 shadow-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed group/btn backdrop-blur-md"
+                                    className="flex items-center gap-2 p-3 rounded-2xl text-slate-400 hover:text-blue-400 bg-slate-100 dark:bg-white/5 hover:bg-blue-500/10 border border-slate-200/50 dark:border-slate-200 dark:border-white/5 hover:border-blue-500/20 shadow-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed group/btn backdrop-blur-md"
                                     title="Reformuler le message avec l'IA"
                                 >
                                     {reformulating ? <Loader className="w-4 h-4 animate-spin text-blue-400" /> : <WandSparkles className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />}

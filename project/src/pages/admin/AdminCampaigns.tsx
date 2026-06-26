@@ -278,9 +278,9 @@ const AdminCampaigns = () => {
                                 value={businessProjectFilter}
                                 onChange={(e) => setBusinessProjectFilter(e.target.value)}
                             >
-                                <option value="ALL" className="bg-slate-900">{t('adminCampaigns.filters.allProjects', 'TOUS LES PROJETS')}</option>
+                                <option value="ALL" className="bg-white dark:bg-slate-900">{t('adminCampaigns.filters.allProjects', 'TOUS LES PROJETS')}</option>
                                 {uniqueBusinessProjects.map(project => (
-                                    <option key={project} value={project} className="bg-slate-900">{project}</option>
+                                    <option key={project} value={project} className="bg-white dark:bg-slate-900">{project}</option>
                                 ))}
                             </select>
                             <select
@@ -288,9 +288,9 @@ const AdminCampaigns = () => {
                                 value={releaseFilter}
                                 onChange={(e) => setReleaseFilter(e.target.value)}
                             >
-                                <option value="ALL" className="bg-slate-900">{t('adminCampaigns.filters.allReleases', 'TOUTES LES RELEASES')}</option>
+                                <option value="ALL" className="bg-white dark:bg-slate-900">{t('adminCampaigns.filters.allReleases', 'TOUTES LES RELEASES')}</option>
                                 {uniqueReleases.map(release => (
-                                    <option key={release} value={release} className="bg-slate-900">{release}</option>
+                                    <option key={release} value={release} className="bg-white dark:bg-slate-900">{release}</option>
                                 ))}
                             </select>
                             <select
@@ -298,8 +298,8 @@ const AdminCampaigns = () => {
                                 value={sortOrder}
                                 onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
                             >
-                                <option value="newest" className="bg-slate-900">Plus récent</option>
-                                <option value="oldest" className="bg-slate-900">Plus ancien</option>
+                                <option value="newest" className="bg-white dark:bg-slate-900">Plus récent</option>
+                                <option value="oldest" className="bg-white dark:bg-slate-900">Plus ancien</option>
                             </select>
                         </div>
                     }
@@ -341,7 +341,7 @@ const AdminCampaigns = () => {
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative w-full max-w-xl bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-white/10 rounded-[3rem] overflow-hidden shadow-2xl"
+                            className="relative w-full max-w-xl bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-[3rem] overflow-hidden shadow-2xl"
                         >
                             <div className="p-8 border-b border-slate-200 dark:border-white/5 flex justify-between items-center bg-gradient-to-r from-blue-600/10 to-transparent">
                                 <div>
@@ -363,7 +363,7 @@ const AdminCampaigns = () => {
                                         <BookOpen className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
                                         <input
                                             type="text"
-                                            className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl pl-16 pr-6 py-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
+                                            className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-2xl pl-16 pr-6 py-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold"
                                             value={editForm.title}
                                             onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
                                         />
@@ -373,7 +373,7 @@ const AdminCampaigns = () => {
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('adminCampaigns.modal.fieldDescription')}</label>
                                     <textarea
-                                        className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl px-6 py-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold h-32 resize-none"
+                                        className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all font-bold h-32 resize-none"
                                         value={editForm.description}
                                         onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                                     />

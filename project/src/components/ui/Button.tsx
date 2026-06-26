@@ -20,11 +20,11 @@ const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const variants = {
-    primary: 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/25 border-t border-slate-400 dark:border-white/20',
-    secondary: 'bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:bg-white/20 text-white backdrop-blur-md border border-slate-300 dark:border-white/10 shadow-xl',
-    outline: 'bg-transparent border-2 border-blue-600/50 text-blue-500 hover:bg-blue-600 hover:text-white',
-    ghost: 'bg-transparent hover:bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-white',
-    danger: 'bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/20 shadow-lg shadow-rose-500/10'
+    primary: 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/25 border-t border-slate-400 dark:border-slate-300 dark:border-white/20',
+    secondary: 'bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-slate-700 dark:text-white backdrop-blur-md border border-slate-300 dark:border-slate-200 dark:border-white/10 shadow-xl',
+    outline: 'bg-transparent border-2 border-blue-600/50 text-blue-600 dark:text-blue-500 hover:bg-blue-600 hover:text-slate-900 dark:hover:text-white',
+    ghost: 'bg-transparent hover:bg-slate-100 dark:hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white',
+    danger: 'bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-slate-900 dark:hover:text-white border border-rose-500/20 shadow-lg shadow-rose-500/10'
   };
 
   const sizes = {

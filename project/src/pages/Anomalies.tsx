@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import PageLayout from '../components/PageLayout';
 import { Badge } from '@radix-ui/themes';
@@ -38,8 +38,9 @@ import { useAuth } from '../context/AuthContext';
 import { anomalyService } from '../services/api';
 import { toast } from 'react-toastify';
 import { useSidebar } from '../context/SidebarContext';
-import Pagination from '../components/Pagination';
+import { buildTableRowTdClass } from '../utils/tableRowStyles';
 import ConfirmModal from '../components/ConfirmModal';
+import Pagination from '../components/Pagination';
 import StatCard from '../components/StatCard';
 import Button from '../components/ui/Button';
 import {
@@ -74,6 +75,27 @@ interface Anomaly {
   playwright_script?: string;
   execution_logs?: string;
 }
+
+const mapAnomalyFromApi = (a: any): Anomaly => ({
+  id: a.id.toString(),
+  title: a.titre,
+  impact: a.impact,
+  priority: a.priorite,
+  visibility: a.visibilite,
+  status: a.statut || 'OUVERTE',
+  relatedTest: a.test_case_ref || (a.test_case ? `Test #${a.test_case}` : undefined),
+  assignedTo: a.cree_par_nom || 'Non assigné',
+  createdAt: a.cree_le,
+  description: a.description,
+  proofImage: a.preuve_image,
+  proofVideo: a.preuve_video,
+  release: a.project_name || 'Inconnu',
+  campaign: a.campaign_title || 'Inconnue',
+  author_name: a.cree_par_nom,
+  created_at: a.cree_le,
+  playwright_script: a.playwright_script || a.script || null,
+  execution_logs: a.execution_logs || a.logs || a.log_execution || a.logs_execution || a.data_json?.execution_logs || a.data_json?.logs || null,
+});
 
 const impactStyles: Record<string, { bg: string, text: string, border: string, dot: string }> = {
   BLOQUANTES: { bg: 'bg-rose-500/10', text: 'text-rose-600 dark:text-rose-400', border: 'border-rose-500/20', dot: 'bg-rose-500' },
@@ -112,6 +134,8 @@ const Anomalies: React.FC = () => {
   const incomingCampaignId = (location.state as any)?.campaignId || null;
   const incomingCampaign = (location.state as any)?.campaignName || '';
   const [query, setQuery] = useState(highlightId || relatedTestFilter || '');
+  const [debouncedQuery, setDebouncedQuery] = useState(query);
+  const searchRequestRef = useRef(0);
   const [campaignIdFilter, setCampaignIdFilter] = useState<string | null>(incomingCampaignId);
   const [impactFilter, setImpactFilter] = useState<'Tout' | Anomaly['impact']>('Tout');
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest'>('recent');
@@ -155,51 +179,30 @@ const Anomalies: React.FC = () => {
     }
   };
 
-  React.useEffect(() => {
-    fetchAnomalies(1);
-    setCurrentPage(1);
-  }, [query, impactFilter, sortOrder, campaignIdFilter]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 350);
+    return () => window.clearTimeout(timer);
+  }, [query]);
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    fetchAnomalies(page);
-  };
-
-  const fetchAnomalies = async (page = 1) => {
+  const fetchAnomalies = useCallback(async (page = 1) => {
+    const requestId = ++searchRequestRef.current;
     try {
       setLoading(true);
       const response = await anomalyService.getAnomalies({
         page,
-        search: query || undefined,
+        search: debouncedQuery || undefined,
         campaign_id: campaignIdFilter || undefined,
         impact: impactFilter !== 'Tout' ? impactFilter : undefined,
         ordering: sortOrder === 'recent' ? '-cree_le' : 'cree_le'
       });
+      if (requestId !== searchRequestRef.current) return;
+
       const data = response.data.results || response.data;
       const count = response.data.count || (Array.isArray(response.data) ? response.data.length : 0);
 
       setTotalItems(count);
 
-      const mappedAnomalies: Anomaly[] = data.map((a: any) => ({
-        id: a.id.toString(),
-        title: a.titre,
-        impact: a.impact,
-        priority: a.priorite,
-        visibility: a.visibilite,
-        status: a.statut || 'OUVERTE',
-        relatedTest: a.test_case_ref || (a.test_case ? `Test #${a.test_case}` : undefined),
-        assignedTo: a.cree_par_nom || 'Non assigné',
-        createdAt: a.cree_le,
-        description: a.description,
-        proofImage: a.preuve_image,
-        proofVideo: a.preuve_video,
-        release: a.project_name || 'Inconnu',
-        campaign: a.campaign_title || 'Inconnue',
-        author_name: a.cree_par_nom,
-        created_at: a.cree_le,
-        playwright_script: a.playwright_script || a.script || null,
-        execution_logs: a.execution_logs || a.logs || a.log_execution || a.logs_execution || a.data_json?.execution_logs || a.data_json?.logs || null,
-      }));
+      const mappedAnomalies: Anomaly[] = data.map((a: any) => mapAnomalyFromApi(a));
       setData(mappedAnomalies);
 
       if (location.state && (location.state as any).openAnomalyId) {
@@ -207,46 +210,72 @@ const Anomalies: React.FC = () => {
           const toOpen = mappedAnomalies.find(an => an.id === targetId);
           if (toOpen) {
               setSelectedAnomaly(toOpen);
-              // Safely clear the state so it doesn't reopen on refresh
               navigate(location.pathname, { replace: true, state: {} });
-          } else {
-              // Direct fetch fallback if anomaly not on page 1 / filtered out
-              anomalyService.getAnomaly(targetId)
-                  .then(res => {
-                      const a = res.data;
-                      const fallbackAnomaly: Anomaly = {
-                          id: a.id.toString(),
-                          title: a.titre,
-                          impact: a.impact,
-                          priority: a.priorite,
-                          visibility: a.visibilite,
-                          status: a.statut || 'OUVERTE',
-                          relatedTest: a.test_case_ref || (a.test_case ? `Test #${a.test_case}` : undefined),
-                          assignedTo: a.cree_par_nom || 'Non assigné',
-                          createdAt: a.cree_le,
-                          description: a.description,
-                          proofImage: a.preuve_image,
-                          proofVideo: a.preuve_video,
-                          release: a.project_name || 'Inconnu',
-                          campaign: a.campaign_title || 'Inconnue',
-                          author_name: a.cree_par_nom,
-                          created_at: a.cree_le,
-                          playwright_script: a.playwright_script || a.script || null,
-                          execution_logs: a.execution_logs || a.logs || a.log_execution || a.logs_execution || a.data_json?.execution_logs || a.data_json?.logs || null,
-                      };
-                      setSelectedAnomaly(fallbackAnomaly);
-                      navigate(location.pathname, { replace: true, state: {} });
-                  })
-                  .catch(err => {
-                      console.error("Failed to fetch fallback anomaly", err);
-                  });
           }
       }
     } catch (error) {
+      if (requestId !== searchRequestRef.current) return;
       console.error("Failed to fetch anomalies", error);
     } finally {
-      setLoading(false);
+      if (requestId === searchRequestRef.current) {
+        setLoading(false);
+      }
     }
+  }, [debouncedQuery, campaignIdFilter, impactFilter, sortOrder, location.state, location.pathname, navigate]);
+
+  React.useEffect(() => {
+    fetchAnomalies(1);
+    setCurrentPage(1);
+  }, [debouncedQuery, impactFilter, sortOrder, campaignIdFilter, fetchAnomalies]);
+
+  React.useEffect(() => {
+    if (!highlightId) return;
+
+    const openFromList = data.find((an) => an.id === highlightId);
+    if (openFromList) {
+      setSelectedAnomaly(openFromList);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await anomalyService.getAnomaly(highlightId);
+        if (cancelled) return;
+        setSelectedAnomaly(mapAnomalyFromApi(res.data));
+      } catch {
+        // ignore invalid highlight
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [highlightId, data]);
+
+  React.useEffect(() => {
+    const openId = (location.state as any)?.openAnomalyId;
+    if (!openId) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await anomalyService.getAnomaly(openId);
+        if (cancelled) return;
+        setSelectedAnomaly(mapAnomalyFromApi(res.data));
+        navigate(location.pathname, { replace: true, state: {} });
+      } catch (err) {
+        console.error('Failed to open anomaly detail from navigation', err);
+        if (!cancelled) {
+          toast.error("Impossible d'ouvrir le détail de l'anomalie.");
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [location.key, location.pathname, location.state, navigate]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchAnomalies(page);
   };
 
   const handleEditAnomaly = (an: any) => {
@@ -354,34 +383,32 @@ const Anomalies: React.FC = () => {
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      const header = ['ID', 'Titre', 'Gravité', 'Statut', 'Test lié', 'Release', 'Campagne', 'Créé par', 'Date', 'Description'];
-      const rows = data.map((r) => [
-        r.id,
-        r.title,
-        r.impact,
-        r.priority,
-        r.status,
-        r.relatedTest || '',
-        r.release || '',
-        r.campaign || '',
-        r.assignedTo || '',
-        new Date(r.createdAt).toLocaleDateString('fr-FR'),
-        (r.description || '').replace(/\n/g, ' ')
-      ]);
+      const response = await anomalyService.exportAnomaliesXlsx({
+        search: debouncedQuery || undefined,
+        campaign_id: campaignIdFilter || undefined,
+        impact: impactFilter !== 'Tout' ? impactFilter : undefined,
+        ordering: sortOrder === 'recent' ? '-cree_le' : 'cree_le',
+      });
 
-      const csvContent = [header, ...rows]
-        .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';'))
-        .join('\n');
+      const contentType = response.headers?.['content-type'] || '';
+      if (!contentType.includes('spreadsheetml')) {
+        throw new Error('Invalid Excel response');
+      }
 
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `anomalies_export_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `anomalies_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download Excel', error);
+      toast.error(t('anomalies.export.csvError'));
     } finally {
       setIsDownloading(false);
     }
@@ -391,10 +418,16 @@ const Anomalies: React.FC = () => {
     setIsPdfDownloading(true);
     try {
       const response = await anomalyService.exportAnomaliesPdf({
-        search: query,
+        search: debouncedQuery,
+        campaign_id: campaignIdFilter || undefined,
         impact: impactFilter !== 'Tout' ? impactFilter : undefined,
         ordering: sortOrder === 'recent' ? '-cree_le' : 'cree_le'
       });
+
+      const contentType = response.headers?.['content-type'] || '';
+      if (!contentType.includes('application/pdf')) {
+        throw new Error('Invalid PDF response');
+      }
 
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
@@ -405,16 +438,16 @@ const Anomalies: React.FC = () => {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast.success("Rapport PDF généré avec succès !");
+      toast.success(t('anomalies.export.pdfSuccess'));
     } catch (error) {
       console.error("Failed to download PDF", error);
-      toast.error("Erreur lors de la génération du PDF.");
+      toast.error(t('anomalies.toasts.pdfError'));
     } finally {
       setIsPdfDownloading(false);
     }
   };
 
-  const tdClass = "px-6 py-5 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-100 dark:group-hover:bg-white/5 transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-300 dark:group-hover:border-white/10";
+  const tdClass = buildTableRowTdClass({ padding: 'sm' });
 
   return (
     <>
@@ -485,7 +518,7 @@ const Anomalies: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => { setCampaignIdFilter(null); }}
-                        className="ml-1 text-white/40 hover:text-white transition-colors"
+                        className="ml-1 text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white transition-colors"
                         title="Retirer le filtre campagne"
                       >✕</button>
                     </div>
@@ -546,7 +579,7 @@ const Anomalies: React.FC = () => {
                     isLoading={isDownloading}
                     className="rounded-xl text-[10px] font-bold"
                   >
-                    CSV
+                    Excel
                   </Button>
                   <Button
                     onClick={handleDownloadPdf}
@@ -560,7 +593,7 @@ const Anomalies: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-slate-900/40 border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden shadow-2xl">
+            <div className="bg-slate-200/60 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden shadow-2xl">
 
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-separate border-spacing-y-3 table-fixed min-w-[1000px]">
@@ -595,7 +628,7 @@ const Anomalies: React.FC = () => {
                         className="group transition-all duration-300"
                       >
                         <td className={tdClass}>
-                          <span className="font-mono text-[10px] text-slate-500">{String(an.id).substring(0, 8)}</span>
+                          <span className="font-mono text-[10px] text-slate-500">{an.id}</span>
                         </td>
                         <td className={tdClass}>
                           <div className="flex items-center gap-4">
@@ -686,7 +719,7 @@ const Anomalies: React.FC = () => {
                                     <img
                                         src={an.proofImage}
                                         alt="Preuve"
-                                        className="w-10 h-10 object-cover rounded-lg border border-slate-300 dark:border-white/10 group-hover/cap:border-blue-400/60 group-hover/cap:scale-110 transition-all duration-200"
+                                        className="w-10 h-10 object-cover rounded-lg border border-slate-300 dark:border-slate-200 dark:border-white/10 group-hover/cap:border-blue-400/60 group-hover/cap:scale-110 transition-all duration-200"
                                     />
                                     <div className="absolute inset-0 bg-blue-400/0 group-hover/cap:bg-blue-400/10 rounded-lg transition-all" />
                                 </button>
@@ -720,7 +753,11 @@ const Anomalies: React.FC = () => {
                                           const idx = raw.indexOf(m);
                                           if (idx > 0) { analyseOnly = raw.slice(0, idx).trim(); break; }
                                       }
-                                      setLogModal({ title: `Analyse IA — ${an.title}`, content: analyseOnly || "Aucune analyse IA disponible." });
+                                      analyseOnly = analyseOnly
+                                        .replace(/^⚠️\s*Cause probable\s*:\s*Erreur dans le script généré[^\n]*\n*/i, '')
+                                        .trim();
+                                      const displayTitle = an.title.replace(/^\[SCRIPT\]\s*/i, '');
+                                      setLogModal({ title: `Analyse IA — ${displayTitle}`, content: analyseOnly || "Aucune analyse IA disponible." });
                                   }}
                                   className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:text-purple-500 dark:hover:text-purple-400 hover:bg-purple-500/10 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border border-slate-200 dark:border-white/10"
                               >
@@ -862,13 +899,13 @@ const Anomalies: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setViewingList(null)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl"
+              className="absolute inset-0 bg-slate-200/80 dark:bg-slate-200/80 dark:bg-slate-950/80 backdrop-blur-xl"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-white/10 rounded-[3rem] shadow-2xl overflow-hidden"
+              className="relative w-full max-w-2xl bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-[3rem] shadow-2xl overflow-hidden"
               onClick={e => e.stopPropagation()}
             >
               <div className="p-8 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-white/[0.02]">
@@ -941,14 +978,14 @@ const Anomalies: React.FC = () => {
       {/* Modale texte long (logs, scripts) ou image (captures) */}
       {logModal && (
           <div
-              className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+              className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/50 dark:bg-slate-900/50 dark:bg-black/70 backdrop-blur-sm"
               onClick={() => setLogModal(null)}
           >
               <div
-                  className="relative bg-slate-900 border border-slate-300 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-3xl mx-4 flex flex-col max-h-[85vh]"
+                  className="relative bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-3xl mx-4 flex flex-col max-h-[85vh]"
                   onClick={(e) => e.stopPropagation()}
               >
-                  <div className="flex items-center justify-between px-6 py-4 border-b border-slate-300 dark:border-white/10 flex-shrink-0">
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-slate-300 dark:border-slate-200 dark:border-white/10 flex-shrink-0">
                       <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">{logModal.title}</span>
                       <div className="flex items-center gap-3">
                           {!logModal.content.startsWith('__IMAGE__') && (
@@ -975,7 +1012,7 @@ const Anomalies: React.FC = () => {
                           <img
                               src={logModal.content.replace('__IMAGE__', '')}
                               alt={logModal.title}
-                              className="max-w-full max-h-full object-contain rounded-xl border border-slate-300 dark:border-white/10"
+                              className="max-w-full max-h-full object-contain rounded-xl border border-slate-300 dark:border-slate-200 dark:border-white/10"
                           />
                       </div>
                   ) : (
@@ -1007,16 +1044,16 @@ const Anomalies: React.FC = () => {
         >
           {/* Header */}
           <div
-            className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0"
+            className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-white/10 flex-shrink-0"
             onClick={e => e.stopPropagation()}
           >
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Preuves</p>
-              <h3 className="text-base font-bold text-white truncate max-w-lg">{proofLightbox.title}</h3>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white truncate max-w-lg">{proofLightbox.title}</h3>
             </div>
             <button
               onClick={() => setProofLightbox(null)}
-              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-all"
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all"
             >
               <X className="w-4 h-4" />
             </button>
@@ -1032,7 +1069,7 @@ const Anomalies: React.FC = () => {
                   </span>
                   Capture d'écran
                 </p>
-                <div className="rounded-2xl overflow-hidden border border-white/10 bg-slate-900 flex items-center justify-center">
+                <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 flex items-center justify-center">
                   <img
                     src={proofLightbox.image}
                     alt="Capture d'écran"
@@ -1061,7 +1098,7 @@ const Anomalies: React.FC = () => {
                   </span>
                   Replay vidéo
                 </p>
-                <div className="rounded-2xl overflow-hidden border border-blue-500/20 bg-slate-900">
+                <div className="rounded-2xl overflow-hidden border border-blue-500/20 bg-white dark:bg-slate-900">
                   <video
                     src={proofLightbox.video}
                     controls

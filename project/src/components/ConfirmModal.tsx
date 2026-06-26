@@ -54,7 +54,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onCancel}
-                        className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+                        className="absolute inset-0 bg-slate-200/60 dark:bg-slate-200/60 dark:bg-slate-950/60 backdrop-blur-sm"
                     />
 
                     {/* Modal Content */}
@@ -62,7 +62,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="relative w-full max-w-md bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl overflow-hidden shadow-black/50"
+                        className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl overflow-hidden shadow-black/50"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-6">

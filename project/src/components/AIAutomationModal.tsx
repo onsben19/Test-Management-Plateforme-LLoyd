@@ -110,11 +110,11 @@ const AIAutomationModal: React.FC<AIAutomationModalProps> = ({ test, onClose, on
     };
 
     return (
-        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-slate-200/80 dark:bg-slate-200/80 dark:bg-slate-950/80 backdrop-blur-md p-4">
             <motion.div 
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="bg-slate-50 dark:bg-[#0b0e14] border border-slate-300 dark:border-white/10 w-full max-w-4xl rounded-2xl overflow-hidden flex flex-col shadow-2xl max-h-[90vh]"
+                className="bg-slate-50 dark:bg-[#0b0e14] border border-slate-300 dark:border-slate-200 dark:border-white/10 w-full max-w-4xl rounded-2xl overflow-hidden flex flex-col shadow-2xl max-h-[90vh]"
             >
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-white/5">
@@ -179,7 +179,7 @@ const AIAutomationModal: React.FC<AIAutomationModalProps> = ({ test, onClose, on
                             </div>
                             
                             {executing && (
-                                <div className="p-4 rounded-xl border bg-slate-900 border-slate-200 dark:border-white/5 text-slate-700 dark:text-slate-300">
+                                <div className="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-white/5 text-slate-700 dark:text-slate-300">
                                     <h4 className="font-bold text-sm mb-2 animate-pulse flex items-center gap-2 text-amber-400">
                                         <div className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
                                         Exécution en cours - Logs en direct...

@@ -17,7 +17,7 @@ interface ValidateCasDeTestProps {
   setExecutionResult: any;
   liveLogs?: string;
   inline?: boolean;
-  onViewAnomaly?: (anomalyId: number) => void;
+  onViewAnomaly?: (anomalyId: number | string) => void;
 }
 
 const ValidateCasDeTest: React.FC<ValidateCasDeTestProps> = ({
@@ -125,7 +125,7 @@ const highlightPlaywrightCode = (rawCode: string) => {
 
   // ── Execution log view (replaces form while running / after result) ──────
   const executionLogView = (
-    <div className="bg-[#0d1117] max-w-2xl w-full rounded-2xl overflow-hidden flex flex-col shadow-2xl max-h-[90vh] border border-white/10">
+    <div className="bg-white dark:bg-[#0d1117] max-w-2xl w-full rounded-2xl overflow-hidden flex flex-col shadow-2xl max-h-[90vh] border border-slate-200 dark:border-white/10">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.07] shrink-0">
         <div className="flex items-center gap-3">
@@ -133,7 +133,7 @@ const highlightPlaywrightCode = (rawCode: string) => {
             <Terminal className="w-4 h-4 text-blue-400" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-white uppercase tracking-widest">Exécution Playwright</h3>
+            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Exécution Playwright</h3>
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
               {testCaseForm.test_case_ref || 'Cas de test'}
             </p>
@@ -163,7 +163,7 @@ const highlightPlaywrightCode = (rawCode: string) => {
       {/* Terminal logs */}
       <div
         ref={logsRef}
-        className="flex-1 overflow-y-auto p-5 font-mono text-[11px] leading-relaxed text-green-300/90 bg-[#0d1117] min-h-[260px] max-h-[420px]"
+        className="flex-1 overflow-y-auto p-5 font-mono text-[11px] leading-relaxed text-green-300/90 bg-white dark:bg-[#0d1117] min-h-[260px] max-h-[420px]"
         style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
       >
         {executingCode && !liveLogs && (
@@ -214,7 +214,7 @@ const highlightPlaywrightCode = (rawCode: string) => {
           type="button"
           onClick={onClose}
           disabled={executingCode}
-          className="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          className="px-5 py-2.5 bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all disabled:opacity-30 disabled:cursor-not-allowed"
         >
           Fermer
         </button>
@@ -573,12 +573,12 @@ const highlightPlaywrightCode = (rawCode: string) => {
 
       <AnimatePresence>
         {isCodeModalOpen && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[250] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-200/80 dark:bg-slate-200/80 dark:bg-slate-950/80 backdrop-blur-sm z-[250] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-[#111827] border border-white/10 rounded-2xl max-w-4xl w-full overflow-hidden flex flex-col shadow-2xl max-h-[85vh]"
+              className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-2xl max-w-4xl w-full overflow-hidden flex flex-col shadow-2xl max-h-[85vh]"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}

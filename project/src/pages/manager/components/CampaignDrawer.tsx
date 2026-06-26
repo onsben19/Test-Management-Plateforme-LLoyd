@@ -12,6 +12,7 @@ import AIInsightModal from '../../../components/AIInsightModal';
 import CatchupPlanIA from '../../../components/CatchupPlanIA';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import { formatCadencePerDay } from '../../../utils/cadence';
 
 interface Campaign {
     id: number;
@@ -101,7 +102,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
         };
 
         fetchDetails();
-    }, [campaign, isOpen]);
+    }, [campaign?.id, campaign?.nb_test_cases, campaign?.passed_count, campaign?.failed_count, isOpen]);
 
     if (!campaign) return null;
 
@@ -158,7 +159,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                     {/* Meta row */}
                                     <div className="flex items-center gap-3">
                                         {campaign.start_date && (
-                                            <div className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl flex items-center gap-2">
+                                            <div className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-xl flex items-center gap-2">
                                                 <Calendar size={14} className="text-slate-500" />
                                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                                                     {new Date(campaign.start_date).toLocaleDateString('fr-FR')}
@@ -166,7 +167,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                             </div>
                                         )}
                                         {campaign.estimated_end_date && (
-                                            <div className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-xl flex items-center gap-2">
+                                            <div className="px-3 py-1.5 bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-xl flex items-center gap-2">
                                                 <Clock size={14} className="text-slate-500" />
                                                 <span className="text-xs font-bold text-slate-400">
                                                     Deadline <span className="text-slate-800 dark:text-slate-200">
@@ -243,7 +244,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                                 Cadence IA
                                             </div>
                                             <div className="text-xl font-black text-slate-900 dark:text-white">
-                                                {catchupData?.current_velocity || 0} <span className="text-xs text-slate-500">tests/j</span>
+                                                {formatCadencePerDay(catchupData?.current_velocity)} <span className="text-xs text-slate-500">tests/j</span>
                                             </div>
                                         </div>
                                         <div className="bg-slate-50 dark:bg-white/[0.02] border border-rose-500/30 rounded-2xl p-4 relative overflow-hidden">
@@ -282,7 +283,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                             </p>
                                             <button
                                                 onClick={() => setIsAIModalOpen(true)}
-                                                className="px-6 py-3 bg-slate-50 dark:bg-[#131722]/80 border border-slate-300 dark:border-white/10 rounded-[1.2rem] text-[10px] font-black uppercase tracking-[widest] text-slate-900 dark:text-white transition-all hover:bg-white hover:text-black flex items-center gap-3 group/btn shadow-xl"
+                                                className="px-6 py-3 bg-slate-50 dark:bg-[#131722]/80 border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-[1.2rem] text-[10px] font-black uppercase tracking-[widest] text-slate-900 dark:text-white transition-all hover:bg-white hover:text-black flex items-center gap-3 group/btn shadow-xl"
                                             >
                                                 Lire la suite
                                                 <ArrowRight size={14} className="group-hover/btn:translate-x-1.5 transition-transform" />
@@ -297,7 +298,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                         <div className="flex -space-x-2">
                                             {(campaign.assigned_testers_names || []).length > 0 ? (
                                                 (campaign.assigned_testers_names || []).slice(0, 3).map((name, i) => (
-                                                    <div key={i} className={`w-10 h-10 rounded-full border-2 border-slate-200 dark:border-[#0b0e14] flex items-center justify-center text-xs font-black text-white ${i === 0 ? 'bg-blue-600' : i === 1 ? 'bg-emerald-600' : 'bg-purple-600'}`}>
+                                                    <div key={i} className={`w-10 h-10 rounded-full border-2 border-slate-200 dark:border-[#0b0e14] flex items-center justify-center text-xs font-black text-slate-900 dark:text-white ${i === 0 ? 'bg-blue-600' : i === 1 ? 'bg-emerald-600' : 'bg-purple-600'}`}>
                                                         {name.charAt(0).toUpperCase()}
                                                     </div>
                                                 ))
@@ -316,7 +317,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                         </div>
                                     </div>
 
-                                    <div className="w-24 h-16 bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col items-center justify-center">
+                                    <div className="w-24 h-16 bg-slate-50 dark:bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col items-center justify-center">
                                         <span className="text-2xl font-black text-slate-900 dark:text-white leading-none mb-1">{total}</span>
                                         <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Cas Test</span>
                                     </div>
@@ -325,7 +326,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
                                 {/* VOIR LE CAHIER DE TESTS Button */}
                                 <button
                                     onClick={() => navigate('/explorer')}
-                                    className="w-full py-5 bg-slate-50 dark:bg-[#0b0e14] border border-slate-300 dark:border-white/10 rounded-2xl flex items-center justify-center gap-4 text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-white/5 transition-all group/footer"
+                                    className="w-full py-5 bg-slate-50 dark:bg-[#0b0e14] border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-2xl flex items-center justify-center gap-4 text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-white/5 transition-all group/footer"
                                 >
                                     <div className="flex flex-col gap-1 items-center justify-center scale-75 group-hover/footer:scale-90 transition-transform">
                                         <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
@@ -366,7 +367,7 @@ const CampaignDrawer: React.FC<CampaignDrawerProps> = ({ campaign, isOpen, onClo
 
             {/* AI Catchup Plan Modal */}
             {isCatchupPlanOpen && createPortal(
-                <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto">
+                <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-200/80 dark:bg-slate-200/80 dark:bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto">
                     <div className="relative w-full max-w-2xl my-8">
                         <button
                             onClick={() => setIsCatchupPlanOpen(false)}

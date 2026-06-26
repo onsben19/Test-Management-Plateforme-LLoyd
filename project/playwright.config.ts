@@ -1,6 +1,7 @@
 /// <reference types="node" />
 import { defineConfig, devices } from '@playwright/test';
 
+const frontendUrl = process.env.FRONTEND_URL || 'http://nginx';
 
 export default defineConfig({
   testDir: './tests',
@@ -15,7 +16,7 @@ export default defineConfig({
   use: {
     actionTimeout: 60000,
     navigationTimeout: 60000,
-    baseURL: 'http://localhost:5173',
+    baseURL: frontendUrl,
     trace: 'on-first-retry',
     video: process.env.PW_VIDEO === 'on' ? 'on' : 'off',
     viewport: { width: 1280, height: 720 },
@@ -25,14 +26,11 @@ export default defineConfig({
   },
 
   projects: [
-    // ─── Projet SETUP : se connecte une seule fois et sauvegarde la session ───
     {
       name: 'manager-setup',
       testMatch: '**/manager/auth.setup.ts',
       use: { ...devices['Desktop Chrome'] },
     },
-
-    // ─── Tests Manager : réutilisent la session sauvegardée ────────────────────
     {
       name: 'manager',
       testMatch: '**/manager/*.spec.ts',
@@ -42,15 +40,11 @@ export default defineConfig({
         storageState: 'tests/manager/.auth/manager.json',
       },
     },
-
-    // ─── Projet SETUP Testeur ──────────────────────────────────────────────────
     {
       name: 'tester-setup',
       testMatch: '**/tester/auth.setup.ts',
       use: { ...devices['Desktop Chrome'] },
     },
-
-    // ─── Tests Testeur : réutilisent la session sauvegardée ────────────────────
     {
       name: 'tester',
       testMatch: '**/tester/*.spec.ts',
@@ -60,15 +54,11 @@ export default defineConfig({
         storageState: 'tests/tester/.auth/tester.json',
       },
     },
-
-    // ─── Tests Admin : autonomes ───────────────────────────────────────────────
     {
       name: 'admin',
       testMatch: '**/admin/*.spec.ts',
       use: { ...devices['Desktop Chrome'] },
     },
-
-    // ─── Tests généraux (login.spec.ts) sans session pré-chargée ──────────────
     {
       name: 'chromium',
       testIgnore: ['**/manager/**', '**/admin/**', '**/tester/**'],
@@ -78,7 +68,7 @@ export default defineConfig({
 
   webServer: process.env.SKIP_WEBSERVER ? undefined : {
     command: 'npm run dev',
-    url: 'http://localhost:5173',
+    url: process.env.FRONTEND_URL || 'http://nginx',
     reuseExistingServer: true,
   },
 });

@@ -13,14 +13,18 @@ rectangle "Système InsureTM" {
     usecase "S'authentifier" as UC_Auth
 
     usecase "Gérer la messagerie interne\n(Chat et E-mails)" as UC_Gerer
-    
+
     usecase "Consulter" as UC_Consulter
     usecase "Écrire" as UC_Ecrire
     usecase "Modifier" as UC_Modifier
     usecase "Supprimer" as UC_Supprimer
     usecase "Archiver" as UC_Archiver
-    
+
     usecase "Partager des pièces jointes" as UC_Pieces
+
+    usecase "Recevoir les messages\nen temps réel" as UC_TempsReel
+    usecase "Voir l'indicateur\n« écrit... »" as UC_Ecrit
+    usecase "Consulter l'accusé\nde lecture (Vu)" as UC_Vu
 
 }
 
@@ -37,7 +41,21 @@ UC_Gerer <|-- UC_Archiver
 
 UC_Ecrire <.. UC_Pieces : <<extend>>
 
+UC_Consulter <.. UC_TempsReel : <<extend>>
+UC_Consulter <.. UC_Ecrit : <<extend>>
+UC_Consulter <.. UC_Vu : <<extend>>
+
 UC_Gerer ..> UC_Auth : <<include>>
 UC_Gerer ..> SMTP : <<include>>
+
+note right of UC_TempsReel
+  WebSocket global (ws/chat/global/)
+  sans rechargement de page
+end note
+
+note right of UC_Vu
+  Marquage via mark_read
+  + double coche bleue
+end note
 
 @enduml

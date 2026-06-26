@@ -191,7 +191,7 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         filepath = os.path.join(tests_dir, filename)
         
         # Inject screenshot, baseURL and storageState config based on user role
-        frontend_url = os.environ.get('FRONTEND_URL', 'http://nginx')
+        frontend_url = settings.FRONTEND_URL
         
         role = request.user.role.lower() if request.user and getattr(request.user, 'role', None) else 'tester'
         if role not in ['manager', 'tester']:
@@ -201,7 +201,6 @@ class TestCaseViewSet(viewsets.ModelViewSet):
         
         config_injection = f"test.use({{ screenshot: 'on', baseURL: '{frontend_url}', storageState: '{storage_state_path}' }});\n"
             
-        # Remplacer localhost par le service nginx du réseau Docker
         code = code.replace('http://localhost', frontend_url).replace('https://localhost', frontend_url)
 
         if 'test.use' not in code:
@@ -281,6 +280,7 @@ class TestCaseViewSet(viewsets.ModelViewSet):
 
                 env = os.environ.copy()
                 env['SKIP_WEBSERVER'] = 'true'
+                env['FRONTEND_URL'] = settings.FRONTEND_URL
                 env['PYTHONUNBUFFERED'] = '1'
                 env['FORCE_COLOR'] = '0'
                 env['CI'] = 'true'

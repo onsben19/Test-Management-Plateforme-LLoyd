@@ -4,7 +4,7 @@ import PageLayout from '../components/PageLayout';
 import {
     Briefcase, Plus, Search, MoreVertical, Edit, Trash2,
     Layers, Calendar, ChevronRight, LayoutGrid, LayoutList, ArrowRight, Pencil, Trash,
-    BarChart3, Activity, List, GitMerge, Target
+    BarChart3, Activity, List, GitMerge, Target, Save, XCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { businessProjectService } from '../services/api';
@@ -38,6 +38,7 @@ const ExpandableDescription = ({ text, maxChars = 90, emptyLabel = 'Aucune descr
     );
 };
 
+const DEFAULT_PROJECT_FORM = { name: '', description: '', status: 'ACTIF' as 'ACTIF' | 'TERMINÉ' };
 
 const ProjectPortfolio = () => {
     const { t } = useTranslation();
@@ -51,7 +52,7 @@ const ProjectPortfolio = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<any>(null);
-    const [newProject, setNewProject] = useState({ name: '', description: '' });
+    const [newProject, setNewProject] = useState({ ...DEFAULT_PROJECT_FORM });
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
@@ -109,7 +110,7 @@ const ProjectPortfolio = () => {
                 toast.success("Nouveau projet créé");
             }
             setIsModalOpen(false);
-            setNewProject({ name: '', description: '' });
+            setNewProject({ ...DEFAULT_PROJECT_FORM });
             setEditingProject(null);
             fetchProjects(currentPage);
         } catch {
@@ -136,7 +137,7 @@ const ProjectPortfolio = () => {
     const HeaderActions = isAdminOrManager && (
         <Button
             variant="secondary"
-            onClick={() => { setEditingProject(null); setNewProject({ name: '', description: '' }); setIsModalOpen(true); }}
+            onClick={() => { setEditingProject(null); setNewProject({ ...DEFAULT_PROJECT_FORM }); setIsModalOpen(true); }}
             className="text-[10px] font-bold tracking-wider rounded-lg"
         >
             {t('portfolio.newProject', 'NOUVEAU PROJET')}
@@ -281,7 +282,7 @@ const ProjectPortfolio = () => {
                             <div className="flex flex-col gap-3 max-w-6xl mx-auto pb-10 w-full">
                                 {/* LIST HEADER ROW */}
                                 {!loading && paginatedProjects.length > 0 && (
-                                    <div className="flex items-center px-5 py-2 mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 border-b border-slate-200/50 dark:border-white/5 pb-3">
+                                    <div className="flex items-center px-5 py-2 mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 border-b border-slate-200/50 dark:border-slate-200 dark:border-white/5 pb-3">
                                         <div className="flex-1 min-w-[200px] ml-6">{t('portfolio.table.project', 'Projet')}</div>
                                         <div className="flex-[2] min-w-[300px] hidden lg:block">{t('portfolio.table.description', 'Description')}</div>
                                         <div className="flex-1 text-center">{t('portfolio.table.releases', 'Releases')}</div>
@@ -292,7 +293,7 @@ const ProjectPortfolio = () => {
                                     </div>
                                 )}
                                 {loading ? (
-                                    [1, 2, 3].map(i => <div key={i} className="h-16 bg-[#111827] border border-white/[0.07] rounded-[10px] animate-pulse mb-6" />)
+                                    [1, 2, 3].map(i => <div key={i} className="h-16 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/[0.07] rounded-[10px] animate-pulse mb-6" />)
                                 ) : paginatedProjects.length === 0 ? (
                                     <div className="py-40 text-center opacity-30">
                                         <p className="text-sm font-bold uppercase tracking-widest">{t('portfolio.noProjects', 'Aucun projet trouvé')}</p>
@@ -300,9 +301,18 @@ const ProjectPortfolio = () => {
                                 ) : (
                                     paginatedProjects.map((project, idx) => {
                                         const isActive = project.status !== 'TERMINÉ';
-                                        // health_score = taux de réussite réel (passed / executed × 100) depuis l'API
-                                        const healthPct: number | null = project.health_score ?? null;
-                                        const healthLabel: string = project.health_label ?? 'Pas encore démarré';
+                                        // health_score = taux de réussite réel (passed / planned × 100) depuis l'API
+                                        const rawHealthPct: number | null = project.health_score ?? null;
+                                        const rawHealthLabel: string = project.health_label ?? 'Pas encore démarré';
+                                        // Cache périmé : projet Actif mais label « Terminé » (ex. ancien statut TERMINÉ)
+                                        const isStaleHealth = isActive && rawHealthLabel === 'Terminé ✓';
+                                        const healthPct: number | null = isStaleHealth || rawHealthLabel === 'Pas encore démarré'
+                                            ? null
+                                            : rawHealthPct;
+                                        const healthLabel: string = isStaleHealth ? 'Pas encore démarré' : rawHealthLabel;
+                                        const displayHealthLabel = healthLabel === 'Complet ✓' && isActive
+                                            ? 'QA validée'
+                                            : healthLabel.replace(' ✓', '');
                                         const healthColor = healthPct === null
                                             // Gris : aucun test planifié
                                             ? { bar: '#475569', text: '#94A3B8' }
@@ -331,13 +341,13 @@ const ProjectPortfolio = () => {
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: idx * 0.05 }}
                                                 onClick={() => navigate('/releases', { state: { businessProjectId: project.id, businessProjectName: project.name } })}
-                                                className={`bg-[#111827] border border-white/[0.07] rounded-[14px] py-5 px-7 flex items-center hover:border-blue-500/30 hover:bg-[#1f2937] transition-all cursor-pointer group shadow-sm gap-6 relative ${openMenuId === project.id ? 'z-50' : 'z-0'}`}
+                                                className={`bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/[0.07] rounded-[14px] py-5 px-7 flex items-center hover:border-blue-500/30 hover:bg-slate-100 dark:bg-[#1f2937] transition-all cursor-pointer group shadow-sm gap-6 relative ${openMenuId === project.id ? 'z-50' : 'z-0'}`}
                                             >
                                                 {/* Left: Dot & Name */}
                                                 <div className="flex items-center gap-4 w-[28%] min-w-0 shrink-0">
                                                     <div className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-[#5DCAA5]' : 'bg-[#F09595]'}`} />
                                                     <h4 
-                                                        className="text-[15px] font-bold text-[#e8eaf6] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors"
+                                                        className="text-[15px] font-bold text-slate-800 dark:text-[#e8eaf6] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors"
                                                         title={project.name}
                                                     >
                                                         {project.name}
@@ -346,7 +356,7 @@ const ProjectPortfolio = () => {
 
                                                 {/* Description */}
                                                 <div className="flex-1 min-w-0 flex items-center">
-                                                    <div className="text-[13px] font-medium text-white/[0.35] max-w-full" onClick={(e) => e.stopPropagation()}>
+                                                    <div className="text-[13px] font-medium text-slate-900 dark:text-white/[0.35] max-w-full" onClick={(e) => e.stopPropagation()}>
                                                         <ExpandableDescription
                                                             text={project.description}
                                                             maxChars={60}
@@ -357,8 +367,8 @@ const ProjectPortfolio = () => {
 
                                                 {/* Releases & Date */}
                                                 <div className="flex items-center gap-6 shrink-0 w-[220px]">
-                                                    <span className="text-[13px] font-medium text-white/50">{project.releases_count || 0} release{(project.releases_count || 0) > 1 ? 's' : ''}</span>
-                                                    <div className="flex items-center text-white/50">
+                                                    <span className="text-[13px] font-medium text-slate-900 dark:text-white/50">{project.releases_count || 0} release{(project.releases_count || 0) > 1 ? 's' : ''}</span>
+                                                    <div className="flex items-center text-slate-500 dark:text-white/50">
                                                         <span className="text-[13px] font-medium capitalize">{new Date(project.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).replace('.', '')}</span>
                                                     </div>
                                                 </div>
@@ -371,7 +381,7 @@ const ProjectPortfolio = () => {
                                                             {/* Masquer le label si identique au badge Statut (éviter la redondance) */}
                                                             {healthLabel !== 'Terminé ✓' && (
                                                                 <span style={{ fontSize: '9px', fontWeight: 700, color: healthColor.text, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                                                                    {healthLabel}
+                                                                    {displayHealthLabel}
                                                                 </span>
                                                             )}
                                                             <span style={{ fontSize: '10px', fontWeight: 800, color: healthColor.text, marginLeft: 'auto' }}>
@@ -391,7 +401,7 @@ const ProjectPortfolio = () => {
                                                     <div className="relative flex items-center shrink-0" onClick={e => e.stopPropagation()}>
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === project.id ? null : project.id); }}
-                                                            className="p-1 text-white/30 hover:text-white rounded-md hover:bg-white/5 transition-colors"
+                                                            className="p-1 text-slate-500 dark:text-white/30 hover:text-slate-900 dark:hover:text-white rounded-md hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
                                                         >
                                                             <MoreVertical className="w-4 h-4" />
                                                         </button>
@@ -418,14 +428,14 @@ const ProjectPortfolio = () => {
                                                                                 }
                                                                                 setOpenMenuId(null);
                                                                             }}
-                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl transition-all"
+                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-all"
                                                                         >
                                                                             <Activity className={`w-3.5 h-3.5 ${project.status === 'ACTIF' ? 'text-rose-600 dark:text-rose-500/70' : 'text-emerald-600 dark:text-emerald-500/70'}`} />
                                                                             {project.status === 'ACTIF' ? 'Marquer Terminé' : 'Marquer Actif'}
                                                                         </button>
                                                                         <button
-                                                                            onClick={() => { setEditingProject(project); setNewProject({ name: project.name, description: project.description }); setIsModalOpen(true); setOpenMenuId(null); }}
-                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl transition-all"
+                                                                            onClick={() => { setEditingProject(project); setNewProject({ name: project.name, description: project.description, status: project.status || 'ACTIF' }); setIsModalOpen(true); setOpenMenuId(null); }}
+                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-all"
                                                                         >
                                                                             <Pencil className="w-3.5 h-3.5 text-blue-600 dark:text-blue-500/70" />
                                                                             {t('releaseManager.menu.edit') || 'Modifier'}
@@ -437,7 +447,7 @@ const ProjectPortfolio = () => {
                                                                                 setIsGraphOpen(true);
                                                                                 setOpenMenuId(null);
                                                                             }}
-                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10 rounded-xl transition-all"
+                                                                            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-all"
                                                                         >
                                                                             <GitMerge className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-500/70" />
                                                                             Vue Graphe
@@ -456,7 +466,7 @@ const ProjectPortfolio = () => {
                                                         </AnimatePresence>
                                                     </div>
 
-                                                    <ChevronRight className="w-4 h-4 text-white/20 ml-2" />
+                                                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-white/20 ml-2" />
                                                 </div>
                                             </motion.div>
                                         )
@@ -505,7 +515,7 @@ const ProjectPortfolio = () => {
                                 actions={(item) => (
                                     <div className="flex items-center gap-6 pr-4">
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); setEditingProject(item); setNewProject({ name: item.name, description: item.description }); setIsModalOpen(true); }}
+                                            onClick={(e) => { e.stopPropagation(); setEditingProject(item); setNewProject({ name: item.name, description: item.description, status: item.status || 'ACTIF' }); setIsModalOpen(true); }}
                                             className="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                                             title="Modifier"
                                         >
@@ -528,7 +538,7 @@ const ProjectPortfolio = () => {
                                     <button
                                         onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                                         disabled={currentPage === 1}
-                                        className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 flex items-center justify-center text-slate-400 disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20 transition-all font-black"
+                                        className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-400 disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20 transition-all font-black"
                                     >
                                         <ChevronRight className="w-5 h-5 rotate-180" />
                                     </button>
@@ -538,7 +548,7 @@ const ProjectPortfolio = () => {
                                             onClick={() => handlePageChange(i + 1)}
                                             className={`w-12 h-12 rounded-xl border font-black text-xs transition-all ${currentPage === i + 1
                                                 ? 'bg-blue-600 border-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]'
-                                                : 'bg-slate-100 dark:bg-white/5 border-slate-300 dark:border-white/10 text-slate-400 hover:bg-slate-200 dark:bg-white/10'
+                                                : 'bg-slate-100 dark:bg-white/5 border-slate-300 dark:border-slate-200 dark:border-white/10 text-slate-400 hover:bg-slate-200 dark:bg-white/10'
                                                 }`}
                                         >
                                             {i + 1}
@@ -547,7 +557,7 @@ const ProjectPortfolio = () => {
                                     <button
                                         onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                                         disabled={currentPage === totalPages}
-                                        className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 flex items-center justify-center text-slate-400 disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20 transition-all font-black"
+                                        className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-400 disabled:opacity-20 disabled:cursor-not-allowed hover:bg-blue-500/10 hover:text-blue-400 hover:border-blue-500/20 transition-all font-black"
                                     >
                                         <ChevronRight className="w-5 h-5" />
                                     </button>
@@ -558,40 +568,100 @@ const ProjectPortfolio = () => {
                 </AnimatePresence>
             </div>
 
-            {/* Modal */}
+            {/* Modal création / édition projet */}
             <AnimatePresence>
                 {isModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 backdrop-blur-2xl bg-black/60">
+                    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 backdrop-blur-sm bg-slate-900/50 dark:bg-slate-900/50 dark:bg-black/70 overflow-y-auto">
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="w-full max-w-lg bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-[2.5rem] p-10 shadow-2xl"
+                            initial={{ opacity: 0, scale: 0.97, y: 12 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.97, y: 12 }}
+                            transition={{ duration: 0.18 }}
+                            className="relative w-full max-w-lg bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/[0.08] rounded-[20px] shadow-[0_32px_80px_rgba(0,0,0,0.6)] flex flex-col max-h-[92vh] my-auto overflow-hidden"
                         >
-                            <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-8 tracking-tight uppercase">{editingProject ? 'Modifier le Projet' : 'Nouveau Projet'}</h2>
-                            <div className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nom du Projet</label>
+                            <div className="px-6 pt-6 pb-5 flex items-center justify-between border-b border-slate-200 dark:border-white/[0.06] shrink-0">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <div className={`w-1.5 h-5 rounded-full ${editingProject ? 'bg-[#EF9F27]' : 'bg-[#378ADD]'}`} />
+                                        <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white">
+                                            {editingProject ? 'Modifier le projet' : 'Nouveau projet'}
+                                        </h2>
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 dark:text-white/30 ml-4">
+                                        {editingProject ? `Édition · ${editingProject.name}` : 'Créer un projet dans le portefeuille'}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => { setIsModalOpen(false); setEditingProject(null); setNewProject({ ...DEFAULT_PROJECT_FORM }); }}
+                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-white/[0.05] hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white transition-all border border-slate-200 dark:border-white/[0.06]"
+                                >
+                                    <XCircle size={15} />
+                                </button>
+                            </div>
+
+                            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 dark:text-white/30 uppercase tracking-[0.15em]">Nom du projet</label>
                                     <input
                                         type="text"
-                                        className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600/50 outline-none transition-all"
+                                        required
+                                        className="w-full bg-slate-50 dark:bg-[#1a2235] border border-slate-200 dark:border-white/[0.08] rounded-[10px] px-4 py-2.5 text-[13px] text-slate-900 dark:text-white placeholder:text-slate-400 dark:text-white/20 focus:border-[#378ADD]/50 focus:ring-0 outline-none transition-colors"
+                                        placeholder="Ex. Module Fraude & Détection"
                                         value={newProject.name}
                                         onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Description</label>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 dark:text-white/30 uppercase tracking-[0.15em]">Description</label>
                                     <textarea
-                                        className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-6 py-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600/50 outline-none h-32 resize-none transition-all"
+                                        className="w-full bg-slate-50 dark:bg-[#1a2235] border border-slate-200 dark:border-white/[0.08] rounded-[10px] px-4 py-2.5 text-[13px] text-slate-900 dark:text-white placeholder:text-slate-400 dark:text-white/20 focus:border-[#378ADD]/50 focus:ring-0 outline-none min-h-[80px] resize-none transition-colors"
+                                        placeholder="Objectifs, périmètre, contexte métier..."
                                         value={newProject.description}
                                         onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
                                     />
                                 </div>
-                                <div className="flex justify-end gap-4 pt-4">
-                                    <Button variant="ghost" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>Annuler</Button>
-                                    <Button onClick={handleSaveProject} disabled={isSubmitting}>
-                                        {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
-                                    </Button>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-500 dark:text-white/30 uppercase tracking-[0.15em]">Statut</label>
+                                    {editingProject ? (
+                                        <select
+                                            className="w-full bg-slate-50 dark:bg-[#1a2235] border border-slate-200 dark:border-white/[0.08] rounded-[10px] px-3 py-2.5 text-[13px] text-slate-900 dark:text-white focus:border-[#378ADD]/50 focus:ring-0 outline-none cursor-pointer transition-colors appearance-none"
+                                            value={newProject.status}
+                                            onChange={(e) => setNewProject({ ...newProject, status: e.target.value as 'ACTIF' | 'TERMINÉ' })}
+                                        >
+                                            <option value="ACTIF" className="bg-white dark:bg-[#0d1117]">Actif</option>
+                                            <option value="TERMINÉ" className="bg-white dark:bg-[#0d1117]">Terminé</option>
+                                        </select>
+                                    ) : (
+                                        <div className="flex items-center justify-between bg-slate-50 dark:bg-[#1a2235] border border-[#1D9E75]/20 rounded-[10px] px-4 py-2.5">
+                                            <div className="flex items-center gap-2.5">
+                                                <span className="w-2 h-2 rounded-full bg-[#5DCAA5] shadow-[0_0_10px_rgba(93,202,165,0.5)]" />
+                                                <span className="text-[13px] text-slate-900 dark:text-white font-medium">Actif</span>
+                                            </div>
+                                            <span className="text-[10px] font-semibold text-[#5DCAA5] bg-[#1D9E75]/10 border border-[#1D9E75]/20 px-2 py-0.5 rounded-full">Par défaut</span>
+                                        </div>
+                                    )}
                                 </div>
+                            </div>
+
+                            <div className="px-6 py-4 border-t border-slate-200 dark:border-white/[0.06] flex items-center gap-3 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsModalOpen(false); setEditingProject(null); setNewProject({ ...DEFAULT_PROJECT_FORM }); }}
+                                    disabled={isSubmitting}
+                                    className="px-5 py-2.5 text-[12px] font-medium text-slate-500 dark:text-white/40 hover:text-slate-900 dark:hover:text-white transition-colors rounded-[8px] hover:bg-slate-100 dark:bg-white/[0.05] disabled:opacity-40"
+                                >
+                                    Annuler
+                                </button>
+                                <button
+                                    onClick={handleSaveProject}
+                                    disabled={!newProject.name.trim() || isSubmitting}
+                                    className="flex-1 py-2.5 bg-[#378ADD] hover:bg-[#2e75bc] disabled:opacity-40 text-white rounded-[10px] text-[13px] font-semibold transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                                >
+                                    {editingProject ? <Save size={14} /> : <Plus size={14} />}
+                                    {isSubmitting ? 'Enregistrement...' : editingProject ? 'Enregistrer' : 'Créer le projet'}
+                                </button>
                             </div>
                         </motion.div>
                     </div>

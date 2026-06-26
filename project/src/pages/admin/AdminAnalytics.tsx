@@ -177,7 +177,7 @@ const AdminAnalytics = () => {
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                     <div className="xl:col-span-2 space-y-6">
-                        <div className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl max-h-[65vh] overflow-y-auto custom-scrollbar">
+                        <div className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl max-h-[65vh] overflow-y-auto custom-scrollbar">
                             <AdminTable
                                 columns={columns}
                                 data={paginatedConversations}
@@ -188,7 +188,7 @@ const AdminAnalytics = () => {
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => handleSelectConv(item)}
-                                            className={`p-2.5 rounded-xl transition-all ${selectedConv?.id === item.id ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-white hover:bg-slate-200 dark:bg-white/10'}`}
+                                            className={`p-2.5 rounded-xl transition-all ${selectedConv?.id === item.id ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:bg-white/10'}`}
                                             title="Consulter"
                                         >
                                             <Eye className="w-4 h-4" />
@@ -221,7 +221,7 @@ const AdminAnalytics = () => {
                                     initial={{ opacity: 0, x: 20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: 20 }}
-                                    className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-white/10 rounded-[2.5rem] flex flex-col h-[700px] shadow-2xl sticky top-24 overflow-hidden"
+                                    className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-[2.5rem] flex flex-col h-[700px] shadow-2xl sticky top-24 overflow-hidden"
                                 >
                                     <div className="p-8 border-b border-slate-200 dark:border-white/5 bg-gradient-to-r from-blue-600/10 to-transparent">
                                         <div className="flex justify-between items-center mb-4">
@@ -255,7 +255,7 @@ const AdminAnalytics = () => {
                                                 </span>
                                                 <div className={`max-w-[90%] p-4 rounded-3xl text-sm leading-relaxed shadow-lg ${m.sender === 'user'
                                                     ? 'bg-blue-600 text-white rounded-tr-none'
-                                                    : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-white/10 rounded-tl-none'
+                                                    : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-tl-none'
                                                     }`}>
                                                     <p className="whitespace-pre-wrap font-medium">{m.text}</p>
                                                     {m.sql && (
@@ -275,7 +275,7 @@ const AdminAnalytics = () => {
                                     </div>
                                 </motion.div>
                             ) : (
-                                <div className="bg-slate-100 dark:bg-white/5 border border-dashed border-slate-300 dark:border-white/10 rounded-[2.5rem] p-16 text-center sticky top-24 flex flex-col items-center justify-center min-h-[500px]">
+                                <div className="bg-slate-100 dark:bg-white/5 border border-dashed border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-[2.5rem] p-16 text-center sticky top-24 flex flex-col items-center justify-center min-h-[500px]">
                                     <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mb-8 relative">
                                         <Sparkles className="w-10 h-10 text-blue-500/40" />
                                         <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full scale-150 animate-pulse" />

@@ -84,14 +84,14 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                     <span className="font-medium text-[13px]">Nouvelle discussion</span>
                 </button>
 
-                <div className="relative flex items-center bg-[#1a2235] border-[0.5px] border-[rgba(255,255,255,0.07)] rounded-[8px] px-[10px] py-[7px]">
-                    <Search className="w-3.5 h-3.5 text-[rgba(255,255,255,0.25)] shrink-0 mr-2" />
+                <div className="relative flex items-center bg-slate-50 dark:bg-[#1a2235] border-[0.5px] border-slate-200 dark:border-slate-200 dark:border-white/[0.07] rounded-[8px] px-[10px] py-[7px]">
+                    <Search className="w-3.5 h-3.5 text-slate-400 dark:text-white/25 shrink-0 mr-2" />
                     <input 
                         type="text" 
                         placeholder="Rechercher..." 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-transparent border-none outline-none w-full text-[11px] text-[#e8eaf6] placeholder-[rgba(255,255,255,0.25)]"
+                        className="bg-transparent border-none outline-none w-full text-[11px] text-slate-800 dark:text-[#e8eaf6] placeholder-slate-400 dark:placeholder-white/25"
                     />
                 </div>
             </div>
@@ -111,13 +111,13 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                         ))}
                     </div>
                 ) : filteredConversations.length === 0 ? (
-                    <div className="text-center p-4 text-[11px] text-[rgba(255,255,255,0.3)]">
+                    <div className="text-center p-4 text-[11px] text-slate-500 dark:text-white/30">
                         Aucune discussion
                     </div>
                 ) : (
                     groups.map(group => (
                         <div key={group.label} className="mb-2">
-                            <div className="px-2 mb-1 text-[9px] uppercase tracking-[0.08em] text-[rgba(255,255,255,0.2)] font-medium">
+                            <div className="px-2 mb-1 text-[9px] uppercase tracking-[0.08em] text-slate-400 dark:text-white/20 font-medium">
                                 {group.label}
                             </div>
                             <div className="flex flex-col gap-0.5">
@@ -130,13 +130,13 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                                             className={`w-full text-left p-[8px] rounded-[8px] border-[0.5px] transition-colors
                                                 ${isActive 
                                                     ? 'bg-[rgba(127,119,221,0.1)] border-[rgba(127,119,221,0.2)]' 
-                                                    : 'bg-transparent border-transparent hover:bg-[rgba(255,255,255,0.04)]'
+                                                    : 'bg-transparent border-transparent hover:bg-slate-100 dark:bg-white/[0.04]'
                                                 }`}
                                         >
-                                            <div className="text-[12px] text-[rgba(255,255,255,0.65)] whitespace-nowrap overflow-hidden text-ellipsis mb-0.5 font-medium">
+                                            <div className="text-[12px] text-slate-700 dark:text-white/65 whitespace-nowrap overflow-hidden text-ellipsis mb-0.5 font-medium">
                                                 {conv.title || 'Nouvelle discussion'}
                                             </div>
-                                            <div className="text-[10px] text-[rgba(255,255,255,0.25)]">
+                                            <div className="text-[10px] text-slate-400 dark:text-white/25">
                                                 {formatTimestamp(conv.created_at)}
                                             </div>
                                         </button>

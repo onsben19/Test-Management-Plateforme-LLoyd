@@ -55,6 +55,18 @@ const AdminAnomalies = () => {
     }, []);
 
     useEffect(() => {
+        if (!highlightId || anomalies.length === 0) return;
+        const found = anomalies.find((a) => a.id.toString() === highlightId);
+        if (found) {
+            setSelectedAnomaly(found);
+            return;
+        }
+        anomalyService.getAnomaly(highlightId)
+            .then((res) => setSelectedAnomaly(res.data))
+            .catch(() => {});
+    }, [highlightId, anomalies]);
+
+    useEffect(() => {
         setCurrentPage(1);
     }, [searchQuery, criticalityFilter]);
 
@@ -62,7 +74,9 @@ const AdminAnomalies = () => {
         return anomalies.filter(anomaly => {
             if (highlightId && anomaly.id.toString() === highlightId) return true;
 
-            const matchesSearch = (anomaly.titre || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            const matchesSearch = !searchQuery.trim() ||
+                anomaly.id.toString() === searchQuery.trim().replace(/^#/, '') ||
+                (anomaly.titre || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (anomaly.description || '').toLowerCase().includes(searchQuery.toLowerCase());
             const matchesCriticality = criticalityFilter === 'ALL' || anomaly.criticite === criticalityFilter;
             return matchesSearch && matchesCriticality;
@@ -165,7 +179,7 @@ const AdminAnomalies = () => {
                 const isMedium = level === 'MOYENNE';
 
                 return (
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 dark:bg-white/5 rounded-full border border-slate-300 dark:border-white/10 group-hover:border-blue-500/30 transition-all">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 dark:bg-white/5 rounded-full border border-slate-300 dark:border-slate-200 dark:border-white/10 group-hover:border-blue-500/30 transition-all">
                         <div className={`w-1.5 h-1.5 rounded-full ${isCritical ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' : isMedium ? 'bg-amber-500' : 'bg-blue-500'}`} />
                         <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest leading-none">
                             {isCritical ? t('adminAnomalies.badges.critical') : isMedium ? t('adminAnomalies.badges.medium') : t('adminAnomalies.badges.low')}
@@ -266,18 +280,18 @@ const AdminAnomalies = () => {
                                 value={criticalityFilter}
                                 onChange={(e) => setCriticalityFilter(e.target.value)}
                             >
-                                <option value="ALL" className="bg-slate-900">{t('adminAnomalies.filters.all')}</option>
-                                <option value="FAIBLE" className="bg-slate-900">{t('adminAnomalies.badges.low')}</option>
-                                <option value="MOYENNE" className="bg-slate-900">{t('adminAnomalies.badges.medium')}</option>
-                                <option value="CRITIQUE" className="bg-slate-900">{t('adminAnomalies.badges.critical')}</option>
+                                <option value="ALL" className="bg-white dark:bg-slate-900">{t('adminAnomalies.filters.all')}</option>
+                                <option value="FAIBLE" className="bg-white dark:bg-slate-900">{t('adminAnomalies.badges.low')}</option>
+                                <option value="MOYENNE" className="bg-white dark:bg-slate-900">{t('adminAnomalies.badges.medium')}</option>
+                                <option value="CRITIQUE" className="bg-white dark:bg-slate-900">{t('adminAnomalies.badges.critical')}</option>
                             </select>
                             <select
                                 className="bg-transparent text-slate-900 dark:text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 h-10 outline-none w-full cursor-pointer appearance-none hover:bg-slate-100 dark:bg-white/5 transition-all rounded-xl"
                                 value={sortOrder}
                                 onChange={(e) => setSortOrder(e.target.value as 'recent' | 'oldest')}
                             >
-                                <option value="recent" className="bg-slate-900">RÉCENTS</option>
-                                <option value="oldest" className="bg-slate-900">ANCIENS</option>
+                                <option value="recent" className="bg-white dark:bg-slate-900">RÉCENTS</option>
+                                <option value="oldest" className="bg-white dark:bg-slate-900">ANCIENS</option>
                             </select>
                         </div>
                     }
@@ -418,7 +432,7 @@ const AdminAnomalies = () => {
                                     <XCircle className="w-6 h-6" />
                                 </button>
                             </div>
-                            <div className="flex-1 bg-black/40 p-4 overflow-hidden flex items-center justify-center group/img">
+                            <div className="flex-1 bg-slate-100 dark:bg-slate-100 dark:bg-black/40 p-4 overflow-hidden flex items-center justify-center group/img">
                                 <img
                                     src={viewImage}
                                     alt="Preuve"

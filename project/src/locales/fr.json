@@ -76,20 +76,32 @@
             "executions": "Suivi d'Exécution",
             "anomalies": "Anomalies",
             "comments": "Commentaires",
-            "messages": "Messagerie",
+            "messages": "Boîte email",
             "aiDiscussions": "Gestion des discussions AI",
             "aiAnalytics": "Analytics IA",
             "projects": "Projets Disponibles",
-            "chat": "Chat Center"
+            "chat": "Messagerie",
+            "qaNews": "Actualités QA"
         }
     },
     "header": {
         "notifications": "Notifications",
         "newNotifications": "{{count}} nouvelles",
         "noNotifications": "Aucune notification",
+        "markAllRead": "Tout marquer lu",
+        "justNow": "À l'instant",
+        "minutesAgo": "Il y a {{count}} min",
+        "hoursAgo": "Il y a {{count}}h",
         "profile": "Profil",
+        "myProfile": "Mon Profil",
+        "settings": "Paramètres",
+        "logout": "Déconnexion",
+        "defaultUser": "Utilisateur",
+        "toggleSidebar": "Basculer le menu",
         "darkMode": "Mode Sombre",
         "lightMode": "Mode Clair",
+        "enableLightMode": "Activer le mode clair",
+        "enableDarkMode": "Activer le mode sombre",
         "language": "Langue"
     },
     "stats": {
@@ -512,7 +524,7 @@
             "resolved": "Résolues",
             "resolvedDesc": "Anomalies corrigées et validées"
         },
-        "searchPlaceholder": "Rechercher une anomalie, test, assigné...",
+        "searchPlaceholder": "Rechercher une anomalie, ID, test, assigné...",
         "filters": {
             "severity": "Gravité",
             "all": "Tout",
@@ -522,11 +534,19 @@
         },
         "actions": {
             "refresh": "Rafraîchir",
-            "exportCsv": "CSV",
+            "exportCsv": "Excel",
             "exportPdf": "PDF",
             "report": "Signaler une anomalie",
             "edit": "Modifier",
             "delete": "Supprimer"
+        },
+        "export": {
+            "id": "ID",
+            "title": "Titre",
+            "priority": "Priorité",
+            "description": "Description",
+            "csvError": "Erreur lors de la génération du CSV.",
+            "pdfSuccess": "Rapport PDF généré avec succès !"
         },
         "table": {
             "anomaly": "Anomalie",
@@ -567,7 +587,27 @@
             "deleteError": "Erreur lors de la suppression.",
             "pdfError": "Erreur lors de la génération du PDF."
         },
-        "testFallback": "Test #{{id}}"
+        "testFallback": "Test #{{id}}",
+        "detail": {
+            "reportedDate": "Date signalée",
+            "reporter": "Rapporteur",
+            "defaultReporter": "Auditeur Système",
+            "details": "Détails de l'anomalie",
+            "noDescription": "Aucune description détaillée.",
+            "executionLogs": "Logs d'exécution",
+            "collapseLogs": "Réduire",
+            "expandLogs": "Voir les logs",
+            "proofs": "Preuves",
+            "fullscreen": "Plein écran",
+            "screenshot": "Capture d'écran",
+            "videoReplay": "Replay vidéo",
+            "playwrightScript": "Script Playwright",
+            "download": "Télécharger",
+            "release": "Release",
+            "campaign": "Campagne",
+            "relatedTest": "Test lié",
+            "close": "Fermer"
+        }
     },
     "testerDashboard": {
         "title": "Mon Espace",
@@ -896,7 +936,7 @@
         }
     },
     "email": {
-        "title": "Messagerie",
+        "title": "Boîte email",
         "subtitle": "Gérez vos communications internes",
         "new": "Nouveau Message",
         "tabs": {

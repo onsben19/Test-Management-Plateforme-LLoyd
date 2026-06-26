@@ -36,7 +36,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const AdminDashboard = () => {
     const { t } = useTranslation();
     const { isOpen } = useSidebar();
-    const { theme } = useTheme();
+    const { resolvedTheme } = useTheme();
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -174,7 +174,7 @@ const AdminDashboard = () => {
             actions={
                 <button
                     onClick={() => { setIsRefreshing(true); fetchData(); }}
-                    className={`p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-white transition-all shadow-sm hover:shadow-md ${isRefreshing ? 'animate-spin' : ''}`}
+                    className={`p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-slate-900 dark:hover:text-white transition-all shadow-sm hover:shadow-md ${isRefreshing ? 'animate-spin' : ''}`}
                 >
                     <RefreshCw className="w-5 h-5" />
                 </button>
@@ -266,13 +266,13 @@ const AdminDashboard = () => {
                                         />
                                         <Tooltip
                                             contentStyle={{
-                                                backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
-                                                border: theme === 'dark' ? 'none' : '1px solid #e2e8f0',
+                                                backgroundColor: resolvedTheme === 'dark' ? '#0f172a' : '#ffffff',
+                                                border: resolvedTheme === 'dark' ? 'none' : '1px solid #e2e8f0',
                                                 borderRadius: '16px',
-                                                color: theme === 'dark' ? '#fff' : '#0f172a',
+                                                color: resolvedTheme === 'dark' ? '#fff' : '#0f172a',
                                                 boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'
                                             }}
-                                            itemStyle={{ color: theme === 'dark' ? '#fff' : '#0f172a' }}
+                                            itemStyle={{ color: resolvedTheme === 'dark' ? '#fff' : '#0f172a' }}
                                         />
                                         <Area
                                             type="monotone"
@@ -369,11 +369,11 @@ const AdminDashboard = () => {
                                             </Pie>
                                             <Tooltip
                                                 contentStyle={{
-                                                    backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
-                                                    border: theme === 'dark' ? 'none' : '1px solid #e2e8f0',
+                                                    backgroundColor: resolvedTheme === 'dark' ? '#0f172a' : '#ffffff',
+                                                    border: resolvedTheme === 'dark' ? 'none' : '1px solid #e2e8f0',
                                                     borderRadius: '12px'
                                                 }}
-                                                itemStyle={{ color: theme === 'dark' ? '#fff' : '#0f172a' }}
+                                                itemStyle={{ color: resolvedTheme === 'dark' ? '#fff' : '#0f172a' }}
                                             />
                                             <Legend verticalAlign="bottom" height={36} />
                                         </PieChart>
@@ -431,7 +431,7 @@ const AdminDashboard = () => {
                                 { id: 'activity', label: t('adminDashboard.config.activity') },
                                 { id: 'users', label: t('adminDashboard.config.users') }
                             ].map(w => (
-                                <label key={w.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 cursor-pointer transition-colors border border-transparent hover:border-slate-200 dark:hover:border-white/10">
+                                <label key={w.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-200 dark:border-white/10">
                                     <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{w.label}</span>
                                     <div className="relative">
                                         <input

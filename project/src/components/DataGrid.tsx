@@ -29,18 +29,18 @@ const DataGrid: React.FC<DataGridProps> = ({ data, columns, onRowUpdate, onOpenC
     };
 
     return (
-        <div className="bg-slate-900 border border-slate-700/50 rounded-lg overflow-hidden flex flex-col h-full w-full shadow-lg">
-            <div className="flex-1 overflow-auto scrollbar-thumb-slate-700 scrollbar-track-slate-800 scrollbar-thumb-rounded-full hover:scrollbar-thumb-slate-600 transition-colors">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-lg overflow-hidden flex flex-col h-full w-full shadow-lg">
+            <div className="flex-1 overflow-auto">
                 <table className="min-w-max w-full text-left border-collapse">
-                    <thead className="bg-slate-800/80 sticky top-0 z-10 backdrop-blur-sm">
+                    <thead className="bg-slate-100 dark:bg-slate-800/80 sticky top-0 z-10 backdrop-blur-sm">
                         <tr>
-                            <th className="p-3 w-16 border-b border-r border-slate-700 font-semibold text-slate-400 text-xs text-center sticky left-0 bg-slate-800 z-20">
+                            <th className="p-3 w-16 border-b border-r border-slate-200 dark:border-slate-700 font-semibold text-slate-500 dark:text-slate-400 text-xs text-center sticky left-0 bg-slate-100 dark:bg-slate-800 z-20">
                                 IA
                             </th>
                             {columns.map(col => (
                                 <th
                                     key={col}
-                                    className="p-3 min-w-[200px] border-b border-r border-slate-700 font-semibold text-slate-400 text-xs uppercase tracking-wider group cursor-pointer hover:bg-slate-700/50 transition-colors"
+                                    className="p-3 min-w-[200px] border-b border-r border-slate-200 dark:border-slate-700 font-semibold text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider group cursor-pointer hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors"
                                 >
                                     <div className="flex items-center justify-between">
                                         {col}
@@ -48,22 +48,22 @@ const DataGrid: React.FC<DataGridProps> = ({ data, columns, onRowUpdate, onOpenC
                                     </div>
                                 </th>
                             ))}
-                            <th className="p-3 w-16 border-b border-slate-700 font-semibold text-slate-400 text-xs text-center bg-slate-800 sticky right-0 z-20">
+                            <th className="p-3 w-16 border-b border-slate-200 dark:border-slate-700 font-semibold text-slate-500 dark:text-slate-400 text-xs text-center bg-slate-100 dark:bg-slate-800 sticky right-0 z-20">
                                 Actions
                             </th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800">
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                         {data.map((row, rowIndex) => (
                             <tr
                                 key={row.id}
                                 className={`transition-colors group ${highlightedRows.includes(row.id)
                                     ? 'bg-yellow-500/10 hover:bg-yellow-500/20'
-                                    : 'hover:bg-slate-800/30'
+                                    : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'
                                     }`}
                             >
                                 {/* AI Analysis Column */}
-                                <td className="p-3 border-r border-slate-800 text-center sticky left-0 bg-slate-900 group-hover:bg-slate-50 dark:bg-[#131d33] transition-colors">
+                                <td className="p-3 border-r border-slate-200 dark:border-slate-800 text-center sticky left-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-[#131d33] transition-colors">
                                     {isComplete(row) ? (
                                         <div className="flex justify-center">
                                             <CheckCircle className="w-4 h-4 text-green-500/50" />
@@ -85,7 +85,7 @@ const DataGrid: React.FC<DataGridProps> = ({ data, columns, onRowUpdate, onOpenC
                                     return (
                                         <td
                                             key={`${row.id}-${col}`}
-                                            className="p-1 border-r border-slate-800 relative min-w-[200px]"
+                                            className="p-1 border-r border-slate-200 dark:border-slate-800 relative min-w-[200px]"
                                         >
                                             {isLastModified && typeof cellValue === 'object' ? (
                                                 <div className="flex items-center gap-3 p-2">
@@ -99,7 +99,7 @@ const DataGrid: React.FC<DataGridProps> = ({ data, columns, onRowUpdate, onOpenC
                                             ) : isEditing ? (
                                                 <textarea
                                                     autoFocus
-                                                    className="w-full h-full min-h-[40px] bg-slate-800 text-slate-900 dark:text-white text-sm p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded resize-none"
+                                                    className="w-full h-full min-h-[40px] bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded resize-none"
                                                     value={String(cellValue)}
                                                     onChange={(e) => onRowUpdate(row.id, col, e.target.value)}
                                                     onBlur={() => setEditingCell(null)}
@@ -116,9 +116,9 @@ const DataGrid: React.FC<DataGridProps> = ({ data, columns, onRowUpdate, onOpenC
                                                                 value={String(cellValue)}
                                                                 onChange={(e) => onRowUpdate(row.id, col, e.target.value)}
                                                             >
-                                                                <option className="bg-slate-800" value="Critique">Critique</option>
-                                                                <option className="bg-slate-800" value="Majeur">Majeur</option>
-                                                                <option className="bg-slate-800" value="Mineur">Mineur</option>
+                                                                <option className="bg-white dark:bg-slate-800" value="Critique">Critique</option>
+                                                                <option className="bg-white dark:bg-slate-800" value="Majeur">Majeur</option>
+                                                                <option className="bg-white dark:bg-slate-800" value="Mineur">Mineur</option>
                                                             </select>
                                                         </span>
                                                     ) : (
@@ -131,10 +131,10 @@ const DataGrid: React.FC<DataGridProps> = ({ data, columns, onRowUpdate, onOpenC
                                 })}
 
                                 {/* Actions Column */}
-                                <td className="p-3 text-center sticky right-0 bg-slate-900 group-hover:bg-slate-50 dark:bg-[#131d33] transition-colors shadow-[-10px_0_20px_-5px_rgba(0,0,0,0.3)]">
+                                <td className="p-3 text-center sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-[#131d33] transition-colors shadow-[-10px_0_20px_-5px_rgba(0,0,0,0.1)] dark:shadow-[-10px_0_20px_-5px_rgba(0,0,0,0.3)]">
                                     <button
                                         onClick={() => onOpenChat(row)}
-                                        className="p-1.5 rounded-lg bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                                        className="p-1.5 rounded-lg bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-slate-900 dark:hover:text-white transition-all shadow-sm"
                                         title="Discussion contextuelle"
                                     >
                                         <MessageSquare className="w-4 h-4" />

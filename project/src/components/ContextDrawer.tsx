@@ -81,7 +81,7 @@ const ContextDrawer: React.FC<ContextDrawerProps> = ({ isOpen, onClose, rowTitle
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                             placeholder="Écrivez un message..."
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-4 pr-10 py-2.5 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder-slate-500"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-700 rounded-lg pl-4 pr-10 py-2.5 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder-slate-500"
                         />
                         <button
                             onClick={handleSend}

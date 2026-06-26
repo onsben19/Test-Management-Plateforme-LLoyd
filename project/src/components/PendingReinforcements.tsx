@@ -62,7 +62,7 @@ export const PendingReinforcements = () => {
 
             <div className="space-y-4">
                 {requests.map((req) => (
-                    <div key={req.campaign_id} className="bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 transition-all hover:border-blue-500/30">
+                    <div key={req.campaign_id} className="bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 transition-all hover:border-blue-500/30">
                         <div className="flex-1">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{req.campaign_title}</h3>
                             <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest">
@@ -71,7 +71,7 @@ export const PendingReinforcements = () => {
                             </div>
                         </div>
                         <div className="flex gap-3">
-                            <Button variant="secondary" onClick={() => handleRefuse(req.campaign_id, req.manager_email)} icon={XCircle} className="text-rose-400 hover:text-white hover:bg-rose-500/20">Refuser</Button>
+                            <Button variant="secondary" onClick={() => handleRefuse(req.campaign_id, req.manager_email)} icon={XCircle} className="text-rose-400 hover:text-slate-900 dark:hover:text-white hover:bg-rose-500/20">Refuser</Button>
                             <Button variant="primary" onClick={() => handleAccept(req.campaign_id, req.manager_email)} icon={ShieldCheck}>Accepter</Button>
                         </div>
                     </div>

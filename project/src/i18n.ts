@@ -26,7 +26,14 @@ i18n
             order: ['localStorage', 'cookie', 'navigator'],
             caches: ['localStorage', 'cookie'],
         },
-        debug: true // Helps identify missing keys or loading issues
+        debug: import.meta.env.DEV,
     });
+
+i18n.on('languageChanged', (lng) => {
+    document.documentElement.lang = lng.split('-')[0].toLowerCase();
+});
+if (typeof document !== 'undefined') {
+    document.documentElement.lang = (i18n.language || 'fr').split('-')[0].toLowerCase();
+}
 
 export default i18n;

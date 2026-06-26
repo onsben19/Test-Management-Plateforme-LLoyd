@@ -1,4 +1,5 @@
 import React from 'react';
+import { buildTableRowTdClass } from '../utils/tableRowStyles';
 
 interface Column<T> {
     header: string;
@@ -59,13 +60,13 @@ const AdminTable = <T extends { id?: string | number }>({
 
             {/* Search and Filter Bar - Glassmorphism */}
             {(searchable || filters) && (
-                <div className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-white/10 rounded-[2.5rem] p-6 flex flex-col md:flex-row items-center gap-6 shadow-2xl">
+                <div className="bg-slate-100 dark:bg-white/5 backdrop-blur-xl border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-[2.5rem] p-6 flex flex-col md:flex-row items-center gap-6 shadow-2xl">
                     {searchable && (
                         <div className="relative flex-1 w-full group">
                             <input
                                 type="text"
                                 placeholder="Rechercher..."
-                                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 rounded-[1.5rem] px-8 py-4 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder-slate-500"
+                                className="w-full bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-slate-200 dark:border-white/10 rounded-[1.5rem] px-8 py-4 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium placeholder-slate-500"
                                 onChange={(e) => onSearch && onSearch(e.target.value)}
                             />
                         </div>
@@ -131,7 +132,7 @@ const AdminTable = <T extends { id?: string | number }>({
                                     {columns.map((col, colIdx) => (
                                         <td
                                             key={colIdx}
-                                            className="px-8 py-5 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-100 dark:group-hover:bg-white/5 transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-300 dark:group-hover:border-white/10"
+                                            className={buildTableRowTdClass()}
                                         >
                                             {typeof col.accessor === 'function'
                                                 ? col.accessor(item)
@@ -139,7 +140,7 @@ const AdminTable = <T extends { id?: string | number }>({
                                         </td>
                                     ))}
                                     {actions && (
-                                        <td className="px-8 py-5 text-right bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-100 dark:group-hover:bg-white/5 transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-300 dark:group-hover:border-white/10">
+                                        <td className={`text-right ${buildTableRowTdClass()}`}>
                                             <div className="flex justify-end gap-2">
                                                 {actions(item)}
                                             </div>

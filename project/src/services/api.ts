@@ -107,6 +107,8 @@ export const anomalyService = {
         api.patch(`/anomalies/${id}/`, data, { headers: multipartHeaders(data) }),
     exportAnomaliesPdf: (params?: Record<string, unknown>) =>
         api.get('/anomalies/export_pdf/', { params, responseType: 'blob' }),
+    exportAnomaliesXlsx: (params?: Record<string, unknown>) =>
+        api.get('/anomalies/export_xlsx/', { params, responseType: 'blob' }),
     diagnoseExternalLogs: (data: { logs: string; code?: string }) =>
         api.post('/anomalies/diagnose_external_logs/', data),
     deleteAnomaly: (id: string) => api.delete(`/anomalies/${id}/`),
@@ -131,6 +133,10 @@ export const chatService = {
     updateMessage: (id: string, data: any) => api.patch(`/chat/messages/${id}/`, data),
     deleteMessage: (id: string) => api.delete(`/chat/messages/${id}/`),
     forwardMessage: (id: string, targetConvId: string) => api.post(`/chat/messages/${id}/forward/`, { target_conversation: targetConvId }),
+    markConversationRead: (conversationId: string, lastMessageId?: string | number) =>
+        api.post(`/chat/conversations/${conversationId}/mark_read/`, {
+            last_message_id: lastMessageId ?? undefined,
+        }),
 };
 
 export const emailService = {
@@ -150,8 +156,14 @@ export const userService = {
 };
 
 export const aiService = {
-    reformulate: (message: string, isSubject = false, isTestSteps = false) =>
-        api.post('/analytics/reformulate/', { message, is_subject: isSubject, is_test_steps: isTestSteps }),
+    reformulate: (message: string, isSubject = false, isTestSteps = false, isChat = false, isEmail = false) =>
+        api.post('/analytics/reformulate/', {
+            message,
+            is_subject: isSubject,
+            is_test_steps: isTestSteps,
+            is_chat: isChat,
+            is_email: isEmail,
+        }),
     getTimelineGuard: (campaignId: string) =>
         api.get(`/analytics/timeline-guard/${campaignId}/`),
     getMessages: (conversationId: string) =>
@@ -189,7 +201,12 @@ export const aiService = {
 };
 
 export const analyticsService = {
-    getHistoricalReleases: (projectId: string | number) => api.get('/analytics/releases/', { params: { project_id: projectId } }),
+    getHistoricalReleases: (
+        projectId: string | number,
+        params?: { page?: number; page_size?: number }
+    ) => api.get('/analytics/releases/', {
+        params: { project_id: projectId, ...params },
+    }),
     getHistoricalTesters: (projectId: string | number) => api.get('/analytics/testers/', { params: { project_id: projectId, period: '6_releases' } }),
     getHistoricalModules: (projectId: string | number) => api.get('/analytics/modules/', { params: { project_id: projectId } }),
     getQANews: () => api.get('/analytics/qa-news/'),

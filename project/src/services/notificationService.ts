@@ -12,7 +12,7 @@ export interface Notification {
 }
 
 export const notificationService = {
-    getNotifications: () => api.get<Notification[]>('/notifications/'),
+    getNotifications: () => api.get<Notification[]>('/notifications/?page_size=50'),
     markAsRead: (id: number) => api.post(`/notifications/${id}/mark_read/`),
     markAllAsRead: () => api.post('/notifications/mark_all_read/'),
 };

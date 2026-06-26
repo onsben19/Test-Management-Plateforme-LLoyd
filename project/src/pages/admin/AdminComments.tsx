@@ -196,7 +196,7 @@ const AdminComments = () => {
                 {/* Conversation Modal */}
                 <AnimatePresence>
                     {activeConversationId && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-900/40 backdrop-blur-sm">
+                        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-200/60 dark:bg-slate-900/40 backdrop-blur-sm">
                             <motion.div
                                 initial={{ x: '100%' }}
                                 animate={{ x: 0 }}

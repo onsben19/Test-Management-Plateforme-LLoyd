@@ -115,9 +115,9 @@ docker compose up --build
 
 | Service | URL |
 |---------|-----|
-| 🖥️ Frontend | http://localhost |
-| 🔌 API REST | http://localhost/api/ |
-| 📄 Admin Django | http://localhost:8000/admin |
+| 🖥️ Frontend | `{APP_URL}/` |
+| 🔌 API REST | `{APP_URL}/api/` |
+| 📄 Admin Django | `{BACKEND_URL}/admin` |
 
 ### Commandes utiles
 
@@ -231,7 +231,10 @@ Copier `.env.example` vers `InsureTM/.env.docker` et renseigner :
 | `SECRET_KEY` | Clé secrète Django | `your-secret-key` |
 | `DEBUG` | Mode debug | `False` |
 | `DATABASE_URL` | URL PostgreSQL | `postgres://user:pass@db:5432/dbname` |
-| `ALLOWED_HOSTS` | Hôtes autorisés | `localhost,127.0.0.1` |
+| `ALLOWED_HOSTS` | Hôtes autorisés | `backend,192.168.100.53,*` |
+| `APP_URL` | URL publique application | `http://192.168.100.53` |
+| `FRONTEND_URL` | URL interne frontend/nginx | `http://nginx` |
+| `BACKEND_URL` | URL interne API Django | `http://backend:8000` |
 | `EMAIL_USER` | Email SMTP | `you@gmail.com` |
 | `EMAIL_PASSWORD` | App password Gmail | `xxxx xxxx xxxx xxxx` |
 | `GROQ_API_KEY` | Clé API Groq (IA) | `gsk_...` |

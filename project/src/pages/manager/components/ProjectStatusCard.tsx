@@ -47,14 +47,14 @@ const ProjectStatusCard: React.FC<ProjectStatusCardProps> = ({ project, onClick 
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5">
+                <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-slate-200 dark:border-white/5">
                     <div className="flex items-center gap-2 mb-1">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                         <span className="text-[10px] font-bold text-slate-500 uppercase">{t('adminExecutions.stats.passed')}</span>
                     </div>
                     <div className="text-xl font-black text-slate-900 dark:text-white">{passed}</div>
                 </div>
-                <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5">
+                <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-slate-200 dark:border-white/5">
                     <div className="flex items-center gap-2 mb-1">
                         <XCircle className="w-3.5 h-3.5 text-rose-500" />
                         <span className="text-[10px] font-bold text-slate-500 uppercase">{t('adminExecutions.stats.failed')}</span>

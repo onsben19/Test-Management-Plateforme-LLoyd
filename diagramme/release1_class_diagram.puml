@@ -46,6 +46,7 @@ class User <<AbstractUser>> {
     + date_joined : DateTime
     + otp_code : String
     + otp_expiry : DateTime
+    + avatar : ImageFile
     --
     + {static} generate_random_password(length: int = 12) : String
     + save(*args, **kwargs) : void

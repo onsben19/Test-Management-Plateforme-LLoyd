@@ -1,0 +1,88 @@
+@startuml
+left to right direction
+
+skinparam style strictuml
+
+title Diagramme de Cas d'Utilisation - Release 2\nFocus : Gestion & Ingestion QA / Automatisation Playwright
+
+actor "Manager" as M
+actor "Testeur" as T
+
+rectangle "Moteur Playwright" as PW <<system>>
+rectangle "Modèle IA Groq" as Groq <<system>>
+rectangle "Serveur noVNC" as NoVNC <<system>>
+
+rectangle "Système InsureTM - Release 2" {
+    
+    package "Sécurité" {
+        usecase "S'authentifier" as Auth
+        usecase "Valider 2FA OTP" as UC_OTP
+    }
+    
+    package "Gestion & Ingestion QA" {
+        usecase "Gérer le référentiel de test\n(Projets, Releases, Campagnes)" as UC_Manage
+        usecase "Créer / Modifier" as UC_Manage_Edit
+        usecase "Archiver / Supprimer" as UC_Manage_Del
+        
+        usecase "Importer campagne depuis Excel" as UC_Ingest
+        
+        usecase "Assigner les tests aux collaborateurs" as UC_Assign
+    }
+    
+    package "Automatisation & Moteur Playwright" {
+        usecase "Consulter le backlog de tests" as UC_View
+        
+        usecase "Exécuter un test manuellement" as UC_ExecManual
+        usecase "Déclarer une anomalie (Manuel)" as UC_BugManual
+        
+        usecase "Automatiser l'exécution d'un test" as UC_ExecAuto
+        usecase "Générer le script d'automatisation" as UC_GenScript
+        usecase "Lancer l'exécution Playwright" as UC_RunPW
+        usecase "Visualiser l'écran en temps réel (noVNC)" as UC_LiveView
+        usecase "Capturer les preuves (Screenshots/Vidéos)" as UC_Capture
+        usecase "Détecter et générer une anomalie (IA)" as UC_BugAuto
+    }
+
+    ' --- Relations Authentification ---
+    Auth ..> UC_OTP : <<include>>
+    UC_Manage ..> Auth : <<include>>
+    UC_Ingest ..> Auth : <<include>>
+    UC_Assign ..> Auth : <<include>>
+    UC_View ..> Auth : <<include>>
+    UC_ExecManual ..> Auth : <<include>>
+    UC_ExecAuto ..> Auth : <<include>>
+
+    ' --- Relations Ingestion & Gestion ---
+    UC_Manage <.. UC_Manage_Edit : <<extend>>
+    UC_Manage <.. UC_Manage_Del : <<extend>>
+    ' (L'import Excel est un objectif métier unitaire)
+    
+    ' --- Relations Automatisation ---
+    UC_ExecAuto ..> UC_GenScript : <<include>>
+    UC_ExecAuto ..> UC_RunPW : <<include>>
+    UC_ExecAuto ..> UC_Capture : <<include>>
+    UC_ExecAuto <.. UC_LiveView : <<extend>>
+    
+    ' Anomalie générée uniquement en cas d'échec → extend
+    UC_ExecAuto <.. UC_BugAuto : <<extend>>
+    
+    UC_ExecManual <.. UC_BugManual : <<extend>>
+}
+
+' --- Liaisons Acteurs ---
+M -- UC_Manage
+M -- UC_Ingest
+M -- UC_Assign
+
+T -- UC_View
+T -- UC_ExecManual
+T -- UC_ExecAuto
+
+' --- Liaisons Systèmes Externes ---
+UC_GenScript ..> Groq
+UC_BugAuto ..> Groq
+UC_RunPW ..> PW
+UC_Capture ..> PW
+UC_LiveView ..> NoVNC
+
+@enduml

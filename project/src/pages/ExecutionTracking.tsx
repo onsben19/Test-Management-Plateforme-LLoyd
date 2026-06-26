@@ -350,7 +350,7 @@ const ExecutionTracking = () => {
                         {/* Filtres Statut */}
                         <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.05] rounded-xl p-1.5">
                             {([
-                                { value: 'all',    label: 'Tous',     color: 'text-slate-400 hover:text-white',       active: 'bg-slate-600 text-white' },
+                                { value: 'all',    label: 'Tous',     color: 'text-slate-400 hover:text-slate-900 dark:hover:text-white',       active: 'bg-slate-600 text-white' },
                                 { value: 'passed', label: '✓ Succès', color: 'text-blue-400/70 hover:text-blue-300', active: 'bg-blue-500/20 text-blue-300 border border-blue-500/30' },
                                 { value: 'failed', label: '✗ Échec',  color: 'text-rose-400/70 hover:text-rose-300', active: 'bg-rose-500/20 text-rose-300 border border-rose-500/30' },
                             ] as const).map(({ value, label, color, active }) => (
@@ -440,12 +440,12 @@ const ExecutionTracking = () => {
                 <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl" onClick={() => setViewingCaptures(null)}>
                     <div className="relative w-full h-full flex flex-col" onClick={e => e.stopPropagation()}>
                         {/* Header */}
-                        <div className="flex items-center justify-between px-8 py-4 border-b border-white/5">
+                        <div className="flex items-center justify-between px-8 py-4 border-b border-slate-200 dark:border-white/5">
                             <div>
                                 <p className="text-white font-black text-sm tracking-tight">{viewingCaptures.name}</p>
                                 <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest">{viewingCaptures.module}</p>
                             </div>
-                            <button onClick={() => setViewingCaptures(null)} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all">
+                            <button onClick={() => setViewingCaptures(null)} className="p-2 rounded-xl bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 transition-all">
                                 <X className="w-5 h-5 text-white/60" />
                             </button>
                         </div>
@@ -453,7 +453,7 @@ const ExecutionTracking = () => {
                         <div className="flex-1 flex overflow-x-auto gap-6 p-8 items-center justify-center snap-x snap-mandatory">
                             {(viewingCaptures.captures || []).map((cap, idx) => (
                                 <div key={idx} className="snap-center shrink-0 flex flex-col items-center gap-4">
-                                    <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-slate-900" style={{ maxHeight: 'calc(100vh - 180px)' }}>
+                                    <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-2xl bg-white dark:bg-slate-900" style={{ maxHeight: 'calc(100vh - 180px)' }}>
                                         {(cap.startsWith('data:') || cap.startsWith('http') || cap.startsWith('/')) ? (
                                             <img
                                                 src={cap}
@@ -465,7 +465,7 @@ const ExecutionTracking = () => {
                                                 <span className="text-slate-500 text-xs font-bold opacity-50">{cap}</span>
                                             </div>
                                         )}
-                                        <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+                                        <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-slate-200 dark:border-white/10">
                                             <p className="text-white/60 font-bold uppercase tracking-widest text-[8px]">CAPTURE {idx + 1}/{(viewingCaptures.captures || []).length}</p>
                                         </div>
                                     </div>
@@ -484,7 +484,7 @@ const ExecutionTracking = () => {
                                         <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-blue-500/30">
                                             <p className="text-[#85B7EB] font-bold uppercase tracking-widest text-[8px]">REPLAY VIDÉO</p>
                                         </div>
-                                        <a href={viewingCaptures.proof_video} download className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-[8px] text-white/50 hover:text-white font-bold uppercase tracking-widest">
+                                        <a href={viewingCaptures.proof_video} download className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-slate-200 dark:border-white/10 text-[8px] text-slate-500 dark:text-white/50 hover:text-slate-900 dark:hover:text-white font-bold uppercase tracking-widest">
                                             Télécharger
                                         </a>
                                     </div>
@@ -497,7 +497,7 @@ const ExecutionTracking = () => {
             )}
             {/* Catch-up Plan Modal */}
             {typeof document !== 'undefined' && isCatchupPlanOpen && selectedCampaignId && createPortal(
-                <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto">
+                <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-200/80 dark:bg-slate-200/80 dark:bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto">
                     <div className="relative w-full max-w-2xl my-8">
                         <button
                             onClick={() => setIsCatchupPlanOpen(false)}

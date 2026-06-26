@@ -13,6 +13,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { analyticsService } from '../../../services/api';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import Pagination from '../../../components/Pagination';
+
+const QUALITY_PAGE_SIZE = 10;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -84,6 +87,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return null;
 };
 
+interface QualitySummary {
+    stable_percent: number;
+    stable_releases: number;
+    trend_delta: number | null;
+}
+
 // ---------------------------------------------------------------------------
 // Main Component
 const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
@@ -91,51 +100,77 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
     const [activeTab, setActiveTab] = useState<'quality' | 'velocity'>('quality');
     const [qualityViewMode, setQualityViewMode] = useState<'table' | 'chart'>('table');
     const [loading, setLoading] = useState(true);
+    const [releasesLoading, setReleasesLoading] = useState(false);
     const [releaseData, setReleaseData] = useState<ReleaseMetrics[]>([]);
+    const [qualityPage, setQualityPage] = useState(1);
+    const [qualityTotal, setQualityTotal] = useState(0);
+    const [qualitySummary, setQualitySummary] = useState<QualitySummary>({
+        stable_percent: 0,
+        stable_releases: 0,
+        trend_delta: null,
+    });
     const [testerData, setTesterData] = useState<TesterPerformance[]>([]);
     const [moduleData, setModuleData] = useState<ModuleHealth[]>([]);
 
+    const pid = projectId === 'all' ? 'all' : projectId;
+
     useEffect(() => {
-        const fetchData = async () => {
+        setQualityPage(1);
+    }, [projectId]);
+
+    useEffect(() => {
+        const fetchStaticData = async () => {
             try {
                 setLoading(true);
-                // Si projectId est 'all', on passe une chaîne vide ou 'all' à l'API selon le backend
-                const pid = projectId === 'all' ? 'all' : projectId;
-                const [releases, testers, modules] = await Promise.all([
-                    analyticsService.getHistoricalReleases(pid),
+                const [testers, modules] = await Promise.all([
                     analyticsService.getHistoricalTesters(pid),
-                    analyticsService.getHistoricalModules(pid)
+                    analyticsService.getHistoricalModules(pid),
                 ]);
-                setReleaseData(releases.data);
                 setTesterData(testers.data);
                 setModuleData(modules.data);
             } catch (err) {
-                console.error("Failed to fetch historical analytics", err);
-                toast.error("Erreur de chargement des données");
+                console.error('Failed to fetch historical analytics', err);
+                toast.error('Erreur de chargement des données');
             } finally {
                 setLoading(false);
             }
         };
-        fetchData();
-    }, [projectId]);
+        fetchStaticData();
+    }, [pid]);
 
-    const healthyReleases = releaseData.filter(r => r.pass_rate >= 80).length;
-    const totalReleases = releaseData.length;
-    // % de releases stables (pass_rate ≥ 80%)
-    const readinessScore = totalReleases > 0
-        ? Math.round((healthyReleases / totalReleases) * 100)
-        : 0;
-    // Tendance réelle : delta moyen du pass_rate entre releases successives
-    const trendValue = (() => {
-        if (releaseData.length < 2) return null;
-        const deltas = releaseData.slice(1).map((r, i) => r.pass_rate - releaseData[i].pass_rate);
-        const avg = deltas.reduce((s, d) => s + d, 0) / deltas.length;
-        return Math.round(avg * 10) / 10;
-    })();
+    useEffect(() => {
+        const fetchReleases = async () => {
+            try {
+                setReleasesLoading(true);
+                const releases = await analyticsService.getHistoricalReleases(pid, {
+                    page: qualityPage,
+                    page_size: QUALITY_PAGE_SIZE,
+                });
+                const payload = releases.data;
+                setReleaseData(payload.results ?? []);
+                setQualityTotal(payload.count ?? 0);
+                setQualitySummary(payload.summary ?? {
+                    stable_percent: 0,
+                    stable_releases: 0,
+                    trend_delta: null,
+                });
+            } catch (err) {
+                console.error('Failed to fetch release quality data', err);
+                toast.error('Erreur de chargement du comparatif releases');
+            } finally {
+                setReleasesLoading(false);
+            }
+        };
+        fetchReleases();
+    }, [pid, qualityPage]);
 
-    const tdClass = "p-4 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-100 dark:group-hover:bg-white/5 transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-300 dark:group-hover:border-white/10";
+    const readinessScore = qualitySummary.stable_percent;
+    const trendValue = qualitySummary.trend_delta;
+    const isQualityLoading = loading || releasesLoading;
 
-    if (loading) {
+    const tdClass = "p-4 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-100 dark:group-hover:bg-slate-100 dark:hover:bg-white/5 transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-300 dark:group-hover:border-slate-200 dark:border-white/10";
+
+    if (loading && testerData.length === 0 && releaseData.length === 0) {
         return <div className="p-10 text-slate-500 font-bold animate-pulse">Chargement des analytics...</div>;
     }
 
@@ -148,7 +183,9 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                         {projectId === 'all' ? t('historicalAnalytics.titleAll') : t('historicalAnalytics.title')}
                     </h2>
                     <p className="text-sm font-bold text-slate-500">
-                        {projectId === 'all' ? t('historicalAnalytics.subtitleAll') : t('historicalAnalytics.subtitle', { count: releaseData.length })}
+                        {projectId === 'all'
+                            ? t('historicalAnalytics.subtitleAll')
+                            : t('historicalAnalytics.subtitle', { count: qualityTotal })}
                     </p>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 rounded-xl border border-blue-500/20 text-blue-600 dark:text-blue-400">
@@ -168,7 +205,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                         onClick={() => setActiveTab(tab.id as any)}
                         className={`flex-1 py-3 px-4 rounded-[1.2rem] text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id
                             ? 'bg-blue-600/20 text-blue-400 shadow-inner border border-blue-500/20'
-                            : 'text-slate-500 hover:text-white'
+                            : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                             }`}
                     >
                         {tab.label}
@@ -207,7 +244,8 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                         </div>
 
                         {qualityViewMode === 'table' ? (
-                            <div className="overflow-x-auto rounded-[1.5rem] border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/[0.02] max-h-[300px] overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+                            <>
+                            <div className="overflow-x-auto rounded-[1.5rem] border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/[0.02] max-h-[480px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/10">
                             <table className="w-full text-left border-separate border-spacing-y-3">
                                 <thead>
                                     <tr className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
@@ -218,7 +256,13 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {releaseData.length === 0 ? (
+                                    {isQualityLoading ? (
+                                        <tr>
+                                            <td colSpan={4} className="p-8 text-center text-slate-500 font-medium text-xs animate-pulse">
+                                                Chargement des releases…
+                                            </td>
+                                        </tr>
+                                    ) : releaseData.length === 0 ? (
                                         <tr>
                                             <td colSpan={4} className="p-8 text-center text-slate-500 font-medium text-xs">
                                                 {t('historicalAnalytics.qualityTab.empty')}
@@ -229,7 +273,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                         const isMid = rel.pass_rate >= 60;
                                         
                                         return (
-                                            <tr key={idx} className="group transition-all duration-300 cursor-default">
+                                            <tr key={rel.release_id ?? idx} className="group transition-all duration-300 cursor-default">
                                                 <td className={`font-black text-slate-900 dark:text-white ${tdClass}`}>{rel.version}</td>
                                                 <td className={tdClass}>
                                                     <div className="flex items-center gap-3">
@@ -265,9 +309,21 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                 </tbody>
                             </table>
                             </div>
+                            <Pagination
+                                currentPage={qualityPage}
+                                totalItems={qualityTotal}
+                                pageSize={QUALITY_PAGE_SIZE}
+                                onPageChange={setQualityPage}
+                                loading={releasesLoading}
+                            />
+                            </>
                         ) : (
                             <div className="h-[280px] w-full pt-4 bg-slate-50 dark:bg-white/[0.01] border border-slate-200 dark:border-white/5 rounded-[2rem] p-4">
-                                {releaseData.length === 0 ? (
+                                {isQualityLoading ? (
+                                    <div className="flex items-center justify-center w-full h-full text-slate-500 font-medium text-xs animate-pulse">
+                                        Chargement du graphique…
+                                    </div>
+                                ) : releaseData.length === 0 ? (
                                     <div className="flex items-center justify-center w-full h-full text-slate-500 font-medium text-xs">
                                         Aucune donnée graphique disponible
                                     </div>
@@ -298,6 +354,16 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                             </div>
                         )}
 
+                        {qualityViewMode === 'chart' && qualityTotal > QUALITY_PAGE_SIZE && (
+                            <Pagination
+                                currentPage={qualityPage}
+                                totalItems={qualityTotal}
+                                pageSize={QUALITY_PAGE_SIZE}
+                                onPageChange={setQualityPage}
+                                loading={releasesLoading}
+                            />
+                        )}
+
                         <div className="flex items-center justify-between text-[10px] font-black p-4 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5">
                             <div className="flex items-center gap-4">
                                 <span className="text-slate-500 uppercase tracking-widest flex items-center gap-2">
@@ -306,7 +372,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                                 </span>
                                 <div className="w-px h-4 bg-slate-200 dark:bg-white/10" />
                                 <span className="text-slate-500 uppercase tracking-widest">
-                                    Total : <span className="text-slate-900 dark:text-white">{releaseData.length} Releases</span>
+                                    Total : <span className="text-slate-900 dark:text-white">{qualityTotal} Releases</span>
                                 </span>
                             </div>
                             {trendValue !== null ? (
@@ -331,7 +397,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
                     >
                         <div className="flex items-center gap-3 text-slate-400 mb-4">
                             <Activity size={16} />
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">{t('historicalAnalytics.velocityTab.title', { count: releaseData.length })}</h3>
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em]">{t('historicalAnalytics.velocityTab.title', { count: qualityTotal })}</h3>
                         </div>
 
                         <div className="divide-y divide-white/5">

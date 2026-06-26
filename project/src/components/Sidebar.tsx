@@ -11,7 +11,7 @@ const Sidebar = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { isOpen, toggle } = useSidebar();
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'admin';
 
@@ -40,7 +40,7 @@ const Sidebar = () => {
         { name: t('sidebar.items.comments'), href: '/admin/comments', roles: ['ADMIN'] },
         { name: t('sidebar.items.messages'), href: '/messages', roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
         { name: t('sidebar.items.chat'), href: '/chat', roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
-        { name: 'Veille QA', href: isAdmin ? '/admin/qa-intelligence' : '/qa-intelligence', roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
+        { name: t('sidebar.items.qaNews'), href: isAdmin ? '/admin/qa-intelligence' : '/qa-intelligence', roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
         { name: t('sidebar.items.aiAnalytics'), href: isAdmin ? '/management/analytics' : '/analytics', roles: ['ADMIN', 'MANAGER', 'manager', 'tester', 'TESTER'] },
       ]
     }
@@ -96,12 +96,12 @@ const Sidebar = () => {
           {groups.map(renderNavGroup)}
         </nav>
       </div>
-      <div className="p-4 border-t border-slate-100 dark:border-white/5 mt-auto flex justify-center items-center">
+      <div className="p-4 border-t border-slate-100 dark:border-slate-200 dark:border-white/5 mt-auto flex justify-center items-center">
         <img
-          src={theme === 'dark' ? '/logo-lloyd-dark.webp' : '/logo-lloyd-light.webp'}
+          src={resolvedTheme === 'dark' ? '/logo-lloyd-dark.webp' : '/logo-lloyd-light.webp'}
           alt="Lloyd Logo"
           onError={(e) => { (e.target as HTMLImageElement).src = '/logo-lloyd.webp'; }}
-          className="h-10 object-contain dark:brightness-0 dark:invert opacity-50 hover:opacity-100 transition-opacity duration-300"
+          className="h-10 object-contain opacity-50 hover:opacity-100 transition-opacity duration-300"
         />
       </div>
 

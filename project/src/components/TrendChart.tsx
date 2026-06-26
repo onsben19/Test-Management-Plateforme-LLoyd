@@ -3,7 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useTheme } from '../context/ThemeContext';
 
 const TrendChart = () => {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   const data = [
     { month: 'Août', tests: 1240, success: 1180 },
@@ -33,7 +33,7 @@ const TrendChart = () => {
                 <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#374151' : '#e2e8f0'} />
+            <CartesianGrid strokeDasharray="3 3" stroke={resolvedTheme === 'dark' ? '#374151' : '#e2e8f0'} />
             <XAxis
               dataKey="month"
               axisLine={false}
@@ -47,11 +47,11 @@ const TrendChart = () => {
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff',
-                border: theme === 'dark' ? '1px solid #475569' : '1px solid #e2e8f0',
+                backgroundColor: resolvedTheme === 'dark' ? '#1e293b' : '#ffffff',
+                border: resolvedTheme === 'dark' ? '1px solid #475569' : '1px solid #e2e8f0',
                 borderRadius: '8px',
-                color: theme === 'dark' ? '#f1f5f9' : '#1e293b',
-                boxShadow: theme === 'dark' ? 'none' : '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                color: resolvedTheme === 'dark' ? '#f1f5f9' : '#1e293b',
+                boxShadow: resolvedTheme === 'dark' ? 'none' : '0 4px 6px -1px rgb(0 0 0 / 0.1)'
               }}
             />
             <Area

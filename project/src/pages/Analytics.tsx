@@ -63,10 +63,15 @@ const Analytics = () => {
             const res = await savedVisualizationService.refresh(id);
             const updated = res.data;
             setSavedVisualizations(prev => prev.map(v => v.id === id ? updated : v));
-            toast.success("Données actualisées !");
-        } catch (error) {
+            if (updated.warning) {
+                toast.warning(updated.warning);
+            } else {
+                toast.success("Données actualisées !");
+            }
+        } catch (error: any) {
             console.error("Failed to refresh visualization", error);
-            toast.error("Erreur lors de l'actualisation.");
+            const errMsg = error?.response?.data?.error || "Erreur lors de l'actualisation.";
+            toast.error(errMsg);
         } finally {
             setRefreshingId(null);
         }
@@ -144,15 +149,101 @@ const Analytics = () => {
 
     const renderVisualization = (vis: any) => {
         if (!vis.data) return null;
+
+        const renderTabularChart = (rows: any[], chartType?: string) => {
+            if (!Array.isArray(rows) || rows.length === 0) {
+                return (
+                    <div className="flex flex-col items-center justify-center py-12 text-slate-500 italic">
+                        <AlertCircle className="w-8 h-8 mb-2 opacity-50 text-slate-500" />
+                        Aucune donnée à afficher
+                    </div>
+                );
+            }
+
+            const keys = Object.keys(rows[0]);
+            const labelKey = keys[0];
+            const valueKey = keys.find((k) =>
+                k !== labelKey && rows.some((row: any) => row[k] !== null && row[k] !== '' && !isNaN(Number(row[k])))
+            );
+            const normalized = rows.map((row: any) => ({ ...row, ...(valueKey ? { [valueKey]: Number(row[valueKey]) } : {}) }));
+
+            if (chartType === 'metric') {
+                return (
+                    <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-blue-600/10 to-violet-600/10 border border-blue-500/10 rounded-2xl text-center shadow-lg w-full">
+                        <span className="text-5xl font-black text-blue-500 dark:text-blue-400">{normalized[0][keys[0]]}</span>
+                        <div className="mt-2 text-[10px] uppercase tracking-widest font-black text-slate-400">{keys[0].replace(/_/g, ' ')}</div>
+                    </div>
+                );
+            }
+
+            if (valueKey && (chartType === 'bar' || !chartType)) {
+                const gradientId = `colorValue-${vis.id}`;
+                return (
+                    <div className="h-[300px] w-full bg-slate-950/20 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-200 dark:border-white/5">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={normalized} margin={{ top: 10, right: 10, left: -10, bottom: 20 }}>
+                                <defs>
+                                    <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.08)" />
+                                <XAxis dataKey={labelKey} fontSize={10} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500" angle={-25} textAnchor="end" interval={0} />
+                                <YAxis fontSize={10} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500" width={30} />
+                                <ChartTooltip contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '12px', fontSize: '10px', border: '1px solid var(--border)', color: 'var(--foreground)' }} cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }} />
+                                <Bar dataKey={valueKey} fill={`url(#${gradientId})`} radius={[4, 4, 0, 0]} maxBarSize={40} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800/80 overflow-hidden w-full">
+                    <div className="overflow-x-auto max-h-60 custom-scrollbar">
+                        <table className="min-w-full text-[10px]">
+                            <thead className="bg-slate-50 dark:bg-white dark:bg-slate-900 sticky top-0 font-bold text-slate-500 uppercase tracking-wider">
+                                <tr>{keys.map(k => <th key={k} className="px-3 py-2 text-left">{k.replace(/_/g, ' ')}</th>)}</tr>
+                            </thead>
+                            <tbody className="bg-white/50 dark:bg-slate-950/30 divide-y divide-slate-100 dark:divide-slate-800/50">
+                                {normalized.map((row, i) => <tr key={i} className="hover:bg-blue-50 dark:hover:bg-blue-900/5 text-slate-700 dark:text-slate-300">{keys.map(k => <td key={k} className="px-3 py-2">{row[k]}</td>)}</tr>)}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
         if (vis.type === 'plotly') {
             let props = vis.data;
             if (typeof props === 'string') { try { props = JSON.parse(props); } catch { return null; } }
-            const plotTitle = typeof props.layout?.title === 'object' ? props.layout.title.text : (typeof props.layout?.title === 'string' ? props.layout.title : null);
+
+            const isPlotlyTraceArray = Array.isArray(props) && props.length > 0
+                && props.every((item: any) => item && typeof item === 'object' && 'type' in item);
+            const isRawSqlRows = Array.isArray(props) && props.length > 0
+                && typeof props[0] === 'object'
+                && !isPlotlyTraceArray
+                && !('data' in props)
+                && !('layout' in props);
+
+            if (isRawSqlRows) {
+                return renderTabularChart(props, 'bar');
+            }
+
+            const plotData = isPlotlyTraceArray
+                ? props
+                : (Array.isArray(props) ? props : (props.data || []));
+            if (!plotData.length) {
+                return renderTabularChart([], vis.type);
+            }
+
+            const plotLayout = isPlotlyTraceArray ? {} : (props.layout || {});
 
             return (
                 <div className="w-full flex flex-col items-center">
                     <Plot
-                        data={props.data || []}
+                        data={plotData}
                         layout={{
                             autosize: true,
                             paper_bgcolor: 'transparent',
@@ -160,14 +251,14 @@ const Analytics = () => {
                             font: { color: 'var(--foreground)', family: 'Outfit, Inter, sans-serif', size: 10 },
                             showlegend: true,
                             legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center' },
-                            ...props.layout,
+                            ...(plotLayout || {}),
                             title: undefined,
                             margin: {
                                 t: 10,
                                 b: 80,
                                 l: 30,
                                 r: 30,
-                                ...props.layout?.margin
+                                ...(plotLayout?.margin || {})
                             },
                             height: 300,
                         }}
@@ -181,62 +272,8 @@ const Analytics = () => {
                 </div>
             );
         }
-        if (!Array.isArray(vis.data) || vis.data.length === 0) return (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-500 italic">
-                <AlertCircle className="w-8 h-8 mb-2 opacity-50 text-slate-500" />
-                Aucune donnée à afficher
-            </div>
-        );
-        const keys = Object.keys(vis.data[0]);
-        const labelKey = keys[0];
-        const valueKey = keys.find(k => k !== labelKey && !isNaN(Number(vis.data[0][k])));
-        const normalized = vis.data.map((row: any) => ({ ...row, ...(valueKey ? { [valueKey]: Number(row[valueKey]) } : {}) }));
 
-        if (vis.type === 'metric') {
-            return (
-                <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-blue-600/10 to-violet-600/10 border border-blue-500/10 rounded-2xl text-center shadow-lg w-full">
-                    <span className="text-5xl font-black text-blue-500 dark:text-blue-400">{normalized[0][keys[0]]}</span>
-                    <div className="mt-2 text-[10px] uppercase tracking-widest font-black text-slate-400">{keys[0].replace(/_/g, ' ')}</div>
-                </div>
-            );
-        }
-
-        if (valueKey && (vis.type === 'bar' || !vis.type)) {
-            return (
-                <div className="h-[300px] w-full bg-slate-950/20 rounded-2xl p-4 border border-slate-200/50 dark:border-white/5">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={normalized} margin={{ top: 10, right: 10, left: -10, bottom: 20 }}>
-                            <defs>
-                                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.08)" />
-                            <XAxis dataKey={labelKey} fontSize={10} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500" angle={-25} textAnchor="end" interval={0} />
-                            <YAxis fontSize={10} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500" width={30} />
-                            <ChartTooltip contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '12px', fontSize: '10px', border: '1px solid var(--border)', color: 'var(--foreground)' }} cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }} />
-                            <Bar dataKey={valueKey} fill="url(#colorValue)" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-            );
-        }
-
-        return (
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800/80 overflow-hidden w-full">
-                <div className="overflow-x-auto max-h-60 custom-scrollbar">
-                    <table className="min-w-full text-[10px]">
-                        <thead className="bg-slate-50 dark:bg-slate-900 sticky top-0 font-bold text-slate-500 uppercase tracking-wider">
-                            <tr>{keys.map(k => <th key={k} className="px-3 py-2 text-left">{k.replace(/_/g, ' ')}</th>)}</tr>
-                        </thead>
-                        <tbody className="bg-white/50 dark:bg-slate-950/30 divide-y divide-slate-100 dark:divide-slate-800/50">
-                            {normalized.map((row, i) => <tr key={i} className="hover:bg-blue-50 dark:hover:bg-blue-900/5 text-slate-700 dark:text-slate-300">{keys.map(k => <td key={k} className="px-3 py-2">{row[k]}</td>)}</tr>)}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        );
+        return renderTabularChart(vis.data, vis.type);
     };
 
     const renderDashboard = () => {
@@ -273,7 +310,7 @@ const Analytics = () => {
                                 key={vis.id}
                                 initial={{ opacity: 0, y: 15 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="group relative overflow-hidden bg-white dark:bg-white/[0.03] backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 hover:bg-slate-50 dark:hover:bg-white/[0.05] transition-all duration-300 flex flex-col h-full shadow-2xl shadow-slate-200/50 dark:shadow-black/20"
+                                className="group relative overflow-hidden bg-white dark:bg-white/[0.03] backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 hover:bg-slate-50 dark:hover:bg-slate-100 dark:bg-white/[0.05] transition-all duration-300 flex flex-col h-full shadow-2xl shadow-slate-200/50 dark:shadow-black/20"
                             >
                                 {/* Card Header */}
                                 <div className="flex justify-between items-start mb-4">
@@ -284,14 +321,14 @@ const Analytics = () => {
                                     <div className="flex items-center gap-2 shrink-0">
                                         <button
                                             onClick={() => setVisibleSqlMap(prev => ({ ...prev, [vis.id]: !isSqlVisible }))}
-                                            className={`p-2 rounded-xl transition-all border ${isSqlVisible ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/25' : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-400 hover:text-white'}`}
+                                            className={`p-2 rounded-xl transition-all border ${isSqlVisible ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/25' : 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
                                             title="Consulter SQL"
                                         >
                                             <Database className="w-3.5 h-3.5" />
                                         </button>
                                         <button
                                             onClick={() => handleRefreshSaved(vis.id)}
-                                            className="p-2 bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-all border border-slate-200 dark:border-white/5"
+                                            className="p-2 bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-all border border-slate-200 dark:border-white/5"
                                             title="Actualiser les données"
                                             disabled={refreshingId === vis.id}
                                         >
@@ -318,7 +355,7 @@ const Analytics = () => {
 
                                 {/* SQL Code Block toggler */}
                                 {isSqlVisible && vis.sql && (
-                                    <div className="mb-4 bg-slate-950/90 rounded-xl p-3 font-mono text-[9px] text-emerald-400/80 overflow-x-auto border border-slate-800 shadow-inner">
+                                    <div className="mb-4 bg-slate-200/90 dark:bg-slate-200/90 dark:bg-slate-950/90 rounded-xl p-3 font-mono text-[9px] text-emerald-400/80 overflow-x-auto border border-slate-800 shadow-inner">
                                         <code className="whitespace-pre">{vis.sql}</code>
                                     </div>
                                 )}
@@ -346,21 +383,21 @@ const Analytics = () => {
             fullHeight={true}
             noPadding={true}
         >
-            <div className="flex flex-col h-full bg-transparent">
+            <div className="flex flex-col h-full min-h-0 bg-transparent">
                 {/* Header de page */}
-                <div className="shrink-0 px-6 py-4 flex items-center gap-3">
-                    <h1 className="text-[20px] font-[500] text-[#e8eaf6]">Assistant Analytics</h1>
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-[rgba(127,119,221,0.25)] bg-[rgba(127,119,221,0.15)] text-[#AFA9EC] text-[11px] font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#AFA9EC] animate-pulse"></span>
+                <div className="shrink-0 px-4 lg:px-6 py-2 flex items-center gap-3">
+                    <h1 className="text-lg font-semibold text-slate-800 dark:text-[#e8eaf6]">Assistant Analytics</h1>
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-violet-200 dark:border-[rgba(127,119,221,0.25)] bg-violet-50 dark:bg-[rgba(127,119,221,0.15)] text-violet-600 dark:text-[#AFA9EC] text-[11px] font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-violet-500 dark:bg-[#AFA9EC] animate-pulse"></span>
                         AI Analytics
                     </div>
                 </div>
 
-                {/* Layout 2 colonnes */}
-                <div className="flex-1 px-6 pb-6 overflow-hidden flex justify-center">
-                    <div className="grid grid-cols-[240px_1fr] gap-[10px] w-full max-w-[1400px] h-[760px]">
+                {/* Layout 2 colonnes — hauteur adaptative au viewport */}
+                <div className="flex-1 min-h-0 px-4 lg:px-6 pb-4 overflow-hidden flex justify-center">
+                    <div className="grid grid-cols-[minmax(200px,240px)_1fr] gap-[10px] w-full max-w-[1400px] h-full min-h-0">
                         {/* Colonne 1 — Sidebar historique */}
-                        <div className="bg-[rgba(255,255,255,0.03)] backdrop-blur-xl rounded-[12px] border border-[rgba(255,255,255,0.08)] flex flex-col overflow-hidden shadow-2xl">
+                        <div className="bg-white dark:bg-white/[0.03] backdrop-blur-xl rounded-[12px] border border-slate-200 dark:border-white/[0.08] flex flex-col overflow-hidden min-h-0 h-full shadow-lg dark:shadow-2xl">
                             <ChatHistorySidebar
                                 conversations={conversations}
                                 currentConversationId={currentConversationId}
@@ -372,23 +409,24 @@ const Analytics = () => {
                         </div>
 
                         {/* Colonne 2 — Panneau principal */}
-                        <div className="bg-[rgba(255,255,255,0.03)] backdrop-blur-xl rounded-[12px] border border-[rgba(255,255,255,0.08)] flex flex-col overflow-hidden shadow-2xl">
+                        <div className="bg-white dark:bg-white/[0.03] backdrop-blur-xl rounded-[12px] border border-slate-200 dark:border-white/[0.08] flex flex-col overflow-hidden min-h-0 h-full shadow-lg dark:shadow-2xl">
                             {/* Onglets */}
-                            <div className="px-[14px] pt-[12px] flex border-b border-[rgba(255,255,255,0.07)] relative">
+                            <div className="shrink-0 px-[14px] pt-[12px] flex border-b border-slate-200 dark:border-white/[0.07] relative">
                                 <button
                                     onClick={() => setActiveTab('chat')}
-                                    className={`px-4 py-2 text-[12px] font-[500] rounded-t-[8px] transition-all border ${activeTab === 'chat' ? 'bg-[rgba(255,255,255,0.04)] text-[#e8eaf6] border-[rgba(255,255,255,0.08)] border-b-transparent relative top-[1px]' : 'text-[rgba(255,255,255,0.4)] bg-transparent border-transparent hover:text-[rgba(255,255,255,0.7)]'}`}
+                                    className={`px-4 py-2 text-[12px] font-[500] rounded-t-[8px] transition-all border ${activeTab === 'chat' ? 'bg-slate-100 dark:bg-white/[0.04] text-slate-900 dark:text-slate-800 dark:text-[#e8eaf6] border-slate-200 dark:border-white/[0.08] border-b-transparent relative top-[1px]' : 'text-slate-500 dark:text-white/40 bg-transparent border-transparent hover:text-slate-700 dark:hover:text-white/70'}`}
                                 >
                                     Discussions IA
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('dashboard')}
-                                    className={`px-4 py-2 text-[12px] font-[500] rounded-t-[8px] transition-all border ${activeTab === 'dashboard' ? 'bg-[rgba(255,255,255,0.04)] text-[#e8eaf6] border-[rgba(255,255,255,0.08)] border-b-transparent relative top-[1px]' : 'text-[rgba(255,255,255,0.4)] bg-transparent border-transparent hover:text-[rgba(255,255,255,0.7)]'}`}
+                                    className={`px-4 py-2 text-[12px] font-[500] rounded-t-[8px] transition-all border ${activeTab === 'dashboard' ? 'bg-slate-100 dark:bg-white/[0.04] text-slate-900 dark:text-slate-800 dark:text-[#e8eaf6] border-slate-200 dark:border-white/[0.08] border-b-transparent relative top-[1px]' : 'text-slate-500 dark:text-white/40 bg-transparent border-transparent hover:text-slate-700 dark:hover:text-white/70'}`}
                                 >
                                     Mon tableau de bord
                                 </button>
                             </div>
 
+                            <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
                             {activeTab === 'chat' ? (
                                 <AnalyticsChatWidget
                                     embedded={true}
@@ -399,8 +437,11 @@ const Analytics = () => {
                                     isSidebarOpen={true}
                                 />
                             ) : (
-                                renderDashboard()
+                                <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+                                    {renderDashboard()}
+                                </div>
                             )}
+                            </div>
                         </div>
                     </div>
                 </div>

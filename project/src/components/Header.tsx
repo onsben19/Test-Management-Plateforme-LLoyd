@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, Menu, X, Sun, Moon, CheckCircle, AlertTriangle, MessageSquare, Mail, LogOut, User as UserIcon, Settings } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Bell, Menu, X, Sun, Moon, CheckCircle, AlertTriangle, MessageSquare, Mail, LogOut, User as UserIcon } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { notificationService, type Notification } from '../services/notificationService';
 import { useAuth } from '../context/AuthContext';
@@ -9,7 +10,8 @@ import * as Popover from '@radix-ui/react-popover';
 import LanguageSwitcher from './LanguageSwitcher';
 
 const Header = () => {
-  const { theme, toggleTheme } = useTheme();
+  const { t } = useTranslation();
+  const { theme, resolvedTheme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const { isOpen, toggle } = useSidebar();
   const navigate = useNavigate();
@@ -51,37 +53,157 @@ const Header = () => {
     return () => clearInterval(interval);
   }, [user]);
 
+  const resolveNotificationTarget = (notif: Notification) => {
+    const role = user?.role?.toUpperCase();
+    const campaignId = notif.related_campaign;
+    const objectId = notif.related_object_id;
+
+    switch (notif.type) {
+      case 'campaign_assignment':
+      case 'reinforcement_request':
+        if (role === 'TESTER') {
+          return campaignId
+            ? `/tester-dashboard?campaign=${campaignId}`
+            : '/tester-dashboard';
+        }
+        if (role === 'ADMIN') return '/admin/campaigns';
+        return campaignId ? `/manager?campaign=${campaignId}` : '/manager/dashboard';
+
+      case 'execution_validated':
+        if (role === 'ADMIN') {
+          return objectId ? `/admin/executions?highlight=${objectId}` : '/admin/executions';
+        }
+        return objectId ? `/execution?testId=${objectId}` : '/execution';
+
+      case 'anomaly_reported':
+        if (role === 'ADMIN') {
+          return objectId ? `/admin/anomalies?highlight=${objectId}` : '/admin/anomalies';
+        }
+        return objectId ? `/anomalies?highlight=${objectId}` : '/anomalies';
+
+      case 'comment_posted':
+        if (!objectId) return '/chat';
+        if (role === 'ADMIN') {
+          return `/admin/executions?highlight=${objectId}`;
+        }
+        return `/execution?testId=${objectId}`;
+
+      case 'email_received':
+        return role === 'ADMIN' ? '/management/messages' : '/messages';
+
+      default:
+        if (objectId) {
+          if (role === 'ADMIN') return `/admin/executions?highlight=${objectId}`;
+          return `/execution?testId=${objectId}`;
+        }
+        if (campaignId) {
+          if (role === 'TESTER') return `/tester-dashboard?campaign=${campaignId}`;
+          if (role === 'ADMIN') return '/admin/campaigns';
+          return `/manager?campaign=${campaignId}`;
+        }
+        if (role === 'ADMIN') return '/admin/dashboard';
+        if (role === 'MANAGER') return '/manager/dashboard';
+        if (role === 'TESTER') return '/tester-dashboard';
+        return '/';
+    }
+  };
+
   const handleNotificationClick = async (notif: Notification) => {
     try {
       if (!notif.is_read) {
         await notificationService.markAsRead(notif.id);
         fetchNotifications();
       }
-      // Close the popover before navigating
       setPopoverOpen(false);
-
-      if (notif.type === 'campaign_assignment' || notif.type === 'reinforcement_request') {
-        navigate('/tester-dashboard');
-      } else if (notif.type === 'execution_validated') {
-        const role = user?.role?.toUpperCase();
-        if (role === 'ADMIN') {
-          navigate(`/admin/executions?highlight=${notif.related_object_id}`);
-        } else {
-          navigate(`/execution?testId=${notif.related_object_id}`);
-        }
-      } else if (notif.type === 'anomaly_reported') {
-        const role = user?.role?.toUpperCase();
-        const baseRoute = role === 'ADMIN' ? '/admin/anomalies' : '/anomalies';
-        navigate(`${baseRoute}?highlight=${notif.related_object_id}`);
-      } else if (notif.type === 'comment_posted') {
-        navigate(`/execution?testId=${notif.related_object_id}`);
-      } else if (notif.type === 'email_received') {
-        navigate('/messages');
-      }
+      navigate(resolveNotificationTarget(notif));
     } catch (error) {
       console.error("Failed to process notification click", error);
     }
   };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      fetchNotifications();
+    } catch (error) {
+      console.error("Failed to mark all notifications as read", error);
+    }
+  };
+
+  const formatNotifDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return t('header.justNow');
+    if (diffMins < 60) return t('header.minutesAgo', { count: diffMins });
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return t('header.hoursAgo', { count: diffHours });
+    return date.toLocaleDateString(t('common.dateLocale'), { day: 'numeric', month: 'short' });
+  };
+
+  const renderNotificationBell = () => (
+    <Popover.Root open={popoverOpen} onOpenChange={setPopoverOpen}>
+      <Popover.Trigger asChild>
+        <button
+          className="relative p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 outline-none"
+          aria-label={t('header.notifications')}
+        >
+          <Bell className="w-5 h-5" />
+          {unreadCount > 0 && (
+            <span className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content className="w-80 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-4 z-50 mr-4 mt-2">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold text-slate-900 dark:text-white">{t('header.notifications')}</h3>
+            {unreadCount > 0 && (
+              <button
+                onClick={handleMarkAllRead}
+                className="text-xs text-blue-500 hover:text-blue-600 font-medium transition-colors"
+              >
+                {t('header.markAllRead')}
+              </button>
+            )}
+          </div>
+          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            {notifications.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-4">{t('header.noNotifications')}</p>
+            ) : (
+              notifications.map((notif) => (
+                <div
+                  key={notif.id}
+                  onClick={() => handleNotificationClick(notif)}
+                  className={`p-3 rounded-lg text-sm cursor-pointer transition-colors flex gap-3 ${notif.is_read
+                    ? 'bg-transparent opacity-70'
+                    : 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500'
+                    }`}
+                >
+                  <div className="flex-shrink-0 mt-1">
+                    {getIcon(notif.type)}
+                  </div>
+                  <div>
+                    <p className={`font-medium ${!notif.is_read ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                      {notif.title}
+                    </p>
+                    <p className="text-slate-500 mt-1 line-clamp-2">{notif.message}</p>
+                    <span className="text-xs text-slate-400 mt-2 block">
+                      {formatNotifDate(notif.created_at)}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <Popover.Arrow className="fill-white dark:fill-slate-800" />
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
 
   return (
     <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0 z-50 transition-all duration-500">
@@ -90,8 +212,8 @@ const Header = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={toggle}
-              className="p-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              aria-label="Toggle Sidebar"
+              className="p-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label={t('header.toggleSidebar')}
             >
               <Menu className="w-6 h-6" />
             </button>
@@ -100,63 +222,21 @@ const Header = () => {
             </h1>
           </div>
 
-          <div className="hidden md:flex items-center space-x-4">
-
-
+          <div className="flex items-center space-x-2 md:space-x-4">
             <LanguageSwitcher />
 
-            <Popover.Root open={popoverOpen} onOpenChange={setPopoverOpen}>
-              <Popover.Trigger asChild>
-                <button className="relative p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 outline-none">
-                  <Bell className="w-5 h-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                  )}
-                </button>
-              </Popover.Trigger>
-              <Popover.Portal>
-                <Popover.Content className="w-80 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-4 z-50 mr-4 mt-2">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-semibold text-slate-900 dark:text-white">Notifications</h3>
-                    {unreadCount > 0 && (
-                      <span className="text-xs text-blue-500 font-medium">{unreadCount} nouvelles</span>
-                    )}
-                  </div>
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <p className="text-sm text-slate-500 text-center py-4">Aucune notification</p>
-                    ) : (
-                      notifications.map((notif) => (
-                        <div
-                          key={notif.id}
-                          onClick={() => handleNotificationClick(notif)}
-                          className={`p-3 rounded-lg text-sm cursor-pointer transition-colors flex gap-3 ${notif.is_read
-                            ? 'bg-transparent opacity-70'
-                            : 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500'
-                            }`}
-                        >
-                          <div className="flex-shrink-0 mt-1">
-                            {getIcon(notif.type)}
-                          </div>
-                          <div>
-                            <p className={`font-medium ${!notif.is_read ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                              {notif.title}
-                            </p>
-                            <p className="text-slate-500 mt-1 line-clamp-2">{notif.message}</p>
-                            <span className="text-xs text-slate-400 mt-2 block">
-                              {new Date(notif.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  <Popover.Arrow className="fill-white dark:fill-slate-800" />
-                </Popover.Content>
-              </Popover.Portal>
-            </Popover.Root >
+            <button
+              onClick={toggleTheme}
+              className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+              aria-label={resolvedTheme === 'dark' ? t('header.enableLightMode') : t('header.enableDarkMode')}
+              title={resolvedTheme === 'dark' ? t('header.lightMode') : t('header.darkMode')}
+            >
+              {resolvedTheme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
 
-  <Popover.Root open={profileOpen} onOpenChange={setProfileOpen}>
+            {renderNotificationBell()}
+
+            <Popover.Root open={profileOpen} onOpenChange={setProfileOpen}>
     <Popover.Trigger asChild>
       <button className="relative ml-2 flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all outline-none">
         {user?.avatar ? (
@@ -170,7 +250,7 @@ const Header = () => {
     <Popover.Portal>
       <Popover.Content className="w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 z-50 mr-4 mt-2">
         <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-700 mb-2">
-          <p className="font-bold text-slate-900 dark:text-white truncate">{user?.username || 'Utilisateur'}</p>
+          <p className="font-bold text-slate-900 dark:text-white truncate">{user?.username || t('header.defaultUser')}</p>
           <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">{user?.role || ''}</p>
         </div>
         <div className="space-y-1">
@@ -180,29 +260,21 @@ const Header = () => {
             className="flex items-center gap-3 w-full px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
           >
             <UserIcon className="w-4 h-4" />
-            Mon Profil
-          </Link>
-          <Link
-            to="/settings"
-            onClick={() => setProfileOpen(false)}
-            className="flex items-center gap-3 w-full px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors"
-          >
-            <Settings className="w-4 h-4" />
-            Paramètres
+            {t('header.myProfile')}
           </Link>
           <button
             onClick={() => { setProfileOpen(false); logout(); }}
             className="flex items-center gap-3 w-full px-3 py-2 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
           >
             <LogOut className="w-4 h-4" />
-            Déconnexion
+            {t('header.logout')}
           </button>
         </div>
         <Popover.Arrow className="fill-white dark:fill-slate-800" />
       </Popover.Content>
     </Popover.Portal>
-  </Popover.Root>
-          </div >
+            </Popover.Root>
+          </div>
         </div >
       </div >
     </header >

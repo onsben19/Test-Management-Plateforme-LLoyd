@@ -49,7 +49,7 @@ alt Messagerie Interne (E-mail in-app)
         Frontend --> Sender: retours afficherSucces()
         deactivate Frontend
     end
-    
+
     group Consultation de la Boîte de Réception
         Receiver -> Frontend: ouvrirBoiteReception()
         activate Frontend
@@ -63,18 +63,66 @@ alt Messagerie Interne (E-mail in-app)
 
 else Chat Temps Réel (Conversation)
 
-    group Échange de messages en direct
+    group Connexion WebSocket persistante
+        Sender -> Frontend: ouvrirChatCenter()
+        Frontend -> WebSockets: connecter(ws/chat/global/?token)
+        activate WebSockets
+        WebSockets --> Frontend: connexionAcceptee()
+        deactivate WebSockets
+        Receiver -> Frontend: ouvrirChatCenter()
+        Frontend -> WebSockets: connecter(ws/chat/global/?token)
+        activate WebSockets
+        WebSockets --> Frontend: connexionAcceptee()
+        deactivate WebSockets
+    end
+
+    group Envoi et réception instantanée d'un message
         Sender -> Frontend: envoyerMessageChat(texte)
         activate Frontend
-        Frontend -> WebSockets: transmettreMessageJSON(room)
-        activate WebSockets
-        WebSockets -> DB: sauvegarderMessage(auteur, texte)
+        Frontend -> RestAPI: POST /api/chat/messages/
+        activate RestAPI
+        RestAPI -> DB: sauvegarderMessage(conversation, auteur, texte)
         activate DB
-        DB --> WebSockets: retours confirmation()
+        DB --> RestAPI: retours messageCree()
         deactivate DB
-        WebSockets -> Frontend: diffuserMessageJSON(destinataires)
+        RestAPI -> WebSockets: diffuser(chat_message, payload)
+        activate WebSockets
+        RestAPI --> Frontend: retours http201Created(message)
+        deactivate RestAPI
+        WebSockets -> Frontend: chat_message(JSON)
         deactivate WebSockets
-        Frontend --> Receiver: afficherMessageInstantanement()
+        Frontend --> Receiver: afficherMessageSansRefresh()
+        Frontend --> Sender: confirmerEnvoi(check)
+        deactivate Frontend
+    end
+
+    group Indicateur « écrit... »
+        Sender -> Frontend: saisirTexte(message)
+        activate Frontend
+        Frontend -> WebSockets: envoyer(typing, conversation_id, is_typing=true)
+        activate WebSockets
+        WebSockets -> Frontend: chat_typing(username)
+        deactivate WebSockets
+        Frontend --> Receiver: afficherEcrit(username)
+        deactivate Frontend
+    end
+
+    group Accusé de lecture « Vu »
+        Receiver -> Frontend: ouvrirConversation()
+        activate Frontend
+        Frontend -> RestAPI: POST /api/chat/conversations/{id}/mark_read/
+        activate RestAPI
+        RestAPI -> DB: mettreAJour(ConversationReadCursor)
+        activate DB
+        DB --> RestAPI: retours curseurLu()
+        deactivate DB
+        RestAPI -> WebSockets: diffuser(chat_read, last_read_message_id)
+        activate WebSockets
+        RestAPI --> Frontend: retours http200OK()
+        deactivate RestAPI
+        WebSockets -> Frontend: chat_read(JSON)
+        deactivate WebSockets
+        Frontend --> Sender: afficherVu(doubleCheckBleu)
         deactivate Frontend
     end
 

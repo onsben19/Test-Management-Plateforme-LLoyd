@@ -1,10 +1,8 @@
 import React, { lazy } from 'react';
 import '@radix-ui/themes/styles.css';
 import { Theme } from '@radix-ui/themes';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import ThemeToastContainer from './src/components/ThemeToastContainer';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import GlobalAIChat from './src/components/GlobalAIChat';
 import { AuthProvider } from './src/context/AuthContext';
 import RoleGuard from './src/components/RoleGuard';
 import { ThemeProvider } from './src/context/ThemeContext';
@@ -14,7 +12,6 @@ import { SidebarProvider } from './src/context/SidebarContext';
 const Home = lazy(() => import('./src/pages/Home'));
 const Login = lazy(() => import('./src/pages/Login'));
 const Anomalies = lazy(() => import('./src/pages/Anomalies'));
-const Settings = lazy(() => import('./src/pages/Settings'));
 const ExecutionTracking = lazy(() => import('./src/pages/ExecutionTracking'));
 const DataDrivenManager = lazy(() => import('./src/pages/DataDrivenManager'));
 const ReleaseManager = lazy(() => import('./src/pages/ReleaseManager'));
@@ -43,9 +40,9 @@ const AdminQANews = lazy(() => import('./src/pages/admin/AdminQANews'));
 const ManagerDashboard = lazy(() => import('./src/pages/manager/ManagerDashboard'));
 
 const PageLoader = () => (
-  <div className="flex flex-col items-center justify-center min-h-screen bg-[#060a16] gap-4">
+  <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 dark:bg-[#060a16] gap-4">
     <div className="w-10 h-10 border-4 border-violet-500/20 border-t-violet-500 rounded-full animate-spin" />
-    <span className="text-white/30 text-xs font-semibold tracking-widest uppercase animate-pulse">Chargement...</span>
+    <span className="text-slate-400 dark:text-slate-500 dark:text-white/30 text-xs font-semibold tracking-widest uppercase animate-pulse">Chargement...</span>
   </div>
 );
 
@@ -134,12 +131,6 @@ const App: React.FC = () => {
                       </RoleGuard>
                     } />
 
-                    <Route path="/settings" element={
-                      <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
-                        <Settings />
-                      </RoleGuard>
-                    } />
-
                     <Route path="/profile" element={
                       <RoleGuard allowedRoles={['ADMIN', 'MANAGER', 'TESTER']}>
                         <Profile />
@@ -212,15 +203,7 @@ const App: React.FC = () => {
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </React.Suspense>
-                <ToastContainer
-                  position="top-right"
-                  autoClose={3000}
-                  newestOnTop
-                  closeOnClick
-                  pauseOnHover
-                  theme="dark"
-                />
-                <GlobalAIChat />
+                <ThemeToastContainer />
               </main>
             </Router>
           </SidebarProvider>

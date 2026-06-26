@@ -22,14 +22,14 @@ const AIInsightModal: React.FC<AIInsightModalProps> = ({ isOpen, onClose, title,
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+                        className="absolute inset-0 bg-slate-200/80 dark:bg-slate-200/80 dark:bg-slate-950/80 backdrop-blur-md"
                     />
                     
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="bg-slate-900 border border-slate-300 dark:border-white/10 w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden"
+                        className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-200 dark:border-white/10 w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden"
                     >
                         <div className="flex items-center justify-between mb-8">
                             <div className="flex items-center gap-4">
