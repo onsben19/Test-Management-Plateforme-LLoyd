@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      allowedHosts: ["insuretb.tech", ".insuretb.tech"],
       proxy: {
         "/api": { target: frontendUrl, changeOrigin: true },
         "/media": { target: frontendUrl, changeOrigin: true },
