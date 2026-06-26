@@ -1,10 +1,9 @@
 import axios from 'axios';
 
-// ---------------------------------------------------------------------------
-// Axios instance
-// ---------------------------------------------------------------------------
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+
 const api = axios.create({
-    baseURL: 'https://api.insuretb.tech/api',
+    baseURL: API_BASE_URL,
     headers: { 'Content-Type': 'application/json' },
 });
 
@@ -26,7 +25,7 @@ api.interceptors.response.use(
             if (refreshToken) {
                 try {
                     const { data } = await axios.post(
-                        '/api/token/refresh/',
+                        `${API_BASE_URL}/token/refresh/`,
                         { refresh: refreshToken }
                     );
                     localStorage.setItem('access_token', data.access);

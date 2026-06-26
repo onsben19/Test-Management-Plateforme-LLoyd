@@ -9,7 +9,6 @@ build/
 # Local environment
 .env
 .env.local
-.env.production
 
 # IDE / OS
 .DS_Store
