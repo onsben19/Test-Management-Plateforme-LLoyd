@@ -9,6 +9,7 @@ test.describe('[ADMIN] Gestion des Utilisateurs', () => {
     expect(success).toBeTruthy();
   });
 
+  
   test('2. Navigation vers la page Gestion des Utilisateurs', async ({ page }) => {
     await loginAsAdmin(page);
     await page.goto('/admin/users');
