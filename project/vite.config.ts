@@ -5,6 +5,7 @@ import { defineConfig, loadEnv } from "vite";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const frontendUrl = env.FRONTEND_URL || "http://nginx";
+  const backendUrl = env.BACKEND_URL || "http://backend:8000";
 
   return {
     plugins: [react()],
@@ -16,14 +17,14 @@ export default defineConfig(({ mode }) => {
     server: {
       allowedHosts: ["insuretb.tech", ".insuretb.tech"],
       proxy: {
-        "/api": { target: frontendUrl, changeOrigin: true },
-        "/media": { target: frontendUrl, changeOrigin: true },
+        "/api": { target: backendUrl, changeOrigin: true },
+        "/media": { target: backendUrl, changeOrigin: true },
         "/ws": {
-          target: frontendUrl.replace(/^http/, "ws"),
+          target: backendUrl.replace(/^http/, "ws"),
           ws: true,
           changeOrigin: true,
         },
-        "/novnc": { target: frontendUrl, changeOrigin: true, ws: true },
+        "/novnc": { target: backendUrl, changeOrigin: true, ws: true },
       },
     },
     esbuild: {
