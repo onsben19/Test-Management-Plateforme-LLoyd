@@ -53,11 +53,10 @@ services:
   # ─────────────────────────────────────────────────────────
   frontend:
     build:
-      context: ./project
       dockerfile: Dockerfile
-      args:
-      VITE_API_BASE_URL: https://api.insuretb.tech/api
-      FRONTEND_URL: https://api.insuretb.tech
+      envirment:
+        VITE_API_BASE_URL: https://api.insuretb.tech/api
+        FRONTEND_URL: https://insuretb.tech
     container_name: insuretm-frontend
     restart: unless-stopped
     expose:
