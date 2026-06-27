@@ -2,8 +2,6 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 import { jwtDecode } from 'jwt-decode';
 
-const AUTH_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.insuretb.tech/api';
-
 interface User {
     id: number;
     username: string;
@@ -43,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const fetchUser = async (userId: number) => {
         try {
-            const response = await api.get(`/users/${userId}/`);
+            const response = await api.get(`users/${userId}/`);
             setUser(response.data);
         } catch {
             logout();
@@ -67,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const login = async (username: string, pass: string) => {
-        const response = await api.post(`${AUTH_API_BASE_URL}/login/`, { username, password: pass });
+        const response = await api.post('login/', { username, password: pass });
 
         if (response.data.requires_2fa) {
             return { requires_2fa: true, username: response.data.username };
@@ -83,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const verify2FA = async (username: string, otp: string) => {
-        const response = await api.post(`${AUTH_API_BASE_URL}/verify-2fa/`, { username, otp });
+        const response = await api.post('verify-2fa/', { username, otp });
         const { access, refresh } = response.data;
 
         localStorage.setItem('access_token', access);
@@ -94,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const forgotPassword = async (identifier: string) => {
-        await api.post(`${AUTH_API_BASE_URL}/forgot-password/`, { identifier });
+        await api.post('forgot-password/', { identifier });
     };
 
     return (
