@@ -3,7 +3,7 @@
 
 databases:
   - name: insuretm-db
-    databaseName: insureTM_db
+    databaseName: insuretm_db
     user: insuretm
     plan: starter
     region: frankfurt
