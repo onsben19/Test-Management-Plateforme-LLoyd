@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { chatService, aiService, userService } from '../services/api';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
+import { getWsBaseUrl } from '../utils/apiConfig';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import Button from '../components/ui/Button';
@@ -230,11 +231,11 @@ const ChatCenter = () => {
 
     // WebSocket Integration — persistent connection, real-time messages/typing/read
     useEffect(() => {
-        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const wsBase = getWsBaseUrl().replace(/\/$/, '');
         const token = localStorage.getItem('access_token');
         if (!token || !currentUser?.id) return;
 
-        const wsUrl = `${protocol}://${window.location.host}/ws/chat/global/?token=${token}`;
+        const wsUrl = `${wsBase}/ws/chat/global/?token=${token}`;
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 

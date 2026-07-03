@@ -408,12 +408,12 @@ const TesterDashboard = () => {
     useEffect(() => {
         if (!campaignIdsKey) return;
 
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsBase = getWsBaseUrl().replace(/\/$/, '');
         const token = localStorage.getItem('access_token');
         const sockets: WebSocket[] = [];
 
         campaigns.forEach(camp => {
-            const wsUrl = `${protocol}//${window.location.host}/ws/campaigns/${camp.id}/live/?token=${token}`;
+            const wsUrl = `${wsBase}/ws/campaigns/${camp.id}/live/?token=${token}`;
             const ws = new WebSocket(wsUrl);
             ws.onmessage = () => {
                 fetchAssignedCampaigns(currentPageRef.current, true);

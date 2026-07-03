@@ -404,12 +404,12 @@ const DataDrivenManager = () => {
     useEffect(() => {
         if (!campaignIdsKey) return;
 
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsBase = getWsBaseUrl().replace(/\/$/, '');
         const token = localStorage.getItem('access_token');
         const sockets: WebSocket[] = [];
 
         importedFiles.forEach(file => {
-            const wsUrl = `${protocol}//${window.location.host}/ws/campaigns/${file.id}/live/?token=${token}`;
+            const wsUrl = `${wsBase}/ws/campaigns/${file.id}/live/?token=${token}`;
             const ws = new WebSocket(wsUrl);
             ws.onmessage = () => {
                 fetchCampaigns(currentPageRef.current, true);

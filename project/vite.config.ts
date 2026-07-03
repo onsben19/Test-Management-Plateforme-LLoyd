@@ -4,8 +4,7 @@ import { defineConfig, loadEnv } from "vite";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const frontendUrl = env.FRONTEND_URL || "http://nginx";
-  const backendUrl = env.BACKEND_URL || "https://api.insuretb.tech";
+  const backendUrl = env.BACKEND_URL || env.VITE_API_BASE_URL?.replace(/\/api\/?$/, '') || "https://api.insuretb.tech";
 
   return {
     plugins: [react()],
