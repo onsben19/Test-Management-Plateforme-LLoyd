@@ -5,6 +5,7 @@ import Button from './ui/Button';
 import { executionService } from '../services/api';
 import type { TestItem } from './ExecutionTestList';
 import { motion } from 'framer-motion';
+import { getWsBaseUrl } from '../utils/apiConfig';
 
 interface AIAutomationModalProps {
     test: TestItem;
@@ -51,13 +52,9 @@ const AIAutomationModal: React.FC<AIAutomationModalProps> = ({ test, onClose, on
         setLiveLogs('');
         setExecutionResult(null);
 
-        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const wsBase = getWsBaseUrl().replace(/\/$/, '');
         const token = localStorage.getItem('access_token');
-        let wsHost = window.location.host;
-        if (window.location.port === '5173') {
-            wsHost = `${window.location.hostname}:8000`;
-        }
-        const wsUrl = `${protocol}://${wsHost}/ws/testcases/${test.id}/logs/${token ? `?token=${token}` : ''}`;
+        const wsUrl = `${wsBase}/ws/testcases/${test.id}/logs/${token ? `?token=${token}` : ''}`;
         
         let ws: WebSocket | null = null;
         try {

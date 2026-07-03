@@ -15,6 +15,7 @@ import QANewsHub from '../components/QANewsHub';
 import ValidateCasDeTest from '../components/ValidateCasDeTest';
 import { PendingReinforcements } from '../components/PendingReinforcements';
 import { formatCadencePerDay } from '../utils/cadence';
+import { getNovncUrl, getWsBaseUrl } from '../utils/apiConfig';
 
 const highlightPlaywrightCode = (rawCode: string) => {
     if (!rawCode) return '';
@@ -163,9 +164,8 @@ const TesterDashboard = () => {
     const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('grid');
     const [executionMode, setExecutionMode] = useState<'headless' | 'headed' | 'ui'>('headless');
 
-    // noVNC via nginx (/novnc/) — works in Docker prod and Vite dev (proxy in vite.config.ts)
-    const novncViewerUrl = '/novnc/vnc.html?autoconnect=true&resize=scale';
-    const novncIframeUrl = '/novnc/vnc.html?autoconnect=true&resize=scale&view_only=0&show_dot=true';
+    const novncViewerUrl = getNovncUrl();
+    const novncIframeUrl = getNovncUrl({ viewOnly: false, showDot: true });
 
     const closeAllCals = () => {
         setCalendarOpen(false);

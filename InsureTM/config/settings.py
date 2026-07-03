@@ -149,6 +149,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOW_ALL_ORIGINS = True
 
 # ---------------------------------------------------------------------------
+# HTTPS behind reverse proxy (production)
+# ---------------------------------------------------------------------------
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
+# ---------------------------------------------------------------------------
 APP_URL = env('APP_URL', default='')
 FRONTEND_URL = env('FRONTEND_URL', default='http://nginx')
 BACKEND_URL = env('BACKEND_URL', default='http://backend:8000')

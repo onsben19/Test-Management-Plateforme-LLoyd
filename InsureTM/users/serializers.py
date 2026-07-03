@@ -16,7 +16,11 @@ class UserSerializer(serializers.ModelSerializer):
         if obj.avatar:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.avatar.url)
+                url = request.build_absolute_uri(obj.avatar.url)
+                # Force HTTPS in production (avoid mixed-content warnings)
+                if url.startswith('http://'):
+                    url = 'https://' + url[7:]
+                return url
             return obj.avatar.url
         return None
 
