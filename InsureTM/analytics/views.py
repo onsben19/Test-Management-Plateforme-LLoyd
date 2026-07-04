@@ -793,7 +793,7 @@ class RespondToN8NView(APIView):
         
         import requests
         from django.conf import settings as django_settings
-        n8n_base = getattr(django_settings, 'N8N_BASE_URL', 'http://insuretm-n8n:5678')
+        n8n_base = getattr(django_settings, 'N8N_BASE_URL', 'https://n8n.insuretb.tech')
         try:
             url = f"{n8n_base}/webhook/reponse-testeur?statut={statut}&campaign_id={campaign_id}&tester_id={tester_id}&manager_email={manager_email}"
             requests.get(url, timeout=5)

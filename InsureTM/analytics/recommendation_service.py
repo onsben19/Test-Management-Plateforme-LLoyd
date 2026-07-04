@@ -26,7 +26,7 @@ class CatchupRecommendationManager:
         import os
         from django.conf import settings as django_settings
         token = os.environ.get('N8N_WEBHOOK_TOKEN', '')
-        n8n_base = getattr(django_settings, 'N8N_BASE_URL', 'http://insuretm-n8n:5678')
+        n8n_base = getattr(django_settings, 'N8N_BASE_URL', 'https://n8n.insuretb.tech')
         n8n_url = f"{n8n_base}/webhook/catchup-plan?token={token}"
         try:
             logger.info(f"Tentative d'envoi du plan à n8n: {n8n_url}")

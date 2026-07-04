@@ -158,7 +158,7 @@ USE_X_FORWARDED_HOST = True
 APP_URL = env('APP_URL', default='')
 FRONTEND_URL = env('FRONTEND_URL', default='http://nginx')
 BACKEND_URL = env('BACKEND_URL', default='http://backend:8000')
-N8N_BASE_URL = env('N8N_BASE_URL', default='http://insuretm-n8n:5678')
+N8N_BASE_URL = env('N8N_BASE_URL', default='https://n8n.insuretb.tech')
 
 # ---------------------------------------------------------------------------
 # Email (SMTP via Gmail — uses App Password from .env.docker)

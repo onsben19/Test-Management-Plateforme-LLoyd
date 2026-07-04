@@ -22,7 +22,7 @@ data = {
     ]
 }
 
-n8n_base = os.environ.get('N8N_BASE_URL', 'http://insuretm-n8n:5678').rstrip('/')
+n8n_base = os.environ.get('N8N_BASE_URL', 'https://n8n.insuretb.tech').rstrip('/')
 url = f"{n8n_base}/webhook/catchup-plan/"
 
 print("Envoi des données à n8n...")
