@@ -5,6 +5,7 @@ const frontendUrl = process.env.FRONTEND_URL || 'http://nginx';
 
 export default defineConfig({
   testDir: './tests',
+  outputDir: process.env.PLAYWRIGHT_OUTPUT_DIR || 'test-results',
   timeout: 120 * 1000,
   expect: { timeout: 30000 },
   fullyParallel: true,

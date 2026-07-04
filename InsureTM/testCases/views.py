@@ -21,6 +21,31 @@ from .serializers import TestCaseSerializer
 logger = logging.getLogger(__name__)
 
 
+def _find_playwright_artifacts(project_dir: str, test_case_id: int) -> tuple[str | None, str | None]:
+    """Locate Playwright screenshot (.png) and video (.webm) under test output dirs."""
+    screenshot_path = None
+    video_path = None
+    search_roots = [
+        os.path.join(project_dir, 'test-results', f'test_{test_case_id}'),
+        os.path.join(project_dir, 'test-results'),
+    ]
+    for root_dir in search_roots:
+        if not os.path.isdir(root_dir):
+            continue
+        for root, _, files in os.walk(root_dir):
+            for file in files:
+                full = os.path.join(root, file)
+                if file.endswith('.png') and not screenshot_path:
+                    # Prefer failure screenshots when multiple exist
+                    if 'test-failed' in file or not screenshot_path:
+                        screenshot_path = full
+                if file.endswith('.webm') and not video_path:
+                    video_path = full
+            if screenshot_path and video_path:
+                break
+    return screenshot_path, video_path
+
+
 class IsTesterOrAdmin(permissions.BasePermission):
     """Allow read access to all authenticated users; write access only to Testers, Admins, and Managers."""
 
@@ -198,12 +223,18 @@ class TestCaseViewSet(viewsets.ModelViewSet):
             role = 'tester'
             
         storage_state_path = f"tests/{role}/.auth/{role}.json"
-        
-        config_injection = f"test.use({{ screenshot: 'on', baseURL: '{frontend_url}', storageState: '{storage_state_path}' }});\n"
-            
+
+        config_injection = (
+            f"test.use({{ screenshot: 'on', video: 'on', baseURL: '{frontend_url}', "
+            f"storageState: '{storage_state_path}' }});\n"
+        )
+
         code = code.replace('http://localhost', frontend_url).replace('https://localhost', frontend_url)
 
-        if 'test.use' not in code:
+        import re
+        if re.search(r'test\.use\s*\(', code):
+            code = re.sub(r"test\.use\s*\([^;]*\)\s*;", config_injection.strip(), code, count=1)
+        else:
             code = code.replace("from '@playwright/test';", f"from '@playwright/test';\n\n{config_injection}")
 
         with open(filepath, 'w') as f:
@@ -289,6 +320,7 @@ class TestCaseViewSet(viewsets.ModelViewSet):
 
                 # Activate video recording via env var (playwright.config.ts reads PW_VIDEO)
                 env['PW_VIDEO'] = 'on'
+                env['PLAYWRIGHT_OUTPUT_DIR'] = output_dir
 
                 # Build Playwright command based on execution_mode
                 cmd = ['npx', 'playwright', 'test', path, f'--output={output_dir}', '--reporter=list']
@@ -331,16 +363,12 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                 tc.tester = User.objects.get(pk=tester_id)
 
                 # Screenshot + Video
-                screenshot_path = None
-                video_path = None
-                for root, _, files in os.walk(output_dir):
-                    for file in files:
-                        if file.endswith('.png') and not screenshot_path:
-                            screenshot_path = os.path.join(root, file)
-                        if file.endswith('.webm') and not video_path:
-                            video_path = os.path.join(root, file)
-                    if screenshot_path and video_path:
-                        break
+                screenshot_path, video_path = _find_playwright_artifacts(project_dir, test_case.id)
+                if not screenshot_path or not video_path:
+                    logger.warning(
+                        "Playwright artifacts missing for test %s (png=%s, webm=%s, output_dir=%s)",
+                        test_case.id, screenshot_path, video_path, output_dir,
+                    )
 
                 if screenshot_path and os.path.exists(screenshot_path):
                     with open(screenshot_path, 'rb') as f:
@@ -441,12 +469,25 @@ class TestCaseViewSet(viewsets.ModelViewSet):
             with open(result_path, 'r') as f:
                 result = _json.load(f)
             os.remove(result_path)
+            test_case.refresh_from_db()
+            proof_file_url = None
+            proof_video_url = None
+            if test_case.proof_file:
+                proof_file_url = request.build_absolute_uri(test_case.proof_file.url)
+                if proof_file_url.startswith('http://'):
+                    proof_file_url = 'https://' + proof_file_url[7:]
+            if test_case.proof_video:
+                proof_video_url = request.build_absolute_uri(test_case.proof_video.url)
+                if proof_video_url.startswith('http://'):
+                    proof_video_url = 'https://' + proof_video_url[7:]
             return Response({
                 'logs': result.get('logs', ''),
                 'running': False,
                 'status': result.get('status'),
                 'anomaly_id': result.get('anomaly_id'),
                 'video_path': result.get('video_path'),
+                'proof_file_url': proof_file_url,
+                'proof_video_url': proof_video_url,
             })
 
         # Fallback: execution finished but no result file (old run or error)
@@ -466,20 +507,19 @@ class TestCaseViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='serve-video')
     def serve_video(self, request, pk=None):
-        """Serves the latest recorded Playwright video (.webm) for this test case."""
+        """Serves the recorded Playwright video (.webm) for this test case."""
         from django.http import FileResponse, Http404
         test_case = self.get_object()
+
+        if test_case.proof_video:
+            return FileResponse(
+                test_case.proof_video.open('rb'),
+                content_type='video/webm',
+                as_attachment=False,
+            )
+
         project_dir = os.path.abspath(os.path.join(settings.BASE_DIR, '..', 'project'))
-        output_dir = os.path.join(project_dir, 'test-results', f'test_{test_case.id}')
-        video_path = None
-        if os.path.exists(output_dir):
-            for root, _, files in os.walk(output_dir):
-                for file in files:
-                    if file.endswith('.webm'):
-                        video_path = os.path.join(root, file)
-                        break
-                if video_path:
-                    break
+        _, video_path = _find_playwright_artifacts(project_dir, test_case.id)
         if not video_path or not os.path.exists(video_path):
             raise Http404("Vidéo non trouvée")
         return FileResponse(open(video_path, 'rb'), content_type='video/webm', as_attachment=False)

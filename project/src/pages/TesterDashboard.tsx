@@ -15,7 +15,6 @@ import QANewsHub from '../components/QANewsHub';
 import ValidateCasDeTest from '../components/ValidateCasDeTest';
 import { PendingReinforcements } from '../components/PendingReinforcements';
 import { formatCadencePerDay } from '../utils/cadence';
-import { getNovncUrl, getWsBaseUrl } from '../utils/apiConfig';
 
 const highlightPlaywrightCode = (rawCode: string) => {
     if (!rawCode) return '';
@@ -164,8 +163,9 @@ const TesterDashboard = () => {
     const [viewMode, setViewMode] = useState<'grid' | 'kanban'>('grid');
     const [executionMode, setExecutionMode] = useState<'headless' | 'headed' | 'ui'>('headless');
 
-    const novncViewerUrl = getNovncUrl();
-    const novncIframeUrl = getNovncUrl({ viewOnly: false, showDot: true });
+    // noVNC via nginx (/novnc/) — works in Docker prod and Vite dev (proxy in vite.config.ts)
+    const novncViewerUrl = '/novnc/vnc.html?autoconnect=true&resize=scale';
+    const novncIframeUrl = '/novnc/vnc.html?autoconnect=true&resize=scale&view_only=0&show_dot=true';
 
     const closeAllCals = () => {
         setCalendarOpen(false);
@@ -408,12 +408,12 @@ const TesterDashboard = () => {
     useEffect(() => {
         if (!campaignIdsKey) return;
 
-        const wsBase = getWsBaseUrl().replace(/\/$/, '');
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const token = localStorage.getItem('access_token');
         const sockets: WebSocket[] = [];
 
         campaigns.forEach(camp => {
-            const wsUrl = `${wsBase}/ws/campaigns/${camp.id}/live/?token=${token}`;
+            const wsUrl = `${protocol}//${window.location.host}/ws/campaigns/${camp.id}/live/?token=${token}`;
             const ws = new WebSocket(wsUrl);
             ws.onmessage = () => {
                 fetchAssignedCampaigns(currentPageRef.current, true);
@@ -1440,6 +1440,28 @@ const TesterDashboard = () => {
                                                 {liveLogs || executionResult?.logs || ''}
                                                 {executingCode && <span style={{ display: 'inline-block', width: '7px', height: '13px', background: '#4ade80', marginLeft: '2px' }} className="animate-pulse" />}
                                             </div>
+                                            {/* Preuves — capture + vidéo */}
+                                            {!executingCode && (executionResult?.proof_image_url || executionResult?.video_url) && (
+                                                <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '14px 18px' }} className="space-y-3">
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Preuves d'exécution</p>
+                                                    {executionResult.proof_image_url && (
+                                                        <a href={executionResult.proof_image_url} target="_blank" rel="noreferrer" className="block">
+                                                            <img
+                                                                src={executionResult.proof_image_url}
+                                                                alt="Capture d'écran"
+                                                                className="w-full max-h-48 object-contain rounded-lg border border-white/10 bg-black"
+                                                            />
+                                                        </a>
+                                                    )}
+                                                    {executionResult.video_url && (
+                                                        <video
+                                                            src={executionResult.video_url}
+                                                            controls
+                                                            className="w-full max-h-56 rounded-lg border border-white/10 bg-black"
+                                                        />
+                                                    )}
+                                                </div>
+                                            )}
                                             {/* Footer */}
                                             <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '12px 18px' }} className="flex items-center justify-end gap-2">
                                                 {executingCode && (
