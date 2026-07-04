@@ -1,0 +1,16 @@
+Base de données:
+  - Nom: insureTM_db
+  - User: postgres
+  - Password: 282681
+
+Volumes Docker du projet:
+  - projetfe_postgres_data  (base PostgreSQL)
+  - projetfe_media_data     (fichiers uploadés)
+  - projetfe_static_data    (fichiers statiques)
+  - projetfe_n8n_data       (workflows n8n)
+
+Fichiers exportés:
+  - backup_db.sql         → restauration base de données
+  - backup_media.tar.gz   → fichiers Excel, preuves, images
+  - backup_n8n.tar.gz     → workflows n8n (optionnel)
+  - backup_static.tar.gz  → static files (optionnel)
