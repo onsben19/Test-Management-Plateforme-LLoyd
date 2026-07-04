@@ -1,0 +1,37 @@
+# n8n.insuretb.tech — HTTPS reverse proxy (host nginx on VPS)
+# Prerequisite: DNS A record n8n.insuretb.tech → VPS IP
+# Cert: sudo certbot --nginx -d n8n.insuretb.tech
+
+server {
+    listen 443 ssl http2;
+    server_name n8n.insuretb.tech;
+
+    # ssl_certificate /etc/letsencrypt/live/n8n.insuretb.tech/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/n8n.insuretb.tech/privkey.pem;
+    # include /etc/letsencrypt/options-ssl-nginx.conf;
+
+    client_max_body_size 50M;
+
+    location / {
+        proxy_pass http://127.0.0.1:5678;
+        proxy_http_version 1.1;
+
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+}
+
+server {
+    listen 80;
+    server_name n8n.insuretb.tech;
+    return 301 https://$host$request_uri;
+}

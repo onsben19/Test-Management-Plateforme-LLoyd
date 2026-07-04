@@ -130,7 +130,7 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                                             className={`w-full text-left p-[8px] rounded-[8px] border-[0.5px] transition-colors
                                                 ${isActive 
                                                     ? 'bg-[rgba(127,119,221,0.1)] border-[rgba(127,119,221,0.2)]' 
-                                                    : 'bg-transparent border-transparent hover:bg-slate-100 dark:bg-white/[0.04]'
+                                                    : 'bg-transparent border-transparent hover:bg-slate-100 dark:hover:bg-white/[0.06]'
                                                 }`}
                                         >
                                             <div className="text-[12px] text-slate-700 dark:text-white/65 whitespace-nowrap overflow-hidden text-ellipsis mb-0.5 font-medium">

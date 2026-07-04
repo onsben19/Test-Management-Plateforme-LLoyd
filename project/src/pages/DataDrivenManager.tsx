@@ -45,6 +45,7 @@ import Button from '../components/ui/Button';
 import { createPortal } from 'react-dom';
 import { useTheme } from '../context/ThemeContext';
 import { formatCadencePerDay } from '../utils/cadence';
+import { getWsBaseUrl } from '../utils/apiConfig';
 
 interface TimelineGuardData {
     status: 'OPTIMAL' | 'WARNING' | 'CRITICAL' | 'INITIAL' | 'WAITING';

@@ -9,6 +9,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { getWsBaseUrl } from '../../../utils/apiConfig';
 
 // ---------------------------------------------------------------------------
 // Types

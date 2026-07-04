@@ -203,7 +203,7 @@ const Analytics = () => {
                 <div className="rounded-2xl border border-slate-200 dark:border-slate-800/80 overflow-hidden w-full">
                     <div className="overflow-x-auto max-h-60 custom-scrollbar">
                         <table className="min-w-full text-[10px]">
-                            <thead className="bg-slate-50 dark:bg-white dark:bg-slate-900 sticky top-0 font-bold text-slate-500 uppercase tracking-wider">
+                            <thead className="bg-slate-50 dark:bg-slate-900 sticky top-0 font-bold text-slate-500 uppercase tracking-wider">
                                 <tr>{keys.map(k => <th key={k} className="px-3 py-2 text-left">{k.replace(/_/g, ' ')}</th>)}</tr>
                             </thead>
                             <tbody className="bg-white/50 dark:bg-slate-950/30 divide-y divide-slate-100 dark:divide-slate-800/50">
@@ -246,12 +246,12 @@ const Analytics = () => {
                         data={plotData}
                         layout={{
                             autosize: true,
+                            ...(plotLayout || {}),
                             paper_bgcolor: 'transparent',
                             plot_bgcolor: 'transparent',
                             font: { color: 'var(--foreground)', family: 'Outfit, Inter, sans-serif', size: 10 },
                             showlegend: true,
                             legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center' },
-                            ...(plotLayout || {}),
                             title: undefined,
                             margin: {
                                 t: 10,
@@ -310,7 +310,7 @@ const Analytics = () => {
                                 key={vis.id}
                                 initial={{ opacity: 0, y: 15 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="group relative overflow-hidden bg-white dark:bg-white/[0.03] backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 hover:bg-slate-50 dark:hover:bg-slate-100 dark:bg-white/[0.05] transition-all duration-300 flex flex-col h-full shadow-2xl shadow-slate-200/50 dark:shadow-black/20"
+                                className="group relative overflow-hidden bg-white dark:bg-white/[0.03] backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 hover:bg-slate-50 dark:hover:bg-white/[0.06] transition-all duration-300 flex flex-col h-full shadow-2xl shadow-slate-200/50 dark:shadow-black/20"
                             >
                                 {/* Card Header */}
                                 <div className="flex justify-between items-start mb-4">
@@ -328,7 +328,7 @@ const Analytics = () => {
                                         </button>
                                         <button
                                             onClick={() => handleRefreshSaved(vis.id)}
-                                            className="p-2 bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-all border border-slate-200 dark:border-white/5"
+                                            className="p-2 bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl transition-all border border-slate-200 dark:border-white/5"
                                             title="Actualiser les données"
                                             disabled={refreshingId === vis.id}
                                         >

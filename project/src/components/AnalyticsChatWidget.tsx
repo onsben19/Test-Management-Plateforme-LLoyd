@@ -361,12 +361,12 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                         data={Array.isArray(props) ? props : (props.data || [])}
                         layout={{
                             autosize: true,
+                            ...(props.layout || {}),
                             paper_bgcolor: 'transparent',
                             plot_bgcolor: 'transparent',
-                            font: { color: '#e8eaf6', family: 'Outfit, Inter, sans-serif', size: 13 },
+                            font: { color: 'var(--foreground)', family: 'Outfit, Inter, sans-serif', size: 13 },
                             showlegend: true,
                             legend: { orientation: 'h', y: -0.1, x: 0.5, xanchor: 'center' },
-                            ...(props.layout || {}),
                             title: undefined,
                             margin: {
                                 t: 20,
