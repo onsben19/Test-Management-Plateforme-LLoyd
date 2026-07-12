@@ -1,8 +1,18 @@
+# ─────────────────────────────────────────────────────────
+# Production compose — runs pre-built images pulled from GHCR.
+#
+# Consumed by the CD pipeline on the Azure VM:
+#   export IMAGE_REPO=<owner>/<repo>   (lowercase, set by CI)
+#   export IMAGE_TAG=<6-char commit sha>
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Unlike docker-compose.yml (local dev, builds from source), this file
+# never builds: it only runs the images CI published, so no source is
+# bind-mounted over /app.
+# ─────────────────────────────────────────────────────────
 services:
 
-  # ─────────────────────────────────────────────────────────
-  # Database — PostgreSQL 15
-  # ─────────────────────────────────────────────────────────
   db:
     image: postgres:15-alpine
     container_name: insuretm-db
@@ -21,13 +31,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # ─────────────────────────────────────────────────────────
-  # Backend — Django + Gunicorn
-  # ─────────────────────────────────────────────────────────
   backend:
-    build:
-      context: ./InsureTM
-      dockerfile: Dockerfile
+    image: ghcr.io/${IMAGE_REPO}/backend:${IMAGE_TAG:-latest}
     container_name: insuretm-backend
     restart: unless-stopped
     ports:
@@ -37,7 +42,6 @@ services:
     env_file:
       - ./InsureTM/.env.docker
     volumes:
-      - ./InsureTM:/app
       - ./project/tests/generated:/project/tests/generated
       - ./project/playwright.config.ts:/project/playwright.config.ts
       - media_data:/app/media
@@ -46,43 +50,15 @@ services:
       db:
         condition: service_healthy
     expose:
-      - "8000"
+      - "8000:8000"
 
-  # ─────────────────────────────────────────────────────────
-  # Frontend — React / Vite → Nginx
-  # ─────────────────────────────────────────────────────────
   frontend:
-    build:
-      context: ./project
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: https://api.insuretb.tech/api
-        FRONTEND_URL: https://insuretb.tech
+    image: ghcr.io/${IMAGE_REPO}/frontend:${IMAGE_TAG:-latest}
     container_name: insuretm-frontend
     restart: unless-stopped
-    expose:
-      - "4173"
+    ports:
+      - "4173:4173"
 
-  # ─────────────────────────────────────────────────────────
-  # Nginx — Reverse Proxy (unique entry point)
-  # ─────────────────────────────────────────────────────────
-  # nginx:
-  #   image: nginx:alpine
-  #   container_name: insuretm-nginx
-  #   restart: unless-stopped
-  #   ports:
-  #     - "80:80"
-  #   volumes:
-  #     - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-  #     - media_data:/app/media:ro
-  #     - static_data:/app/staticfiles:ro
-  #   depends_on:
-  #     - backend
-  #     - frontend
-
-  # ─────────────────────────────────────────────────────────
-  # n8n — Workflow Automation (https://n8n.insuretb.tech via host nginx)
-  # ─────────────────────────────────────────────────────────
   n8n:
     image: n8nio/n8n:latest
     container_name: insuretm-n8n
