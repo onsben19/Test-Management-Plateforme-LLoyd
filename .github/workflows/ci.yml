@@ -222,6 +222,8 @@ jobs:
         env:
           IMAGE_REPO: ${{ needs.docker-build.outputs.image_repo }}
           IMAGE_TAG: ${{ needs.docker-build.outputs.short_sha }}
+          BACKEND_CHANGED: ${{ needs.changes.outputs.backend }}
+          FRONTEND_CHANGED: ${{ needs.changes.outputs.frontend }}
           GHCR_USER: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
         with:
@@ -230,7 +232,7 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           port: ${{ secrets.VM_SSH_PORT || 22 }}
           # Forward the values the remote script needs.
-          envs: IMAGE_REPO,IMAGE_TAG,GHCR_USER,GHCR_TOKEN
+          envs: IMAGE_REPO,IMAGE_TAG,BACKEND_CHANGED,FRONTEND_CHANGED,GHCR_USER,GHCR_TOKEN
           script: |
             set -euo pipefail
 
@@ -239,20 +241,58 @@ jobs:
             : "${APP_DIR:=/opt/insuretm}"
             cd "$APP_DIR"
 
-            echo "Deploying ${IMAGE_REPO} @ ${IMAGE_TAG} into ${APP_DIR}"
+            echo "Deploy ${IMAGE_REPO} @ ${IMAGE_TAG} (backend=${BACKEND_CHANGED} frontend=${FRONTEND_CHANGED}) -> ${APP_DIR}"
 
-            # Refresh compose files / project assets referenced as bind mounts.
+            # Refresh compose file / project assets referenced as bind mounts.
+            # (git reset --hard only touches tracked files, so the untracked
+            #  .env below is preserved across deploys.)
             git fetch --prune origin main
             git reset --hard origin/main
 
             # Authenticate to GHCR so private images can be pulled.
             echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
 
-            # Pin the image tag consumed by docker-compose.prod.yml.
-            export IMAGE_REPO IMAGE_TAG
+            # docker compose auto-loads this .env for ${VAR} interpolation.
+            # It's the persistent source of truth for each service's pinned tag,
+            # so every service always runs a real commit hash (never :latest).
+            # We rewrite ONLY the line of the service that changed this commit;
+            # the other service keeps its previously-deployed hash.
+            ENV_FILE=".env"
+            touch "$ENV_FILE"
+            upsert() {
+              key="$1"; val="$2"
+              if grep -q "^${key}=" "$ENV_FILE"; then
+                sed -i "s|^${key}=.*|${key}=${val}|" "$ENV_FILE"
+              else
+                echo "${key}=${val}" >> "$ENV_FILE"
+              fi
+            }
 
-            docker compose -f docker-compose.yml pull
-            docker compose -f docker-compose.yml up -d --remove-orphans
+            upsert IMAGE_REPO "${IMAGE_REPO}"
+
+            SERVICES=""
+            if [ "${BACKEND_CHANGED}" = "true" ]; then
+              upsert BACKEND_TAG "${IMAGE_TAG}"
+              SERVICES="${SERVICES} backend"
+            fi
+            if [ "${FRONTEND_CHANGED}" = "true" ]; then
+              upsert FRONTEND_TAG "${IMAGE_TAG}"
+              SERVICES="${SERVICES} frontend"
+            fi
+
+            if [ -z "${SERVICES}" ]; then
+              echo "No frontend/backend change to deploy."
+              docker logout ghcr.io
+              exit 0
+            fi
+
+            echo "Pinned tags (.env):"; cat "$ENV_FILE"
+            echo "Updating:${SERVICES}"
+
+            # Do NOT export BACKEND_TAG/FRONTEND_TAG here — a shell env var would
+            # override .env and break per-service persistence. Let compose read .env.
+            docker compose -f docker-compose.yml pull ${SERVICES}
+            docker compose -f docker-compose.yml up -d ${SERVICES}
 
             # Housekeeping.
             docker image prune -f
