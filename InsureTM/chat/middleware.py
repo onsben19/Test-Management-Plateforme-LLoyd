@@ -12,6 +12,7 @@ def get_user(user_id):
     except User.DoesNotExist:
         return AnonymousUser()
 
+
 class TokenAuthMiddleware:
     """
     Custom middleware that takes token from query string and authenticates user.
