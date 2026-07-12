@@ -17,6 +17,7 @@ BG_REPLACEMENTS = [
     ("#131d33", "slate-50"),
 ]
 
+
 TEXT_REPLACEMENTS = [
     ("text-white/55", "text-slate-600 dark:text-white/55"),
     ("text-white/30", "text-slate-500 dark:text-white/30"),
