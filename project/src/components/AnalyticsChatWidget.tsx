@@ -406,21 +406,110 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
         }
 
         if (valueKey && (msg.type === 'bar' || !msg.type)) {
+            const labels = normalized.map((row: any) => String(row[labelKey] ?? ''));
+            const maxLabelLen = Math.max(...labels.map((l: string) => l.length), 0);
+            const useHorizontal = maxLabelLen > 18 || normalized.length > 6;
+            const chartHeight = useHorizontal
+                ? Math.min(520, Math.max(280, normalized.length * 44 + 40))
+                : 300;
+            const truncate = (val: string) => {
+                const s = String(val ?? '');
+                return s.length > 42 ? `${s.slice(0, 40)}…` : s;
+            };
+            const yAxisWidth = useHorizontal ? Math.min(220, Math.max(110, maxLabelLen * 6.5)) : 40;
+
             return (
-                <div className="mt-3 h-[300px] w-full p-6 rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-white/[0.02] shadow-inner">
+                <div
+                    className="mt-3 w-full p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-white/[0.02] shadow-inner"
+                    style={{ height: chartHeight }}
+                >
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={normalized} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                        <BarChart
+                            data={normalized}
+                            layout={useHorizontal ? 'vertical' : 'horizontal'}
+                            margin={useHorizontal
+                                ? { top: 8, right: 24, left: 8, bottom: 8 }
+                                : { top: 20, right: 24, left: 8, bottom: 48 }}
+                        >
                             <defs>
-                                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                                <linearGradient id="colorValue" x1="0" y1="0" x2={useHorizontal ? '1' : '0'} y2={useHorizontal ? '0' : '1'}>
+                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9}/>
+                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.35}/>
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.12)" />
-                            <XAxis dataKey={labelKey} fontSize={12} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500 dark:text-slate-400" angle={-35} textAnchor="end" interval="preserveStartEnd" padding={{ left: 20, right: 20 }} />
-                            <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500 dark:text-slate-400" width={40} />
-                            <Tooltip contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '12px', fontSize: '12px', border: '1px solid var(--border)', color: 'var(--foreground)', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }} />
-                            <Bar dataKey={valueKey} fill="url(#colorValue)" radius={[8, 8, 0, 0]} maxBarSize={60} />
+                            <CartesianGrid
+                                strokeDasharray="3 3"
+                                horizontal={!useHorizontal}
+                                vertical={useHorizontal}
+                                stroke="rgba(148,163,184,0.12)"
+                            />
+                            {useHorizontal ? (
+                                <>
+                                    <XAxis
+                                        type="number"
+                                        fontSize={11}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tick={{ fill: 'currentColor' }}
+                                        className="text-slate-500 dark:text-slate-400"
+                                    />
+                                    <YAxis
+                                        type="category"
+                                        dataKey={labelKey}
+                                        width={yAxisWidth}
+                                        fontSize={10}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tick={{ fill: 'currentColor' }}
+                                        className="text-slate-600 dark:text-slate-300"
+                                        tickFormatter={truncate}
+                                        interval={0}
+                                    />
+                                </>
+                            ) : (
+                                <>
+                                    <XAxis
+                                        dataKey={labelKey}
+                                        fontSize={11}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tick={{ fill: 'currentColor' }}
+                                        className="text-slate-500 dark:text-slate-400"
+                                        tickFormatter={truncate}
+                                        interval={0}
+                                        height={48}
+                                    />
+                                    <YAxis
+                                        fontSize={11}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tick={{ fill: 'currentColor' }}
+                                        className="text-slate-500 dark:text-slate-400"
+                                        width={40}
+                                    />
+                                </>
+                            )}
+                            <Tooltip
+                                contentStyle={{
+                                    backgroundColor: '#0f172a',
+                                    borderRadius: '12px',
+                                    fontSize: '12px',
+                                    border: '1px solid rgba(148,163,184,0.25)',
+                                    color: '#f8fafc',
+                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.35)',
+                                    maxWidth: 320,
+                                    whiteSpace: 'normal',
+                                }}
+                                labelStyle={{ color: '#e2e8f0', fontWeight: 600, marginBottom: 4 }}
+                                itemStyle={{ color: '#93c5fd' }}
+                                cursor={{ fill: 'rgba(59, 130, 246, 0.12)' }}
+                            />
+                            <Bar
+                                dataKey={valueKey}
+                                fill="url(#colorValue)"
+                                radius={useHorizontal ? [0, 8, 8, 0] : [8, 8, 0, 0]}
+                                maxBarSize={useHorizontal ? 28 : 56}
+                            />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

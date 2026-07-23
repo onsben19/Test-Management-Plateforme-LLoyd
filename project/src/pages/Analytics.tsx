@@ -178,21 +178,77 @@ const Analytics = () => {
 
             if (valueKey && (chartType === 'bar' || !chartType)) {
                 const gradientId = `colorValue-${vis.id}`;
+                const labels = normalized.map((row: any) => String(row[labelKey] ?? ''));
+                const maxLabelLen = Math.max(...labels.map((l: string) => l.length), 0);
+                const useHorizontal = maxLabelLen > 18 || normalized.length > 6;
+                const chartHeight = useHorizontal
+                    ? Math.min(520, Math.max(280, normalized.length * 44 + 40))
+                    : 300;
+                const truncate = (val: string) => {
+                    const s = String(val ?? '');
+                    return s.length > 42 ? `${s.slice(0, 40)}…` : s;
+                };
+                const yAxisWidth = useHorizontal ? Math.min(220, Math.max(110, maxLabelLen * 6.5)) : 30;
+
                 return (
-                    <div className="h-[300px] w-full bg-slate-950/20 rounded-2xl p-4 border border-slate-200/50 dark:border-slate-200 dark:border-white/5">
+                    <div
+                        className="w-full bg-slate-950/20 rounded-2xl p-4 border border-slate-200/50 dark:border-white/5"
+                        style={{ height: chartHeight }}
+                    >
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={normalized} margin={{ top: 10, right: 10, left: -10, bottom: 20 }}>
+                            <BarChart
+                                data={normalized}
+                                layout={useHorizontal ? 'vertical' : 'horizontal'}
+                                margin={useHorizontal
+                                    ? { top: 8, right: 16, left: 4, bottom: 8 }
+                                    : { top: 10, right: 10, left: -10, bottom: 40 }}
+                            >
                                 <defs>
-                                    <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                                    <linearGradient id={gradientId} x1="0" y1="0" x2={useHorizontal ? '1' : '0'} y2={useHorizontal ? '0' : '1'}>
+                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9}/>
+                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.35}/>
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.08)" />
-                                <XAxis dataKey={labelKey} fontSize={10} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500" angle={-25} textAnchor="end" interval={0} />
-                                <YAxis fontSize={10} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500" width={30} />
-                                <ChartTooltip contentStyle={{ backgroundColor: 'var(--card)', borderRadius: '12px', fontSize: '10px', border: '1px solid var(--border)', color: 'var(--foreground)' }} cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }} />
-                                <Bar dataKey={valueKey} fill={`url(#${gradientId})`} radius={[4, 4, 0, 0]} maxBarSize={40} />
+                                <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    horizontal={!useHorizontal}
+                                    vertical={useHorizontal}
+                                    stroke="rgba(148,163,184,0.08)"
+                                />
+                                {useHorizontal ? (
+                                    <>
+                                        <XAxis type="number" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500" />
+                                        <YAxis
+                                            type="category"
+                                            dataKey={labelKey}
+                                            width={yAxisWidth}
+                                            fontSize={10}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            tick={{ fill: 'currentColor' }}
+                                            className="text-slate-500"
+                                            tickFormatter={truncate}
+                                            interval={0}
+                                        />
+                                    </>
+                                ) : (
+                                    <>
+                                        <XAxis dataKey={labelKey} fontSize={10} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500" tickFormatter={truncate} interval={0} height={40} />
+                                        <YAxis fontSize={10} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500" width={30} />
+                                    </>
+                                )}
+                                <ChartTooltip
+                                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', fontSize: '10px', border: '1px solid rgba(148,163,184,0.25)', color: '#f8fafc', maxWidth: 300, whiteSpace: 'normal' }}
+                                    labelStyle={{ color: '#e2e8f0', fontWeight: 600 }}
+                                    itemStyle={{ color: '#93c5fd' }}
+                                    cursor={{ fill: 'rgba(59, 130, 246, 0.12)' }}
+                                />
+                                <Bar
+                                    dataKey={valueKey}
+                                    fill={`url(#${gradientId})`}
+                                    radius={useHorizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]}
+                                    maxBarSize={useHorizontal ? 24 : 40}
+                                />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>

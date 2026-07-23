@@ -10,7 +10,7 @@ from fpdf import FPDF
 
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.decorators import action
 
 from notifications.models import Notification
@@ -54,7 +54,8 @@ class AnomalieViewSet(viewsets.ModelViewSet):
     queryset = Anomalie.objects.all()
     serializer_class = AnomalieSerializer
     permission_classes = [IsAuthenticated]
-    parser_classes = (MultiPartParser, FormParser)
+    # Multipart for preuve uploads; JSON for diagnose_external_logs and other API calls
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     def get_queryset(self):
         queryset = Anomalie.objects.select_related(

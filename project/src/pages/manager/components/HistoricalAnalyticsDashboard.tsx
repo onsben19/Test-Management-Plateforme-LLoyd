@@ -168,7 +168,7 @@ const HistoricalAnalyticsDashboard = ({ projectId }: { projectId: string }) => {
     const trendValue = qualitySummary.trend_delta;
     const isQualityLoading = loading || releasesLoading;
 
-    const tdClass = "p-4 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-100 dark:group-hover:bg-slate-100 dark:hover:bg-white/5 transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-300 dark:group-hover:border-slate-200 dark:border-white/10";
+    const tdClass = "p-4 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-[#0b0e14]/60 group-hover:bg-slate-100 dark:group-hover:bg-white/[0.06] transition-colors first:rounded-l-2xl last:rounded-r-2xl border-t border-b first:border-l last:border-r border-slate-200 dark:border-white/[0.03] group-hover:border-slate-300 dark:group-hover:border-white/10";
 
     if (loading && testerData.length === 0 && releaseData.length === 0) {
         return <div className="p-10 text-slate-500 font-bold animate-pulse">Chargement des analytics...</div>;

@@ -12,5 +12,16 @@ Volumes Docker du projet:
 Fichiers exportés:
   - backup_db.sql         → restauration base de données
   - backup_media.tar.gz   → fichiers Excel, preuves, images
-  - backup_n8n.tar.gz     → workflows n8n (optionnel)
+  - backup_n8n.tar.gz     → volume n8n (workflows, credentials, database.sqlite)
   - backup_static.tar.gz  → static files (optionnel)
+
+Restauration volume n8n (sur le VPS):
+  1. docker compose stop n8n
+  2. docker run --rm -v projetfe_n8n_data:/data -v $(pwd)/export_deploiement:/backup alpine sh -c "rm -rf /data/* && tar xzf /backup/backup_n8n.tar.gz -C /data"
+  3. docker compose up -d n8n
+  4. Vérifier: https://n8n.insuretb.tech — workflow Published
+
+Contenu du volume n8n (monté sur /home/node/.n8n):
+  - database.sqlite   → workflows, exécutions, credentials chiffrés
+  - config            → configuration instance n8n
+  - nodes/            → nodes personnalisés (si présents)
