@@ -11,11 +11,90 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-    ResponsiveContainer
+    ResponsiveContainer, LabelList, Cell
 } from 'recharts';
 import Plot from 'react-plotly.js';
 import { aiService, savedVisualizationService } from '../services/api';
 import StarBorder from './bits/StarBorder';
+
+/** Libellés FR lisibles pour colonnes SQL brutes */
+const COLUMN_LABELS: Record<string, string> = {
+    title: 'Campagne',
+    campaign_title: 'Campagne',
+    campaign: 'Campagne',
+    name: 'Nom',
+    version: 'Release',
+    module: 'Module',
+    module_name: 'Module',
+    status: 'Statut',
+    impact: 'Impact',
+    tester: 'Testeur',
+    tester_name: 'Testeur',
+    username: 'Utilisateur',
+    count: 'Nombre',
+    total: 'Total',
+    nb: 'Nombre',
+    passed: 'Réussis',
+    failed: 'Échoués',
+    pending: 'En attente',
+    pass_rate: 'Taux de réussite (%)',
+    success_rate: 'Taux de réussite (%)',
+    taux_reussite: 'Taux de réussite (%)',
+    anomaly_count: 'Anomalies',
+    anomalies: 'Anomalies',
+    critical: 'Critiques',
+    blocking: 'Bloquantes',
+    velocity: 'Vélocité',
+    id: 'ID',
+    campaign_id: 'ID campagne',
+};
+
+function humanizeColumn(key: string): string {
+    const k = String(key || '').toLowerCase();
+    if (COLUMN_LABELS[k]) return COLUMN_LABELS[k];
+    if (k.includes('pass') && k.includes('rate')) return 'Taux de réussite (%)';
+    if (k.includes('anomal')) return 'Anomalies';
+    if (k.includes('title') || k.includes('campagne')) return 'Campagne';
+    return String(key).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function pickLabelKey(keys: string[], row: Record<string, unknown>): string {
+    const preferred = keys.find(k =>
+        /title|name|campagne|version|module|tester/i.test(k) && Number.isNaN(Number(row[k]))
+    );
+    if (preferred) return preferred;
+    const nonNumeric = keys.find(k => Number.isNaN(Number(row[k])));
+    return nonNumeric || keys[0];
+}
+
+function pickNumericKeys(keys: string[], rows: any[], labelKey: string): string[] {
+    return keys.filter(k =>
+        k !== labelKey &&
+        !/_?id$/i.test(k) &&
+        rows.some(r => r[k] !== null && r[k] !== '' && !Number.isNaN(Number(r[k])))
+    );
+}
+
+function formatCellValue(key: string, value: unknown): string {
+    if (value === null || value === undefined || value === '') return '—';
+    const n = Number(value);
+    if (!Number.isNaN(n) && String(value).trim() !== '') {
+        const k = key.toLowerCase();
+        if (k.includes('rate') || k.includes('taux') || k.includes('percent') || k.includes('%')) {
+            return `${Number.isInteger(n) ? n : n.toFixed(1)} %`;
+        }
+        return Number.isInteger(n) ? String(n) : n.toFixed(1);
+    }
+    return String(value);
+}
+
+function barColor(value: number, max: number): string {
+    if (max <= 0) return '#3b82f6';
+    const ratio = value / max;
+    if (ratio >= 0.7) return '#10b981';
+    if (ratio >= 0.4) return '#f59e0b';
+    return '#f43f5e';
+}
 
 interface Message {
     id: string;
@@ -392,142 +471,149 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
         }
         if (!Array.isArray(msg.data) || msg.data.length === 0) return null;
         const keys = Object.keys(msg.data[0]);
-        const labelKey = keys[0];
-        const valueKey = keys.find(k => k !== labelKey && !isNaN(Number(msg.data[0][k])));
-        const normalized = msg.data.map((row: any) => ({ ...row, ...(valueKey ? { [valueKey]: Number(row[valueKey]) } : {}) }));
+        const labelKey = pickLabelKey(keys, msg.data[0]);
+        const numericKeys = pickNumericKeys(keys, msg.data, labelKey);
+        const valueKey = numericKeys[0];
+        const rows = msg.data.map((row: any) => {
+            const next = { ...row };
+            numericKeys.forEach(k => {
+                if (next[k] !== null && next[k] !== '' && !Number.isNaN(Number(next[k]))) {
+                    next[k] = Number(next[k]);
+                }
+            });
+            return next;
+        });
 
-        if (msg.type === 'metric') {
-            return (
-                <div className="mt-3 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-blue-600 to-violet-600 rounded-2xl text-white text-center shadow-xl">
-                    <span className="text-5xl font-black">{normalized[0][keys[0]]}</span>
-                    <div className="mt-2 text-xs bg-slate-300 dark:bg-white/20 px-3 py-1 rounded-full">{keys[0].replace(/_/g, ' ')}</div>
+        const renderReadableTable = () => (
+            <div className="mt-3 rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden bg-white/70 dark:bg-[#0b1220]/80">
+                <div className="px-4 py-2.5 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03]">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                        Résultats ({rows.length})
+                    </p>
                 </div>
-            );
-        }
-
-        if (valueKey && (msg.type === 'bar' || !msg.type)) {
-            const labels = normalized.map((row: any) => String(row[labelKey] ?? ''));
-            const maxLabelLen = Math.max(...labels.map((l: string) => l.length), 0);
-            const useHorizontal = maxLabelLen > 18 || normalized.length > 6;
-            const chartHeight = useHorizontal
-                ? Math.min(520, Math.max(280, normalized.length * 44 + 40))
-                : 300;
-            const truncate = (val: string) => {
-                const s = String(val ?? '');
-                return s.length > 42 ? `${s.slice(0, 40)}…` : s;
-            };
-            const yAxisWidth = useHorizontal ? Math.min(220, Math.max(110, maxLabelLen * 6.5)) : 40;
-
-            return (
-                <div
-                    className="mt-3 w-full p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-white/[0.02] shadow-inner"
-                    style={{ height: chartHeight }}
-                >
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                            data={normalized}
-                            layout={useHorizontal ? 'vertical' : 'horizontal'}
-                            margin={useHorizontal
-                                ? { top: 8, right: 24, left: 8, bottom: 8 }
-                                : { top: 20, right: 24, left: 8, bottom: 48 }}
-                        >
-                            <defs>
-                                <linearGradient id="colorValue" x1="0" y1="0" x2={useHorizontal ? '1' : '0'} y2={useHorizontal ? '0' : '1'}>
-                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9}/>
-                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.35}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid
-                                strokeDasharray="3 3"
-                                horizontal={!useHorizontal}
-                                vertical={useHorizontal}
-                                stroke="rgba(148,163,184,0.12)"
-                            />
-                            {useHorizontal ? (
-                                <>
-                                    <XAxis
-                                        type="number"
-                                        fontSize={11}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        tick={{ fill: 'currentColor' }}
-                                        className="text-slate-500 dark:text-slate-400"
-                                    />
-                                    <YAxis
-                                        type="category"
-                                        dataKey={labelKey}
-                                        width={yAxisWidth}
-                                        fontSize={10}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        tick={{ fill: 'currentColor' }}
-                                        className="text-slate-600 dark:text-slate-300"
-                                        tickFormatter={truncate}
-                                        interval={0}
-                                    />
-                                </>
-                            ) : (
-                                <>
-                                    <XAxis
-                                        dataKey={labelKey}
-                                        fontSize={11}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        tick={{ fill: 'currentColor' }}
-                                        className="text-slate-500 dark:text-slate-400"
-                                        tickFormatter={truncate}
-                                        interval={0}
-                                        height={48}
-                                    />
-                                    <YAxis
-                                        fontSize={11}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        tick={{ fill: 'currentColor' }}
-                                        className="text-slate-500 dark:text-slate-400"
-                                        width={40}
-                                    />
-                                </>
-                            )}
-                            <Tooltip
-                                contentStyle={{
-                                    backgroundColor: '#0f172a',
-                                    borderRadius: '12px',
-                                    fontSize: '12px',
-                                    border: '1px solid rgba(148,163,184,0.25)',
-                                    color: '#f8fafc',
-                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.35)',
-                                    maxWidth: 320,
-                                    whiteSpace: 'normal',
-                                }}
-                                labelStyle={{ color: '#e2e8f0', fontWeight: 600, marginBottom: 4 }}
-                                itemStyle={{ color: '#93c5fd' }}
-                                cursor={{ fill: 'rgba(59, 130, 246, 0.12)' }}
-                            />
-                            <Bar
-                                dataKey={valueKey}
-                                fill="url(#colorValue)"
-                                radius={useHorizontal ? [0, 8, 8, 0] : [8, 8, 0, 0]}
-                                maxBarSize={useHorizontal ? 28 : 56}
-                            />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-            );
-        }
-
-        return (
-            <div className="mt-3 rounded-2xl border border-slate-200 dark:border-slate-700/50 overflow-hidden">
-                <div className="overflow-x-auto max-h-60">
-                    <table className="min-w-full text-[11px]">
-                        <thead className="bg-slate-50 dark:bg-slate-800 sticky top-0 font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                            <tr>{keys.map(k => <th key={k} className="px-4 py-2 text-left">{k.replace(/_/g, ' ')}</th>)}</tr>
+                <div className="overflow-x-auto max-h-80">
+                    <table className="min-w-full text-[12px]">
+                        <thead className="sticky top-0 bg-slate-100 dark:bg-slate-900/95">
+                            <tr>
+                                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 w-10">#</th>
+                                {keys.map(k => (
+                                    <th key={k} className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                                        {humanizeColumn(k)}
+                                    </th>
+                                ))}
+                            </tr>
                         </thead>
-                        <tbody className="bg-white/50 dark:bg-slate-900/60 divide-y divide-slate-100 dark:divide-slate-800">
-                            {normalized.map((row, i) => <tr key={i} className="hover:bg-blue-50 dark:hover:bg-blue-900/10 text-slate-700 dark:text-slate-300">{keys.map(k => <td key={k} className="px-4 py-2">{row[k]}</td>)}</tr>)}
+                        <tbody className="divide-y divide-slate-100 dark:divide-white/[0.06]">
+                            {rows.map((row: any, i: number) => (
+                                <tr key={i} className="hover:bg-blue-50/70 dark:hover:bg-white/[0.04] text-slate-700 dark:text-slate-200">
+                                    <td className="px-3 py-2.5 text-slate-400 font-semibold tabular-nums">{i + 1}</td>
+                                    {keys.map(k => {
+                                        const formatted = formatCellValue(k, row[k]);
+                                        const isLabel = k === labelKey;
+                                        const isRate = /rate|taux|percent|%/i.test(k);
+                                        const n = Number(row[k]);
+                                        const rateClass = isRate && !Number.isNaN(n)
+                                            ? (n >= 80 ? 'text-emerald-500 font-bold' : n >= 50 ? 'text-amber-500 font-bold' : 'text-rose-500 font-bold')
+                                            : '';
+                                        return (
+                                            <td
+                                                key={k}
+                                                className={`px-3 py-2.5 ${isLabel ? 'font-semibold text-slate-900 dark:text-white min-w-[180px] max-w-[320px]' : 'whitespace-nowrap tabular-nums'} ${rateClass}`}
+                                                title={String(row[k] ?? '')}
+                                            >
+                                                {formatted}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>
+            </div>
+        );
+
+        if (msg.type === 'metric') {
+            const metricKey = keys[0];
+            return (
+                <div className="mt-3 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-blue-600 to-violet-600 rounded-2xl text-white text-center shadow-xl">
+                    <span className="text-5xl font-black tabular-nums">{formatCellValue(metricKey, rows[0][metricKey])}</span>
+                    <div className="mt-2 text-xs bg-white/20 px-3 py-1 rounded-full">{humanizeColumn(metricKey)}</div>
+                </div>
+            );
+        }
+
+        // Toujours un tableau clair ; + graphique simple si une seule métrique numérique
+        const showSimpleBar = Boolean(valueKey) && numericKeys.length === 1 && (msg.type === 'bar' || msg.type === 'line' || !msg.type);
+        const chartRows = showSimpleBar
+            ? rows.slice(0, 12).map((row: any, i: number) => ({
+                rank: String(i + 1),
+                fullLabel: String(row[labelKey] ?? `Élément ${i + 1}`),
+                value: Number(row[valueKey]) || 0,
+            }))
+            : [];
+        const maxVal = Math.max(...chartRows.map(r => r.value), 0);
+
+        return (
+            <div className="mt-3 w-full space-y-3">
+                {showSimpleBar && chartRows.length > 0 && (
+                    <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] p-4">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">
+                            {humanizeColumn(valueKey!)} — vue graphique
+                        </p>
+                        <div className="h-[260px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartRows} margin={{ top: 24, right: 12, left: 0, bottom: 8 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.15)" />
+                                    <XAxis
+                                        dataKey="rank"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tick={{ fill: '#94a3b8', fontWeight: 700 }}
+                                        label={{ value: 'N°', position: 'insideBottom', offset: -2, fill: '#64748b', fontSize: 10 }}
+                                    />
+                                    <YAxis
+                                        fontSize={11}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tick={{ fill: '#94a3b8' }}
+                                        width={36}
+                                    />
+                                    <Tooltip
+                                        formatter={(val: any) => [formatCellValue(valueKey!, val), humanizeColumn(valueKey!)]}
+                                        labelFormatter={(_, payload) => payload?.[0]?.payload?.fullLabel || ''}
+                                        contentStyle={{
+                                            backgroundColor: '#0f172a',
+                                            borderRadius: 12,
+                                            fontSize: 12,
+                                            border: '1px solid rgba(148,163,184,0.25)',
+                                            color: '#f8fafc',
+                                            maxWidth: 320,
+                                            whiteSpace: 'normal',
+                                        }}
+                                        cursor={{ fill: 'rgba(59,130,246,0.1)' }}
+                                    />
+                                    <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={44}>
+                                        {chartRows.map((entry, idx) => (
+                                            <Cell key={idx} fill={barColor(entry.value, maxVal)} />
+                                        ))}
+                                        <LabelList dataKey="value" position="top" fill="#94a3b8" fontSize={10} fontWeight={700} />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-36 overflow-y-auto">
+                            {chartRows.map((r) => (
+                                <div key={r.rank} className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-300 px-2 py-1 rounded-lg bg-white/60 dark:bg-white/[0.03]">
+                                    <span className="font-black text-blue-500 shrink-0 w-5">{r.rank}.</span>
+                                    <span className="leading-snug" title={r.fullLabel}>{r.fullLabel}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                {renderReadableTable()}
             </div>
         );
     };
@@ -542,7 +628,7 @@ const AnalyticsChatWidget: React.FC<AnalyticsChatWidgetProps> = ({
                     {isUser ? <User className="w-[14px] h-[14px] text-white" /> : <span className="font-[500] text-[#AFA9EC] text-[12px]">IA</span>}
                 </div>
 
-                <div className={`flex flex-col ${msg.type === 'plotly' || msg.type === 'bar' ? 'w-full max-w-full' : 'max-w-[85%]'} ${isUser ? 'items-end' : 'items-start'}`}>
+                <div className={`flex flex-col ${msg.type === 'plotly' || msg.type === 'bar' || msg.type === 'table' || msg.type === 'line' || (!!msg.data && Array.isArray(msg.data)) ? 'w-full max-w-full' : 'max-w-[85%]'} ${isUser ? 'items-end' : 'items-start'}`}>
                     {isUser && isEditing ? (
                         <div className="flex flex-col gap-2 w-72">
                             <textarea autoFocus value={editingText} onChange={e => setEditingText(e.target.value)} className="w-full bg-slate-50 dark:bg-white/[0.03] backdrop-blur-md border border-[#378ADD] text-white rounded-xl px-3 py-2 text-sm resize-none focus:outline-none" rows={3} />

@@ -10,9 +10,29 @@ import api, { savedVisualizationService } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip,
-    ResponsiveContainer
+    ResponsiveContainer, LabelList, Cell
 } from 'recharts';
 import Plot from 'react-plotly.js';
+
+const COLUMN_LABELS: Record<string, string> = {
+    title: 'Campagne', campaign_title: 'Campagne', name: 'Nom', version: 'Release',
+    passed: 'Réussis', failed: 'Échoués', pass_rate: 'Taux de réussite (%)',
+    anomaly_count: 'Anomalies', count: 'Nombre', total: 'Total', velocity: 'Vélocité',
+};
+
+const humanizeColumn = (key: string) =>
+    COLUMN_LABELS[String(key || '').toLowerCase()] ||
+    String(key).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+const formatCell = (key: string, value: unknown) => {
+    if (value === null || value === undefined || value === '') return '—';
+    const n = Number(value);
+    if (!Number.isNaN(n) && String(value).trim() !== '') {
+        if (/rate|taux|percent|%/i.test(key)) return `${Number.isInteger(n) ? n : n.toFixed(1)} %`;
+        return Number.isInteger(n) ? String(n) : n.toFixed(1);
+    }
+    return String(value);
+};
 
 interface Conversation {
     id: string;
@@ -161,114 +181,98 @@ const Analytics = () => {
             }
 
             const keys = Object.keys(rows[0]);
-            const labelKey = keys[0];
-            const valueKey = keys.find((k) =>
-                k !== labelKey && rows.some((row: any) => row[k] !== null && row[k] !== '' && !isNaN(Number(row[k])))
+            const labelKey = keys.find(k => /title|name|campagne|version/i.test(k)) || keys.find(k => Number.isNaN(Number(rows[0][k]))) || keys[0];
+            const numericKeys = keys.filter(k =>
+                k !== labelKey && !/_?id$/i.test(k) &&
+                rows.some((row: any) => row[k] !== null && row[k] !== '' && !Number.isNaN(Number(row[k])))
             );
-            const normalized = rows.map((row: any) => ({ ...row, ...(valueKey ? { [valueKey]: Number(row[valueKey]) } : {}) }));
+            const valueKey = numericKeys[0];
+            const normalized = rows.map((row: any) => {
+                const next = { ...row };
+                numericKeys.forEach(k => { if (!Number.isNaN(Number(next[k]))) next[k] = Number(next[k]); });
+                return next;
+            });
 
             if (chartType === 'metric') {
                 return (
                     <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-blue-600/10 to-violet-600/10 border border-blue-500/10 rounded-2xl text-center shadow-lg w-full">
-                        <span className="text-5xl font-black text-blue-500 dark:text-blue-400">{normalized[0][keys[0]]}</span>
-                        <div className="mt-2 text-[10px] uppercase tracking-widest font-black text-slate-400">{keys[0].replace(/_/g, ' ')}</div>
+                        <span className="text-5xl font-black text-blue-500 dark:text-blue-400">{formatCell(keys[0], normalized[0][keys[0]])}</span>
+                        <div className="mt-2 text-[10px] uppercase tracking-widest font-black text-slate-400">{humanizeColumn(keys[0])}</div>
                     </div>
                 );
             }
 
-            if (valueKey && (chartType === 'bar' || !chartType)) {
-                const gradientId = `colorValue-${vis.id}`;
-                const labels = normalized.map((row: any) => String(row[labelKey] ?? ''));
-                const maxLabelLen = Math.max(...labels.map((l: string) => l.length), 0);
-                const useHorizontal = maxLabelLen > 18 || normalized.length > 6;
-                const chartHeight = useHorizontal
-                    ? Math.min(520, Math.max(280, normalized.length * 44 + 40))
-                    : 300;
-                const truncate = (val: string) => {
-                    const s = String(val ?? '');
-                    return s.length > 42 ? `${s.slice(0, 40)}…` : s;
-                };
-                const yAxisWidth = useHorizontal ? Math.min(220, Math.max(110, maxLabelLen * 6.5)) : 30;
-
-                return (
-                    <div
-                        className="w-full bg-slate-950/20 rounded-2xl p-4 border border-slate-200/50 dark:border-white/5"
-                        style={{ height: chartHeight }}
-                    >
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart
-                                data={normalized}
-                                layout={useHorizontal ? 'vertical' : 'horizontal'}
-                                margin={useHorizontal
-                                    ? { top: 8, right: 16, left: 4, bottom: 8 }
-                                    : { top: 10, right: 10, left: -10, bottom: 40 }}
-                            >
-                                <defs>
-                                    <linearGradient id={gradientId} x1="0" y1="0" x2={useHorizontal ? '1' : '0'} y2={useHorizontal ? '0' : '1'}>
-                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9}/>
-                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.35}/>
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid
-                                    strokeDasharray="3 3"
-                                    horizontal={!useHorizontal}
-                                    vertical={useHorizontal}
-                                    stroke="rgba(148,163,184,0.08)"
-                                />
-                                {useHorizontal ? (
-                                    <>
-                                        <XAxis type="number" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500" />
-                                        <YAxis
-                                            type="category"
-                                            dataKey={labelKey}
-                                            width={yAxisWidth}
-                                            fontSize={10}
-                                            tickLine={false}
-                                            axisLine={false}
-                                            tick={{ fill: 'currentColor' }}
-                                            className="text-slate-500"
-                                            tickFormatter={truncate}
-                                            interval={0}
-                                        />
-                                    </>
-                                ) : (
-                                    <>
-                                        <XAxis dataKey={labelKey} fontSize={10} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500" tickFormatter={truncate} interval={0} height={40} />
-                                        <YAxis fontSize={10} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} className="text-slate-500" width={30} />
-                                    </>
-                                )}
-                                <ChartTooltip
-                                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', fontSize: '10px', border: '1px solid rgba(148,163,184,0.25)', color: '#f8fafc', maxWidth: 300, whiteSpace: 'normal' }}
-                                    labelStyle={{ color: '#e2e8f0', fontWeight: 600 }}
-                                    itemStyle={{ color: '#93c5fd' }}
-                                    cursor={{ fill: 'rgba(59, 130, 246, 0.12)' }}
-                                />
-                                <Bar
-                                    dataKey={valueKey}
-                                    fill={`url(#${gradientId})`}
-                                    radius={useHorizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]}
-                                    maxBarSize={useHorizontal ? 24 : 40}
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                );
-            }
-
-            return (
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-800/80 overflow-hidden w-full">
-                    <div className="overflow-x-auto max-h-60 custom-scrollbar">
-                        <table className="min-w-full text-[10px]">
+            const table = (
+                <div className="rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden w-full">
+                    <div className="overflow-x-auto max-h-72 custom-scrollbar">
+                        <table className="min-w-full text-[11px]">
                             <thead className="bg-slate-50 dark:bg-slate-900 sticky top-0 font-bold text-slate-500 uppercase tracking-wider">
-                                <tr>{keys.map(k => <th key={k} className="px-3 py-2 text-left">{k.replace(/_/g, ' ')}</th>)}</tr>
+                                <tr>
+                                    <th className="px-3 py-2 text-left w-8">#</th>
+                                    {keys.map(k => <th key={k} className="px-3 py-2 text-left whitespace-nowrap">{humanizeColumn(k)}</th>)}
+                                </tr>
                             </thead>
                             <tbody className="bg-white/50 dark:bg-slate-950/30 divide-y divide-slate-100 dark:divide-slate-800/50">
-                                {normalized.map((row, i) => <tr key={i} className="hover:bg-blue-50 dark:hover:bg-blue-900/5 text-slate-700 dark:text-slate-300">{keys.map(k => <td key={k} className="px-3 py-2">{row[k]}</td>)}</tr>)}
+                                {normalized.map((row, i) => (
+                                    <tr key={i} className="hover:bg-blue-50 dark:hover:bg-white/[0.04] text-slate-700 dark:text-slate-300">
+                                        <td className="px-3 py-2 text-slate-400 font-semibold">{i + 1}</td>
+                                        {keys.map(k => (
+                                            <td key={k} className={`px-3 py-2 ${k === labelKey ? 'font-semibold text-slate-900 dark:text-white max-w-[240px]' : 'whitespace-nowrap'}`}>
+                                                {formatCell(k, row[k])}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
                     </div>
                 </div>
             );
+
+            if (valueKey && numericKeys.length === 1 && (chartType === 'bar' || !chartType)) {
+                const chartRows = normalized.slice(0, 12).map((row: any, i: number) => ({
+                    rank: String(i + 1),
+                    fullLabel: String(row[labelKey] ?? `Élément ${i + 1}`),
+                    value: Number(row[valueKey]) || 0,
+                }));
+                const maxVal = Math.max(...chartRows.map(r => r.value), 0);
+                const color = (v: number) => (maxVal <= 0 ? '#3b82f6' : v / maxVal >= 0.7 ? '#10b981' : v / maxVal >= 0.4 ? '#f59e0b' : '#f43f5e');
+
+                return (
+                    <div className="w-full space-y-3">
+                        <div className="h-[240px] w-full bg-slate-950/20 rounded-2xl p-3 border border-slate-200/50 dark:border-white/5">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartRows} margin={{ top: 20, right: 8, left: 0, bottom: 4 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.08)" />
+                                    <XAxis dataKey="rank" fontSize={11} tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontWeight: 700 }} />
+                                    <YAxis fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#94a3b8' }} width={32} />
+                                    <ChartTooltip
+                                        formatter={(val: any) => [formatCell(valueKey, val), humanizeColumn(valueKey)]}
+                                        labelFormatter={(_, payload) => payload?.[0]?.payload?.fullLabel || ''}
+                                        contentStyle={{ backgroundColor: '#0f172a', borderRadius: 12, fontSize: 10, border: '1px solid rgba(148,163,184,0.25)', color: '#f8fafc', maxWidth: 280, whiteSpace: 'normal' }}
+                                        cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                                    />
+                                    <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={36}>
+                                        {chartRows.map((e, i) => <Cell key={i} fill={color(e.value)} />)}
+                                        <LabelList dataKey="value" position="top" fill="#94a3b8" fontSize={9} fontWeight={700} />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[10px] text-slate-500 dark:text-slate-300">
+                            {chartRows.map(r => (
+                                <div key={r.rank} className="flex gap-1.5 px-2 py-1 rounded bg-white/5">
+                                    <span className="font-black text-blue-400">{r.rank}.</span>
+                                    <span>{r.fullLabel}</span>
+                                </div>
+                            ))}
+                        </div>
+                        {table}
+                    </div>
+                );
+            }
+
+            return table;
         };
 
         if (vis.type === 'plotly') {
