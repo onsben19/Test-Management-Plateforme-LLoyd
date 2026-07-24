@@ -11,7 +11,6 @@ export interface Notification {
     related_object_id?: number;
 }
 
-
 export const notificationService = {
     getNotifications: () => api.get<Notification[]>('/notifications/?page_size=50'),
     markAsRead: (id: number) => api.post(`/notifications/${id}/mark_read/`),
