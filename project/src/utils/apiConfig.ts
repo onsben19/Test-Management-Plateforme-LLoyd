@@ -4,8 +4,14 @@
  * Dev:  localhost:5173 with Vite proxy → backend
  */
 
+const PROD_API_BASE = 'https://api.insuretb.tech/api';
+
 function apiBaseUrl(): string {
-  return (import.meta.env.VITE_API_BASE_URL || `${window.location.origin}/api`).replace(/\/+$/, '');
+  const fromEnv = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+  if (fromEnv) return fromEnv;
+  // Never fall back to the SPA host in production (no /api, /ws, /novnc there).
+  if (import.meta.env.PROD) return PROD_API_BASE;
+  return `${window.location.origin}/api`;
 }
 
 /** HTTP(S) backend origin, e.g. https://api.insuretb.tech */
@@ -27,6 +33,11 @@ export function getWsBaseUrl(): string {
   const url = new URL(origin);
   const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${protocol}//${url.host}`;
+}
+
+/** Absolute REST API root including trailing slash, e.g. https://api.insuretb.tech/api/ */
+export function getApiBaseUrl(): string {
+  return `${apiBaseUrl().replace(/\/+$/, '')}/`;
 }
 
 /** noVNC viewer URL (iframe or new tab) */

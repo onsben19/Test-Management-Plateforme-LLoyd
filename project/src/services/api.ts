@@ -94,7 +94,11 @@ export const executionService = {
     saveScript: (id: string | number, code: string) => api.post(`/testcases/${id}/save-script/`, { code }),
     executeScript: (id: string | number, mode: 'headless' | 'headed' | 'ui' = 'headless') => api.post(`/testcases/${id}/execute-script/`, { execution_mode: mode }),
     getLiveLogs: (id: string | number) => api.get(`/testcases/${id}/live-logs/`),
-    getVideoUrl: (id: string | number) => `/api/testcases/${id}/serve-video/`,
+    getVideoUrl: (id: string | number) => {
+        const token = localStorage.getItem('access_token') || '';
+        const qs = token ? `?token=${encodeURIComponent(token)}` : '';
+        return `${API_BASE_URL}testcases/${id}/serve-video/${qs}`;
+    },
 };
 
 export const anomalyService = {

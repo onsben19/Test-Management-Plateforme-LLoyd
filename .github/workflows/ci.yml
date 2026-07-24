@@ -197,12 +197,13 @@ jobs:
         with:
           context: ./project
           push: true
+          build-args: |
+            VITE_API_BASE_URL=https://api.insuretb.tech/api
           tags: |
             ghcr.io/${{ env.IMAGE_REPO }}/frontend:latest
             ghcr.io/${{ env.IMAGE_REPO }}/frontend:${{ env.SHORT_SHA }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
   # ----------------------------
   # Continuous Deployment — SSH to Azure VM & redeploy
   # ----------------------------

@@ -61,6 +61,12 @@ class TestCaseViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsTesterOrAdmin]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
+    def get_permissions(self):
+        # <video src> cannot send Authorization — auth is done via ?token= inside the action.
+        if getattr(self, 'action', None) == 'serve_video':
+            return [permissions.AllowAny()]
+        return super().get_permissions()
+
     def get_queryset(self):
         queryset = TestCase.objects.all()
         
@@ -507,8 +513,26 @@ class TestCaseViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='serve-video')
     def serve_video(self, request, pk=None):
-        """Serves the recorded Playwright video (.webm) for this test case."""
+        """Serves the recorded Playwright video (.webm) for this test case.
+
+        <video src> cannot send Authorization headers, so we also accept
+        ?token=<JWT> (same pattern as WebSocket auth).
+        """
         from django.http import FileResponse, Http404
+        from rest_framework_simplejwt.tokens import AccessToken
+        from django.contrib.auth import get_user_model
+
+        if not request.user or not request.user.is_authenticated:
+            raw = request.query_params.get('token')
+            if not raw:
+                return Response({'detail': 'Authentication credentials were not provided.'}, status=401)
+            try:
+                access = AccessToken(raw)
+                user = get_user_model().objects.get(id=access.payload.get('user_id'))
+                request.user = user
+            except Exception:
+                return Response({'detail': 'Invalid or expired token.'}, status=401)
+
         test_case = self.get_object()
 
         if test_case.proof_video:
